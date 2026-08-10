@@ -1,0 +1,53 @@
+# Everything `npm test` runs, on every push and every pull request.
+#
+# Deliberately boring. It checks the code and reports; it does not deploy, it
+# does not post anywhere, and it needs no repository secrets — so a fork gets a
+# working CI the moment it clicks Fork, with nothing to configure.
+#
+# `permissions: contents: read` is set explicitly. The default token is broader
+# than this job needs, and a workflow that can only read is a workflow that
+# cannot be turned into a way to write.
+#
+# Note the trigger: `pull_request`, never `pull_request_target`. The second one
+# runs with repository secrets and a writable token while checking out a fork's
+# code, and it is the most common way a repository is taken over through a pull
+# request. tests/security-invariants.mjs fails the build if it ever appears.
+
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22 is a floor, not a preference: some tests import TypeScript
+      # directly and rely on native type stripping, so an older runtime fails
+      # with a syntax error that reads like broken code.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # `npm test` is the same command a contributor runs locally, on purpose.
+      # A CI script that drifts from the local one is a CI script that fails on
+      # things nobody can reproduce.
+      #
+      # It covers: typecheck, production build, and every static guardrail —
+      # no backend, no secrets, security invariants, brand consistency, test
+      # portability, media, the update floor, and workflow structure.
+      - name: Verify
+        run: npm test

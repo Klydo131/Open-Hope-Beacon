@@ -1,0 +1,75 @@
+'use client';
+
+import { useEffect } from 'react';
+
+// Repairs an app that cannot start.
+//
+// The failure this exists for is real and was seen on a real device: an
+// installed copy kept an old cached HTML shell, that shell asks for JavaScript
+// files by name, and a new deploy deletes the old ones. The request 404s, the
+// app never boots, and all the person sees is "Application error: a client-side
+// exception has occurred". Nothing inside the app can help at that point,
+// because nothing inside the app is running. Settings is unreachable. The only
+// escape used to be uninstalling.
+//
+// So this cannot be React code. It is an inline script in the HTML itself,
+// running before any bundle is fetched, listening for the exact signal that a
+// chunk failed to load. When it fires it throws away the service worker and
+// every cache and reloads from scratch. Personal data lives in localStorage and
+// IndexedDB and is never touched.
+//
+// It heals once per session. A second attempt would mean the fresh copy is
+// broken too, and reloading forever is worse than showing the error, so at that
+// point app/global-error.tsx takes over and offers the same repair as a button.
+// The marker is cleared as soon as the app is proven to boot, so a device that
+// breaks again later can still repair itself.
+
+const HEAL_KEY = 'beacon-healed';
+
+const SCRIPT = `(function(){
+  var K=${JSON.stringify(HEAL_KEY)};
+  function chunky(m){return /ChunkLoadError|Loading chunk|Loading CSS chunk|dynamically imported module|module script failed/i.test(m||'');}
+  function heal(){
+    try{ if(sessionStorage.getItem(K)) return; sessionStorage.setItem(K,'1'); }catch(e){ return; }
+    var went=false;
+    var go=function(){ if(went) return; went=true; location.replace('/?fresh='+Date.now()); };
+    try{
+      var jobs=[];
+      if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){
+        jobs.push(navigator.serviceWorker.getRegistrations().then(function(rs){
+          return Promise.all(rs.map(function(r){return r.unregister();}));
+        }));
+      }
+      if(window.caches&&caches.keys){
+        jobs.push(caches.keys().then(function(ks){
+          return Promise.all(ks.map(function(k){return caches.delete(k);}));
+        }));
+      }
+      Promise.all(jobs).then(go,go);
+      setTimeout(go,3000);
+    }catch(e){ go(); }
+  }
+  window.addEventListener('error',function(e){
+    var t=e&&e.target;
+    var src=(t&&(t.src||t.href))||'';
+    if(chunky(e&&e.message)||(src&&src.indexOf('/_next/static/')>-1)) heal();
+  },true);
+  window.addEventListener('unhandledrejection',function(e){
+    var r=e&&e.reason;
+    if(chunky((r&&(r.message||r.name))||String(r||''))) heal();
+  });
+})();`;
+
+export function SelfHeal() {
+  // Reaching this line means React mounted, so whatever was broken is not
+  // broken now. Clear the marker so a future failure can repair itself too.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem(HEAL_KEY);
+    } catch {
+      // A browser refusing session storage is not a reason to fail.
+    }
+  }, []);
+
+  return <script dangerouslySetInnerHTML={{ __html: SCRIPT }} />;
+}

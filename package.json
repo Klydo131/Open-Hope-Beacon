@@ -1,0 +1,53 @@
+{
+  "name": "open-hope-beacon",
+  "version": "1.0.0",
+  "private": false,
+  "license": "MIT",
+  "description": "A disciple-making journey app for local churches. Runs entirely in the browser with sample data; bring your own backend when ready.",
+  "homepage": "https://github.com/Klydo131/Open-Hope-Beacon#readme",
+  "bugs": "https://github.com/Klydo131/Open-Hope-Beacon/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Klydo131/Open-Hope-Beacon.git"
+  },
+  "keywords": [
+    "church",
+    "discipleship",
+    "nextjs",
+    "pwa",
+    "offline-first",
+    "no-backend"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node scripts/run-next.mjs dev",
+    "build": "node scripts/run-next.mjs build",
+    "start": "node scripts/run-next.mjs start",
+    "test": "node scripts/verify.mjs",
+    "test:all": "node scripts/verify.mjs --all",
+    "icons": "node scripts/gen-icons.mjs",
+    "lint": "node scripts/run-next.mjs lint",
+    "prebuild": "node scripts/stamp-build.mjs",
+    "verify": "node scripts/verify.mjs",
+    "verify:all": "node scripts/verify.mjs --all"
+  },
+  "dependencies": {
+    "next": "^15.5.20",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  },
+  "overrides": {
+    "postcss": "$postcss"
+  }
+}

@@ -1,0 +1,371 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #1e2a4a;
+  --gold: #e8b84b;
+}
+
+html {
+  font-size: 18px; /* senior-friendly base */
+}
+
+body {
+  background: #f4f6fb;
+  color: #1a2233;
+  -webkit-font-smoothing: antialiased;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  /* Nothing should push the page sideways on a phone. `clip` rather than
+     `hidden` on purpose: `hidden` turns the body into a scroll container and
+     breaks the sticky header. Anything that genuinely needs to scroll
+     horizontally (a wide table, the tab strip) does so in its own box. */
+  overflow-x: clip;
+}
+
+/* Visible focus for keyboard + low-vision users. */
+:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Every interactive control clears the 56px tap-target minimum. */
+button,
+a[role='button'],
+.tap {
+  min-height: 56px;
+}
+
+/* The one exception: controls packed into the top bar.
+   56px each is generous for a page body but there are six of them in a row,
+   and on a 360px phone that overflows the header — which in turn drags the
+   notification panel anchored inside it off the side of the screen. 44px is
+   still at or above the WCAG 2.5.8 / Apple / Material minimum, so this trades
+   nothing that matters for a header that fits. */
+.tap-sm {
+  min-height: 44px;
+  height: 44px;
+  min-width: 44px;
+}
+
+/* The second exception: dense furniture that is not a primary action —
+   a toggle switch, a colour swatch, a station button in the player. The 56px
+   floor above is a rule about reachable page controls; applied to a 24px
+   switch it inflates it into an unrecognisable blob. Anything inside a
+   `.compact-ui` box sizes itself, and each of those controls is still a
+   comfortable click target in its own right. */
+.compact-ui button,
+.compact-ui a,
+.compact-ui [role='switch'],
+.compact-ui label {
+  min-height: 0;
+}
+
+/* ---- Intro animation (the live app's front door) ----
+   CSS only: no library, nothing to download, nothing the CSP has to allow.
+   Every one of these is switched off under prefers-reduced-motion at the
+   bottom of this block — motion is decoration here, never information. */
+
+/* Content arrives from just below, one element after another. */
+@keyframes beaconRise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* The halo behind the candle, breathing slowly. */
+@keyframes beaconGlow {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.15);
+  }
+}
+
+/* A candle flame never holds still. */
+@keyframes beaconFlicker {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  30% {
+    transform: scale(1.07) rotate(-2.5deg);
+  }
+  65% {
+    transform: scale(0.96) rotate(1.5deg);
+  }
+}
+
+.rise {
+  opacity: 0;
+  animation: beaconRise 0.7s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+.rise-1 {
+  animation-delay: 0.1s;
+}
+.rise-2 {
+  animation-delay: 0.25s;
+}
+.rise-3 {
+  animation-delay: 0.4s;
+}
+.rise-4 {
+  animation-delay: 0.55s;
+}
+.rise-5 {
+  animation-delay: 0.7s;
+}
+
+.beacon-glow {
+  animation: beaconGlow 3.4s ease-in-out infinite;
+}
+.beacon-flame {
+  display: inline-block;
+  transform-origin: 50% 80%;
+  animation: beaconFlicker 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    opacity: 1;
+    animation: none;
+  }
+  .beacon-glow,
+  .beacon-flame {
+    animation: none;
+  }
+}
+
+/* Tutorial arrow bob. */
+@keyframes beaconBob {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, 6px);
+  }
+}
+
+/* ---- The loader (components/BeaconLoader.tsx) ---- */
+
+/* The beam sweeping out from the lamp. */
+@keyframes beaconSweep {
+  from {
+    transform: rotate(-32deg);
+  }
+  to {
+    transform: rotate(328deg);
+  }
+}
+/* The lamp itself, brightening as the beam comes round. */
+@keyframes beaconPulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes beaconHalo {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+}
+/* An indeterminate progress bar that slides rather than fills — it makes no
+   promise about how long it will take, because we don't know. */
+@keyframes beaconSlide {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(430%);
+  }
+}
+@keyframes beaconFadeOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+/* A panel dropping in from the top edge (the update banner). */
+@keyframes beaconDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.beacon-beam {
+  animation: beaconSweep 3.6s linear infinite;
+}
+.beacon-lamp {
+  animation: beaconPulse 1.8s ease-in-out infinite;
+}
+.beacon-halo {
+  transform-origin: center;
+  animation: beaconHalo 3.6s ease-in-out infinite;
+}
+.beacon-bar {
+  animation: beaconSlide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.beacon-splash-out {
+  animation: beaconFadeOut 0.3s ease forwards;
+}
+.animate-drop {
+  animation: beaconDrop 0.28s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* ---- Smoothness ----
+   One place that makes the whole app feel considered instead of abrupt.
+   Interactive things ease; surfaces that appear, fade in; long panels scroll
+   under a thin scrollbar rather than the OS default slab. */
+
+button,
+a,
+select,
+input,
+textarea,
+[role='tab'] {
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Toggle tracks: colour transition only — no scale, no transform. */
+[role='switch'] {
+  transition: background-color 0.2s ease !important;
+}
+/* Toggle thumb: smooth lateral slide only. */
+[role='switch'] > span {
+  transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1) !important;
+}
+
+/* Pressing something should feel like pressing something.
+   Exclude [role='switch'] — toggle tracks must never scale; the thumb
+   is the only thing that moves inside them. */
+button:active:not(:disabled, [role='switch']),
+a[role='button']:active {
+  transform: scale(0.985);
+}
+
+/* Anchor jumps and "back to top" glide instead of teleporting. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* A strip that scrolls sideways with no visible scrollbar.
+   Used by the header's feature icons. A scrollbar under a 44px row of icons
+   eats a third of the row's height on desktop and looks like a defect on a
+   phone, where the platform hides it anyway. The overflow is still there and
+   still scrollable by touch, trackpad and keyboard. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* A quieter scrollbar for the rails and any panel that scrolls. */
+.thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120, 120, 140, 0.35) transparent;
+}
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(120, 120, 140, 0.35);
+  border-radius: 999px;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(120, 120, 140, 0.55);
+}
+
+/* Each screen fades up as it mounts. Cheap, and it removes the "flash of new
+   page" that makes a single-page app feel like a slide projector. */
+@keyframes beaconPageIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-in {
+  animation: beaconPageIn 0.3s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* The room's background changes when someone picks a new theme — ease it. */
+.room-surface {
+  transition: background 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beacon-beam,
+  .beacon-lamp,
+  .beacon-halo,
+  .beacon-bar {
+    animation: none;
+  }
+  .animate-drop,
+  .page-in {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+  button:active:not(:disabled),
+  a[role='button']:active {
+    transform: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print styles: the Board report becomes a clean PDF via the browser's own
+   "Save as PDF". No PDF library needed. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .print-area {
+    box-shadow: none !important;
+  }
+}
