@@ -34,7 +34,11 @@ function loadPlaywright() {
   // A global install that npm knows about but node's resolver does not.
   try {
     const { execFileSync } = require('node:child_process');
-    const prefix = execFileSync('npm', ['root', '-g'], { encoding: 'utf8' }).trim();
+    // shell on Windows: npm is npm.cmd there and execFile cannot run it.
+    const prefix = execFileSync('npm', ['root', '-g'], {
+      encoding: 'utf8',
+      shell: process.platform === 'win32',
+    }).trim();
     const candidate = path.join(prefix, 'playwright');
     if (fs.existsSync(candidate)) return require(candidate);
   } catch {
@@ -65,6 +69,10 @@ const EXECUTABLE =
 module.exports = {
   chromium: playwright.chromium,
   playwright,
+  // Playwright's device descriptors (viewport, pixel ratio, touch, user agent),
+  // so a suite can say "iPhone SE" instead of hand-copying numbers that then
+  // quietly drift away from the real device.
+  devices: playwright.devices,
   // Suites pass this into launch()/launchPersistentContext() so the browser
   // lookup is decided in one place rather than repeated in every file.
   launchOptions: EXECUTABLE ? { executablePath: EXECUTABLE } : {},

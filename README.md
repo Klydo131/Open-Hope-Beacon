@@ -54,6 +54,10 @@ Conversations carry **attachments** — a photo, a voice note, a video, a docume
 with no admin exception. The files stay on the device, in IndexedDB, and never
 go into the saved database.
 
+It runs on Windows, macOS, Linux, Android and iPhone, and CI proves the first
+three on every push. `docs/PLATFORMS.md` says exactly what is tested and what is
+only expected, including the one thing worth checking yourself on a real iPhone.
+
 Open the app in **two windows and they stay in step live**: send a message in one
 and it appears in the other with no refresh. That works between windows on one
 device, which is all an app with no server can honestly do. Add a backend and the

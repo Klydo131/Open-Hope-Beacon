@@ -158,6 +158,39 @@ ok(
   'mediaFor returns nothing to somebody outside the pairing (no admin exception)',
 );
 
+// ---- Cross-platform: the bugs that only appear on somebody else's device --
+
+// iOS Safari pulls a video out of the page and plays it fullscreen unless this
+// is set. Desktop testing never shows it. Both other players in this repo set
+// it; the attachment player did not, until it did.
+ok(
+  /playsInline/.test(attachment),
+  'an attached video plays inline, so iOS does not hijack the screen',
+);
+
+// randomUUID is a secure-context API: undefined over plain http on a LAN
+// address, and absent before Safari 15.4. Unguarded it throws rather than
+// degrades, and attaching a file fails outright.
+const localMedia = read('lib/localMedia.ts');
+ok(
+  /typeof crypto\.randomUUID === 'function'/.test(localMedia),
+  'media ids do not assume a secure context (http on a LAN, older Safari)',
+);
+
+// npm and npx are .cmd shims on Windows and Node will not exec them without a
+// shell. This is the first command a Windows contributor runs.
+const verifyScript = read('scripts/verify.mjs');
+ok(
+  /shell: NEEDS_SHELL/.test(verifyScript) && /win32/.test(verifyScript),
+  'verify spawns npm and npx in a way Windows can actually execute',
+);
+
+const workflow = read('.github/workflows/verify.yml');
+ok(
+  /windows-latest/.test(workflow) && /macos-latest/.test(workflow),
+  'CI actually runs on Windows and macOS, rather than assuming they work',
+);
+
 // ---- The object-URL leak -------------------------------------------------
 
 ok(

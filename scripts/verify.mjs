@@ -25,11 +25,24 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const withE2e = process.argv.includes('--all');
 const results = [];
 
+// On Windows, `npm` and `npx` are `npm.cmd` / `npx.cmd`, and Node refuses to
+// execute a .cmd without a shell — it has done since the CVE-2024-27980
+// hardening, so even setups that once worked now fail. Without this, the very
+// first thing a Windows contributor runs, `npm run verify`, dies at step one
+// with a bare ENOENT that says nothing about the cause.
+//
+// Gated on win32 rather than always-on: `shell: true` changes argument parsing,
+// and there is no reason to take that risk on the platforms where it is not
+// needed. Every argument passed here is a bare flag or word with no spaces, so
+// there is nothing for the Windows shell to mis-split.
+const NEEDS_SHELL = process.platform === 'win32';
+
 function run(label, cmd, args, opts = {}) {
   process.stdout.write(`\n─── ${label} ${'─'.repeat(Math.max(0, 56 - label.length))}\n`);
   const r = spawnSync(cmd, args, {
     cwd: root,
     stdio: 'inherit',
+    shell: NEEDS_SHELL && (cmd === 'npm' || cmd === 'npx'),
     env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' },
     ...opts,
   });

@@ -25,7 +25,22 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    # Three operating systems, because "it should work on Windows" is a guess
+    # until something runs it there. The specific thing this catches: npm and
+    # npx are .cmd shims on Windows and Node will not execute them without a
+    # shell, so `npm run verify` died at its first step on every Windows machine
+    # while every Linux run stayed green. Nobody would have found that from
+    # here; a Windows contributor would have found it, and concluded the project
+    # does not work.
+    #
+    # macOS is here because it is what most of the people writing this use, and
+    # because a case-insensitive filesystem hides import-casing mistakes that
+    # only fail on Linux.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
 
     steps:

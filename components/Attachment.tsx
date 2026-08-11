@@ -102,7 +102,19 @@ export function Attachment({
   if (media.kind === 'video') {
     return (
       <div>
-        <video controls src={url} className="max-h-56 rounded-xl" />
+        {/* playsInline is not decoration. Without it iOS Safari takes a video
+            out of the page and plays it fullscreen, which throws the person out
+            of the conversation they were reading. Both other players in this
+            repo set it; this one did not, and that is an iPhone-only bug that
+            no amount of desktop testing would show. preload="metadata" keeps a
+            long video off somebody's mobile data until they press play. */}
+        <video
+          controls
+          playsInline
+          preload="metadata"
+          src={url}
+          className="max-h-56 rounded-xl"
+        />
         {caption}
       </div>
     );

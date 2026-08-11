@@ -40,7 +40,7 @@ Everything here is checked against the code. Nothing is aspirational.
 |---|---|
 | **What it is** | A web app that helps a church walk with one person at a time, from first contact to the point where they start walking with somebody else. |
 | **Licence** | MIT. Free. Fork it, rename it, sell services around it. |
-| **Runs on** | Any modern phone or computer. Installs from the browser — no app store. |
+| **Runs on** | Any modern phone or computer. Installs from the browser — no app store. Developed and CI-tested on Linux, Windows and macOS. |
 | **Needs to run** | Nothing. No sign-up, no database, no keys, no configuration. |
 | **Works offline** | Yes, fully, after the first load. |
 | **Attachments** | Images, audio, video and documents on a conversation. Bytes stay on the device, in IndexedDB, never in the saved database. |
@@ -50,7 +50,7 @@ Everything here is checked against the code. Nothing is aspirational.
 | **Sample people** | 10, all invented, at email domains that can never reach a real inbox. |
 | **Guided walks** | 4 — one per role. Executive 3 steps, Admin 5, Missionary 5, Seeker 3. |
 | **Built with** | Next.js, React, TypeScript. Three runtime dependencies. |
-| **Tests** | 29 checks including 17 real-browser walks. All passing. |
+| **Tests** | 30 checks including 18 real-browser walks, two at phone size. All passing. |
 
 **The one thing to be clear about in every room:** as it ships there is **no
 server and no database**. Everything lives in the browser on your own device.
