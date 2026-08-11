@@ -122,6 +122,29 @@ export interface SeekerMedia {
   created_at: string;
 }
 
+// A file shared inside one pairing: a photo, a voice note, a video, a document.
+//
+// THE BYTES ARE NOT IN THIS ROW, and that is the whole design. This is metadata
+// plus an id; the file itself lives in IndexedDB (lib/localMedia.ts) under that
+// same id. It mirrors what a real deployment must do — bytes in object storage,
+// a row in the database pointing at them — and it is not optional here either:
+// this database is serialised into localStorage on every write, and localStorage
+// holds about 5 MB. One phone photo inlined here would break saving for
+// everything else in the app.
+//
+// Who may see it follows the PAIRING, never the file. See mediaFor() in
+// lib/demo/store.tsx and the matching policy in docs/examples/schema.sql (2b).
+export interface PairingMedia {
+  id: string;
+  pairing_id: string;
+  owner_id: string;
+  kind: MaterialType;
+  title: string;
+  mime?: string;
+  size: number;
+  created_at: string;
+}
+
 // A missionary's private note about a seeker. The seeker never sees these, and
 // neither does an admin — the whole point is a place to record
 // what was actually said without it becoming a church record.
@@ -325,6 +348,7 @@ export interface DB {
   notifications: AppNotification[];
   analytics: AnalyticsEvent[];
   seeker_media: SeekerMedia[];
+  pairing_media: PairingMedia[];
   prayer_requests: PrayerRequest[];
   lesson_assignments: LessonAssignment[];
   lesson_series: LessonSeries[];

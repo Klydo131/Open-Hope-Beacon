@@ -49,6 +49,17 @@ somebody being walked with starts walking with somebody else.
 organise its work, not a label to show a person about themselves. A test enforces
 this, and it should survive anything you build on top.
 
+Conversations carry **attachments** — a photo, a voice note, a video, a document
+— and an attachment is visible to exactly the two people in that conversation,
+with no admin exception. The files stay on the device, in IndexedDB, and never
+go into the saved database.
+
+Open the app in **two windows and they stay in step live**: send a message in one
+and it appears in the other with no refresh. That works between windows on one
+device, which is all an app with no server can honestly do. Add a backend and the
+same code syncs between devices, because the transport is a seam you swap
+(`lib/realtime.ts`).
+
 ---
 
 ## Why it might suit your church

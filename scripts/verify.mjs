@@ -82,6 +82,7 @@ const staticChecks = [
   ['test portability', 'tests/test-portability.mjs'],
   ['brand consistency', 'tests/brand-consistency.mjs'],
   ['media guardrails', 'tests/media-guardrails.js'],
+  ['real-time and pairing media', 'tests/realtime-and-media.mjs'],
   ['update floor', 'tests/min-build.mjs'],
   ['analytics over time', 'tests/analytics-trend.mjs'],
   ['security invariants', 'tests/security-invariants.mjs'],

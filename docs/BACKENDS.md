@@ -29,16 +29,19 @@ anything holding real names.
 
 ---
 
-## Two seams, and you can use either
+## Three seams, and you can use any of them
 
 | Seam | Effort | What it buys you |
 |---|---|---|
 | **The feedback sink** (`lib/backend/feedback.ts`) | 15 minutes | Messages from your congregation reach you instead of staying on their device. |
 | **The store** (`lib/demo/store.tsx`) | A real project | Accounts, multiple devices, actual church use. |
+| **The real-time transport** (`lib/realtime.ts`) | An afternoon | Two people on two devices see a message land without refreshing. |
 
 Start with the first even if you want the second. It is the same pattern at one
 twentieth the size, and it works end to end, so you find out how the app fits
-together before anything important depends on your answer.
+together before anything important depends on your answer. The third only
+becomes interesting once the second exists, because syncing between devices
+needs a server for the devices to sync through.
 
 ---
 
@@ -195,6 +198,64 @@ and it is the single most common way an app like this is broken.
 While you are there: **delete `components/RoleSwitcher.tsx`** and `setMyRole`
 from the store. That is the demo's role switcher, it is safe only because there
 is no server, and it must not survive the day one appears.
+
+---
+
+## Seam 3: real-time synchronisation
+
+Out of the box, every open window of the app **on one device** stays in step
+live. Open the missionary in one window and the seeker in another, send a
+message, and it appears in both without a refresh. That is genuinely useful —
+it is the clearest way to show a two-person conversation to a room — and it is
+honestly all a backendless app can do. Two different phones cannot sync through
+a server that does not exist.
+
+Swap the transport and the same code syncs across devices:
+
+```ts
+import { setRealtimeTransport } from '@/lib/realtime';
+
+setRealtimeTransport({
+  publish: (msg) => channel.send({ type: 'broadcast', event: 'db', payload: msg }),
+  subscribe: (fn) => {
+    const sub = channel.on('broadcast', { event: 'db' }, (p) => fn(p.payload));
+    return () => sub.unsubscribe();
+  },
+});
+```
+
+### The mistake this seam exists to warn you about
+
+**A change feed is a second way out of your database, and it does not inherit
+the rules you wrote for queries.** On Postgres providers, row-level security for
+the replication stream is a *separate switch* from row-level security for
+queries. Turn on the wrong one and every listener receives every changed row,
+including the private note a missionary just wrote about somebody.
+
+Three things before you trust your transport:
+
+1. **Subscribe per pairing, not per table.** Least privilege applies to feeds.
+2. **Send changes, not the whole database.** The default transport broadcasts
+   everything, which would be indefensible over a network and is fine on one
+   device for one reason: every window it reaches is the same browser, already
+   sharing the same storage. It crosses no boundary that was not already
+   crossed. Yours does.
+3. **Test it with two clients signed in as two different people.** A feed leak
+   is completely invisible from the sending side.
+
+### Attachments travel the same way
+
+`attachMedia` puts a file on a conversation. The bytes go to IndexedDB and the
+database row holds only metadata — the same split you must make in production
+between object storage and a table. When you implement this against a real
+backend, the row is the easy half. **The classic leak is protecting the row and
+leaving the file on a public URL:** if the file is reachable by anyone holding
+the link, the link *is* the permission, and anybody ever sent one keeps it
+forever. Keep the bucket private and mint short-lived signed URLs after checking
+the same rule the row uses. Minutes, not days.
+
+The matching database policy is in `docs/examples/schema.sql`, sections 2b and
+2c, and it has been run.
 
 ---
 

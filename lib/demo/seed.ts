@@ -357,6 +357,10 @@ export function makeSeed(): DB {
       ...backfill(),
     ],
     // A seeker's own study shelf — their notes and media, which they control.
+    // Empty on purpose. A seeded attachment would be a row whose bytes were
+    // never written to IndexedDB, which renders as a permanently broken file
+    // that nobody can explain. Attachments only exist once somebody adds one.
+    pairing_media: [],
     seeker_media: [
       {
         id: 'sm1',

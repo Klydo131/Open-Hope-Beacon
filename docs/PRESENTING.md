@@ -43,12 +43,14 @@ Everything here is checked against the code. Nothing is aspirational.
 | **Runs on** | Any modern phone or computer. Installs from the browser — no app store. |
 | **Needs to run** | Nothing. No sign-up, no database, no keys, no configuration. |
 | **Works offline** | Yes, fully, after the first load. |
+| **Attachments** | Images, audio, video and documents on a conversation. Bytes stay on the device, in IndexedDB, never in the saved database. |
+| **Live sync** | Every open window on ONE device stays in step with no refresh. Across devices needs a backend; the transport is a seam you swap. |
 | **Roles** | Seeker, Missionary, Admin, Executive Admin. |
 | **Journey stages** | Create → Connect → Care → Call → Cultivate → Commission (six). |
 | **Sample people** | 10, all invented, at email domains that can never reach a real inbox. |
 | **Guided walks** | 4 — one per role. Executive 3 steps, Admin 5, Missionary 5, Seeker 3. |
 | **Built with** | Next.js, React, TypeScript. Three runtime dependencies. |
-| **Tests** | 27 checks including 16 real-browser walks. All passing. |
+| **Tests** | 29 checks including 17 real-browser walks. All passing. |
 
 **The one thing to be clear about in every room:** as it ships there is **no
 server and no database**. Everything lives in the browser on your own device.
@@ -199,6 +201,50 @@ with the data. Anybody can send a request without using your screens.
 Five rules your data layer inherits: a missionary reads only their own pairings;
 private notes are readable by their author alone; a seeker never receives their own
 stage; only an admin invites and pairs; and nobody can change their own role.
+
+### 8. Attachments and live sync
+
+**Plain words.** You can attach a photo, a voice note, a video or a document to a
+conversation, and both people in that conversation see it. Nobody else does, not
+even an admin. And if you have the app open in two windows, a message sent in one
+appears in the other straight away, with no refresh.
+
+**The honest limit, say it before anybody tests it.** Live sync works between
+windows on *one device*. Two different phones cannot sync through a server that
+does not exist. Add a backend and the same code syncs across devices, because the
+transport is a seam you replace, not a thing baked in.
+
+**In detail.**
+
+- Attaching goes through `attachMedia(pairingId, file)`. It returns immediately
+  and writes the bytes in the background — the same optimistic rule as every
+  other write. If the disk refuses, the row is removed again, so you never see an
+  attachment whose file is not there.
+- **The bytes are never in the database row.** They go to IndexedDB; the row holds
+  metadata and an id. That is not a preference: this database is serialised into
+  localStorage on every write, and localStorage holds about 5 MB. One phone photo
+  inlined would break saving for everything else.
+- Who may see an attachment follows the **pairing**, never the file. The screens
+  call `mediaFor(pairingId)` and never filter the collection themselves, because
+  the rule belongs in one place — and in a real deployment that place is a
+  database policy.
+- Live sync is `lib/realtime.ts`. The default transport is a `BroadcastChannel`;
+  `setRealtimeTransport()` swaps it for your provider.
+
+**The two mistakes to know about, because both are silent.**
+
+1. **A private row pointing at a public file.** Row rules govern rows, not
+   objects. If the file is reachable by anyone holding the link, the link *is*
+   the permission, and anybody ever sent one keeps it forever. Private bucket,
+   short-lived signed URLs, minutes not days.
+2. **A change feed is a second way out of the database** and does not inherit the
+   rules you wrote for queries. On Postgres providers, row-level security for the
+   replication stream is a separate switch. Subscribe per pairing, and test it
+   with two clients signed in as two different people — a feed leak is invisible
+   from the sending side.
+
+Both have matching policies in `docs/examples/schema.sql`, sections 2b and 2c,
+and that file has been run.
 
 ---
 
@@ -551,6 +597,9 @@ Constraints, in priority order:
    for that swap.
 6. **State limits honestly.** Not built: promoting a seeker to missionary.
    Not included: any backend. Not claimed: any existing user base.
+   **Live sync works between windows on one device, not between devices** — say
+   that plainly wherever sync is mentioned, because it is the first thing
+   somebody will test.
 7. **Tone.** Plain, concrete, unhurried. No hype, no exclamation marks, no
    invented urgency. The subject is pastoral care, and overselling reads as
    disrespect for it.
@@ -560,9 +609,10 @@ Suggested deck shapes:
 | Audience | Slides | Arc |
 |---|---|---|
 | Church directors | 10–14 | the problem they recognise → the pairing → the six stages → their own screen → what they will never see → cost → what is next |
-| IT | 14–20 | no backend and why → architecture → the store as contract → run it live → connect a database → the permission rules → contributing → maintaining |
+| IT | 14–20 | no backend and why → architecture → the store as contract → run it live → connect a database → the permission rules → attachments and live sync → contributing → maintaining |
 | Enthusiasts | 5–8 | the three-sentence pitch → pick who you are → offline → it is yours |
 
 Source files worth quoting from, all in this repository: `README.md`,
 `ARCHITECTURE.md`, `docs/BUILD-YOUR-OWN.md`, `docs/ONBOARDING.md`,
-`docs/SECURITY.md`, `docs/examples/schema.sql`.
+`docs/SECURITY.md`, `docs/examples/schema.sql`, `docs/BACKENDS.md`,
+`lib/realtime.ts`.

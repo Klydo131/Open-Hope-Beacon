@@ -1,0 +1,169 @@
+// Media and real-time: the invariants that are easy to break by accident.
+//
+// These are source assertions, not a running app. Each one exists because the
+// opposite mistake is both easy to make and silent when made — the kind that
+// ships and is found by a user, not by a reviewer.
+
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const read = (f) => readFileSync(join(root, f), 'utf8');
+
+const realtime = read('lib/realtime.ts');
+const store = read('lib/demo/store.tsx');
+const types = read('lib/types.ts');
+const seed = read('lib/demo/seed.ts');
+const chat = read('components/Chat.tsx');
+const attachment = read('components/Attachment.tsx');
+
+let failures = 0;
+function ok(condition, message) {
+  console.log(`${condition ? 'OK  ' : 'BAD '} ${message}`);
+  if (!condition) failures++;
+}
+
+// ---- Real-time -----------------------------------------------------------
+
+ok(
+  /export function setRealtimeTransport/.test(realtime),
+  'real-time is a swappable seam, not a hard-coded BroadcastChannel',
+);
+
+ok(
+  !/\bfetch\s*\(/.test(realtime) && !/WebSocket/.test(realtime),
+  'the default transport makes no network request',
+);
+
+// The echo loop. If an incoming database were applied through saveDb, the
+// receiving window would publish it straight back and two windows would volley
+// forever. This is the assertion that catches that being "tidied up".
+ok(
+  /subscribeDb\(\(incoming\) => setDb\(/.test(store),
+  'an incoming database is applied with setDb, never with saveDb (no echo loop)',
+);
+
+ok(
+  /publishDb\(trimmed\)/.test(store) && /publishDb\(lean\)/.test(store),
+  'both successful save paths publish, so a trimmed save still syncs',
+);
+
+// A write that cannot be broadcast is still a write.
+ok(
+  /publish\(msg\)\s*\{\s*try\s*\{/.test(realtime),
+  'publish swallows its own errors so the feed cannot break the action',
+);
+
+ok(
+  /msg\.origin === ORIGIN/.test(realtime),
+  'a window ignores its own messages, so a chattier transport cannot loop',
+);
+
+// ---- Media ---------------------------------------------------------------
+
+ok(
+  /export interface PairingMedia/.test(types) && /pairing_media: PairingMedia\[\]/.test(types),
+  'pairing media is a first-class collection on the database',
+);
+
+ok(
+  /pairing_media: \[\]/.test(seed),
+  'the seed declares pairing_media, so an old save migrates instead of crashing',
+);
+
+// The whole point of the design: bytes never enter the row, because the row is
+// serialised into localStorage on every write.
+ok(
+  !/data:|base64|FileReader/.test(store),
+  'the store never inlines file bytes into the database',
+);
+
+ok(
+  /putMedia\(/.test(store) && /deleteMedia\(/.test(store),
+  'bytes go to IndexedDB through localMedia, both on write and on delete',
+);
+
+// A row whose blob failed to write is worse than no row at all.
+ok(
+  /\.catch\(\(\) => \{\s*persistUpdate\(\(prev\) => \(\{[\s\S]{0,200}pairing_media: prev\.pairing_media\.filter/.test(store),
+  'a failed byte write removes the row again, leaving no broken attachment',
+);
+
+// The permission rule, in one place.
+ok(
+  /const mediaFor = useCallback/.test(store),
+  'the store owns the visibility rule (mediaFor), not the screens',
+);
+
+// Strip comments before asserting an ABSENCE. A previous version of this check
+// failed on the explanatory comment in Chat.tsx that names the very pattern it
+// forbids — a crude text sweep cannot tell a rule from a mention of the rule.
+const stripComments = (src) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+ok(
+  /mediaFor\(pairingId\)/.test(chat) && !/db\.pairing_media/.test(stripComments(chat)),
+  'the chat screen asks mediaFor and never filters db.pairing_media itself',
+);
+
+// The regression this section exists to prevent a third time.
+//
+// [data-quest="chat-send"] is the tutorial anchor, and other suites index into
+// it positionally — the message box is its first <input>, Send is its first
+// <button>. Putting the hidden file picker inside captured the first selector
+// and typing timed out. Moving only the picker, and leaving the Attach button
+// inside, then captured the second: the suite clicked Attach instead of Send,
+// no message was sent, and nothing on screen looked wrong. Silent, and two
+// separate debugging sessions.
+const chatCode = stripComments(chat);
+const afterAnchor = chatCode.slice(chatCode.indexOf('data-quest="chat-send"'));
+const formEnd = afterAnchor.indexOf('</form>');
+const inForm = formEnd === -1 ? afterAnchor : afterAnchor.slice(0, formEnd);
+
+ok(
+  (inForm.match(/<input/g) || []).length === 1,
+  'the chat-send region holds exactly one input (the message box)',
+);
+ok(
+  (inForm.match(/<Button/g) || []).length === 1 && /type="submit"/.test(inForm),
+  'the chat-send region holds exactly one button, and it is Send',
+);
+ok(
+  !/type="file"/.test(inForm),
+  'the file picker is not inside the chat-send region',
+);
+
+// Both halves of the "upload as self, into a pairing you are in" policy.
+const attach = store.slice(store.indexOf('const attachMedia'), store.indexOf('const removeMedia'));
+ok(
+  /p\.dm_id !== userId && p\.ds_id !== userId/.test(attach),
+  'attaching is refused when the signed-in person is not in the pairing',
+);
+ok(
+  /owner_id: userId/.test(attach),
+  'an attachment is always owned by the person who made it',
+);
+
+const remove = store.slice(store.indexOf('const removeMedia'), store.indexOf('const mediaFor'));
+ok(
+  /row\.owner_id !== userId/.test(remove),
+  'only the owner may remove an attachment',
+);
+
+// mediaFor must gate on membership, not merely filter by pairing id.
+const mediaFor = store.slice(store.indexOf('const mediaFor'), store.indexOf('const mediaFor') + 800);
+ok(
+  /p\.dm_id !== userId && p\.ds_id !== userId/.test(mediaFor),
+  'mediaFor returns nothing to somebody outside the pairing (no admin exception)',
+);
+
+// ---- The object-URL leak -------------------------------------------------
+
+ok(
+  /URL\.revokeObjectURL/.test(attachment),
+  'object URLs are revoked on unmount, so a long thread does not leak blobs',
+);
+
+console.log(failures === 0 ? '\nAll media and real-time checks passed.' : `\n${failures} failed.`);
+process.exit(failures === 0 ? 0 : 1);

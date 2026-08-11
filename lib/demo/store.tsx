@@ -22,12 +22,15 @@ import type {
   Pairing,
   PrayerRequest,
   Recommendation,
+  PairingMedia,
   Profile,
   Role,
   Stage,
   Track,
 } from '../types';
 import { nextStage, ROLE_LABELS, canKick } from '../brand';
+import { publishDb, subscribeDb } from '../realtime';
+import { deleteMedia, newMediaId, putMedia, typeFromMime } from '../localMedia';
 import { makeSeed } from './seed';
 
 // -------------------------------------------------------------------------
@@ -70,12 +73,14 @@ function saveDb(next: DB): DB {
       : next;
   try {
     localStorage.setItem(DB_KEY, JSON.stringify(trimmed));
+    publishDb(trimmed);
     return trimmed;
   } catch {
     // Out of room: drop all but the most recent analytics and try once more.
     const lean: DB = { ...trimmed, analytics: trimmed.analytics.slice(-50) };
     try {
       localStorage.setItem(DB_KEY, JSON.stringify(lean));
+      publishDb(lean);
       return lean;
     } catch {
       // Still no room (or storage blocked entirely) — keep working in memory.
@@ -224,6 +229,22 @@ export interface Ctx {
   declineRecommendation: (recommendationId: string) => void;
   actOnEmail: (emailId: string, action: 'approve' | 'disapprove') => void;
   clearEmails: () => void;
+  /**
+   * Attach a file to a conversation. Returns the new media id immediately and
+   * writes the bytes in the background, so the attachment appears the instant
+   * it is chosen rather than after the disk finishes — the same optimistic rule
+   * every other write in this store follows. Returns null when the caller is
+   * not in the pairing.
+   */
+  attachMedia: (pairingId: string, file: File) => string | null;
+  /** Remove an attachment and its bytes. The owner only. */
+  removeMedia: (id: string) => void;
+  /**
+   * Media the SIGNED-IN person may see in this pairing. Screens must call this
+   * rather than filtering db.pairing_media themselves — the rule belongs in one
+   * place, and in a real deployment that place is a database policy.
+   */
+  mediaFor: (pairingId: string) => PairingMedia[];
   addNote: (pairingId: string, body: string) => void;
   deleteNote: (id: string) => void;
   addFollowUp: (pairingId: string, title: string, dueOn?: string) => void;
@@ -294,6 +315,19 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     }
     setReady(true);
   }, []);
+
+  // Live sync between every open window of the app on this device.
+  //
+  // Applied with setDb and NOT with saveDb, and that is load-bearing. saveDb
+  // publishes; publishing what we just received would send it straight back and
+  // two windows would volley the database at each other forever. The window
+  // that made the change has already written localStorage, and it is the same
+  // storage, so there is nothing left for this side to save.
+  //
+  // Note what deliberately does NOT sync: who you are signed in as. Each window
+  // keeps its own userId, which is the entire point — one window is the
+  // missionary and the other is the seeker.
+  useEffect(() => subscribeDb((incoming) => setDb(normalizeDb(incoming))), []);
 
   const persist = useCallback((next: DB) => {
     setDb(saveDb(next));
@@ -1048,6 +1082,101 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [userId],
+  );
+
+  // ---- Media: files shared inside one pairing ----
+  //
+  // The rule is the one from docs/examples/schema.sql (2b): media follows its
+  // PAIRING. Both people in the pairing may see it; nobody else may, and there
+  // is no admin exception, exactly as with messages. The bytes go to IndexedDB
+  // and never into this database — see PairingMedia in lib/types.ts for why
+  // that is not a preference.
+
+  const attachMedia = useCallback(
+    (pairingId: string, file: File): string | null => {
+      if (!userId || !file) return null;
+      // Upload as self, into a pairing you are in. The same two conditions as
+      // the "upload as self" policy in the example schema.
+      const p = db.pairings.find((x) => x.id === pairingId);
+      if (!p || (p.dm_id !== userId && p.ds_id !== userId)) return null;
+
+      const id = newMediaId();
+      const kind = typeFromMime(file.type);
+      const row: PairingMedia = {
+        id,
+        pairing_id: pairingId,
+        owner_id: userId,
+        kind,
+        title: file.name || 'Attachment',
+        mime: file.type || undefined,
+        size: file.size,
+        created_at: nowIso(),
+      };
+
+      // Show it immediately — the same optimistic rule as every other write.
+      persistUpdate((prev) => ({
+        ...prev,
+        pairing_media: [...prev.pairing_media, row],
+        analytics: [...prev.analytics, ev(userId, 'media_upload')],
+      }));
+
+      // Then write the bytes. If the disk refuses — quota exceeded, private
+      // browsing, storage blocked — take the row back out. An attachment whose
+      // file does not exist is worse than no attachment: it is a permanent
+      // broken thumbnail that nobody can explain or remove.
+      void putMedia(
+        {
+          id,
+          title: row.title,
+          type: kind,
+          mime: row.mime,
+          size: row.size,
+          created_at: row.created_at,
+        },
+        file,
+      ).catch(() => {
+        persistUpdate((prev) => ({
+          ...prev,
+          pairing_media: prev.pairing_media.filter((m) => m.id !== id),
+        }));
+      });
+
+      return id;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [db.pairings, userId],
+  );
+
+  const removeMedia = useCallback(
+    (id: string) => {
+      if (!userId) return;
+      const row = db.pairing_media.find((m) => m.id === id);
+      // Only the person who attached it. A missionary cannot delete a seeker's
+      // photo, and a seeker cannot delete a missionary's.
+      if (!row || row.owner_id !== userId) return;
+      persistUpdate((prev) => ({
+        ...prev,
+        pairing_media: prev.pairing_media.filter((m) => m.id !== id),
+      }));
+      void deleteMedia(id).catch(() => {
+        // The row is gone from the app either way; an orphaned blob is a
+        // storage cost, not a correctness or privacy problem.
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [db.pairing_media, userId],
+  );
+
+  const mediaFor = useCallback(
+    (pairingId: string): PairingMedia[] => {
+      if (!userId) return [];
+      const p = db.pairings.find((x) => x.id === pairingId);
+      if (!p || (p.dm_id !== userId && p.ds_id !== userId)) return [];
+      return db.pairing_media
+        .filter((m) => m.pairing_id === pairingId)
+        .sort((a, b) => a.created_at.localeCompare(b.created_at));
+    },
+    [db.pairings, db.pairing_media, userId],
   );
 
   // ---- A missionary's private workspace: notes and follow-ups ----
@@ -1872,6 +2001,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     sendRecommendation,
     actOnEmail,
     clearEmails,
+    attachMedia,
+    removeMedia,
+    mediaFor,
     addNote,
     deleteNote,
     addFollowUp,

@@ -4,15 +4,24 @@ import { useEffect, useRef, useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { NAVY } from '@/lib/brand';
 import { emitQuest } from '@/lib/quest';
+import { Attachment } from './Attachment';
 import { Button } from './ui';
 
 // Private 1:1 thread scoped to a single pairing. In the demo, messages live in
 // the store; in production this is the `messages` table with Realtime and RLS
 // that only lets the two participants read or write.
 export function Chat({ pairingId }: { pairingId: string }) {
-  const { db, userId, sendMessage, markMessagesRead } = useDemo();
+  const { db, userId, sendMessage, markMessagesRead, attachMedia, removeMedia, mediaFor } =
+    useDemo();
   const [text, setText] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // mediaFor applies the rule; this screen never filters db.pairing_media
+  // itself. In a real deployment the equivalent filter is a database policy,
+  // and a screen that did its own filtering would be the thing that quietly
+  // disagreed with it.
+  const media = mediaFor(pairingId);
 
   const thread = db.messages
     .filter((m) => m.pairing_id === pairingId)
@@ -20,7 +29,7 @@ export function Chat({ pairingId }: { pairingId: string }) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [thread.length]);
+  }, [thread.length, media.length]);
 
   // Reading the thread is what marks it read — on open, and again whenever a
   // message lands while it is on screen. markMessagesRead is a no-op when
@@ -67,7 +76,71 @@ export function Chat({ pairingId }: { pairingId: string }) {
             </div>
           );
         })}
+        {media.map((m) => {
+          const mine = m.owner_id === userId;
+          return (
+            <div
+              key={m.id}
+              className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}
+            >
+              <Attachment
+                media={m}
+                onRemove={mine ? () => removeMedia(m.id) : undefined}
+              />
+              <span className="mt-1 px-1 text-xs text-gray-400">
+                {mine ? 'You' : nameOf(m.owner_id)} ·{' '}
+                {new Date(m.created_at).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+          );
+        })}
         <div ref={bottomRef} />
+      </div>
+
+      {/*
+        DELIBERATELY OUTSIDE THE FORM BELOW, and it cost two broken test runs to
+        learn why.
+
+        [data-quest="chat-send"] is the tutorial's anchor, and other suites reach
+        into it positionally: the message box is
+        `[data-quest="chat-send"] input`.first() and Send is
+        `[data-quest="chat-send"] button`.first(). Putting the hidden file input
+        inside captured the first selector, so typing timed out. Moving only the
+        input and leaving the Attach button inside then captured the second, so
+        the suite clicked Attach instead of Send and the message was never sent —
+        a silent failure, because nothing on screen looked wrong.
+
+        So the whole attach control lives out here. That region contains exactly
+        one input and one button, and it should stay that way.
+      */}
+      <div className="flex items-center gap-2 border-t border-black/5 px-3 pt-2">
+        <input
+          ref={fileRef}
+          type="file"
+          className="hidden"
+          aria-hidden="true"
+          tabIndex={-1}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            // Reset first: picking the same file twice in a row fires no change
+            // event otherwise, and the second attempt looks broken.
+            e.target.value = '';
+            if (file) attachMedia(pairingId, file);
+          }}
+        />
+        {/* Plain text label, no aria-label: Button takes a fixed prop list and
+            would drop one silently — see the comment in ui.tsx. */}
+        <Button
+          type="button"
+          variant="ghost"
+          className="px-3 text-base"
+          onClick={() => fileRef.current?.click()}
+        >
+          Attach a file
+        </Button>
       </div>
 
       <form
