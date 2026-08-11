@@ -14,6 +14,50 @@ it.
 
 ---
 
+## What it looks like
+
+Real screenshots of the app running with its own built-in sample people. Nothing
+here is a mockup, and nothing is assembled from parts that never appeared
+together. Regenerate them any time with `node scripts/screenshots.mjs`.
+
+### A missionary's desk
+
+Who you are walking with, what needs you today, and where each person is on the
+six-node journey.
+
+![The missionary's home screen, showing two seekers, overdue follow-ups, the six journey nodes from Create to Commission, and an upcoming Bible study](docs/screenshots/missionary-people.png)
+
+### One person, one conversation
+
+Everything about that relationship in one place: how to reach them, what they
+are interested in, the conversation, their journey, and the resources shared.
+
+![A seeker's page showing John Reyes at the Connect stage on the digital track, with tabs for Talk, Journey, Care and Resources](docs/screenshots/conversation.png)
+
+### The church, without anybody's private journey
+
+Leaders see counts and what needs a decision. They do not see conversations, and
+the screen says so in as many words.
+
+![The church home screen showing counts, a sign-up awaiting approval, and announcements](docs/screenshots/church-overview.png)
+
+### On a phone, which is where it is actually used
+
+The same app. Installs from the browser with no app store, and keeps working
+with the signal off.
+
+| A seeker's home | A missionary's home |
+|---|---|
+| ![A seeker's phone screen: a welcome, a verse, and what is waiting for them](docs/screenshots/phone-seeker.png) | ![A missionary's phone screen: greeting, what needs attention, and the six journey nodes](docs/screenshots/phone-missionary.png) |
+
+**Look at what is missing from the seeker's screen.** There is no stage, no
+progress bar, no label about how far along they are. A stage is a note the
+church keeps to organise its work, not a grade to show somebody about
+themselves, and the database will not hand it to them even if a future screen
+asks.
+
+---
+
 ## Try it in two minutes
 
 ```bash
