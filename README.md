@@ -73,14 +73,101 @@ this, and it should survive anything you build on top.
 **Change the words.** Roles, stages and sample data are ordinary files —
 `lib/types.ts`, `lib/demo/seed.ts`. Nothing is hard-coded into the framework.
 
-**Connect a real backend when you are ready.** The app talks to exactly one
-thing: a store in `lib/demo/store.tsx`. Anything that satisfies the same
-interface can replace it — Supabase, Firebase, your own API, a spreadsheet. See
-**[docs/BACKENDS.md](docs/BACKENDS.md)** for a worked example, starting with the
-smallest one: where feedback goes.
-
 **Deploy it anywhere.** It is a standard Next.js app. Vercel, Netlify, Cloudflare
 or your own server all work. There is nothing platform-specific in it.
+
+---
+
+## "It says no backend. So how do I make it real?"
+
+Fair question, and it is the one everybody asks. Here is the short answer.
+
+**Nothing is missing from the app.** Every screen works — messages send, lessons
+assign, stages advance. They just read and write a store that lives in your
+browser, so the data never leaves your device and two people cannot share it.
+
+**Adding a backend means replacing what is under the app, not rebuilding it.**
+There is exactly one file that touches storage, `lib/demo/store.tsx`, and its
+`Ctx` interface is the complete list of everything the app can do. Satisfy that
+interface with your own database and **every screen keeps working unchanged**,
+because no screen knows the difference.
+
+```
+Your screens  →  the store  →  browser storage    ← today
+Your screens  →  the store  →  your database      ← after
+     ↑
+  unchanged
+```
+
+### The smallest real example
+
+Two lines of concept: the demo writes to memory, yours writes to a database.
+
+```ts
+// Today — lib/demo/store.tsx
+sendMessage: (pairingId, body) => {
+  setDb((d) => ({ ...d, messages: [...d.messages, { pairing_id: pairingId, body }] }));
+},
+
+// With a backend — the screen calling it does not change at all
+sendMessage: async (pairingId, body) => {
+  await db.from('messages').insert({
+    pairing_id: pairingId,
+    body,
+    sender_id: currentUser.id,   // from the verified session, never the browser
+  });
+  await refresh();
+},
+```
+
+### Swapping the store in
+
+```tsx
+// app/layout.tsx — one line changes
+import { DemoContext, type Ctx } from '@/lib/demo/store';
+
+function RealProvider({ children }: { children: React.ReactNode }) {
+  const value: Ctx = useYourBackend();   // TypeScript lists what is missing
+  return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
+}
+```
+
+Type your object as `Ctx` and the compiler becomes the checklist: it names every
+function you have not written yet.
+
+### Want a fifteen-minute warm-up first?
+
+Point feedback at a real server. Same pattern, one twentieth the size, works end
+to end:
+
+```ts
+import { setFeedbackSink } from '@/lib/backend/feedback';
+
+setFeedbackSink({
+  describe: 'sent to the church office',
+  async send(message) {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      body: JSON.stringify(message),
+    });
+    return { ok: res.ok };
+  },
+});
+```
+
+### The one rule that matters most
+
+Your screens decide what to **show**. Your database decides what somebody is
+**allowed to have** — because anybody can send a request without using your
+screens at all. Put the permission rules with the data, not in the interface.
+
+### Then read the full instructions
+
+| Guide | For |
+|---|---|
+| **[docs/BUILD-YOUR-OWN.md](docs/BUILD-YOUR-OWN.md)** | **Start here.** Front end and backend, end to end: the tables with real SQL, accounts and invitations, the permission rules, wiring it up, deploying, and a checklist to work through before real people are in it. No backend experience assumed. |
+| [docs/BACKENDS.md](docs/BACKENDS.md) | The two seams in more detail, and the fifteen-minute feedback warm-up. |
+| [docs/SECURITY.md](docs/SECURITY.md) | What you become responsible for the day you connect one. |
 
 ---
 
@@ -98,8 +185,9 @@ instead of the database, and putting a key somewhere the browser can read it.
 
 | | |
 |---|---|
+| **[docs/BUILD-YOUR-OWN.md](docs/BUILD-YOUR-OWN.md)** | Build your own Beacon with a real backend, end to end: tables, accounts, permission rules, wiring, deploying, and the checklist before real people. No backend experience assumed. |
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | How it is built, and where everything lives. Start here if you are about to change something. |
-| **[docs/BACKENDS.md](docs/BACKENDS.md)** | Connecting a real backend, in two sizes: fifteen minutes, or a real project. |
+| **[docs/BACKENDS.md](docs/BACKENDS.md)** | The two seams in detail, and the fifteen-minute feedback warm-up. |
 | **[docs/ONBOARDING.md](docs/ONBOARDING.md)** | How a church actually uses it: who does what, in what order. |
 | **[docs/SECURITY.md](docs/SECURITY.md)** | Read before you put real people in it. |
 | **[docs/UPDATES.md](docs/UPDATES.md)** | How an installed copy updates itself. |
