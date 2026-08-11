@@ -146,11 +146,15 @@ list of shapes, and `lib/demo/seed.ts` shows one of each filled in.
 
 Here is the core, as tables. This is the minimum for the main features to work.
 
-> **These examples are illustrative and have not been run against a live
-> database.** They are written to be read and adapted, not pasted unchanged.
-> Types, defaults and extension names differ between Postgres hosts — check
-> yours. Create the tables in the order shown, because each references the ones
-> above it.
+> **These have been run.** The complete working version, with the permission
+> rules, is [`docs/examples/schema.sql`](examples/schema.sql) — applied to a real
+> PostgreSQL 16 database and attacked from a second account by
+> [`prove-the-rules.sql`](examples/prove-the-rules.sql), which passes 14 of 14.
+>
+> Prefer running that file to copying these blocks. Create tables in the order
+> shown, because each references the ones above it. Types, defaults and
+> extension names differ between Postgres hosts — check yours, and adapt this
+> for your deployment rather than adopting it unread.
 
 ```sql
 -- The church itself. First, because everything else points at it.
@@ -289,84 +293,66 @@ Here are Beacon's five promises, and how each is enforced.
 | Leaders get counts, never conversations | Executives read aggregate views, not message rows |
 | Nobody changes their own role | `role` is never accepted from the client |
 
-### What that looks like in SQL
+### What that looks like in SQL — and it has been run
 
-```sql
-alter table pairings enable row level security;
-alter table messages enable row level security;
-alter table notes    enable row level security;
+**Do not copy blocks from a document.** The working schema and rules are two
+runnable files:
 
--- A missionary or seeker sees a pairing only if they are in it.
-create policy "own pairings" on pairings
-for select using (
-  dm_id = auth.uid() or ds_id = auth.uid()
-);
+| File | What it is |
+|---|---|
+| [`docs/examples/schema.sql`](examples/schema.sql) | Tables, helpers, policies, the seeker's journey view, the app's database role |
+| [`docs/examples/prove-the-rules.sql`](examples/prove-the-rules.sql) | Fourteen attacks from a second account. Every line must print `PASS` |
 
--- A message is visible only to the two people in that pairing.
-create policy "own conversation" on messages
-for select using (
-  exists (
-    select 1 from pairings p
-    where p.id = messages.pairing_id
-      and (p.dm_id = auth.uid() or p.ds_id = auth.uid())
-  )
-);
-
--- And you may only send as yourself, into a pairing you are in.
-create policy "send as self" on messages
-for insert with check (
-  sender_id = auth.uid()
-  and exists (
-    select 1 from pairings p
-    where p.id = pairing_id
-      and (p.dm_id = auth.uid() or p.ds_id = auth.uid())
-  )
-);
-
--- Private notes: the author, and nobody else. No admin exception.
-create policy "own notes" on notes
-for all using (author_id = auth.uid())
-with check (author_id = auth.uid());
+```bash
+createdb beacon
+psql -d beacon -f docs/examples/schema.sql
+psql -d beacon -f docs/examples/prove-the-rules.sql
 ```
 
-`auth.uid()` is "the id of whoever is making this request", which your auth
-system provides. The equivalent exists in every system worth using.
+Applied to a real PostgreSQL 16 database; the proof passes 14 of 14 from empty.
 
-### Stopping the role escalation, concretely
+### What running it found
 
-```sql
--- A person may update their own profile, but not their role or approval.
-create policy "update own profile" on profiles
-for update using (id = auth.uid())
-with check (id = auth.uid());
+This section originally carried its SQL inline, written from experience and
+never executed. Running it found five defects. Each is a trap you can hit on
+your own.
 
-create or replace function pin_role()
-returns trigger language plpgsql as $$
-begin
-  new.role        := old.role;         -- whatever they sent, ignore it
-  new.is_approved := old.is_approved;
-  return new;
-end $$;
+**1. `auth.uid()` does not exist outside Supabase.** Five statements failed at
+once on `schema "auth" does not exist`, and this guide claimed to be
+provider-neutral. The equivalent for plain Postgres is now in `schema.sql`.
 
-create trigger profiles_pin_role
-  before update on profiles
-  for each row execute function pin_role();
-```
+**2. A seeker could read their own journey stage.** The obvious policy — *you
+may read a pairing you are in* — hands the seeker the entire row, and `stage`
+is a column on it. Every screen hid the value; the database gave it away.
+**This is the app's most important promise and the SQL did not keep it.** Fixed
+by excluding seekers from the table and giving them a view with no `stage`
+column in it at all: absent, not hidden.
 
-Now a request that tries to set `role = 'admin'` succeeds and changes nothing —
-which is exactly what you want, because an error message tells an attacker they
-found the right lever.
+**3. Fixing that broke the seeker's messages.** The conversation policy asked
+"is this person in that pairing?" with a sub-select, which runs under the
+pairings policy — the one that now excludes seekers. So a seeker could no
+longer read their own conversation. Fixed with a `SECURITY DEFINER` helper that
+answers the membership question without going through the policy.
+
+**4. The profiles policy recursed infinitely.** A sub-select against `profiles`
+from inside `profiles`'s own policy. Same fix, same reason.
+
+**5. The role-pinning trigger locked the church out of its own administration.**
+Pinning `role` and `is_approved` unconditionally also stops an admin approving
+a new member or promoting a missionary — the two things administration consists
+of. Worse, it fails *silently*: the update succeeds and changes nothing. Fixed
+by pinning only when somebody edits their **own** row.
 
 ### Prove the rules, do not assume them
 
-Write a script that signs in as a **second** missionary and tries to read the
-first one's conversation. It must come back with zero rows.
+Run `prove-the-rules.sql`. It signs in as a seeker, two different missionaries
+and an admin, and checks fourteen things that should each be refused or allowed.
 
-Reading a policy and believing it is not the same as watching it refuse. Do this
-once for each of the five promises above, and keep the script — it is the thing
-you re-run after any schema change.
+**Connect as your application's role, not as the owner.** A superuser or table
+owner **bypasses RLS entirely**, so every check passes for the wrong reason.
+That is the most common way somebody proves rules that do not work.
 
----
+Reading a policy and believing it is not the same as watching it refuse.
 
 ## Step 7 — Wire it to the app
 
