@@ -171,11 +171,29 @@ ok(
 // randomUUID is a secure-context API: undefined over plain http on a LAN
 // address, and absent before Safari 15.4. Unguarded it throws rather than
 // degrades, and attaching a file fails outright.
-const localMedia = read('lib/localMedia.ts');
+//
+// The guard used to be written out inside localMedia.ts and this check looked
+// for it there. It now lives in lib/uuid.ts and every caller delegates, so the
+// check follows it — a test that pins an invariant to one file's wording fails
+// the day that invariant is done properly somewhere else, which is the least
+// useful failure available. What is asserted is the property, in both places it
+// can now break: the helper still guards, and callers still use the helper.
+const uuidHelper = read('lib/uuid.ts');
 ok(
-  /typeof crypto\.randomUUID === 'function'/.test(localMedia),
-  'media ids do not assume a secure context (http on a LAN, older Safari)',
+  /typeof c\.randomUUID === 'function'/.test(uuidHelper),
+  'lib/uuid.ts does not assume a secure context (http on a LAN, older Safari)',
 );
+ok(
+  /getRandomValues/.test(uuidHelper),
+  'and its fallback is real randomness, not Math.random',
+);
+for (const f of ['lib/localMedia.ts', 'lib/realtime.ts', 'components/Feedback.tsx']) {
+  const src = read(f).replace(/\/\/.*$/gm, '');
+  ok(
+    !/crypto\.randomUUID/.test(src),
+    `${f}: calls uuid() rather than crypto.randomUUID directly`,
+  );
+}
 
 // npm and npx are .cmd shims on Windows and Node will not exec them without a
 // shell. This is the first command a Windows contributor runs.

@@ -234,5 +234,173 @@ for (const f of clientish) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 9. A push notification chooses the SCREEN, never the SITE.
+//
+// The service worker takes a URL out of the push payload and hands it to
+// client.navigate()/clients.openWindow(). Unvalidated, that means one
+// compromised or simply mistaken push sends every phone that taps the
+// notification anywhere on the internet, inside the window the person believes
+// is this app. The worker resolves the value against its own origin and drops
+// anything that leaves it; this check is here because that guard is four lines
+// inside an escaped string constant and is very easy to lose in a rewrite.
+// ---------------------------------------------------------------------------
+const swRoute = ['app/sw.js/route.ts', 'app/sw.js/route.js'].find(exists);
+ok(!!swRoute, `service worker route found (${swRoute})`);
+if (swRoute) {
+  const raw = read(swRoute);
+  const m = raw.match(/const SOURCE = ("(?:[^"\\]|\\.)*");/s);
+  ok(!!m, `${swRoute}: the worker source is a single string constant`);
+  if (m) {
+    const worker = JSON.parse(m[1]);
+    // Parse it. A worker with a syntax error is served happily by this route
+    // and then fails silently in the browser, which costs the whole offline
+    // shell and the update path with it.
+    ok(
+      (() => {
+        try {
+          new Function(worker.split('__BEACON_BUILD__').join('x'));
+          return true;
+        } catch {
+          return false;
+        }
+      })(),
+      `${swRoute}: the generated worker parses as JavaScript`,
+    );
+    const click = worker.slice(worker.indexOf("addEventListener('notificationclick'"));
+    const handler = click.slice(0, click.indexOf('\n});'));
+    ok(
+      /new URL\(\s*raw\s*,\s*self\.location\.origin\s*\)/.test(handler),
+      `${swRoute}: the notification target is resolved against this origin`,
+    );
+    ok(
+      /u\.origin === self\.location\.origin/.test(handler),
+      `${swRoute}: a cross-origin notification target is refused`,
+    );
+    ok(
+      !/const target = \(event\.notification\.data/.test(handler),
+      `${swRoute}: the payload URL is not used as the target directly`,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 10. Search visibility is decided ONCE, and defaults to invisible.
+//
+// Three separate signals control whether this deployment can be found: the
+// `robots` metadata in app/layout.tsx, app/robots.ts, and the X-Robots-Tag
+// header in next.config.mjs. They used to be three hard-coded "no"s, each with
+// a comment saying "change all three, or none" — an instruction that gets
+// followed twice out of three times, and a half-change is the worst outcome
+// available: a site indexed while everybody believes it is not.
+//
+// They now read one variable. This check is what keeps them reading it, and
+// what keeps the DEFAULT at "no" — a church deployment holds real people's
+// names, so being findable has to be opted into, never arrived at by omission.
+// ---------------------------------------------------------------------------
+const SWITCH = 'BEACON_PUBLIC_SITE';
+ok(exists('lib/site-visibility.ts'), 'the search-visibility switch has one home');
+if (exists('lib/site-visibility.ts')) {
+  const vis = read('lib/site-visibility.ts');
+  ok(
+    new RegExp(`process\\.env\\.${SWITCH}\\s*===\\s*'1'`).test(vis),
+    `site-visibility opts IN on ${SWITCH}=1, so anything unset stays private`,
+  );
+}
+for (const f of ['app/layout.tsx', 'app/robots.ts']) {
+  if (!exists(f)) continue;
+  ok(
+    /from '@\/lib\/site-visibility'/.test(read(f)),
+    `${f}: reads the shared switch rather than hard-coding an answer`,
+  );
+}
+if (nextConfig) {
+  const cfg = read(nextConfig);
+  // The config is .mjs and cannot import the TypeScript module, so it reads the
+  // variable directly. That is the one permitted duplication and this is why it
+  // is checked here.
+  ok(
+    new RegExp(`process\\.env\\.${SWITCH}\\s*===\\s*'1'`).test(cfg),
+    `${nextConfig}: reads the same switch, on the same opt-in polarity`,
+  );
+  ok(
+    /X-Robots-Tag/.test(cfg) && /indexable \?\s*\[\]/.test(cfg),
+    `${nextConfig}: the noindex header is present unless the switch is on`,
+  );
+}
+// And the default really is private: evaluate it with nothing set.
+ok(
+  process.env[SWITCH] !== '1',
+  `${SWITCH} is not set in this environment, so the checks above describe the default`,
+);
+
+// ---------------------------------------------------------------------------
+// 11. The mailbox call-to-action is a link this app chose.
+//
+// `safeExternalUrl` demands an absolute http(s) URL, which is right for a
+// material an admin typed and wrong for the mailbox, whose call-to-action is
+// normally a path in this same app. So the mailbox uses `safeLinkHref`, which
+// accepts a rooted path OR an http(s) URL and refuses everything else.
+//
+// This was safe by accident before: every value reaching it is composed by the
+// app. The day a fork has a server compose these messages, that stops being
+// true, and the failure mode is a hostile link inside a message the reader
+// believes came from their church.
+//
+// Behaviour, not shape — the payloads are run through the real function.
+// ---------------------------------------------------------------------------
+if (exists('lib/url.ts')) {
+  const url = read('lib/url.ts');
+  ok(/export function safeLinkHref/.test(url), 'lib/url.ts exports safeLinkHref');
+  if (/export function safeLinkHref/.test(url)) {
+    // This runner cannot import TypeScript, so the guard is reproduced below
+    // and then checked, line by line, against the source it was copied from.
+    // Reproducing without that check is how a suite ends up proving a stale
+    // copy correct while the shipped function does something else.
+    const ext = url.match(/return (\/[^\n]+\/i)\.test\(trimmed\)/);
+    ok(!!ext, 'safeExternalUrl still tests one anchored pattern');
+    if (ext) {
+      // eslint-disable-next-line no-eval
+      const re = eval(ext[1]);
+      const safeExternalUrl = (u) => (u && re.test(u.trim()) ? u.trim() : null);
+      const safeLinkHref = (u) => {
+        if (!u) return null;
+        const t = u.trim();
+        if (t.startsWith('//')) return null;
+        if (t.startsWith('/')) return t;
+        return safeExternalUrl(t);
+      };
+      // Confirm the reproduction above matches the file, so a change to the
+      // real function cannot pass by being tested against a stale copy.
+      const body = url.slice(url.indexOf('export function safeLinkHref'));
+      ok(/startsWith\('\/\/'\)\) return null/.test(body), 'safeLinkHref refuses protocol-relative');
+      ok(/startsWith\('\/'\)\) return trimmed/.test(body), 'safeLinkHref allows a rooted path');
+      ok(/return safeExternalUrl\(trimmed\)/.test(body), 'safeLinkHref delegates absolute URLs');
+
+      for (const bad of [
+        'javascript:alert(1)',
+        ' javascript:alert(1)',
+        'JaVaScRiPt:alert(1)',
+        'data:text/html,<script>alert(1)</script>',
+        'vbscript:msgbox(1)',
+        '//evil.example/x',
+        'evil.example/x',
+        'file:///etc/passwd',
+      ]) {
+        ok(safeLinkHref(bad) === null, `mailbox href refuses ${JSON.stringify(bad)}`);
+      }
+      for (const good of ['/join?token=abc', '/login', 'https://example.com/a']) {
+        ok(safeLinkHref(good) === good, `mailbox href allows ${good}`);
+      }
+    }
+  }
+}
+
+if (exists('components/Mailbox.tsx')) {
+  const mail = read('components/Mailbox.tsx').replace(/\/\/.*$/gm, '');
+  ok(!/href=\{m\.link\}/.test(mail), 'Mailbox never renders m.link as an href directly');
+  ok(/safeLinkHref\(m\.link\)/.test(mail), 'Mailbox routes the call-to-action through safeLinkHref');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

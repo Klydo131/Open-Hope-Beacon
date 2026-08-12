@@ -39,6 +39,7 @@
 // ---------------------------------------------------------------------------
 
 import type { DB } from './types';
+import { uuid } from './uuid';
 
 const CHANNEL = 'beacon-realtime';
 
@@ -60,10 +61,7 @@ export interface RealtimeTransport {
 // other's writes from their own; BroadcastChannel already declines to deliver a
 // message back to its sender, but a network transport usually will not, so the
 // field is carried from the start rather than added after the first echo loop.
-export const ORIGIN =
-  typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : `w-${Math.random().toString(36).slice(2)}`;
+export const ORIGIN = uuid();
 
 // The default: same device, every open window. Silent no-op where
 // BroadcastChannel is unavailable (older Safari, some embedded webviews), so

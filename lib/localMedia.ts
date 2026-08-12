@@ -3,6 +3,7 @@
 // On-device media storage. Files never leave the browser.
 
 import type { MaterialType } from './types';
+import { uuid } from './uuid';
 
 const DB_NAME = 'beacon-media';
 const META = 'meta';
@@ -74,18 +75,11 @@ export function typeFromMime(mime: string): MediaType {
 }
 
 export function newMediaId(): string {
-  // randomUUID is a SECURE-CONTEXT api. It is undefined over plain http on a
-  // LAN address — exactly how a church would try this on its own machine
-  // first — and absent in Safari before 15.4. Unguarded, it does not degrade:
-  // it throws, and attaching a file fails outright on those devices.
-  //
-  // The fallback does not need to be cryptographically strong. This id names a
-  // row and a key in the caller's own IndexedDB; it is not a secret and it is
-  // never a permission.
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `m-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  // Not crypto.randomUUID() directly: that is a secure-context API and is
+  // undefined over plain http on a LAN address, so attaching a file threw
+  // rather than degraded. The fallback used to be Math.random(), which worked
+  // but produced something that only looked like an id. See lib/uuid.ts.
+  return uuid();
 }
 
 export function resolutionLabel(width?: number, height?: number): string {

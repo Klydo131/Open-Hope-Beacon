@@ -6,6 +6,7 @@ import { Card, Button, EmptyState, Tabs } from '@/components/ui';
 import { NAVY, ROLE_LABELS } from '@/lib/brand';
 import type { DemoEmail, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { safeLinkHref } from '@/lib/url';
 
 // The simulated mailbox.
 //
@@ -150,6 +151,16 @@ function Letter({
       ? db.recommendations.find((r) => r.id === m.recommendation_id)
       : undefined;
 
+  // The call-to-action's destination, checked before it can become an href.
+  //
+  // Today every value here is composed by the app itself and is a path in this
+  // same app, so nothing hostile can reach it. That is a fact about the current
+  // wiring, not a property of the code — the moment a fork has a server compose
+  // these messages, this becomes a link somebody else chose, rendered inside a
+  // message the reader believes came from their church. Guarding it now costs a
+  // line; guarding it later requires noticing.
+  const cta = safeLinkHref(m.link);
+
   return (
     <Card className="overflow-hidden">
       <button
@@ -282,9 +293,9 @@ function Letter({
                 </p>
               )}
 
-              {m.link && k.cta && (
+              {cta && k.cta && (
                 <a
-                  href={m.link}
+                  href={cta}
                   className="tap inline-flex items-center justify-center rounded-xl px-5 text-base font-bold text-navy"
                   style={{ backgroundColor: '#E8B84B' }}
                 >

@@ -96,6 +96,31 @@ explain afterwards.
 
 ---
 
+## Search engines
+
+**Your deployment is invisible to search by default, and a church should leave
+it that way.** A church Beacon holds real people's names and conversations, and
+a shared deep link that gets indexed is the cheapest possible leak — nobody has
+to break anything, they only have to search.
+
+Three signals say so together: a `<meta name="robots">` tag on every page,
+`/robots.txt`, and the `X-Robots-Tag` response header. All three read one
+variable, so they cannot end up disagreeing with each other:
+
+```
+BEACON_PUBLIC_SITE=1   # opt IN to being findable. Unset, the default, means no.
+```
+
+Set it only on a deployment with no real people in it — a public demo or a
+showcase, where being unfindable is the bug. Do not set it on a church's Beacon.
+
+What this is not: `robots` directives are a request. The large search engines
+honour them and anything that does not care ignores them. They keep your app out
+of Google; they are not access control. If a page must not be read by a
+stranger, it needs a sign-in, not a header.
+
+---
+
 ## Sample data
 
 The sample church is fiction and must stay fiction. Names use reserved domains

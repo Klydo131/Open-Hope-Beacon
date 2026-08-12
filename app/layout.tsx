@@ -15,6 +15,7 @@ import { DemoRibbon } from '@/components/DemoRibbon';
 import { LocaleProvider } from '@/lib/i18n';
 import { BUILD_ID } from '@/lib/build-info';
 import { APP_NAME, APP_SHORT_NAME, APP_DESCRIPTION } from '@/lib/brand';
+import { INDEXABLE } from '@/lib/site-visibility';
 
 export const metadata: Metadata = {
   // The name comes from lib/brand.ts so a fork changes it in one place. It also
@@ -30,18 +31,21 @@ export const metadata: Metadata = {
   //
   // A church deployment holds real people's names and conversations, and a
   // shared deep link that gets indexed is the cheapest possible data leak. So
-  // the default is to stay out of every search engine, and a fork that genuinely
-  // wants to be found has to say so on purpose.
+  // the default is to stay out of every search engine, and a deployment that
+  // genuinely wants to be found has to say so on purpose — BEACON_PUBLIC_SITE=1,
+  // which is the showcase's case and almost never a church's.
   //
-  // This emits <meta name="robots" content="noindex, nofollow, …"> on every
-  // page — the most reliable signal, independent of hosting. It is reinforced by
-  // app/robots.ts and by the X-Robots-Tag header in next.config.mjs, so if you
-  // do want to be indexed, all three have to change.
+  // This emits <meta name="robots" content="…"> on every page, the most reliable
+  // signal and the one independent of hosting. It is reinforced by app/robots.ts
+  // and by the X-Robots-Tag header in next.config.mjs. All three used to be
+  // changed by hand and told you so in a comment; they now read the same switch
+  // from lib/site-visibility.ts, because "remember to change three files" is a
+  // rule that gets followed twice out of three times.
   robots: {
-    index: false,
-    follow: false,
-    nocache: true,
-    googleBot: { index: false, follow: false, noimageindex: true },
+    index: INDEXABLE,
+    follow: INDEXABLE,
+    nocache: !INDEXABLE,
+    googleBot: { index: INDEXABLE, follow: INDEXABLE, noimageindex: !INDEXABLE },
   },
   // The build this page was rendered from, readable without opening Settings.
   // When someone reports "it did not update", the first question is which build

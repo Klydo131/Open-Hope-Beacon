@@ -1,17 +1,13 @@
 import type { MetadataRoute } from 'next';
+import { INDEXABLE } from '@/lib/site-visibility';
 
-// Disallow every crawler from every path — the deliberate default.
-//
-// A church deployment holds real people's names and conversations, and a shared
-// deep link that gets indexed is the cheapest possible leak. So being findable
-// has to be opted into on purpose, not out of by accident.
-//
-// If your deployment genuinely should be public, change this AND the `robots`
-// block in app/layout.tsx AND the X-Robots-Tag header in next.config.mjs. All
-// three, or none — a half-change is how a page ends up indexed while everybody
-// believes it is not.
+// One of the three places search visibility is decided — the other two are the
+// `robots` metadata in app/layout.tsx and the X-Robots-Tag header in
+// next.config.mjs. All three now read the same switch, so they cannot disagree
+// with each other. See lib/site-visibility.ts for why the default is "no" and
+// which deployment should say yes.
 export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: [{ userAgent: '*', disallow: '/' }],
-  };
+  return INDEXABLE
+    ? { rules: [{ userAgent: '*', allow: '/' }] }
+    : { rules: [{ userAgent: '*', disallow: '/' }] };
 }

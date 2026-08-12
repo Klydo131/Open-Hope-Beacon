@@ -34,17 +34,24 @@ const csp = [
   "form-action 'self'",
 ].join('; ');
 
+// Search visibility, decided in one place. Kept in step with app/robots.ts and
+// the `robots` metadata in app/layout.tsx, which read the same variable through
+// lib/site-visibility.ts — this file cannot import that module (a .mjs config is
+// evaluated before TypeScript exists), so it reads the variable directly and
+// tests/security-invariants.mjs asserts the three never drift apart.
+//
+// Default: no. A church deployment holds real people's names, and a shared deep
+// link that gets indexed is the cheapest possible leak, so being findable is
+// opted into on purpose. The public showcase is the deployment that sets it.
+const indexable = process.env.BEACON_PUBLIC_SITE === '1';
+
 const securityHeaders = [
   { key: 'Content-Security-Policy', value: csp },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-  // Noindex by default. A church deployment holds real people's names, and a
-  // shared deep link that gets indexed is the cheapest possible leak, so being
-  // findable has to be opted into rather than out of. Reinforces the robots meta
-  // tag in app/layout.tsx and app/robots.ts — change all three, or none.
-  { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+  ...(indexable ? [] : [{ key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' }]),
 ];
 
 // The build identity deliberately does NOT live here any more.

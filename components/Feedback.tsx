@@ -5,6 +5,7 @@ import { NAVY, GOLD } from '@/lib/brand';
 import { versionLabel } from '@/lib/app-update';
 import { getFeedbackSink, type FeedbackMessage } from '@/lib/backend/feedback';
 import { BUILD_ID } from '@/lib/build-info';
+import { uuid } from '@/lib/uuid';
 
 type State = 'idle' | 'sending' | 'sent' | 'failed';
 type Category = 'bug' | 'idea' | 'confusing' | 'praise';
@@ -100,7 +101,7 @@ function FeedbackPanel({
   // draft must be the same message, so a sink that has seen the id can refuse
   // the duplicate instead of filing it twice.
   useEffect(() => {
-    let nextSubmissionId = crypto.randomUUID();
+    let nextSubmissionId = uuid();
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
       const saved: unknown = raw ? JSON.parse(raw) : null;
@@ -192,7 +193,7 @@ function FeedbackPanel({
 
   const prepareEdit = () => {
     if (!attempted) return;
-    setSubmissionId(crypto.randomUUID());
+    setSubmissionId(uuid());
     setAttempted(false);
     setState('idle');
     setReceipt(null);
