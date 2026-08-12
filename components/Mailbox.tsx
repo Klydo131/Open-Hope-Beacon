@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { Card, Button, EmptyState, Tabs } from '@/components/ui';
-import { NAVY, ROLE_LABELS } from '@/lib/brand';
+import { NAVY } from '@/lib/brand';
 import type { DemoEmail, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { safeLinkHref } from '@/lib/url';

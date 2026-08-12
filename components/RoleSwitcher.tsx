@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDemo } from '@/lib/demo/store';
-import { ROLE_LABELS } from '@/lib/brand';
+import { roleNoun } from '@/lib/brand';
 import { Avatar } from '@/components/ui';
 import type { Role } from '@/lib/types';
 
@@ -124,7 +124,7 @@ export function RoleSwitcher() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block font-semibold">
-                      {ROLE_LABELS[r.role]}
+                      {roleNoun(r.role)}
                     </span>
                     <span className="block text-sm text-gray-500">{r.blurb}</span>
                   </span>
@@ -171,7 +171,7 @@ export function RoleSwitcher() {
                       {pp.full_name}
                     </span>
                     <span className="block text-sm text-gray-500">
-                      {ROLE_LABELS[pp.role]}
+                      {roleNoun(pp.role)}
                     </span>
                   </span>
                   {on && (

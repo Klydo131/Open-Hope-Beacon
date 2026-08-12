@@ -70,12 +70,60 @@ export function trackColor(track: Track): string {
   return track === 'traditional' ? '#EA7C1F' : '#2F80ED';
 }
 
+// What each role is CALLED on screen. The database still stores 'dm', 'ds',
+// 'admin' and 'executive' — every permission rule is written against those, and
+// renaming them would mean rewriting the security model to change a word.
+//
+// The wording came from the client, and the reasoning is worth keeping:
+//
+//   'Guide' rather than 'Digital Missionary'  — describes what the person does
+//                                               rather than a title to live up to.
+//   'Support' rather than 'Admin'             — the job is helping the church run,
+//                                               not administering people.
+//   nothing at all for a seeker               — see below.
+//
+// A SEEKER HAS NO LABEL, DELIBERATELY. Everyone else in this app has a job;
+// a seeker is just a person who came. Printing 'Digital Seeker' under their name
+// sorts them into a category in front of the very people walking with them, and
+// the client asked for their name and nothing else. Use `roleLabel()` rather
+// than reading this map directly, so the empty case is handled once.
 export const ROLE_LABELS: Record<string, string> = {
-  executive: 'Executive Admin',
-  admin: 'Admin',
-  dm: 'Digital Missionary',
-  ds: 'Digital Seeker',
+  executive: 'Executive Support',
+  admin: 'Support',
+  dm: 'Guide',
+  ds: '',
 };
+
+/**
+ * The label to show beside somebody's name, or null when there should be none.
+ *
+ * Returning null rather than '' is the point: a caller has to decide what to do
+ * with the absence. Reading ROLE_LABELS directly produced "You are now a ." and
+ * an empty subtitle floating under a name, which is how a blank string fails —
+ * quietly, and only in the places nobody re-read.
+ */
+export function roleLabel(role: string): string | null {
+  const label = ROLE_LABELS[role];
+  return label ? label : null;
+}
+
+/**
+ * A word for the role when the interface HAS to name it — a chooser, a
+ * "who are you?" card, an explanation of who the app is for.
+ *
+ * These are two different jobs and conflating them is how the blank-label
+ * change goes wrong. A badge under somebody's name should say nothing for a
+ * seeker: they are a person, not a category, and that is the whole request.
+ * But an option in a picker cannot be blank — nobody can choose an empty row —
+ * and a card headed by nothing is broken rather than tactful.
+ *
+ * So a seeker is described here rather than titled: "Someone exploring" says
+ * what is true without pinning a label on anybody, and it is never shown beside
+ * their own name.
+ */
+export function roleNoun(role: string): string {
+  return ROLE_LABELS[role] || 'Someone exploring';
+}
 
 export function canKick(callerRole: string, targetRole: string): boolean {
   if (callerRole === 'executive') return ['admin', 'dm', 'ds'].includes(targetRole);

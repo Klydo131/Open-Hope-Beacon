@@ -5,7 +5,7 @@ import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui';
 import { ChurchBillboard } from '@/components/ChurchBillboard';
 import { FeedbackButton } from '@/components/Feedback';
-import { STAGES, ROLE_LABELS } from '@/lib/brand';
+import { STAGES, roleLabel } from '@/lib/brand';
 import type { Role } from '@/lib/types';
 
 // The church home — the shared board every account lands on. The activity
@@ -142,7 +142,8 @@ function Body() {
       {seesMore && (
         <Card className="p-4">
           <p className="text-sm text-gray-600">
-            👋 As {ROLE_LABELS[me.role]}, you also have a private{' '}
+            👋 {roleLabel(me.role) ? `As ${roleLabel(me.role)}, you` : 'You'} also
+            have a private{' '}
             <strong>{me.role === 'admin' ? 'Admin' : 'Dashboard'}</strong> with the
             monitoring detail your role allows.
           </p>

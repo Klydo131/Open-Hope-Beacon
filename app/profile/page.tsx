@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { AppShell } from '@/components/AppShell';
 import { Avatar, Button, Card } from '@/components/ui';
-import { ROLE_LABELS } from '@/lib/brand';
+import { roleLabel } from '@/lib/brand';
 import type { Role } from '@/lib/types';
 
 // Executives included.
@@ -22,8 +22,8 @@ const AVATARS = ['🙂', '😊', '🧑', '👩', '👨', '🧕', '👵', '👴',
 const ROLE_STYLE: Record<Role, { bg: string; icon: string; blurb: string }> = {
   executive: { bg: '#0F172A', icon: '⭐', blurb: 'Executive admin — oversees all churches.' },
   admin: { bg: '#1E2A4A', icon: '🛡️', blurb: 'Church coordinator — full access.' },
-  dm: { bg: '#2F80ED', icon: '🤝', blurb: 'Digital Missionary — guiding seekers.' },
-  ds: { bg: '#7FB03A', icon: '🌱', blurb: 'Digital Seeker — exploring faith.' },
+  dm: { bg: '#2F80ED', icon: '🤝', blurb: 'Guide — walking with people, one at a time.' },
+  ds: { bg: '#7FB03A', icon: '🌱', blurb: 'Exploring faith at your own pace.' },
 };
 
 export default function ProfilePage() {
@@ -112,7 +112,8 @@ function Editor() {
               {f.full_name || me.full_name}
             </h1>
             <p className="text-white/80">
-              {rs.icon} {ROLE_LABELS[me.role]}
+              {rs.icon}
+              {roleLabel(me.role) ? ` ${roleLabel(me.role)}` : ''}
             </p>
             <p className="text-sm text-white/60">{rs.blurb}</p>
           </div>

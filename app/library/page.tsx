@@ -231,7 +231,7 @@ export default function LibraryPage() {
         </section>
 
         {/* The starter toolkit — the same shelf for every account, Executive to
-            Digital Seeker. Real published resources, linked to the official free
+            anyone exploring. Real published resources, linked to the official free
             source. Beacon hosts none of them. */}
         <Card className="p-5">
           <h2 className="mb-1 text-xl font-bold text-navy">📖 Starter toolkit</h2>

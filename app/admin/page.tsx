@@ -9,7 +9,7 @@ import { AppShell } from '@/components/AppShell';
 import { InviteManager } from '@/components/InviteManager';
 import { Mailbox } from '@/components/Mailbox';
 import { Avatar, Badge, Button, Card, EmptyState } from '@/components/ui';
-import { ROLE_LABELS, STAGES, stageInfo, canKick } from '@/lib/brand';
+import { roleLabel, STAGES, stageInfo, canKick } from '@/lib/brand';
 import { momentum, quietCount, trend } from '@/lib/analytics-trend';
 import { MomentumLine, TrendChart } from '@/components/TrendChart';
 import type { AnalyticsEvent, MaterialType, Role, Track } from '@/lib/types';
@@ -628,8 +628,8 @@ function Approvals() {
               className="tap w-full min-w-0 rounded-xl bg-gray-100 px-3 text-base"
               aria-label={`Role for ${p.full_name}`}
             >
-              <option value="ds">Digital Seeker</option>
-              <option value="dm">Digital Missionary</option>
+              <option value="ds">Someone exploring</option>
+              <option value="dm">Guide</option>
               <option value="admin">Admin</option>
             </select>
             <Button
@@ -783,9 +783,9 @@ function Pairing() {
                   <Avatar name={m.full_name} avatar={m.avatar} photo={m.photo} />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-navy">{m.full_name}</p>
-                    <p className="text-sm text-gray-500">
-                      {ROLE_LABELS[m.role] ?? m.role}
-                    </p>
+                    {roleLabel(m.role) && (
+                      <p className="text-sm text-gray-500">{roleLabel(m.role)}</p>
+                    )}
                   </div>
                   {removable && (
                     <button

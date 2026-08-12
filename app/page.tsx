@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDemo } from '@/lib/demo/store';
 import { QuestPicker } from '@/components/QuestPicker';
 import { FeedbackButton } from '@/components/Feedback';
-import { NAVY, ROLE_LABELS, APP_SHORT_NAME } from '@/lib/brand';
+import { NAVY, roleNoun, APP_SHORT_NAME } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 import type { Role } from '@/lib/types';
@@ -205,7 +205,7 @@ export default function Home() {
                 </span>
                 <div>
                   <p className="text-lg font-bold text-navy">
-                    {ROLE_LABELS[x.r]}
+                    {roleNoun(x.r)}
                   </p>
                   <p className="text-gray-600">{x.d}</p>
                 </div>

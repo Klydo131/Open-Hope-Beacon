@@ -51,8 +51,8 @@ from pairings;
 
 -- 2. ...BUT A SEEKER STILL SEES THEIR OWN JOURNEY ---------------------------
 select case when count(*) = 1 then 'PASS' else 'FAIL' end
-       || '  a seeker sees their own journey through the view (want 1)'
-from my_journey;
+       || '  a seeker sees their own journey through my_journey() (want 1)'
+from my_journey();
 
 -- 3. AND THAT VIEW HAS NO STAGE COLUMN AT ALL -------------------------------
 --    Absent, not hidden. A hidden column is one careless SELECT * from being
@@ -60,8 +60,8 @@ from my_journey;
 reset role;
 select case when count(*) = 0 then 'PASS' else 'FAIL' end
        || '  the seeker''s view exposes no stage column (want 0)'
-from information_schema.columns
-where table_name = 'my_journey' and column_name = 'stage';
+from information_schema.parameters
+where specific_name like 'my_journey%' and parameter_name = 'stage';
 set role app_user;
 
 -- 4. A SECOND MISSIONARY CANNOT READ THE FIRST ONE'S PAIRING ---------------

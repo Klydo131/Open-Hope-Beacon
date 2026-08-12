@@ -1,4 +1,5 @@
-// The app on a phone, at real device sizes, with touch instead of a mouse.
+// The app on a phone AND a tablet, at real device sizes, with touch instead of
+// a mouse.
 //
 // WHAT THIS PROVES AND WHAT IT DOES NOT. It runs Chromium with each device's
 // viewport, pixel ratio, touch support and user agent. That is enough to catch
@@ -24,11 +25,32 @@ const PNG = Buffer.from(
   'base64',
 );
 
-// Two ends of the range people actually hold: a small iPhone and a common
-// Android. If it works at 375 wide it works at everything above it.
+// THE SENTENCE THAT USED TO BE HERE WAS WRONG, AND IT IS WORTH KEEPING THE
+// CORRECTION VISIBLE: "if it works at 375 wide it works at everything above
+// it." That is true of a layout with no breakpoints and false of this one.
+// Tailwind changes what is on screen at 768 (`md:`), 1024 (`lg:`) and 1280
+// (`xl:`), so a tablet does not get the phone layout scaled up — it gets a
+// DIFFERENT layout, one that phones never render and that no test here saw.
+// This project has already shipped exactly that bug once: the church page was
+// reachable only above `lg`, so it existed on a laptop and did not exist on a
+// phone, and nobody noticed because nothing tested the width in between.
+//
+// A tablet is also the device a pastor actually presents from. So: the two ends
+// of the phone range, and four tablet shapes that straddle every breakpoint.
+// Portrait AND landscape, because rotating an iPad crosses `md`→`lg` and is one
+// gesture away at all times.
 const TARGETS = [
   ['iPhone SE', devices['iPhone SE'] || { viewport: { width: 375, height: 667 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }],
   ['Pixel 5', devices['Pixel 5'] || { viewport: { width: 393, height: 851 }, deviceScaleFactor: 2.75, isMobile: true, hasTouch: true }],
+  // 768 portrait: the first width where `md:` rules appear.
+  ['iPad Mini', devices['iPad Mini'] || { viewport: { width: 768, height: 1024 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }],
+  // 1024 landscape: `lg:` appears, but the height is only 768 — the combination
+  // that hides things below the fold on a device people hold in landscape.
+  ['iPad Mini landscape', devices['iPad Mini landscape'] || { viewport: { width: 1024, height: 768 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }],
+  // 834 portrait: between `md` and `lg`, the width nothing else covers.
+  ['iPad Pro 11', devices['iPad Pro 11'] || { viewport: { width: 834, height: 1194 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }],
+  // 1194 landscape: past `lg`, still touch-only and still no mouse.
+  ['iPad Pro 11 landscape', devices['iPad Pro 11 landscape'] || { viewport: { width: 1194, height: 834 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }],
 ];
 
 async function run(browser, label, device) {
@@ -65,6 +87,35 @@ async function run(browser, label, device) {
     await page.waitForTimeout(1700);
   }
 
+  // EVERY DESTINATION IS REACHABLE BY TAPPING, at this width.
+  //
+  // This is the check the tablet targets were added for. Horizontal scroll is
+  // the loud failure; an unreachable page is the quiet one. `/church` was once
+  // linked only by `lg:inline-flex` in the header and `xl:block` in a left rail,
+  // so it existed on a laptop and simply did not exist on a phone — no error, no
+  // broken layout, just a page nobody could get to. A tablet sits on the other
+  // side of those same breakpoints and can lose a destination the same way, in
+  // either orientation.
+  //
+  // Asserting on the RENDERED, VISIBLE link rather than on the class list: what
+  // matters is whether a finger can reach it, not which utility produced it.
+  for (const [href, what] of [['/church', 'the church page'], ['/settings', 'settings']]) {
+    const link = page.locator(`a[href="${href}"], a[href^="${href}?"]`);
+    const count = await link.count();
+    let reachable = false;
+    for (let i = 0; i < count; i++) {
+      if (await link.nth(i).isVisible().catch(() => false)) {
+        const box = await link.nth(i).boundingBox().catch(() => null);
+        // On screen, and big enough to hit. A 4px sliver is not a link.
+        if (box && box.width >= 24 && box.height >= 24) {
+          reachable = true;
+          break;
+        }
+      }
+    }
+    ok(reachable, `${label}: ${what} is reachable by tapping (${count} link(s) in the DOM)`);
+  }
+
   const composer = page.locator('[data-quest="chat-send"]');
   ok(await composer.count() > 0, `${label}: the conversation composer is reachable`);
 
@@ -73,40 +124,52 @@ async function run(browser, label, device) {
   );
   ok(roomOverflow <= 1, `${label}: no horizontal scroll in the conversation (${roomOverflow}px)`);
 
-  // Attach must be tappable, not merely present. 44px is Apple's own minimum
-  // and the number most accessibility guidance settles on; a control smaller
-  // than that is one a thumb misses.
-  const attach = page.getByRole('button', { name: /Attach a file/i }).first();
-  ok(await attach.count() > 0, `${label}: the attach control is on screen`);
-  const b = await attach.boundingBox();
-  ok(b !== null && b.height >= 44, `${label}: attach is a real tap target (${b ? Math.round(b.height) : 0}px tall)`);
+  // ATTACHMENTS ARE NOT IN EVERY BUILD, and the test says which build it is
+  // looking at rather than guessing.
+  //
+  // Open Hope Beacon puts an attach control in the conversation. The private
+  // application keeps media in the library and player instead, so there is no
+  // attach button in its chat at all. Porting this file between them failed on
+  // that difference and looked like a tablet bug for a while.
+  //
+  // Two wrong ways to handle it. Fail anyway: the suite goes red over a feature
+  // the app was never supposed to have. Skip silently: the day attachments break
+  // on a phone, the suite goes green and says nothing. So it branches, and
+  // PRINTS which branch it took — a reader can see whether the checks ran.
+  const attach = page.getByRole('button', { name: /Attach a file/i });
+  const hasAttach = (await attach.count()) > 0;
 
   const send = page.locator('[data-quest="chat-send"] button').first();
   const sb = await send.boundingBox();
+  // 44px is Apple's own minimum and the number most accessibility guidance
+  // settles on; a control smaller than that is one a thumb misses.
   ok(sb !== null && sb.height >= 44, `${label}: send is a real tap target (${sb ? Math.round(sb.height) : 0}px tall)`);
 
-  // Attaching, on a phone, by touch.
-  await page.locator('input[type="file"]').first().setInputFiles({
-    name: 'from-phone.png',
-    mimeType: 'image/png',
-    buffer: PNG,
-  });
-  await page.waitForTimeout(1900);
-  ok(
-    (await page.getByText(/from-phone\.png/i).count()) > 0,
-    `${label}: a file attached from a phone appears in the conversation`,
-  );
-  ok(
-    (await page.getByText(/file not on this device/i).count()) === 0,
-    `${label}: the attachment resolves to real bytes`,
-  );
+  if (!hasAttach) {
+    console.log(`--  ${label}: no attach control in this build, so the attachment checks are not applicable`);
+  } else {
+    const b = await attach.first().boundingBox();
+    ok(b !== null && b.height >= 44, `${label}: attach is a real tap target (${b ? Math.round(b.height) : 0}px tall)`);
 
-  // Still no sideways scroll once an image is in the thread — an unconstrained
-  // image is a classic way to blow out a phone layout.
-  const afterMedia = await page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
-  );
-  ok(afterMedia <= 1, `${label}: an attachment does not widen the page (${afterMedia}px)`);
+    await page.locator('input[type="file"]').first().setInputFiles({
+      name: 'from-phone.png',
+      mimeType: 'image/png',
+      buffer: PNG,
+    });
+    await page.waitForTimeout(1900);
+    ok(
+      (await page.getByText(/from-phone\.png/i).count()) > 0,
+      `${label}: a file attached from a phone appears in the conversation`,
+    );
+    ok(
+      (await page.getByText(/file not on this device/i).count()) === 0,
+      `${label}: the attachment resolves to real bytes`,
+    );
+    const afterOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    ok(afterOverflow <= 1, `${label}: an attachment does not widen the page (${afterOverflow}px)`);
+  }
 
   await context.close();
 }

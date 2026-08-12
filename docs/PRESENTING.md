@@ -407,7 +407,7 @@ Step 5 is the moment that lands. Everything before it is setup.
 | 14 | Terminal: `git clone`, `npm install`, `npm run dev` | Two minutes, nothing to configure. Verified from a clean clone on 2026-08-12; `tests/dev-server.mjs` keeps it that way |
 | 15 | Open `lib/demo/store.tsx`, show `Ctx` | The backend contract |
 | 16 | Open `docs/examples/schema.sql` | Tables and permission rules, already run |
-| 17 | Run `prove-the-rules.sql` | Fifteen attacks from a second account, all refused |
+| 17 | Run `prove-the-rules.sql` | Sixteen attacks from a second account, all refused |
 | 18 | `npm test` | 13 checks; `npm run verify:all` adds 18 browser walks |
 
 ---

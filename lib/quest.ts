@@ -404,7 +404,7 @@ export const QUEST_BY_TRACK: Record<QuestTrack, QuestStep[]> = {
 
 /** Human names for the walks, used by Settings and the sign-in screen. */
 export const TRACK_LABELS: Record<QuestTrack, string> = {
-  executive: 'Executive Admin',
+  executive: 'Executive Support',
   admin: 'Admin',
   dm: 'Missionary',
   ds: 'Seeker',

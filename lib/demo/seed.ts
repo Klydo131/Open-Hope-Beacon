@@ -88,7 +88,7 @@ export function makeSeed(): DB {
         full_name: 'Bishop Alonzo',
         preferred_contact: 'bishop@church.example',
         gender: 'Male',
-        status: 'Executive Admin',
+        status: 'Executive Support',
         topics_of_interest: [],
         city_of_residence: 'Cavite',
         work_industry: 'Ministry',
@@ -553,7 +553,7 @@ export function makeSeed(): DB {
         link: '/join?token=demo-invite-ruth',
         body:
           'Hello Ruth,\n\n' +
-          'Grace SDA Church has invited you to join Beacon as a Digital Seeker.\n\n' +
+          'Grace SDA Church has invited you to join Beacon.\n\n' +
           'Beacon is a private, invitation-only app that walks you through a ' +
           'journey of faith alongside someone from the church.\n\n' +
           "Tap the button below to set your password and finish signing up. " +
@@ -574,8 +574,8 @@ export function makeSeed(): DB {
         suggested_role: 'ds',
         body:
           'Hello Pastor,\n\n' +
-          'Maria Santos (Digital Missionary) is asking you to review Anna Yu\'s ' +
-          'sign-up, suggesting they join as a Digital Seeker.\n\n' +
+          'Maria Santos (Guide) is asking you to review Anna Yu\'s ' +
+          'sign-up, suggesting they join the church\'s Beacon.\n\n' +
           '"She came to the Sabbath programme twice and asked to be paired with ' +
           'someone. I know the family."\n\n' +
           'You can approve or decline Anna from this message.',

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { Role } from '@/lib/types';
-import { ROLE_LABELS } from '@/lib/brand';
+import { roleLabel } from '@/lib/brand';
 import { useRoom, type RoomTheme, type RoomPrefs } from '@/lib/room-theme';
 import { OrbitPlayer } from './OrbitPlayer';
 
@@ -270,9 +270,11 @@ function RoomCard({
       <p className="mt-0.5 truncate text-base font-extrabold" style={{ color: theme.ink }}>
         {name}
       </p>
-      <p className="text-xs" style={{ color: theme.inkSoft }}>
-        {ROLE_LABELS[role]}
-      </p>
+      {roleLabel(role) && (
+        <p className="text-xs" style={{ color: theme.inkSoft }}>
+          {roleLabel(role)}
+        </p>
+      )}
 
       {/* A line you write for yourself. Nobody else ever sees it — it is not
           a status, it is a note on your own desk. */}

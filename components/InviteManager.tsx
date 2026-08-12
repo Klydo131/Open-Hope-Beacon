@@ -20,8 +20,8 @@ import type { Invite, Role } from '@/lib/types';
 const ROLE_LABEL: Record<string, string> = {
   executive: 'Executive admin',
   admin: 'Admin',
-  dm: 'Digital Missionary',
-  ds: 'Digital Seeker',
+  dm: 'Guide',
+  ds: 'Someone exploring',
 };
 
 const ROLE_OPTIONS: Record<string, Role[]> = {

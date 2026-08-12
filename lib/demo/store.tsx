@@ -28,7 +28,15 @@ import type {
   Stage,
   Track,
 } from '../types';
-import { nextStage, ROLE_LABELS, canKick } from '../brand';
+import { nextStage, roleLabel, canKick } from '../brand';
+
+// What an approval notice says. A seeker is welcomed by name and not told what
+// category they have been filed under; everybody else is told the job they now
+// hold, because for them it is genuinely useful information.
+function welcomeLine(role: string): string {
+  const label = roleLabel(role);
+  return label ? `Welcome! You are now a ${label}.` : 'Welcome! Your account is ready.';
+}
 import { publishDb, subscribeDb } from '../realtime';
 import { deleteMedia, newMediaId, putMedia, typeFromMime } from '../localMedia';
 import { makeSeed } from './seed';
@@ -497,7 +505,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             user_id: targetId,
             type: 'approval',
             title: 'Your account was approved',
-            body: `Welcome! You are now a ${ROLE_LABELS[role]}.`,
+            body: welcomeLine(role),
             created_at: nowIso(),
           },
           ...prev.notifications,
@@ -519,8 +527,9 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               link: '/login',
               body:
                 `Hello ${who.full_name.split(' ')[0]},\n\n` +
-                `Good news — your account has been approved. You are now a ` +
-                `${ROLE_LABELS[role]} at ${prev.church_name}.\n\n` +
+                `Good news — your account has been approved. ` +
+                `${roleLabel(role) ? `You are now a ${roleLabel(role)} at ` : `Welcome to `}` +
+                `${prev.church_name}.\n\n` +
                 `Sign in whenever you're ready. Someone from the church will be ` +
                 `in touch shortly to walk alongside you.`,
             }),
@@ -1422,7 +1431,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               user_id: target.id,
               type: 'approval',
               title: 'Your account was approved',
-              body: `Welcome! You are now a ${ROLE_LABELS[role]}.`,
+              body: welcomeLine(role),
               created_at: nowIso(),
             },
             ...prev.notifications,
@@ -1735,8 +1744,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             link,
             body:
               `Hello ${invite.full_name.split(' ')[0]},\n\n` +
-              `${prev.church_name} has invited you to join Beacon as a ` +
-              `${ROLE_LABELS[invite.role]}.\n\n` +
+              `${prev.church_name} has invited you to join Beacon` +
+              `${roleLabel(invite.role) ? ` as a ${roleLabel(invite.role)}` : ''}.\n\n` +
               `Beacon is a private, invitation-only app that walks you through ` +
               `a journey of faith alongside someone from the church.\n\n` +
               `Tap the button below to set your password and finish signing up. ` +

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
-import { ROLE_LABELS, NAVY } from '@/lib/brand';
+import { roleLabel, NAVY } from '@/lib/brand';
 import { unseenCount } from '@/lib/release-notes';
 import { useUpdateState } from '@/lib/app-update';
 import type { Role } from '@/lib/types';
@@ -264,9 +264,11 @@ export function AppShell({
                 <p className="text-sm font-semibold leading-tight">
                   {currentUser.full_name}
                 </p>
-                <p className="text-xs text-white/60">
-                  {ROLE_LABELS[currentUser.role]}
-                </p>
+                {roleLabel(currentUser.role) && (
+                  <p className="text-xs text-white/60">
+                    {roleLabel(currentUser.role)}
+                  </p>
+                )}
               </div>
               <Avatar
                 name={currentUser.full_name}

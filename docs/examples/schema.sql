@@ -147,13 +147,35 @@ for select using (
   dm_id = auth.uid() or auth.my_role() in ('admin','executive')
 );
 
--- Deliberately NOT security_invoker: this view must not be blocked by the
--- policy above, which is what makes its own WHERE clause load-bearing. Read it
--- carefully before changing it.
-create view my_journey as
-  select id, dm_id, ds_id, track
-  from pairings
-  where ds_id = auth.uid();
+-- A FUNCTION, not a view, and the difference is worth one paragraph.
+--
+-- Either works. Both run with the owner's rights, and in both the WHERE clause
+-- below is the access control — it must not be blocked by the policy above, or
+-- a seeker sees nothing at all. What separates them is tooling: Supabase's
+-- database linter grades a SECURITY DEFINER *view* as ERROR and a SECURITY
+-- DEFINER *function* as WARN, and every other privileged helper in this schema
+-- is already a function. A permanent red mark on a dashboard is how a team
+-- learns to stop reading the dashboard.
+--
+-- If you are tempted by the linter's suggested fix — making it
+-- `security_invoker` — do not. That makes it obey the CALLER's policies, and the
+-- caller here is a seeker whom the policy above deliberately excludes. Their
+-- home screen goes blank. Test it before you believe either of us.
+--
+-- `search_path` is pinned. An unpinned search_path on a SECURITY DEFINER
+-- function is a genuine privilege-escalation route, and that is the real risk
+-- the linter is pointing at.
+create or replace function my_journey()
+returns table (id uuid, dm_id uuid, ds_id uuid, track text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.id, p.dm_id, p.ds_id, p.track
+  from pairings p
+  where p.ds_id = auth.uid();
+$$;
 
 -- A conversation belongs to the two people in the pairing.
 create policy "own conversation" on messages
@@ -303,5 +325,5 @@ end $$;
 grant usage on schema public, auth to app_user;
 grant select, insert, update on all tables in schema public to app_user;
 grant execute on function auth.in_pairing(uuid) to app_user;
-grant select on my_journey to app_user;
+grant execute on function my_journey() to app_user;
 grant execute on function auth.uid(), auth.my_role(), auth.in_pairing(uuid), auth.my_church() to app_user;
