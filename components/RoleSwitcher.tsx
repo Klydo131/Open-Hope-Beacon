@@ -27,7 +27,7 @@ import type { Role } from '@/lib/types';
 
 const ROLES: { role: Role; icon: string; blurb: string }[] = [
   { role: 'ds', icon: '🌱', blurb: 'Follow a journey with a missionary' },
-  { role: 'dm', icon: '🤝', blurb: 'Guide seekers, one at a time' },
+  { role: 'dm', icon: '🤝', blurb: 'Guide explorers, one at a time' },
   { role: 'admin', icon: '🛡️', blurb: 'Invite people, pair them, see the numbers' },
   { role: 'executive', icon: '⭐', blurb: 'Oversee every church' },
 ];

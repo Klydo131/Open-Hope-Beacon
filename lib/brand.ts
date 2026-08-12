@@ -122,7 +122,7 @@ export function roleLabel(role: string): string | null {
  * their own name.
  */
 export function roleNoun(role: string): string {
-  return ROLE_LABELS[role] || 'Someone exploring';
+  return ROLE_LABELS[role] || 'Explorer';
 }
 
 export function canKick(callerRole: string, targetRole: string): boolean {

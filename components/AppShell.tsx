@@ -21,7 +21,7 @@ import { BackButton } from '@/components/BackButton';
 const NAV: Record<Role, { href: string; label: string }[]> = {
   executive: [{ href: '/admin', label: 'Admin' }],
   admin: [{ href: '/admin', label: 'Admin' }],
-  dm: [{ href: '/dm', label: 'My Seekers' }],
+  dm: [{ href: '/dm', label: 'My Explorers' }],
   ds: [{ href: '/ds', label: 'My Journey' }],
 };
 
@@ -95,7 +95,7 @@ export function AppShell({
     today.push({ label: 'Unread mail', value: String(unreadMail) });
     today.push({ label: 'People', value: String(db.profiles.length) });
   } else if (currentUser.role === 'dm') {
-    today.push({ label: 'My seekers', value: String(mySeekers) });
+    today.push({ label: 'My explorers', value: String(mySeekers) });
     today.push({
       label: 'Follow-ups open',
       value: String(

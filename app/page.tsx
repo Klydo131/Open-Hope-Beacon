@@ -191,7 +191,7 @@ export default function Home() {
               {
                 r: 'dm',
                 icon: '🤝',
-                d: 'Walk with your seekers: message, share, and celebrate each step.',
+                d: 'Walk with your explorers: message, share, and celebrate each step.',
               },
               {
                 r: 'admin',
@@ -218,7 +218,7 @@ export default function Home() {
           <Card className="p-6">
             <h2 className="text-xl font-bold text-navy">Private by design 🔒</h2>
             <ul className="mt-3 space-y-2 text-gray-600">
-              <li>• A missionary sees only their own seekers.</li>
+              <li>• A missionary sees only their own explorers.</li>
               <li>
                 • A seeker’s profile is visible only to their missionary and the
                 admin.

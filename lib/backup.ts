@@ -117,7 +117,7 @@ export function parseBackup(text: string): ParseResult {
 export function rosterCsv(db: DB): string {
   const nameById = new Map(db.profiles.map((p) => [p.id, p.full_name]));
   const rows: string[][] = [
-    ['Seeker', 'City', 'Journey stage', 'Track', 'Missionary', 'Started'],
+    ['Explorer', 'City', 'Journey stage', 'Track', 'Missionary', 'Started'],
   ];
   for (const pr of db.pairings) {
     const seeker = nameById.get(pr.ds_id) ?? 'Unknown';

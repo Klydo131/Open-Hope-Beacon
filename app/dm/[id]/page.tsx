@@ -53,7 +53,7 @@ function Detail() {
   if (!pairing || pairing.dm_id !== me.id) {
     return (
       <div>
-        <p className="text-lg">This seeker is not on your list.</p>
+        <p className="text-lg">This explorer is not on your list.</p>
         <Button className="mt-4" onClick={() => router.replace('/dm')}>
           Back to my seekers
         </Button>

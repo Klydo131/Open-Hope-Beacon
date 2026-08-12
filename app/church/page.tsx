@@ -111,7 +111,7 @@ function Body() {
       <Card className="p-5">
         <h2 className="mb-4 text-xl font-bold text-navy">Our journey together</h2>
         <div className="mb-5 grid grid-cols-3 gap-3 text-center">
-          <Stat n={seekers} label="Seekers walking" />
+          <Stat n={seekers} label="Explorers walking" />
           <Stat n={dms} label="Missionaries" />
           <Stat n={members.length} label="Members" />
         </div>

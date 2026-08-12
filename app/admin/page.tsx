@@ -114,7 +114,7 @@ const EVENT_LABEL: Record<AnalyticsEvent['type'], string> = {
   lesson_assigned: 'Assigned a lesson',
   lesson_completed: 'Completed a lesson',
   meeting_scheduled: 'Scheduled a meeting',
-  invite_sent: 'Invited a seeker',
+  invite_sent: 'Invited a explorer',
   invite_accepted: 'Accepted an invitation',
   member_kicked: 'Removed a member',
   member_disapproved: 'Disapproved a sign-up',
@@ -241,12 +241,12 @@ function LocalAnalytics({
       </Card>
 
       <Card className="p-5">
-        <h3 className="mb-1 text-lg font-bold text-navy">Seeker study uploads</h3>
+        <h3 className="mb-1 text-lg font-bold text-navy">Explorer study uploads</h3>
         <p className="mb-3 text-sm text-gray-500">
           What seekers are adding to their own shelves — advanced monitoring.
         </p>
         {db.seeker_media.length === 0 ? (
-          <p className="text-gray-400">No seeker uploads yet.</p>
+          <p className="text-gray-400">No explorer uploads yet.</p>
         ) : (
           <ul className="space-y-2">
             {[...db.seeker_media]
@@ -703,7 +703,7 @@ function Pairing() {
               onChange={(e) => setDs(e.target.value)}
               className="tap mt-1 w-full rounded-xl bg-gray-100 px-3 text-base"
             >
-              <option value="">Choose a seeker…</option>
+              <option value="">Choose a explorer…</option>
               {unpairedDs.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.full_name}

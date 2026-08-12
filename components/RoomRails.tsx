@@ -103,7 +103,7 @@ export function railGroupsFor(
         title: 'My desk',
         links: [
           home,
-          { href: '/dm', label: 'My Seekers', icon: '🤝', badge: counts.seekers },
+          { href: '/dm', label: 'My Explorers', icon: '🤝', badge: counts.seekers },
           { href: '/library', label: 'Resources', icon: '📚' },
         ],
       },

@@ -579,7 +579,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               id: uid(),
               user_id: dmId,
               type: 'journey',
-              title: 'A new seeker was assigned to you',
+              title: 'A new explorer was assigned to you',
               body: `You are now walking with ${nameOf(dsId)}.`,
               created_at: nowIso(),
             },
@@ -640,7 +640,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         {
           id,
           role: 'ds',
-          full_name: fullName.trim() || 'New seeker',
+          full_name: fullName.trim() || 'New explorer',
           topics_of_interest: [],
           preferred_language: 'en',
           is_approved: false,
@@ -653,7 +653,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           user_id: 'admin-1',
           type: 'approval',
           title: 'New sign-up awaiting approval',
-          body: fullName.trim() || 'New seeker',
+          body: fullName.trim() || 'New explorer',
           created_at: nowIso(),
         },
         ...prev.notifications,
@@ -954,7 +954,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         ).length;
         const dsName =
           prev.profiles.find((p) => p.id === pairing?.ds_id)?.full_name ??
-          'Your seeker';
+          'Your explorer';
         const notifs: AppNotification[] = [];
         if (pairing) {
           notifs.push({
@@ -1469,7 +1469,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           (p) => p.ds_id === userId && p.status === 'active',
         );
         const dsName =
-          prev.profiles.find((p) => p.id === userId)?.full_name ?? 'A seeker';
+          prev.profiles.find((p) => p.id === userId)?.full_name ?? 'A explorer';
         return {
           ...prev,
           prayer_requests: [
@@ -1570,7 +1570,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           (p) => p.ds_id === userId && p.status === 'active',
         );
         const dsName =
-          prev.profiles.find((p) => p.id === userId)?.full_name ?? 'A seeker';
+          prev.profiles.find((p) => p.id === userId)?.full_name ?? 'A explorer';
         return {
           ...prev,
           seeker_media: [
@@ -1930,7 +1930,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             id: uid(),
             user_id: invite.invited_by,
             type: 'approval',
-            title: 'An invited seeker joined',
+            title: 'An invited explorer joined',
             body: `${profile.full_name.trim() || invite.full_name} completed sign-up`,
             created_at: nowIso(),
           },

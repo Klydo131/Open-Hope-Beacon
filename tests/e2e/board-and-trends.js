@@ -76,8 +76,13 @@ async function openAnalytics(page) {
     !/Church board member/i.test(text),
     'and no longer offers a church board card to somebody with no account',
   );
-  // The four that remain, each of which is a real account.
-  for (const role of ['Admin', 'Missionary', 'Seeker']) {
+  // The ones that remain, each of which is a real account. Named from the
+  // brand map rather than typed out, so a rename cannot leave this asserting
+  // words the app stopped using — which is exactly what happened: this line
+  // said "Missionary" and "Admin" two renames after both were retired, and
+  // passed the whole time because the front door had not been updated either.
+  // A test and a screen agreeing on the wrong thing is not a passing test.
+  for (const role of ['Support', 'Guide', 'Explorer']) {
     ok(new RegExp(`\\b${role}\\b`).test(text), `${role} is still offered`);
   }
 

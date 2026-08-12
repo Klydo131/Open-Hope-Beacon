@@ -107,13 +107,13 @@ function Dashboard() {
   if (rows.length === 0) {
     return (
       <div>
-        <h1 className="mb-1 text-3xl font-extrabold text-navy">My Seekers</h1>
+        <h1 className="mb-1 text-3xl font-extrabold text-navy">My Explorers</h1>
         <p className="mb-5 text-gray-500">
           The people you are walking with.
         </p>
         <EmptyState
-          title="No seekers yet"
-          hint="An admin will pair a seeker with you."
+          title="No explorers yet"
+          hint="An admin will pair a explorer with you."
         />
       </div>
     );
