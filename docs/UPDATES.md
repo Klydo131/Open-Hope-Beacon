@@ -1,21 +1,42 @@
-# Updates, reminders and the update floor
+# Updates and the update floor
 
-Beacon updates itself. Nobody has to uninstall anything, on any device, on any
-operating system. This document covers what happens on its own, how the reminder
-behaves, and the one lever for a release where staying on an old build is not
+Beacon updates itself, and nobody is asked. There is no banner, no button and no
+setting. Nobody has to uninstall anything, on any device, on any operating
+system.
+
+This document covers what happens on its own, the one guard that decides *when*
+it happens, and the lever for a release where staying on an old build is not
 acceptable.
+
+## Why there is nothing to press
+
+There used to be a banner offering **Restart** or **×**. It came out because it
+asked people to make a decision about software, which is not their job. Most of
+the people using Beacon are older, and the thing they ask for over and over is
+fewer things to click.
+
+A banner has a second cost that is easy to miss: the honest outcome of an
+ignorable prompt is that a lot of phones sit on an old build for weeks. Two
+people on two builds can see two different answers to the same question, and
+neither of them knows why.
 
 ## What happens without anyone doing anything
 
 Every installed copy asks the server which build it is running:
 
 - a few seconds after launch,
-- every time the app is brought back to the front,
-- every fifteen minutes while it is open.
+- every time the app is brought back to the front — by `visibilitychange`,
+  `pageshow` or `focus`, whichever the device happens to send,
+- when the connection comes back,
+- every 30 seconds for the first five minutes it is open, then every 5 minutes.
+
+Never while the app is in the background, and never twice within 8 seconds. A
+failed check backs off (1, 2, then 4 minutes) instead of hammering a server that
+is already having a bad day.
 
 The request is one small JSON document, `/version.json`, fetched with
 `cache: 'no-store'`. The app compares the build id it gets back with the one
-compiled into its own bundle. Different means stale, and it says so.
+compiled into its own bundle. Different means stale.
 
 This check deliberately does not go through the service worker. The worker has
 its own update mechanism and it is the one that failed in practice: when the
@@ -24,40 +45,83 @@ forever while the server has moved on several releases, and the only way out was
 to uninstall and reinstall. Comparing build ids needs no cooperation from
 anything that might already be broken.
 
-## The reminder
+## When it applies — the one thing that has to be right
 
-When a newer build exists, a reminder appears at the top of the screen.
+Applying an update means reloading the page. Do that while somebody is halfway
+through a message to the person they are walking with and the message is gone.
+They do not experience an update; they experience the app eating what they
+wrote, and nobody reports that as an update bug.
 
-| | Gentle | Insistent |
-|---|---|---|
-| When | A newer build exists | The build is older than the floor |
-| Says | **Update ready** | **Please update** |
-| Button | Restart | Update |
-| "×" puts it away for | 8 hours | 1 hour |
+So `components/AutoUpdate.tsx` waits for a moment when a reload cannot cost
+anybody anything. It reconsiders every 5 seconds, and applies when either:
 
-**"×" is a snooze, not a dismissal.** It comes back. That is the part that used
-to be missing: dismissing the old banner silenced it until the app was closed and
-reopened, which on an installed app can be weeks.
+1. **the app is in the background** — another tab, another app, screen off.
+   Nothing is being typed into a page nobody is looking at; or
+2. **the page has been quiet for 20 seconds AND nothing on it holds unsaved
+   text.** Both halves matter. A person can stop typing mid-sentence to think,
+   and their half-written message is still theirs.
 
-Nothing here traps anybody. Both tempers can be put away, and reminders can be
-switched off completely.
+"Unsaved text" is read generously: any non-empty `input` or `textarea`, any
+non-empty `contenteditable`, or a focused `contenteditable`. A search box with a
+word in it blocks the update too. Waiting costs a few more minutes on an old
+build; being wrong the other way costs somebody's words.
 
-### The switch
+**There is no timeout that eventually overrides the guard.** A build being an
+hour older is a smaller problem than a lost message, every time, and a guard
+with an escape hatch fires on exactly the worst case.
 
-Settings, under **App version**: *Remind me about updates*. **On by default.**
-Turning it off silences the banner entirely and nothing else: Settings still
-reports the version, still has **Check for updates**, and still has **Force a
-fresh copy**. The hint under the switch says so, because turning off the nag is
-not the same as saying you never want to update.
+After the reload the app shows *"Beacon updated itself"* for a few seconds. It
+is not a prompt — there is nothing to decide and nothing to dismiss. It exists
+so that "did something change?" has an answer when somebody rings to ask why a
+screen looks different.
 
-The setting is per device, in `localStorage`, because what is being decided is
-how one phone behaves.
+### The attempt budget, and why it is not optional
 
-### The rest of Settings
+The app decides to reload by comparing the build id the server publishes with
+the one compiled into the bundle it is running. Those two can disagree in a way
+no reload will fix: an edge cache serving `/version.json` from one deployment
+and the HTML from another, a half-rolled-out release, a worker that will not
+install. This project has already shipped a build where the two ids disagreed
+permanently.
 
-**App version** shows the build, when it was last checked, and a one-tap
-**Restart to update** when a new build is waiting. One tap replaces the app in
-place. Saved files, sample data and settings are all kept.
+Under the old banner, that state was a prompt that never went away — annoying,
+survivable. Under automatic apply it is an **infinite reload loop**: the app
+reloads, comes back as the same build, finds the same answer, and reloads again.
+The page never finishes loading, so nobody can reach Settings to escape it.
+
+So a reload is spent from a budget: **at most two per build, per tab.** The
+count is kept in `sessionStorage` against the build id currently running, which
+is what lets it survive the very reload it is counting. A successful update
+lands on a different id, where the count starts at zero again.
+
+Two rather than one, because a first attempt can lose a race — a worker still
+installing, a request that fell over — and giving up after a single try would
+strand people on an old build for a transient reason.
+
+When the budget runs out the app stays usable on the old build, and Settings
+says **A new version could not install** and points at **Force a fresh copy**.
+An old build is a small problem; a phone that will not stay on screen is the end
+of somebody trusting the app.
+
+If `sessionStorage` is unavailable — some privacy modes — the budget is treated
+as already spent and the app does not auto-update at all. That is a real cost,
+chosen deliberately: reloading with no way to count the reloads is the failure
+nobody can recover from from inside the app.
+
+### The observable
+
+The current update state is written to `data-update-state` on the root element.
+Nobody ever sees it; it exists because with the banner gone the end-to-end
+suites had nothing to watch, and a test that cannot see the thing it measures
+ends up measuring something else.
+
+## Settings
+
+**App version** shows the build, when it was last checked, and whether a new one
+is on its way in. There is no **Restart** button, on purpose.
+
+**Check for updates** stays, because "did it work?" is a fair question and this
+is the screen somebody comes to to ask it.
 
 If a copy is genuinely wedged, **Force a fresh copy** throws away the service
 worker and every cache and downloads the app again. It touches nothing in
@@ -66,18 +130,21 @@ exists so "uninstall and reinstall" never has to be the answer.
 
 ## The floor
 
-All of the above is an offer. Someone can snooze indefinitely, and a phone that
-has been closed for two months will happily run a two-month-old bundle. That is
-fine for a cosmetic release. It is not fine for one that changes what a screen is
-allowed to show, where two people on two different builds would get two different
-answers to the same question.
+The floor is much less useful than it was, and this section says so rather than
+implying otherwise.
 
-So the server can publish the oldest build it still supports. A copy older than
-that gets the insistent reminder instead of the gentle one.
+When a banner could be ignored, a phone could sit on a two-month-old bundle
+indefinitely, and the floor was the lever that made a release non-optional. Now
+every open copy takes the new build the first time it is quiet, so the gap the
+floor was built to close mostly closes itself.
 
-**The floor is off by default and should stay off.** Raise it for one release,
-lower it afterwards. An insistent reminder only works while it is rare enough to
-be believed.
+What the floor still does: a copy older than the published floor reports
+`'required'` instead of `'ready'`, and Settings says **This version is out of
+date** rather than **A new version is installing**. It does **not** make the
+update apply any sooner, and deliberately so — the guard above is not overridden
+by anything, including this.
+
+**The floor is off by default and should stay off.**
 
 ### Raising it
 
@@ -87,10 +154,9 @@ One environment variable in the hosting project:
 BEACON_MIN_BUILD_TIME=2026-08-06T12:00:00Z
 ```
 
-Any timestamp `Date.parse` understands. It means "every copy built before this
-moment gets nagged harder". The natural value is the build time of the release
-that introduced the change, printed by the build (`build stamped: <id> (<time>)`)
-and served at `/version.json` as `time`.
+Any timestamp `Date.parse` understands. The natural value is the build time of
+the release that introduced the change, printed by the build
+(`build stamped: <id> (<time>)`) and served at `/version.json` as `time`.
 
 Most hosts read environment variables at deploy time, so **setting the variable
 requires a redeploy to take effect.** Changing it in a dashboard alone does
@@ -106,7 +172,7 @@ In `lib/min-build.mjs`, covered by `tests/min-build.mjs`:
 
 | Situation | What happens |
 |---|---|
-| Variable unset | No floor. Everyone gets the gentle reminder. |
+| Variable unset | No floor. |
 | Variable empty or whitespace | No floor. |
 | Value cannot be parsed as a date | **No floor**, and nothing is guessed. |
 | Value is *later* than the server's own build | **Clamped** to the server's build. |
@@ -114,44 +180,59 @@ In `lib/min-build.mjs`, covered by `tests/min-build.mjs`:
 | Bundle is exactly at the floor | Not escalated. |
 
 The clamp is the important one. A floor set past the newest build that exists
-would nag every copy in the world, including one installed thirty seconds ago,
-about an update that has not been built and cannot be downloaded. That is a
-reminder nobody can ever satisfy, and it teaches people to ignore reminders. With
-the clamp, the worst a mistyped floor can do is "everybody has to be on the
+would mark every copy in the world out of date, including one installed thirty
+seconds ago, against an update that has not been built and cannot be downloaded.
+With the clamp, the worst a mistyped floor can do is "everybody has to be on the
 newest build", which is a state people can reach.
 
 ## Where the pieces are
 
 | File | What it does |
 |---|---|
-| `lib/min-build.mjs` | The rule. Resolves the published floor and compares a bundle against it. |
-| `lib/update-prefs.ts` | On/off, snooze windows, and how long each lasts. |
+| `lib/auto-update.ts` | The policy: is anything unsaved, may it apply now, and has the attempt budget run out? No timers, no side effects. |
+| `components/AutoUpdate.tsx` | The timing. Polls the policy and applies when it says yes. |
+| `lib/min-build.mjs` | The floor. Resolves the published floor and compares a bundle against it. |
 | `app/version.json/route.ts` | Publishes `build`, `time`, `minBuildTime`, `latestNote`. |
 | `lib/app-update.ts` | Shared update state, including `'required'`. |
-| `components/VersionWatch.tsx` | Asks the server on load, on focus and every 15 minutes. |
-| `components/UpdateBanner.tsx` | Both tempers of the reminder. |
-| `app/settings/page.tsx` | The **App version** card and the reminder switch. |
+| `components/VersionWatch.tsx` | Asks the server on load, on return, on reconnect and on a timer. |
+| `components/ServiceWorker.tsx` | Registers the worker and reports what it finds. |
+| `app/settings/page.tsx` | The **App version** card. |
 | `scripts/stamp-build.mjs` | Writes one build id and time into `lib/build-info.ts`. |
 
 `stamp-build.mjs` matters more than it looks. The build id used to be computed
 inside `next.config.mjs`, which is evaluated more than once, so the browser bundle
 and the server route ended up with different ids, disagreed, and the app announced
-an update that did not exist forever. An update prompt that is always on is worse
-than no prompt, because people learn to ignore it.
+an update that did not exist forever.
 
 ## Proving it
 
 ```bash
-node tests/min-build.mjs          # the rule: 23 assertions, no browser needed
-npm run verify                    # static guards, includes the above
-npm run verify:all                # adds tests/e2e/update-reminder.js
+node tests/min-build.mjs            # the floor rule, no browser needed
+node tests/auto-update-policy.mjs   # the apply/wait decision, both answers
+npm run verify                      # static guards, includes both of the above
+npm run verify:all                  # adds the browser walks below
 ```
 
-`tests/e2e/update-reminder.js` drives a real browser: it confirms the live route
-publishes `minBuildTime: null`, that a newer build produces the gentle reminder,
-that a floor above the running bundle produces the insistent one, that "×"
-records a real snooze of about the right length in each case, that the Settings
-switch silences the banner while Settings itself keeps telling the truth, and
-that one tap updates without an uninstall. It injects the floor by intercepting
-`/version.json`, because a single honest deployment can never declare itself too
-old.
+**`tests/auto-update-policy.mjs` is the one to read first.** The browser can
+prove the app does *not* reload while a message is half-written; it cannot
+reliably prove the other half, because that needs a genuinely newer service
+worker waiting and a single-build harness has none. A suite that only ever
+demonstrates blocking would pass just as happily on a guard that blocks
+**forever** — a real bug wearing the costume of a working one. So the policy is
+a pure function and every branch of it is asserted, including the pair that says
+the only difference between waiting and applying is the unsaved text itself.
+
+The browser walks:
+
+- `tests/e2e/update-typing.js` — types half a message, forces the update state,
+  and waits past the quiet window. The app must not reload, and the half-written
+  message must still be in the box.
+- `tests/e2e/update-flow.js` — Settings reports a real build and a real date,
+  offers **Check for updates**, and offers no **Restart to update**. Its second
+  phase needs two genuinely different builds; see `tests/e2e/README.md`.
+- `tests/e2e/update-speed.js` — how fast a running app notices a release that
+  lands underneath it, that a hidden app costs nothing, that three return events
+  make one request, and that nothing is ever offered to tap. It also stands up
+  the reload-loop scenario in full — a build the app can never actually become —
+  and asserts that it settles within two reloads. That assertion is how the loop
+  was found in the first place.

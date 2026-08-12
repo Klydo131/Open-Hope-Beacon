@@ -13,11 +13,12 @@ import {
 // Registers the offline service worker and keeps the app updating itself —
 // nobody ever has to uninstall and reinstall to get a new version.
 //
-// The update is downloaded in the background, then ANNOUNCED rather than
-// applied behind the user's back: a reload mid-sentence loses whatever they
-// were typing. components/UpdateBanner.tsx shows the prompt; one tap applies
-// it. If they ignore it, the new worker takes over the next time the app is
-// fully closed and reopened, which is the browser's own default.
+// The update is downloaded in the background and then applied by the app
+// itself — nobody is asked. components/AutoUpdate.tsx owns the timing and
+// waits for a moment when a reload cannot cost anybody anything: the app
+// backgrounded, or the page quiet with no half-written text anywhere on it. A
+// reload mid-sentence loses whatever somebody was typing, so that guard is the
+// whole of what this trade rests on.
 export function ServiceWorker() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;

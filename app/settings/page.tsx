@@ -7,8 +7,8 @@ import { Card, Button } from '@/components/ui';
 import { useLocale, LANGUAGES } from '@/lib/i18n';
 import { useDemo } from '@/lib/demo/store';
 import { useNotificationPrefs } from '@/lib/notification-prefs';
-import { useUpdateState, checkForUpdate, versionLabel, hardRefresh, BUILD_TIME } from '@/lib/app-update';
-import { remindersOn, setRemindersOn } from '@/lib/update-prefs';
+import { useUpdateState, checkForUpdate, versionLabel, hardRefresh, BUILD_TIME, BUILD_ID } from '@/lib/app-update';
+import { attemptsFor, MAX_ATTEMPTS, ATTEMPTS_KEY } from '@/lib/auto-update';
 import { QuestPicker } from '@/components/QuestPicker';
 import { TRACK_LABELS } from '@/lib/quest';
 import { OnlineRow } from '@/components/OnlineStatus';
@@ -242,24 +242,43 @@ function SettingsToggle({
 // Without this the auto-update is invisible, and an invisible update is one
 // people don't trust, which is what sends them back to reinstalling.
 function VersionCard() {
-  const { state, checkedAt, apply } = useUpdateState();
+  // No `apply` here on purpose. Applying the update is the app's job now, not
+  // the reader's — see components/AutoUpdate.
+  const { state, checkedAt } = useUpdateState();
   const [checking, setChecking] = useState(false);
-  // Read after mount: localStorage does not exist while this renders on the
-  // server, and guessing would flip the switch under the person on first paint.
-  const [remind, setRemind] = useState(true);
-  useEffect(() => setRemind(remindersOn()), []);
 
-  const label =
-    state === 'required'
+  // Did the app try to install a new version and fail?
+  //
+  // AutoUpdate gives up after a couple of reloads that land back on the same
+  // build, because the alternative is a page that never stops reloading. When
+  // that happens "A new version is installing" becomes a lie, and this screen
+  // is the one place somebody comes to find out what is going on. Read after
+  // mount: sessionStorage does not exist during the server render.
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    try {
+      setStalled(attemptsFor(sessionStorage.getItem(ATTEMPTS_KEY), BUILD_ID) >= MAX_ATTEMPTS);
+    } catch {
+      setStalled(false);
+    }
+  }, [state]);
+
+  const pending = state === 'ready' || state === 'required';
+  const stuck = pending && stalled;
+
+  const label = stuck
+    ? 'A new version could not install'
+    : state === 'required'
       ? 'This version is out of date'
       : state === 'ready'
-        ? 'A new version is ready'
+        ? 'A new version is installing'
         : state === 'unsupported'
           ? 'Updates run when the app is installed'
           : "You're on the latest version";
 
-  const tone =
-    state === 'required'
+  const tone = stuck
+    ? '#B91C1C'
+    : state === 'required'
       ? '#B91C1C'
       : state === 'ready'
         ? '#B45309'
@@ -275,7 +294,9 @@ function VersionCard() {
 
       <h2 className="mb-1 mt-5 text-xl font-bold text-navy">🔄 App version</h2>
       <p className="mb-4 text-sm text-gray-500">
-        Beacon updates itself. You never need to uninstall and reinstall.
+        Beacon updates itself. There is nothing to press, and you never need to
+        uninstall and reinstall. A new version installs on its own, and waits
+        until you are not in the middle of writing something.
       </p>
 
       <div className="mb-3 flex items-center justify-between rounded-xl bg-gray-50 p-4">
@@ -291,15 +312,25 @@ function VersionCard() {
 
       <div className="rounded-xl bg-gray-50 p-4">
         <p className="font-bold" style={{ color: tone }}>
-          {state === 'required'
+          {stuck
             ? '⚠️'
-            : state === 'ready'
-              ? '✨'
-              : state === 'unsupported'
-                ? 'ℹ️'
-                : '✓'}{' '}
+            : state === 'required'
+              ? '⚠️'
+              : state === 'ready'
+                ? '✨'
+                : state === 'unsupported'
+                  ? 'ℹ️'
+                  : '✓'}{' '}
           {label}
         </p>
+        {stuck && (
+          <p className="mt-1 text-sm text-gray-500">
+            Beacon tried twice and came back on the same version, so it has
+            stopped trying rather than keep restarting the screen on you. Press
+            <strong> Force a fresh copy</strong> below. Nothing you have saved is
+            touched.
+          </p>
+        )}
         <p className="mt-1 text-sm text-gray-500">
           Version <span className="font-mono">{versionLabel()}</span>
         </p>
@@ -313,23 +344,23 @@ function VersionCard() {
         )}
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {(state === 'ready' || state === 'required') && apply ? (
-            <Button variant="gold" onClick={apply}>
-              {state === 'required' ? 'Update now' : 'Restart to update'}
-            </Button>
-          ) : (
-            <button
-              onClick={async () => {
-                setChecking(true);
-                await checkForUpdate();
-                setChecking(false);
-              }}
-              disabled={checking || state === 'unsupported'}
-              className="tap rounded-xl bg-white px-5 text-base font-semibold text-navy ring-1 ring-navy/20 disabled:opacity-40"
-            >
-              {checking ? 'Checking…' : 'Check for updates'}
-            </button>
-          )}
+          {/* No "Restart" button. The app applies the update by itself as soon
+              as doing so cannot interrupt anybody — see components/AutoUpdate.
+              Offering a button here would put the decision back on the person,
+              which is the thing that was removed. "Check for updates" stays,
+              because "did it work?" is a fair question and this screen is where
+              somebody comes to ask it. */}
+          <button
+            onClick={async () => {
+              setChecking(true);
+              await checkForUpdate();
+              setChecking(false);
+            }}
+            disabled={checking || state === 'unsupported'}
+            className="tap rounded-xl bg-white px-5 text-base font-semibold text-navy ring-1 ring-navy/20 disabled:opacity-40"
+          >
+            {checking ? 'Checking…' : 'Check for updates'}
+          </button>
           <WhatsNewButton className="tap" />
           <FeedbackButton className="tap" />
           <button
@@ -352,24 +383,6 @@ function VersionCard() {
           stuck on a cached copy. &ldquo;Force a fresh copy&rdquo; clears it. Your
           saved files and data are not touched.
         </p>
-      </div>
-
-      {/* On by default. Off is a real choice, so the hint says plainly what it
-          costs rather than pretending the switch is free. */}
-      <div className="mt-3">
-        <SettingsToggle
-          label="Remind me about updates"
-          hint={
-            remind
-              ? 'A reminder appears at the top of the screen when a new version is out. "×" puts it away and it comes back later.'
-              : 'Off. Beacon will not tell you when a new version is out, so check this screen now and then.'
-          }
-          checked={remind}
-          onChange={(v) => {
-            setRemind(v);
-            setRemindersOn(v);
-          }}
-        />
       </div>
     </Card>
   );

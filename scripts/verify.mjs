@@ -97,6 +97,11 @@ const staticChecks = [
   ['media guardrails', 'tests/media-guardrails.js'],
   ['real-time and pairing media', 'tests/realtime-and-media.mjs'],
   ['update floor', 'tests/min-build.mjs'],
+  // The auto-update policy, asserted both ways. The browser suite can only
+  // prove the half where an update is BLOCKED, and a guard that blocks forever
+  // passes that half too — so the decision itself is a pure function and both
+  // answers are checked here.
+  ['auto-update policy', 'tests/auto-update-policy.mjs'],
   ['analytics over time', 'tests/analytics-trend.mjs'],
   ['security invariants', 'tests/security-invariants.mjs'],
   ['workflow files', 'tests/workflows.mjs'],

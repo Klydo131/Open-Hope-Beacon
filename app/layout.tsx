@@ -7,7 +7,7 @@ import { TutorialHost } from '@/components/TutorialHost';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { FeedbackNudgeHost } from '@/components/FeedbackNudgeHost';
 
-import { UpdateBanner } from '@/components/UpdateBanner';
+import { AutoUpdate } from '@/components/AutoUpdate';
 import { VersionWatch } from '@/components/VersionWatch';
 import { OnlineStatus } from '@/components/OnlineStatus';
 import { ConsentHost } from '@/components/ConsentHost';
@@ -88,7 +88,7 @@ export default function RootLayout({
             <FeedbackNudgeHost />
           </DemoProvider>
 
-          <UpdateBanner />
+          <AutoUpdate />
           <VersionWatch />
           <OnlineStatus />
         </LocaleProvider>

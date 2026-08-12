@@ -368,10 +368,13 @@ Do these steps in order. They build.
 1. Open **Sign in** → press **Reset demo data**. The tutorial and demo write to
    browser storage; if you have rehearsed, the state is dirty and the numbers
    will look wrong.
-2. **Settings → turn off "Remind me about updates."** Otherwise an update banner
-   can appear mid-sentence.
-3. Do not push to `main` during your presentation window.
-4. If you installed it to the home screen, install from the real address, never a
+2. **Do not push to `main` during your presentation window.** There is no update
+   banner to switch off any more — the app takes a new build by itself as soon
+   as the screen has been quiet for twenty seconds, which during a demo is most
+   of the time. It will not interrupt you mid-sentence and it will not lose
+   anything you have typed, but the page can reload while you are talking. The
+   only reliable way to stop that is to ship nothing while you are on stage.
+3. If you installed it to the home screen, install from the real address, never a
    preview link — a preview is a different origin and becomes a second app that
    can never update.
 

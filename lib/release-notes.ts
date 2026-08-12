@@ -18,6 +18,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: '2026-08-12-auto-update-and-names',
+    date: '2026-08-12',
+    title: 'Simpler names, and updates that just happen',
+    items: [
+      'Beacon now installs new versions by itself. There is no button to press and nothing to dismiss.',
+      'It waits until you are not in the middle of writing something, so a half-finished message is never lost to an update.',
+      'Missionaries are now called Guides, and Admins are called Support. Anyone being walked with is shown by their name, with no label at all.',
+    ],
+  },
+  {
     id: '2026-08-03-orbit-video',
     date: '2026-08-03',
     title: 'Video keeps its original quality',

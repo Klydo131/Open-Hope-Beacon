@@ -44,13 +44,15 @@ let bad=0; const ok=(c,m)=>{if(!c)bad++;console.log(`${c?'OK ':'BAD'} ${m}`);};
     ok(/\w{3} \d{1,2}, \d{4}|\d{1,2} \w{3} \d{4}/.test(label||''), 'panel shows a build date');
     const force = await page.getByRole('button',{name:/Force a fresh copy/i}).count();
     ok(force>0, 'has a "Force a fresh copy" escape hatch');
-    // Either action is correct: 'Check' when current, 'Restart' when an update
-    // is already waiting. Requiring only one made this fail on a profile that
-    // happened to have a pending worker.
+    // "Check for updates" stays: "did it work?" is a fair question and this is
+    // the screen somebody comes to to ask it. "Restart to update" must NOT —
+    // it is the decision the owner asked to take off people, and a profile
+    // holding a pending worker is exactly when it would reappear.
     const check = await page.getByRole('button',{name:/Check for updates/i}).count();
+    ok(check>0, 'offers "Check for updates" so you can ask where you stand');
     const restart = await page.getByRole('button',{name:/Restart to update/i}).count();
-    ok(check+restart>0, `offers an update action (check=${check} restart=${restart})`);
-    const s = await page.evaluate(()=>document.querySelector('h2')?.scrollIntoView());
+    ok(restart===0, 'and never asks you to restart it yourself');
+    await page.evaluate(()=>document.querySelector('h2')?.scrollIntoView());
     await page.getByText(/App version/i).first().scrollIntoViewIfNeeded();
     await page.waitForTimeout(600);
     await page.screenshot({path:`${OUT}/upd-version-panel.png`});
@@ -61,29 +63,27 @@ let bad=0; const ok=(c,m)=>{if(!c)bad++;console.log(`${c?'OK ':'BAD'} ${m}`);};
     await page.waitForTimeout(2000);
     // reg.update() runs on focus; nudge it the same way a real user would.
     await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
-    let seen=false;
-    for(let i=0;i<20;i++){
+    // THE APP APPLIES IT ITSELF. There is no banner and no button any more, so
+    // what is proved here is that the page RELOADS onto the new build without
+    // anybody touching anything.
+    //
+    // The old version of this block waited for the words "Update ready" and then
+    // clicked Restart. That tested a decision we no longer ask people to make.
+    let reloaded=false;
+    const before = await page.evaluate(()=>document.body.innerText.slice(0,0)+performance.timeOrigin);
+    for(let i=0;i<25;i++){
       await page.waitForTimeout(1500);
-      const n = await page.getByText(/Update ready/i).count();
-      if(n>0){seen=true;break;}
-      await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+      const now = await page.evaluate(()=>performance.timeOrigin).catch(()=>before);
+      if(now!==before){reloaded=true;break;}
+      await page.evaluate(()=>window.dispatchEvent(new Event('focus'))).catch(()=>{});
     }
-    ok(seen,'the update banner appears when a new build is deployed');
-    if(seen){
-      await page.screenshot({path:`${OUT}/upd-banner.png`});
-      const restart = page.getByRole('button',{name:/Restart/i}).first();
-      ok(await restart.count()>0,'banner offers a one-tap Restart');
-      const clipped = await page.evaluate(()=>{
-        const el=[...document.querySelectorAll('p')].find(e=>/Update ready/i.test(e.textContent||''));
-        return el ? el.scrollWidth > el.clientWidth + 1 : true;
-      });
-      ok(!clipped,'the update label is not truncated');
-      await restart.click();
-      await page.waitForTimeout(4000);
-      const still = await page.getByText(/Update ready/i).count();
-      ok(still===0,'banner clears after restarting');
-      await page.screenshot({path:`${OUT}/upd-after.png`});
-    }
+    ok(reloaded,'the app applies a new build by itself, with no prompt and no tap');
+
+    // And nothing asked. If either of these ever appears again, the thing the
+    // owner asked to remove has come back.
+    ok((await page.getByText(/Update ready/i).count())===0,'no update banner is shown');
+    ok((await page.getByRole('button',{name:/Restart to update/i}).count())===0,
+       'no "Restart to update" button is offered');
   }
   console.log(bad===0?'\nRESULT: ALL OK':`\nRESULT: ${bad} FAILURE(S)`);
   await ctx.close(); process.exit(bad===0?0:1);

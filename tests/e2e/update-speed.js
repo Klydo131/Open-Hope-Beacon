@@ -96,34 +96,92 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     );
   }
 
+  // Nothing is ever shown asking the person to update. The app applies builds
+  // itself; this suite is about how fast it NOTICES one, not about a prompt.
   const banner = page.getByText(/Update ready|Please update/i).first();
-  // A real assertion now: the server named the build this bundle was compiled
-  // from, and the app agreed. Silence here means agreement, not ignorance.
-  ok((await banner.count()) === 0, 'no banner while the app is genuinely current');
+  ok((await banner.count()) === 0, 'nothing asks the person to update');
 
   // ------------------- 2. a release landing while the app is open, on screen --
   //
-  // The headline claim, and the only slow assertion in the suite. The cadence is
-  // 30s for the first five minutes after opening, so 45 is the honest budget.
+  // The headline claim, and the slowest assertion in the suite. The cadence is
+  // 30s for the first five minutes after opening; the app then reloads onto the
+  // "new" build, which takes a few seconds more, so 90 is the honest budget.
+  //
+  // NOTE ON WHAT THIS SCENARIO REALLY IS. The build being announced here does
+  // not exist — `/version.json` is faked and the bundle never changes — so the
+  // app reloads, comes back as the same build, and finds the same "newer"
+  // answer waiting. That is not a contrived test condition. It is exactly what
+  // an edge cache serving `/version.json` from one deployment and the HTML from
+  // another looks like from the inside, and this project has shipped ids that
+  // disagreed before.
+  //
+  // With a banner that state was a prompt that never went away. With automatic
+  // apply it is an infinite reload loop, and this assertion is how it was
+  // found: every read of the page caught it mid-navigation, so the state was
+  // never observed at all. The budget in lib/auto-update.ts is what stops it.
   pretendNewer = true;
   const releasedAt = Date.now();
   let noticedAt = null;
-  for (let i = 0; i < 45; i++) {
-    if ((await banner.count()) > 0) {
-      noticedAt = Date.now();
-      break;
+  let spent = null;
+  let stableFor = 0;
+
+  // Read both facts in one go, because they have to agree about the same
+  // moment: a page caught mid-navigation answers neither.
+  const look = () =>
+    page
+      .evaluate(() => {
+        let n = 0;
+        try {
+          const raw = sessionStorage.getItem('beacon.autoupdate.attempts');
+          n = raw ? Number(JSON.parse(raw).n) || 0 : 0;
+        } catch {
+          n = -1; // storage refused; distinguishable from "none spent"
+        }
+        return { state: document.documentElement.getAttribute('data-update-state'), n };
+      })
+      .catch(() => null);
+
+  for (let i = 0; i < 90; i++) {
+    const seen = await look();
+    if (seen && (seen.state === 'ready' || seen.state === 'required')) {
+      if (noticedAt === null) noticedAt = Date.now();
+      // Settled means it has stopped reloading, not merely that it noticed.
+      // Breaking on the first sight of 'ready' would race the reload that
+      // follows it, and then everything below would be measuring a page that
+      // was about to disappear.
+      stableFor = seen.n === spent ? stableFor + 1 : 0;
+      spent = seen.n;
+      if (stableFor >= 8) break;
+    } else {
+      stableFor = 0;
     }
     await sleep(1000);
   }
+
   ok(
     noticedAt !== null,
     noticedAt
-      ? `a release landing mid-session is on screen in ${((noticedAt - releasedAt) / 1000).toFixed(0)}s`
-      : 'a release landing mid-session was never noticed (45s)',
+      ? `a release landing mid-session is noticed in ${((noticedAt - releasedAt) / 1000).toFixed(0)}s`
+      : 'a release landing mid-session was never noticed in 90s — the app is probably ' +
+          'reloading in a loop, which is what the attempt budget exists to stop',
   );
   ok(
-    (await page.getByRole('button', { name: /Restart|^Update$/i }).count()) > 0,
-    'and the banner offers a one-tap way to take it',
+    stableFor >= 8,
+    stableFor >= 8
+      ? 'and then it settles: eight seconds with no further reload'
+      : 'it never settled — the reload count kept moving, which is the loop itself',
+  );
+  ok(
+    (await page.getByRole('button', { name: /Restart|^Update$/i }).count()) === 0,
+    'and still nothing is offered to tap',
+  );
+
+  // The budget itself, read from where the app keeps it. Without this, "it
+  // settled" could pass on an app that reloaded fifty times and happened to be
+  // quiet for the eight seconds it was watched.
+  ok(
+    spent !== null && spent >= 0 && spent <= 2,
+    `a build it can never actually become costs at most two reloads, then it stops (spent: ${spent})`,
   );
 
   // --------------------------------- 6. having found it, it stops asking -----

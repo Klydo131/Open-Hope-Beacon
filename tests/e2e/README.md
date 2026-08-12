@@ -69,8 +69,18 @@ npm i -D playwright && npx playwright install chromium
   file; this is the question `isVisible()` does not ask.
 - **old-save** — a save written by an older version still opens. Written after a
   release crashed for everybody who had used the app before.
-- **update-speed**, **update-reminder**, **update-flow** — the update path, from
-  noticing a new build to restarting in place.
+- **update-typing** — types half a message, puts the app into the "new build
+  available" state, and waits past the quiet window. The app must not reload,
+  and the half-written message must still be in the box. **The most important
+  test in the update set:** the banner is gone and new builds now apply on their
+  own, and the one way that trade goes badly is silent. Nobody reports "the app
+  lost my sentence" as an update bug. Its companion is `tests/auto-update-policy.mjs`,
+  which asserts the *other* half — that a cleared box lets the update through —
+  because a suite that only ever demonstrates blocking would pass just as
+  happily on a guard that blocks forever.
+- **update-speed**, **update-flow** — the rest of the update path: how fast a
+  running app notices a build that lands underneath it, and that Settings tells
+  the truth about which build it is on while offering nothing to tap.
 
 The rest cover individual screens and are named after them.
 
@@ -83,7 +93,7 @@ genuinely rebuilt app:
 npm run build && npx next start -p 4001
 node tests/e2e/update-flow.js 4001 install   # installs the worker, checks the panel
 # stop the server, `npm run build` again, restart it
-node tests/e2e/update-flow.js 4001 update    # the banner must now appear
+node tests/e2e/update-flow.js 4001 update    # the app must now reload by itself
 ```
 
 It reuses one persistent profile across both phases on purpose — the update path
