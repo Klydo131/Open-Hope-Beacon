@@ -63,6 +63,18 @@ export function Mailbox() {
         server.
       </div>
 
+      {/* Which folder you are in, in a sentence. "Everyone's mail" sits beside
+          Inbox and Sent and used to be called "All mail", which reads as a
+          third folder of YOUR mail — an Executive asked why they had been
+          invited to a church as a seeker, when what they were looking at was
+          somebody else's invitation in the system-wide list. */}
+      {box === 'all' && (
+        <p className="rounded-xl bg-gray-50 px-3 py-2 text-sm text-gray-500">
+          Every message the app has sent to anyone in this sample church — not
+          your own mail. Your own is under <strong>Inbox</strong>.
+        </p>
+      )}
+
       {canRecommend && <Recommend />}
 
       <Tabs<Box>
@@ -72,7 +84,7 @@ export function Mailbox() {
           { key: 'inbox', label: 'Inbox', icon: '📥', badge: unread },
           { key: 'sent', label: 'Sent', icon: '📤' },
           ...(isAdmin
-            ? [{ key: 'all' as Box, label: 'All mail', icon: '📬' }]
+            ? [{ key: 'all' as Box, label: 'Everyone’s mail', icon: '📬' }]
             : []),
         ]}
       />
