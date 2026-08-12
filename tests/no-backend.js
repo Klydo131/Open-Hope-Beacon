@@ -202,5 +202,51 @@ if (fs.existsSync(wfDir)) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// The Orbit is not ours to publish.
+//
+// It is a separate, private product of the owner's. It was in this repository —
+// roughly 1,375 lines across two components, a playlists module and an e2e
+// suite, wired into the right rail of every room, with a section on the media
+// page branded "Powered by The Orbit". Public, in an open-source project, for
+// weeks.
+//
+// It got there because nobody was looking for it. The open-source boundary pass
+// that ran earlier checked for Library OS content, Foundation tooling and
+// personal data — the things on the written list — and the Orbit is none of
+// those. A checklist answers the question it asks, not the question it stands
+// in for, and the real question was never "is Library OS content in here", it
+// was "is anything in here not ours to publish".
+//
+// So the check is by NAME, not by file. Deleting four files is easy to redo by
+// accident: a copied component, a pasted rail, a re-imported module. A name is
+// what survives all of those.
+// ---------------------------------------------------------------------------
+{
+  const banned = /\bOrbit\b/;
+  const offenders = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
+      if (['node_modules', '.next', '.next-dev', '.git'].includes(entry.name)) continue;
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) walk(rel);
+      else if (/\.(ts|tsx|js|jsx|mjs|md|json)$/.test(entry.name)) {
+        // This file names it in order to ban it.
+        if (rel.endsWith('tests/no-backend.js')) continue;
+        if (banned.test(fs.readFileSync(path.join(root, rel), 'utf8'))) offenders.push(rel);
+      }
+    }
+  };
+  for (const d of ['app', 'components', 'lib', 'tests', 'docs', 'scripts']) {
+    if (fs.existsSync(path.join(root, d))) walk(d);
+  }
+  ok(
+    offenders.length === 0,
+    offenders.length === 0
+      ? 'the Orbit, a private product, is nowhere in this public repository'
+      : `the Orbit is a PRIVATE product and appears in: ${offenders.join(', ')}`,
+  );
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

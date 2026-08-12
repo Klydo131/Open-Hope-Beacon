@@ -20,9 +20,9 @@ export const RELEASE_NOTES: ReleaseNote[] = [
   {
     id: '2026-08-03-orbit-video',
     date: '2026-08-03',
-    title: 'Orbit video keeps original quality',
+    title: 'Video keeps its original quality',
     items: [
-      'Videos saved to Beacon now play in an Orbit-styled full-size player with seeking, volume and fullscreen controls.',
+      'Videos saved to Beacon now play in a full-size player with seeking, volume and fullscreen controls.',
       'Beacon keeps the original file on this device and shows its actual resolution. 4K/60 playback depends on the file format, browser, device and display.',
       'Beacon checks that a video can play before saving it and explains when a different format is needed.',
     ],
@@ -43,7 +43,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     title: 'Church home, a real music player, and updates you can see',
     items: [
       'New Home board. Announcements, milestones and new members all in one place, before your own dashboard.',
-      'Orbit is now a full mini player. Upload your own music and video, search it, build playlists, and delete what you no longer want. Everything stays on your device.',
+      'Upload your own music and video, search it, and delete what you no longer want. Everything stays on your device.',
       'This “What’s new” panel, so you can always see what changed.',
       'The app now checks for updates on its own, without needing to be reinstalled.',
     ],

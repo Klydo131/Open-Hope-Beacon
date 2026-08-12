@@ -19,7 +19,7 @@ import { shareItem, blobToFile, canShareFiles } from '@/lib/share';
 // dead end. Every path ends with something that works, down to copying the link.
 //
 // Honest limit, stated where it matters rather than buried: media a person
-// uploaded to Orbit lives only on their own device. There is no server holding
+// uploaded to Beacon lives only on their own device. There is no server holding
 // it, so there is no link to it that anyone else could open. The file itself can
 // be shared through the device sheet; a link to it cannot exist.
 

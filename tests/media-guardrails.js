@@ -5,7 +5,6 @@ const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const pkg = JSON.parse(read('package.json'));
 const localMedia = read('lib/localMedia.ts');
-const orbit = read('components/OrbitPlayer.tsx');
 const player = read('components/MediaPlayer.tsx');
 
 let failures = 0;
@@ -41,15 +40,16 @@ check(
   'uploads preflight storage and playback support',
 );
 check(
-  orbit.includes('<video') &&
-    player.includes('<video') &&
-    orbit.includes('video.videoWidth') &&
-    player.includes('video.videoWidth'),
-  'both Orbit video surfaces use native playback and decoded resolution',
+  player.includes('<video') && player.includes('video.videoWidth'),
+  'video uses native playback and reports the decoded resolution',
 );
+// The claim moved with the player it described. It used to live in the media
+// page's own prose; that section went when the private player was removed from
+// this repository, so the only place Beacon still promises anything about 4K is
+// the release notes — and that is where the promise now has to stay honest.
 check(
-  orbit.includes('4K/60 playback depends'),
-  'player makes a conditional, truthful 4K/60 claim',
+  read('lib/release-notes.ts').includes('depends on the file format, browser, device and display'),
+  'the 4K/60 claim stays conditional wherever it is made',
 );
 
 console.log(

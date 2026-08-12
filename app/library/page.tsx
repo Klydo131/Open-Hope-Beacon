@@ -24,8 +24,6 @@ import {
 import { shareItem, blobToFile } from '@/lib/share';
 import { ShareButton } from '@/components/ShareSheet';
 import { MediaPlayer } from '@/components/MediaPlayer';
-import { OrbitPlayer } from '@/components/OrbitPlayer';
-import { OrbitMark } from '@/components/OrbitMark';
 import { useRoom } from '@/lib/room-theme';
 import { useDemo } from '@/lib/demo/store';
 import { STARTER_KIT, KIT_TOPICS } from '@/lib/starter-kit';
@@ -43,7 +41,7 @@ const ICON: Record<string, string> = {
 export default function LibraryPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
-  // The full Orbit lives here, so it needs the same room theme the rail
+  // This page uses the same room theme the rail
   // version gets from the shell.
   const { currentUser } = useDemo();
   const { theme } = useRoom(currentUser?.id ?? null, currentUser?.role ?? 'ds');
@@ -199,37 +197,8 @@ export default function LibraryPage() {
       {/* Extra room at the top because components/BuildNotice.tsx floats a
           fixed band at top-[4.5rem], and this page has its own header rather
           than the app shell's. Without the clearance the notice lands exactly on
-          the first heading: the demo pill covered "Powered by The Orbit". */}
+          the first heading. */}
       <main className="mx-auto max-w-3xl space-y-6 px-4 pb-6 pt-16">
-        {/* Orbit, full size.
-            The corner version is a postage stamp beside a page of other
-            content, which is fine for music and useless for video: uploading a
-            film and getting only its soundtrack does not read as a design
-            decision, it reads as broken. Same player, same vault, same
-            playlists — given a page to sit on, so the picture has somewhere to
-            go. */}
-        <section aria-label="The Orbit player">
-          <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h2 className="flex items-center gap-2 text-xl font-bold text-navy">
-              <OrbitMark size={26} />
-              Beacon media player
-            </h2>
-            {/* The feature is named for what it does to the person using it;
-                the engine behind it is credited separately. Same as a phone
-                naming the app rather than calling it "the audio feature". */}
-            <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              <OrbitMark size={14} />
-              Powered by The Orbit
-            </span>
-          </div>
-          <p className="mb-3 text-sm text-gray-500">
-            Your own music and video, played here in full size. Original quality
-            stays on this device; 4K/60 playback depends on the file, browser,
-            device, and display.
-          </p>
-          <OrbitPlayer theme={theme} variant="full" />
-        </section>
-
         {/* The starter toolkit — the same shelf for every account, Executive to
             anyone exploring. Real published resources, linked to the official free
             source. Beacon hosts none of them. */}

@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { Role } from '@/lib/types';
 import { roleLabel } from '@/lib/brand';
 import { useRoom, type RoomTheme, type RoomPrefs } from '@/lib/room-theme';
-import { OrbitPlayer } from './OrbitPlayer';
 
 // -------------------------------------------------------------------------
 // The room rails — the workspace either side of the page on a wide screen.
@@ -229,7 +228,6 @@ export function RightRail({
 
       {seeker ? <FocusTimer theme={theme} /> : <TodayCard theme={theme} today={today} />}
 
-      <OrbitPlayer theme={theme} />
     </aside>
   );
 }
