@@ -100,6 +100,11 @@ const staticChecks = [
   ['analytics over time', 'tests/analytics-trend.mjs'],
   ['security invariants', 'tests/security-invariants.mjs'],
   ['workflow files', 'tests/workflows.mjs'],
+  // Boots `npm run dev` and looks at the page. Everything else in this list
+  // tests the PRODUCTION build, which is how a blank `npm run dev` — the very
+  // first command the README gives a newcomer — survived with thirty green
+  // checks above it.
+  ['dev server', 'tests/dev-server.mjs'],
 ];
 for (const [label, file] of staticChecks) {
   if (fs.existsSync(path.join(root, file))) run(label, 'node', [file]);

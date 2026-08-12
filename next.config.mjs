@@ -11,13 +11,31 @@
 // IF YOU CONNECT A BACKEND: add its origin to `connect-src` and nowhere else.
 // Widening `default-src` is the usual shortcut and it gives away every other
 // directive at the same time.
+// Next.js's development server compiles and hot-reloads through `eval`, so a
+// Content-Security-Policy without 'unsafe-eval' stops React from ever starting.
+// The page returns HTTP 200, the title is right, and the body is BLANK — which
+// is what `npm run dev` did until 2026-08-12, i.e. exactly what the README's
+// "try it in two minutes" tells a newcomer to run first.
+//
+// It survived because nothing tested it: `npm run verify` builds for production
+// and runs every end-to-end walk against `next start`, where eval is not used
+// and the strict policy is correct. A green suite and a broken front door, for
+// the second time in this project, because the suite was answering a narrower
+// question than anyone thought.
+//
+// So: development gets 'unsafe-eval' and NOTHING ELSE does. `next build` never
+// sets NODE_ENV=development, so a production deployment cannot pick this up by
+// accident, and tests/security-invariants.mjs asserts the relaxation is inside
+// this conditional rather than in the shipped list.
+const DEV = process.env.NODE_ENV === 'development';
+
 const csp = [
   "default-src 'self'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   // Next.js injects small inline bootstrap scripts; 'unsafe-inline' is scoped to
   // scripts we ship. No third-party script origins are allowed.
-  "script-src 'self' 'unsafe-inline'",
+  `script-src 'self' 'unsafe-inline'${DEV ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
   "connect-src 'self'",
   // Files the person saved to their own device play from a blob: URL. Without
@@ -66,6 +84,15 @@ const securityHeaders = [
 // sides import that one constant. See the note in that script.
 
 const nextConfig = {
+  // Where the build lands. Normally `.next`; overridable so a test can boot the
+  // DEV server without destroying the PRODUCTION build sitting beside it.
+  //
+  // tests/dev-server.mjs runs `next dev`, which rewrites the build directory.
+  // With both sharing `.next` that test wiped the production build and the
+  // end-to-end phase that runs next, failing with "Could not find a production
+  // build" — a failure caused entirely by the test that ran before it. Separate
+  // directories remove the ordering dependency instead of documenting it.
+  distDir: process.env.BEACON_DIST_DIR || '.next',
   reactStrictMode: true,
   // The image optimizer is disabled, and that is a security decision as much as
   // a cost one.

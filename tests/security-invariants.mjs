@@ -86,10 +86,24 @@ if (nextConfig) {
   ok(/object-src|default-src 'self'/.test(cfg), "default-src 'self' — nothing loads from anywhere else by default");
   // A wildcard in script-src would let any host run code in the app's origin,
   // which is game over for every other control in this file.
-  const scriptSrc = (cfg.match(/"script-src[^"]*"/) || [''])[0];
+  // Match either quoting. This directive became a TEMPLATE LITERAL when
+  // 'unsafe-eval' was made conditional on development, and the old
+  // /"script-src[^"]*"/ stopped matching — so it printed "(not found)" and
+  // PASSED, because an empty string contains no wildcard. A security check that
+  // silently stops checking is worse than no check at all: it still reports OK.
+  // Hence the explicit found/not-found assertion below.
+  const scriptSrcMatch = cfg.match(/["`]script-src[^"`]*["`]/);
+  ok(!!scriptSrcMatch, 'the script-src directive is where this check can see it');
+  const scriptSrc = scriptSrcMatch ? scriptSrcMatch[0] : '';
   ok(
-    !/\bhttps?:(\s|"|$)|\*/.test(scriptSrc),
-    `script-src names no wildcard and no third-party origin (${scriptSrc || 'not found'})`,
+    !!scriptSrc && !/\bhttps?:(\s|["`]|$)|\*/.test(scriptSrc),
+    `script-src names no wildcard and no third-party origin (${scriptSrc || 'NOT FOUND'})`,
+  );
+  // 'unsafe-eval' is permitted only inside the development conditional.
+  ok(
+    !/["`]script-src[^"`]*'unsafe-eval'/.test(cfg) &&
+      (!/'unsafe-eval'/.test(cfg) || /DEV \?/.test(cfg)),
+    "'unsafe-eval' is dev-only, never in the shipped policy",
   );
   ok(
     /X-Content-Type-Options.*nosniff/s.test(cfg),
