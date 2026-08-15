@@ -110,13 +110,13 @@ credential appears in the repository.
 
 ## Roles, and the rule that matters
 
-Four roles: **Seeker**, **Missionary**, **Admin**, **Executive Admin**. Each sees
+Four roles: **Explorer**, **Guide**, **Director**, **Executive Director**. Each sees
 a different application from the same data.
 
 One rule is enforced by a test rather than by convention, and it should survive
-any change you make: **a Seeker never sees their own journey stage.** A stage is
+any change you make: **an Explorer never sees their own journey stage.** A stage is
 a note the church keeps in order to organise its work. It is not a label to show
-a human being about themselves. `tests/e2e/seeker-no-stage.js` opens the seeker's
+a human being about themselves. `tests/e2e/seeker-no-stage.js` opens the Explorer's
 screen and asserts that no stage name appears anywhere on it.
 
 ---

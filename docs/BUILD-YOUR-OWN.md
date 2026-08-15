@@ -77,13 +77,13 @@ personal information.
 - One person is using it to keep track of their own work.
 - You are showing it to a board or a leadership meeting to decide something.
 - You are training people on how the process works.
-- You want each missionary to keep their own private notes on their own phone.
+- You want each Guide to keep their own private notes on their own phone.
 
 For all of those, what you have already works, needs no money, and cannot leak.
 
 **You DO need a backend when:**
 
-- A missionary and an admin must see the same seeker.
+- A Guide and a Director must see the same Explorer.
 - Somebody changes phones and expects their work to still be there.
 - You want real invitations to arrive in real inboxes.
 - Two people need to have a conversation with each other.
@@ -251,7 +251,7 @@ offers one — many older members find it easier than remembering a password.
 **Invitations.** Beacon is invitation-only by design, and that is worth keeping.
 The flow already modelled in this app:
 
-1. An admin creates an invite with a name, an email and a role.
+1. A Director creates an invite with a name, an email and a role.
 2. Your server generates a random single-use token and emails a link containing
    it.
 3. Opening the link lets that person set a password, and only that person.
@@ -262,7 +262,7 @@ link on the front page at it — that link currently explains that this build ha
 no passwords, and it is the natural place to wire yours in.
 
 > **Never let a person choose their own role.** If your "update my profile"
-> endpoint accepts a `role` field, then anybody can make themselves an admin
+> endpoint accepts a `role` field, then anybody can make themselves a Director
 > with one request. Pin it to the role already stored. This is the single most
 > common way an app like this is completely broken, and it is one line to
 > prevent.
@@ -287,7 +287,7 @@ Here are Beacon's five promises, and how each is enforced.
 
 | Promise | Rule |
 |---|---|
-| A missionary sees only their own seekers | Rows in `pairings` are readable only when `dm_id` or `ds_id` is you |
+| A Guide sees only their own Explorers | Rows in `pairings` are readable only when `dm_id` or `ds_id` is you |
 | Conversations are private to the two people in them | `messages` readable only if you are in that pairing |
 | Private notes are private to their author | `notes` readable only if `author_id` is you |
 | Leaders get counts, never conversations | Executives read aggregate views, not message rows |
@@ -300,7 +300,7 @@ runnable files:
 
 | File | What it is |
 |---|---|
-| [`docs/examples/schema.sql`](examples/schema.sql) | Tables, helpers, policies, the seeker's journey view, the app's database role |
+| [`docs/examples/schema.sql`](examples/schema.sql) | Tables, helpers, policies, the Explorer's journey view, the app's database role |
 | [`docs/examples/prove-the-rules.sql`](examples/prove-the-rules.sql) | Fourteen attacks from a second account. Every line must print `PASS` |
 
 ```bash
@@ -321,16 +321,16 @@ your own.
 once on `schema "auth" does not exist`, and this guide claimed to be
 provider-neutral. The equivalent for plain Postgres is now in `schema.sql`.
 
-**2. A seeker could read their own journey stage.** The obvious policy — *you
-may read a pairing you are in* — hands the seeker the entire row, and `stage`
+**2. An Explorer could read their own journey stage.** The obvious policy — *you
+may read a pairing you are in* — hands the Explorer the entire row, and `stage`
 is a column on it. Every screen hid the value; the database gave it away.
 **This is the app's most important promise and the SQL did not keep it.** Fixed
-by excluding seekers from the table and giving them a view with no `stage`
+by excluding Explorers from the table and giving them a view with no `stage`
 column in it at all: absent, not hidden.
 
-**3. Fixing that broke the seeker's messages.** The conversation policy asked
+**3. Fixing that broke the Explorer's messages.** The conversation policy asked
 "is this person in that pairing?" with a sub-select, which runs under the
-pairings policy — the one that now excludes seekers. So a seeker could no
+pairings policy — the one that now excludes Explorers. So an Explorer could no
 longer read their own conversation. Fixed with a `SECURITY DEFINER` helper that
 answers the membership question without going through the policy.
 
@@ -338,15 +338,15 @@ answers the membership question without going through the policy.
 from inside `profiles`'s own policy. Same fix, same reason.
 
 **5. The role-pinning trigger locked the church out of its own administration.**
-Pinning `role` and `is_approved` unconditionally also stops an admin approving
-a new member or promoting a missionary — the two things administration consists
+Pinning `role` and `is_approved` unconditionally also stops a Director approving
+a new member or promoting a Guide — the two things administration consists
 of. Worse, it fails *silently*: the update succeeds and changes nothing. Fixed
 by pinning only when somebody edits their **own** row.
 
 ### Prove the rules, do not assume them
 
-Run `prove-the-rules.sql`. It signs in as a seeker, two different missionaries
-and an admin, and checks fourteen things that should each be refused or allowed.
+Run `prove-the-rules.sql`. It signs in as an Explorer, two different Guides
+and a Director, and checks fourteen things that should each be refused or allowed.
 
 **Connect as your application's role, not as the owner.** A superuser or table
 owner **bypasses RLS entirely**, so every check passes for the wrong reason.
@@ -468,13 +468,13 @@ shortcut and it gives away every other protection at the same time.
 
 Work through this. Every line is here because skipping it has hurt somebody.
 
-- [ ] A second missionary, signed in properly, reads **zero** rows of the
+- [ ] A second Guide, signed in properly, reads **zero** rows of the
       first one's conversation. Proven with a script, not by reading a policy.
-- [ ] A seeker cannot see their own journey stage anywhere.
+- [ ] An Explorer cannot see their own journey stage anywhere.
 - [ ] An "update my profile" request containing `role: "admin"` changes nothing.
 - [ ] The powerful database key appears nowhere in the app bundle. Search the
       built output for it.
-- [ ] Private notes are unreadable by the admin. Test it as the admin.
+- [ ] Private notes are unreadable by the Director. Test it as the Director.
 - [ ] Invitations expire, are single-use, and work only for the address they
       were sent to.
 - [ ] Anything that sends email is rate limited **on the server**, and keyed on
@@ -485,7 +485,7 @@ Work through this. Every line is here because skipping it has hurt somebody.
 - [ ] You have told the church, in plain words, what is stored and who can see
       it.
 - [ ] `components/RoleSwitcher.tsx` and `setMyRole` are **deleted**. They let
-      anybody become an admin, and they are safe only while there is no server.
+      anybody become a Director, and they are safe only while there is no server.
 - [ ] The `DEMO · sample data` badge is removed from `app/layout.tsx`.
 
 ---
@@ -508,7 +508,7 @@ purpose.
 **No rate limit on anything that sends.** One script can send your church ten
 thousand emails and get your sending domain blocked in an afternoon.
 
-**Testing only as yourself.** You are usually an admin, and admins can see
+**Testing only as yourself.** You are usually a Director, and Directors can see
 everything, so everything looks correct. Test as a *second* ordinary user.
 
 **Deleting rows.** Mark inactive instead. A church needs its history, and other

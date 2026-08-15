@@ -184,11 +184,11 @@ they are yours, in your data rules:
 
 | Rule | What breaks without it |
 |---|---|
-| A missionary reads only their own pairings | Every missionary reads every conversation in the church. |
-| Private notes are readable by their author alone | The thing a missionary was promised is private, is not. |
-| A seeker never receives their own stage | A pastoral note becomes a grade shown to the person. |
-| Only an admin invites and pairs | Anybody adds anybody to the church's records. |
-| Nobody changes their own role | The first curious person becomes an admin. |
+| A Guide reads only their own pairings | Every Guide reads every conversation in the church. |
+| Private notes are readable by their author alone | The thing a Guide was promised is private, is not. |
+| An Explorer never receives their own stage | A pastoral note becomes a grade shown to the person. |
+| Only a Director invites and pairs | Anybody adds anybody to the church's records. |
+| Nobody changes their own role | The first curious person becomes a Director. |
 
 That last one deserves a sentence of its own. If your backend has an "update my
 profile" call, it must **not** accept a role — pin it to the role already
@@ -204,7 +204,7 @@ is no server, and it must not survive the day one appears.
 ## Seam 3: real-time synchronisation
 
 Out of the box, every open window of the app **on one device** stays in step
-live. Open the missionary in one window and the seeker in another, send a
+live. Open the Guide in one window and the Explorer in another, send a
 message, and it appears in both without a refresh. That is genuinely useful —
 it is the clearest way to show a two-person conversation to a room — and it is
 honestly all a backendless app can do. Two different phones cannot sync through
@@ -230,7 +230,7 @@ setRealtimeTransport({
 the rules you wrote for queries.** On Postgres providers, row-level security for
 the replication stream is a *separate switch* from row-level security for
 queries. Turn on the wrong one and every listener receives every changed row,
-including the private note a missionary just wrote about somebody.
+including the private note a Guide just wrote about somebody.
 
 Three things before you trust your transport:
 

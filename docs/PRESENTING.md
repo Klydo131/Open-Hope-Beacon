@@ -45,10 +45,10 @@ Everything here is checked against the code. Nothing is aspirational.
 | **Works offline** | Yes, fully, after the first load. |
 | **Attachments** | Images, audio, video and documents on a conversation. Bytes stay on the device, in IndexedDB, never in the saved database. |
 | **Live sync** | Every open window on ONE device stays in step with no refresh. Across devices needs a backend; the transport is a seam you swap. |
-| **Roles** | Seeker, Missionary, Admin, Executive Admin. |
+| **Roles** | Explorer, Guide, Director, Executive Director. |
 | **Journey stages** | Create → Connect → Care → Call → Cultivate → Commission (six). |
 | **Sample people** | 10, all invented, at email domains that can never reach a real inbox. |
-| **Guided walks** | 4 — one per role. Executive 3 steps, Admin 5, Missionary 5, Seeker 3. |
+| **Guided walks** | 4 — one per role. Executive 3 steps, Director 5, Guide 5, Explorer 3. |
 | **Built with** | Next.js, React, TypeScript. Three runtime dependencies. |
 | **Tests** | 30 checks including 18 real-browser walks, two at phone size. All passing. |
 
@@ -70,21 +70,21 @@ their name on a list, one person from the church is assigned to walk with them �
 one to one. That relationship is the unit the whole app is built around.
 Everything else — the messages, the lessons, the stages — hangs off it.
 
-**In detail.** A pairing is a record joining two people: a missionary and a
-seeker, plus a stage and a track. It is created one of two ways:
+**In detail.** A pairing is a record joining two people: a Guide and an
+Explorer, plus a stage and a track. It is created one of two ways:
 
-- An admin pairs two people directly.
-- **The recommendation chain**, which is the designed path. A missionary
-  recommends somebody by name and email. That recommendation goes to an admin,
+- A Director pairs two people directly.
+- **The recommendation chain**, which is the designed path. A Guide
+  recommends somebody by name and email. That recommendation goes to a Director,
   who invites them. When that person accepts the invitation, **the pairing is
   created in the same operation that creates their account** — with the
-  missionary who recommended them, at stage `connect`.
+  Guide who recommended them, at stage `connect`.
 
 That last detail is the one worth defending. There is never a moment when a new
-seeker exists with nobody attached to them, because attachment happens in the
+Explorer exists with nobody attached to them, because attachment happens in the
 same step as creation rather than as a follow-up task somebody has to remember.
 
-**Why a missionary cannot invite directly.** They recommend; the admin decides.
+**Why a Guide cannot invite directly.** They recommend; the Director decides.
 That keeps one person accountable for who enters the church's records. In this
 build the rule is enforced by the screens; in a real deployment you enforce it in
 the database, because anybody can send a request without using your screens.
@@ -116,8 +116,8 @@ links. It is a rehearsal of the real thing with no mail server anywhere.
 
 **In detail.** `lib/demo/store.tsx` builds a `DemoEmail` for each event and stores
 it in `db.emails`; `app/mail/page.tsx` renders the mailbox, open to every role on
-purpose — an admin reads what the app sends and acts on recommendations, a
-missionary writes them, a seeker sees the welcome they were sent. The simulation
+purpose — a Director reads what the app sends and acts on recommendations, a
+Guide writes them, an Explorer sees the welcome they were sent. The simulation
 is only useful if everyone can stand in it.
 
 **When you connect a backend**, you replace that with a real provider. The
@@ -198,15 +198,15 @@ that this is a swap underneath, not a rebuild.
 your database decides what somebody is *allowed to have*. Put the permission rules
 with the data. Anybody can send a request without using your screens.
 
-Five rules your data layer inherits: a missionary reads only their own pairings;
-private notes are readable by their author alone; a seeker never receives their own
-stage; only an admin invites and pairs; and nobody can change their own role.
+Five rules your data layer inherits: a Guide reads only their own pairings;
+private notes are readable by their author alone; an Explorer never receives their own
+stage; only a Director invites and pairs; and nobody can change their own role.
 
 ### 8. Attachments and live sync
 
 **Plain words.** You can attach a photo, a voice note, a video or a document to a
 conversation, and both people in that conversation see it. Nobody else does, not
-even an admin. And if you have the app open in two windows, a message sent in one
+even a Director. And if you have the app open in two windows, a message sent in one
 appears in the other straight away, with no refresh.
 
 **The honest limit, say it before anybody tests it.** Live sync works between
@@ -276,10 +276,10 @@ a visible next step.
 2. **The six stages**, and the fact that the last one turns around: Commission is
    where the person being walked with begins walking with somebody else. The
    model is designed to multiply, not to accumulate.
-3. **Their own screen.** Run the Executive Admin walk — three steps, about a
+3. **Their own screen.** Run the Executive Director walk — three steps, about a
    minute. They see the church in numbers and the journey chart.
 4. **What they will never see.** This is the trust moment. Leaders get counts;
-   missionaries get the relationship. There is no screen anywhere that shows a
+   Guides get the relationship. There is no screen anywhere that shows a
    pastor somebody's private conversation. Say it plainly: *"I cannot read
    Maria's messages, and neither can you, and that is deliberate."*
 5. **Cost.** It is free and open source. No licence, no per-seat fee, no vendor.
@@ -287,7 +287,7 @@ a visible next step.
 **What to skip entirely:** the store, the backend seam, TypeScript, tests, the
 repository.
 
-**The one thing they most need to hear:** a seeker never sees their own stage. A
+**The one thing they most need to hear:** an Explorer never sees their own stage. A
 stage is a note the church keeps to organise its work, not a grade shown to a
 person about themselves. Directors immediately understand why that matters
 pastorally, and it demonstrates the app was designed by people thinking about
@@ -317,8 +317,8 @@ and what it costs: one device, one person.
    schema and permission rules in `docs/examples/` **have been run against a real
    PostgreSQL 16 database** and attacked from a second account — fourteen checks,
    all passing. Mention that running them the first time found five defects,
-   including one that silently broke this app's most important promise: a
-   seeker could read their own journey stage straight out of the database, even
+   including one that silently broke this app's most important promise: an
+   Explorer could read their own journey stage straight out of the database, even
    though every screen hid it. Engineers trust a project more when it admits
    that, not less.
 5. **Contributing.** `CONTRIBUTING.md`. The bar is "will the next person
@@ -384,10 +384,10 @@ Do these steps in order. They build.
 |---|---|---|
 | 1 | Open the front door | "This is what a member of your church sees." |
 | 2 | Scroll down | "And this is what you can do before deciding anything." |
-| 3 | **Who are you in your church?** → Executive Admin | "Three steps. It teaches you your own job, not somebody else's." |
+| 3 | **Who are you in your church?** → Executive Director | "Three steps. It teaches you your own job, not somebody else's." |
 | 4 | Complete the walk | Let the arrows do the talking. Do not narrate every step. |
-| 5 | Header → **Try any account** → a missionary | "Same church. Same information. Completely different app." |
-| 6 | Open a seeker → **Talk** | "This conversation is private to these two people. I cannot read it. Nor can the pastor." |
+| 5 | Header → **Try any account** → a Guide | "Same church. Same information. Completely different app." |
+| 6 | Open an Explorer → **Talk** | "This conversation is private to these two people. I cannot read it. Nor can the pastor." |
 
 Step 5 is the moment that lands. Everything before it is setup.
 
@@ -395,11 +395,11 @@ Step 5 is the moment that lands. Everything before it is setup.
 
 | # | Do this | Shows |
 |---|---|---|
-| 7 | Missionary → **Recommend someone** — name and email | A missionary recommends; they cannot invite |
-| 8 | Switch to Admin → **Mail** | The recommendation arrived. "This is the email that would have been sent." |
-| 9 | Admin → invite them | The chain: recommend → decide → invite |
+| 7 | Guide → **Recommend someone** — name and email | A Guide recommends; they cannot invite |
+| 8 | Switch to Director → **Mail** | The recommendation arrived. "This is the email that would have been sent." |
+| 9 | Director → invite them | The chain: recommend → decide → invite |
 | 10 | Show the pairing appears at **Connect** | "Paired the moment they accept. Nobody has to remember." |
-| 11 | Admin → **Analytics** | Counts and trends. No names. |
+| 11 | Director → **Analytics** | Counts and trends. No names. |
 | 12 | Flight mode on, keep clicking | Works offline. This surprises people. |
 | 13 | Settings → **App version** | Updates itself; nobody uninstalls anything. |
 
@@ -467,8 +467,8 @@ not imply a user base that does not exist — an IT person will check.
 
 **"Is it finished?"**
 The app is complete and tested. What is deliberately not included is a backend,
-because that is the church's own choice. Also say plainly: promoting a seeker to
-become a missionary is **not built yet**, because it needs decisions nobody has
+because that is the church's own choice. Also say plainly: promoting an Explorer to
+become a Guide is **not built yet**, because it needs decisions nobody has
 made — what happens to the old pairing, who approves, what history carries over.
 
 ---
@@ -498,10 +498,10 @@ database. **Five defects**, including:
 - The whole thing failed on the first policy — the SQL assumed one particular
   vendor's function that does not exist in plain Postgres.
 - One policy recursed infinitely. The app could not list anybody at all.
-- A seeker could read their own journey stage directly from the database, even
+- An Explorer could read their own journey stage directly from the database, even
   though every screen hid it. **The app's most important promise, broken, in
   code that had been read and approved.**
-- A safety rule written to stop people promoting themselves also stopped admins
+- A safety rule written to stop people promoting themselves also stopped Directors
   approving anyone — and it failed silently, so the church would have concluded
   the app was broken with nothing in any log to explain it.
 
@@ -593,12 +593,12 @@ Constraints, in priority order:
 3. **The central claim** is: *one person walking with one person, with each role
    seeing only their own part.* Everything else supports that.
 4. **The trust claim** must appear in any director-facing material: leaders see
-   counts, never conversations; a seeker never sees their own stage.
+   counts, never conversations; an Explorer never sees their own stage.
 5. **Be accurate about the backend.** As shipped there is no server and no
    database; everything is in the browser. This is a deliberate design decision,
    not an incomplete state. A church adds its own backend, and the app is built
    for that swap.
-6. **State limits honestly.** Not built: promoting a seeker to missionary.
+6. **State limits honestly.** Not built: promoting an Explorer to Guide.
    Not included: any backend. Not claimed: any existing user base.
    **Live sync works between windows on one device, not between devices** — say
    that plainly wherever sync is mentioned, because it is the first thing

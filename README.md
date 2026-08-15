@@ -20,19 +20,19 @@ Real screenshots of the app running with its own built-in sample people. Nothing
 here is a mockup, and nothing is assembled from parts that never appeared
 together. Regenerate them any time with `node scripts/screenshots.mjs`.
 
-### A missionary's desk
+### A Guide's desk
 
 Who you are walking with, what needs you today, and where each person is on the
 six-node journey.
 
-![The missionary's home screen, showing two seekers, overdue follow-ups, the six journey nodes from Create to Commission, and an upcoming Bible study](docs/screenshots/missionary-people.png)
+![The Guide's home screen, showing two Explorers, overdue follow-ups, the six journey nodes from Create to Commission, and an upcoming Bible study](docs/screenshots/guide-people.png)
 
 ### One person, one conversation
 
 Everything about that relationship in one place: how to reach them, what they
 are interested in, the conversation, their journey, and the resources shared.
 
-![A seeker's page showing John Reyes at the Connect stage on the digital track, with tabs for Talk, Journey, Care and Resources](docs/screenshots/conversation.png)
+![An Explorer's page showing John Reyes at the Connect stage on the digital track, with tabs for Talk, Journey, Care and Resources](docs/screenshots/conversation.png)
 
 ### The church, without anybody's private journey
 
@@ -46,11 +46,11 @@ the screen says so in as many words.
 The same app. Installs from the browser with no app store, and keeps working
 with the signal off.
 
-| A seeker's home | A missionary's home |
+| An Explorer's home | A Guide's home |
 |---|---|
-| ![A seeker's phone screen: a welcome, a verse, and what is waiting for them](docs/screenshots/phone-seeker.png) | ![A missionary's phone screen: greeting, what needs attention, and the six journey nodes](docs/screenshots/phone-missionary.png) |
+| ![An Explorer's phone screen: a welcome, a verse, and what is waiting for them](docs/screenshots/phone-explorer.png) | ![A Guide's phone screen: greeting, what needs attention, and the six journey nodes](docs/screenshots/phone-guide.png) |
 
-**Look at what is missing from the seeker's screen.** There is no stage, no
+**Look at what is missing from the Explorer's screen.** There is no stage, no
 progress bar, no label about how far along they are. A stage is a note the
 church keeps to organise its work, not a grade to show somebody about
 themselves, and the database will not hand it to them even if a future screen
@@ -80,22 +80,22 @@ Four kinds of people, each seeing a different app built from the same data.
 
 | | What they see |
 |---|---|
-| **Seeker** | Messages from the person walking with them, their lessons, how far through a course they are, and a way to ask for prayer. |
-| **Missionary** | Their own people and nobody else's. Conversations, lessons to share, meetings to arrange, private notes. |
-| **Admin** | Who gets in, who walks with whom, and what is on the library shelf. |
-| **Executive Admin** | The church in numbers, and how those numbers are changing. Never anybody's conversations. |
+| **Explorer** | Messages from the person walking with them, their lessons, how far through a course they are, and a way to ask for prayer. |
+| **Guide** | Their own people and nobody else's. Conversations, lessons to share, meetings to arrange, private notes. |
+| **Director** | Who gets in, who walks with whom, and what is on the library shelf. |
+| **Executive Director** | The church in numbers, and how those numbers are changing. Never anybody's conversations. |
 
 Underneath is a six-stage journey — **Create, Connect, Care, Call, Cultivate,
 Commission** — which ends by turning around: the last stage is the point where
 somebody being walked with starts walking with somebody else.
 
-**A seeker never sees their own stage.** A stage is a note the church keeps to
+**An Explorer never sees their own stage.** A stage is a note the church keeps to
 organise its work, not a label to show a person about themselves. A test enforces
 this, and it should survive anything you build on top.
 
 Conversations carry **attachments** — a photo, a voice note, a video, a document
 — and an attachment is visible to exactly the two people in that conversation,
-with no admin exception. The files stay on the device, in IndexedDB, and never
+with no Director exception. The files stay on the device, in IndexedDB, and never
 go into the saved database.
 
 It runs on Windows, macOS, Linux, Android and iPhone, and CI proves the first
@@ -121,7 +121,7 @@ same code syncs between devices, because the transport is a seam you swap
   has never used it and does not enjoy new software.
 - **It is small enough to read.** React, Next.js and almost nothing else. One
   person can audit the whole thing.
-- **It is honest about privacy.** Leaders get numbers; missionaries get the
+- **It is honest about privacy.** Leaders get numbers; Guides get the
   relationship. Private notes are private to one person, and there is no screen
   anywhere that shows a pastor somebody's conversation.
 

@@ -148,7 +148,7 @@ async function shot(page, name) {
   await signIn(d, 'Maria Santos');
   await d.goto(`${BASE}/dm`, { waitUntil: 'networkidle' });
   await settle(d, 1800);
-  await shot(d, 'missionary-people');
+  await shot(d, 'guide-people');
 
   const card = d.locator('[data-quest="seeker-card"]').first();
   if (await card.count()) {
@@ -179,12 +179,12 @@ async function shot(page, name) {
   await signIn(p, 'John Reyes');
   await p.goto(`${BASE}/ds`, { waitUntil: 'networkidle' });
   await settle(p, 1900);
-  await shot(p, 'phone-seeker');
+  await shot(p, 'phone-explorer');
 
   await signIn(p, 'Maria Santos');
   await p.goto(`${BASE}/dm`, { waitUntil: 'networkidle' });
   await settle(p, 1900);
-  await shot(p, 'phone-missionary');
+  await shot(p, 'phone-guide');
 
   await phone.close();
   await browser.close();

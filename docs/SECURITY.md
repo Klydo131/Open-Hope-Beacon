@@ -74,8 +74,8 @@ that sends messages its own separate ceiling.
 
 ### Decide what your leaders can see
 
-This app is built so that leaders see counts and missionaries see the
-relationship — a pastor cannot read a missionary's conversations, because there
+This app is built so that leaders see counts and Guides see the
+relationship — a pastor cannot read a Guide's conversations, because there
 is no screen that shows them. If you connect a backend, that boundary is now
 yours to enforce in your data rules. It is easy to lose by accident and hard to
 explain afterwards.

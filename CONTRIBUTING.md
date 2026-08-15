@@ -43,7 +43,7 @@ is a fair argument to make, and a better one than quietly deleting the file.
 
 ## What a good pull request looks like
 
-**Say what breaks without it.** Not "improves the admin page" — "an admin with
+**Say what breaks without it.** Not "improves the Director page" — "a Director with
 more than 40 members cannot reach the invite button on a phone". One concrete
 sentence about what goes wrong is worth a page of description.
 
@@ -101,11 +101,11 @@ fifteen lines it saves are worth it.
 
 ### Two product rules that outrank convenience
 
-**A seeker never sees their own journey stage.** A stage is a note the church
+**An Explorer never sees their own journey stage.** A stage is a note the church
 keeps to organise its work, not a label to show a human being about themselves.
 `tests/e2e/seeker-no-stage.js` enforces it.
 
-**Leaders get counts; missionaries get the relationship.** There is no screen
+**Leaders get counts; Guides get the relationship.** There is no screen
 anywhere that shows a pastor somebody's conversation, and adding one would
 change what this app is. If you think it needs one, open an issue first.
 
