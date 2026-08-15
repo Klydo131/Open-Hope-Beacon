@@ -264,9 +264,9 @@ export function AppShell({
                 <p className="text-sm font-semibold leading-tight">
                   {currentUser.full_name}
                 </p>
-                {roleLabel(currentUser.role) && (
+                {roleLabel(currentUser.role, currentUser.role) && (
                   <p className="text-xs text-white/60">
-                    {roleLabel(currentUser.role)}
+                    {roleLabel(currentUser.role, currentUser.role)}
                   </p>
                 )}
               </div>

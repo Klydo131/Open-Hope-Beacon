@@ -218,9 +218,9 @@ export default function Home() {
           <Card className="p-6">
             <h2 className="text-xl font-bold text-navy">Private by design 🔒</h2>
             <ul className="mt-3 space-y-2 text-gray-600">
-              <li>• A missionary sees only their own explorers.</li>
+              <li>• A Guide sees only their own Explorers.</li>
               <li>
-                • A seeker’s profile is visible only to their missionary and the
+                • An Explorer’s profile is visible only to their Guide and the
                 admin.
               </li>
               <li>

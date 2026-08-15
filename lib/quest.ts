@@ -83,7 +83,7 @@ export interface QuestStep {
 // Said in one place so the wording is identical wherever the chain lands.
 const OPEN_A_SEEKER: QuestTarget = {
   target: 'seeker-card',
-  hint: 'Open a explorer first. Tap the highlighted card to go into their room.',
+  hint: 'Open an Explorer first. Tap the highlighted card to go into their room.',
 };
 
 // ------------------------------------------------------- the missionary ----
@@ -94,7 +94,7 @@ const DM_STEPS: QuestStep[] = [
     where: 'My Explorers',
     learn:
       'This list is only the people paired with you. You never see another missionary\u2019s explorers, and they never see yours. Each card shows how long it has been since you last spoke, so the quiet ones rise to the top.',
-    title: 'Open a explorer',
+    title: 'Open an Explorer',
     hint: 'Tap the highlighted card to open this person’s journey. You only ever see the explorers paired with you.',
     target: 'seeker-card',
     route: '/dm',
@@ -103,7 +103,7 @@ const DM_STEPS: QuestStep[] = [
   },
   {
     id: 'message',
-    where: 'My Explorers \u203a a explorer \u203a Talk',
+    where: 'My Explorers \u203a an Explorer \u203a Talk',
     learn:
       'Talk is a private conversation between the two of you. It is not a group chat, and church leaders cannot read it. The number on the Talk tab counts messages you have not opened yet.',
     title: 'Send a message',
@@ -122,7 +122,7 @@ const DM_STEPS: QuestStep[] = [
   },
   {
     id: 'advance',
-    where: 'My Explorers \u203a a explorer \u203a Journey',
+    where: 'My Explorers \u203a an Explorer \u203a Journey',
     learn:
       'The journey is six stages: Create, Connect, Care, Call, Cultivate, Commission. Advancing stamps the date, so the history underneath becomes the record of how you walked with this person. You can move someone back if you moved them early.',
     title: 'Advance their journey',
@@ -141,11 +141,11 @@ const DM_STEPS: QuestStep[] = [
   },
   {
     id: 'share',
-    where: 'My Explorers \u203a a explorer \u203a Resources',
+    where: 'My Explorers \u203a an Explorer \u203a Resources',
     learn:
-      'What you share lands in that person\u2019s library and nowhere else. Sharing is one person at a time on purpose, so a explorer only ever sees what you chose for them, when they are ready for it.',
+      'What you share lands in that person\u2019s library and nowhere else. Sharing is one person at a time on purpose, so an Explorer only ever sees what you chose for them, when they are ready for it.',
     title: 'Share a resource',
-    hint: 'Tap the highlighted Share button to give them a reading or video. A explorer only ever sees what you personally share.',
+    hint: 'Tap the highlighted Share button to give them a reading or video. An Explorer only ever sees what you personally share.',
     target: 'share',
     fallbacks: [
       {
@@ -162,7 +162,7 @@ const DM_STEPS: QuestStep[] = [
     id: 'profile',
     where: 'You \u203a Profile',
     learn:
-      'Your profile is what a explorer sees when they tap your name. A photo and one honest line about yourself is what turns a message from a stranger into a message from a person.',
+      'Your profile is what an Explorer sees when they tap your name. A photo and one honest line about yourself is what turns a message from a stranger into a message from a person.',
     title: 'Make it yours',
     hint: 'Tap your picture, top-right, any time to edit your profile: a photo, your interests, and how people can reach you.',
     target: 'profile-link',
@@ -200,7 +200,7 @@ const ADMIN_STEPS: QuestStep[] = [
     id: 'a-approve',
     where: 'Admin › Approvals',
     learn:
-      'You choose the role as you approve, and that choice decides what they can see for as long as they are here. A missionary sees the explorers paired with them. A explorer sees only their own journey. Nobody can change their own role afterwards, including you.',
+      'You choose the role as you approve, and that choice decides what they can see for as long as they are here. A missionary sees the explorers paired with them. An Explorer sees only their own journey. Nobody can change their own role afterwards, including you.',
     title: 'Let someone in',
     hint: 'Pick a role for the highlighted person, then tap Approve. They can sign in from that moment.',
     target: 'approve',
@@ -237,8 +237,8 @@ const ADMIN_STEPS: QuestStep[] = [
     where: 'Admin › People & pairing',
     learn:
       'A pairing is the whole relationship: it is what lets those two message each other, and it is what stops everybody else reading it. Unpair them and the conversation is no longer visible to either side. This is also where you can remove a member.',
-    title: 'Pair a missionary with a explorer',
-    hint: 'Choose a missionary and a explorer in the highlighted card, then create the pairing. They can talk from that moment.',
+    title: 'Pair a missionary with an Explorer',
+    hint: 'Choose a missionary and an Explorer in the highlighted card, then create the pairing. They can talk from that moment.',
     target: 'create-pairing',
     fallbacks: [
       {
@@ -295,7 +295,7 @@ const EXEC_STEPS: QuestStep[] = [
     id: 'x-church',
     where: 'Home',
     learn:
-      'The journey chart shows how many people are at each of the six stages. It never names anyone. A explorer looking at this same screen does not see the chart at all, because a stage is a note the church keeps about a person, not a thing that person is.',
+      'The journey chart shows how many people are at each of the six stages. It never names anyone. An Explorer looking at this same screen does not see the chart at all, because a stage is a note the church keeps about a person, not a thing that person is.',
     title: 'See the journey chart',
     hint: 'Tap the highlighted church name to go Home. The journey chart is below the activity board.',
     target: 'church-link',

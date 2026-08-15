@@ -55,7 +55,7 @@ function Detail() {
       <div>
         <p className="text-lg">This explorer is not on your list.</p>
         <Button className="mt-4" onClick={() => router.replace('/dm')}>
-          Back to my seekers
+          Back to my Explorers
         </Button>
       </div>
     );
@@ -95,7 +95,7 @@ function Detail() {
         onClick={() => router.replace('/dm')}
         className="text-navy underline"
       >
-        ← My seekers
+        ← My Explorers
       </button>
 
       {/* Who they are — stays put while the tabs change beneath it */}

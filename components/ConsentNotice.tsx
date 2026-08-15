@@ -34,7 +34,7 @@ export function ConsentNotice() {
           <Point icon="🖐️" text="You can ask to stop, or to remove your information, at any time." />
 
           <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-500">
-            Questions? Just ask your missionary or the church admin.
+            Questions? Just ask your Guide or the church Director.
           </div>
 
           <div className="flex flex-col gap-2 pt-2">

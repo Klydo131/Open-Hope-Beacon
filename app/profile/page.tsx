@@ -113,7 +113,7 @@ function Editor() {
             </h1>
             <p className="text-white/80">
               {rs.icon}
-              {roleLabel(me.role) ? ` ${roleLabel(me.role)}` : ''}
+              {roleLabel(me.role, me.role) ? ` ${roleLabel(me.role, me.role)}` : ''}
             </p>
             <p className="text-sm text-white/60">{rs.blurb}</p>
           </div>

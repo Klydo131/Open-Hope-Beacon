@@ -268,9 +268,9 @@ function RoomCard({
       <p className="mt-0.5 truncate text-base font-extrabold" style={{ color: theme.ink }}>
         {name}
       </p>
-      {roleLabel(role) && (
+      {roleLabel(role, role) && (
         <p className="text-xs" style={{ color: theme.inkSoft }}>
-          {roleLabel(role)}
+          {roleLabel(role, role)}
         </p>
       )}
 

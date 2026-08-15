@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDemo } from '@/lib/demo/store';
-import { roleLabel, NAVY } from '@/lib/brand';
+import { roleNoun, NAVY } from '@/lib/brand';
 import { Avatar, Button, Card } from '@/components/ui';
 import type { Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
@@ -76,8 +76,8 @@ export default function Login() {
                   <Avatar name={p.full_name} />
                   <div className="flex-1">
                     <p className="text-lg font-bold text-navy">{p.full_name}</p>
-                    {roleLabel(p.role) && (
-                      <p className="text-sm text-gray-500">{roleLabel(p.role)}</p>
+                    {roleNoun(p.role) && (
+                      <p className="text-sm text-gray-500">{roleNoun(p.role)}</p>
                     )}
                   </div>
                   <span className="text-2xl text-gray-300" aria-hidden>›</span>

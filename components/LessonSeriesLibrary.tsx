@@ -57,8 +57,8 @@ export function LessonSeriesLibrary() {
       <Card className="p-5">
         <h2 className="mb-1 text-xl font-bold text-navy">📚 Build a lesson series</h2>
         <p className="mb-4 text-sm text-gray-500">
-          A course on one area of interest, walked through in order. Missionaries
-          can start it for a seeker in one tap, and the seeker sees how far along
+          A course on one area of interest, walked through in order. Guides
+          can start it for an Explorer in one tap, and they see how far along
           they are the whole way.
         </p>
 

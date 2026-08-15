@@ -78,31 +78,61 @@ export function trackColor(track: Track): string {
 //
 //   'Guide' rather than 'Digital Missionary'  — describes what the person does
 //                                               rather than a title to live up to.
-//   'Support' rather than 'Admin'             — the job is helping the church run,
-//                                               not administering people.
-//   nothing at all for a seeker               — see below.
+//   'Director' rather than 'Admin'            — the job is leading the church's
+//                                               Hope Beacon ministry, not
+//                                               administering people.
+//   'Executive Director' above that           — the same job across more than
+//                                               one church.
+//   'Explorer' for a seeker                   — someone exploring the world of
+//                                               SDA values.
 //
-// A SEEKER HAS NO LABEL, DELIBERATELY. Everyone else in this app has a job;
-// a seeker is just a person who came. Printing 'Digital Seeker' under their name
-// sorts them into a category in front of the very people walking with them, and
-// the client asked for their name and nothing else. Use `roleLabel()` rather
-// than reading this map directly, so the empty case is handled once.
+// A ROLE LABEL IS NOT A BADGE THE PERSON WEARS. This replaced an earlier rule
+// here, which was to give a seeker no label at all. That rule's reasoning was
+// right — printing a category under somebody's name sorts them in front of the
+// very people walking with them — but it also left a Guide unable to tell who
+// was who on a roster, and it left the app with no word for the person it
+// exists to serve.
+//
+// So the label exists, and it is scoped to the READER instead of deleted:
+// 'Explorer' renders for a Guide, a Director and an Executive Director, and it
+// renders nowhere the app tells you what YOU are — not your own header, not
+// your own profile, not the welcome notification. It is how the people
+// supporting someone refer to them, not something said back to the person.
+//
+// Everyone else's label is unconditional: a Guide seeing "Guide" under their
+// own name is a job title, and an Explorer needs to see "Guide" under the name
+// of the person walking with them.
+//
+// If you are forking this and want different words, this map is the only place
+// to change them. If you want a different RULE, change roleLabel() — and the
+// test in tests/brand-consistency.mjs will tell you what you broke.
 export const ROLE_LABELS: Record<string, string> = {
-  executive: 'Executive Support',
-  admin: 'Support',
+  executive: 'Executive Director',
+  admin: 'Director',
   dm: 'Guide',
-  ds: '',
+  ds: 'Explorer',
 };
+
+/** The roles that read a roster, and so are shown an Explorer's label. */
+const SEES_EXPLORER_LABEL = ['dm', 'admin', 'executive'];
 
 /**
  * The label to show beside somebody's name, or null when there should be none.
  *
- * Returning null rather than '' is the point: a caller has to decide what to do
- * with the absence. Reading ROLE_LABELS directly produced "You are now a ." and
- * an empty subtitle floating under a name, which is how a blank string fails —
- * quietly, and only in the places nobody re-read.
+ * @param role   whose label this is — the person being described.
+ * @param viewer the role of the person reading the screen.
+ *
+ * `viewer` is REQUIRED, and that is the whole design. Optional would mean every
+ * call site that forgot it silently fell back to showing the label, which is
+ * the one outcome this exists to prevent — a rule that fails open is not a
+ * rule, and it would fail open in exactly the screens nobody re-reads.
+ *
+ * In most call sites the answer is "the same person", because the screen is
+ * your own header or your own profile — so `roleLabel(me.role, me.role)` is the
+ * common shape, and it reads as what it is: you, looking at yourself.
  */
-export function roleLabel(role: string): string | null {
+export function roleLabel(role: string, viewer: string): string | null {
+  if (role === 'ds' && !SEES_EXPLORER_LABEL.includes(viewer)) return null;
   const label = ROLE_LABELS[role];
   return label ? label : null;
 }

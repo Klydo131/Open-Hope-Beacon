@@ -529,7 +529,7 @@ export function Quest() {
                 )}
                 {step.target && !rect && (!step.route || onRoute) && (
                   <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
-                    Scroll down to your seekers and open one to carry on.
+                    Scroll down to your Explorers and open one to carry on.
                   </p>
                 )}
                 {/* On this screen, but scrolled out of sight. Without this the

@@ -55,7 +55,7 @@ function AdminBody() {
     <div>
       <h1 className="mb-1 text-3xl font-extrabold text-navy">{t('admin')}</h1>
       <p className="mb-5 text-gray-500">
-        Approve members, pair missionaries with seekers, and manage the library.
+        Approve members, pair Guides with Explorers, and manage the library.
       </p>
 
       <div className="mb-6 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -114,7 +114,7 @@ const EVENT_LABEL: Record<AnalyticsEvent['type'], string> = {
   lesson_assigned: 'Assigned a lesson',
   lesson_completed: 'Completed a lesson',
   meeting_scheduled: 'Scheduled a meeting',
-  invite_sent: 'Invited a explorer',
+  invite_sent: 'Invited an Explorer',
   invite_accepted: 'Accepted an invitation',
   member_kicked: 'Removed a member',
   member_disapproved: 'Disapproved a sign-up',
@@ -243,7 +243,7 @@ function LocalAnalytics({
       <Card className="p-5">
         <h3 className="mb-1 text-lg font-bold text-navy">Explorer study uploads</h3>
         <p className="mb-3 text-sm text-gray-500">
-          What seekers are adding to their own shelves — advanced monitoring.
+          What Explorers are adding to their own shelves — advanced monitoring.
         </p>
         {db.seeker_media.length === 0 ? (
           <p className="text-gray-400">No explorer uploads yet.</p>
@@ -462,7 +462,7 @@ function BoardView({
         <p>
           <strong className="text-navy">What the board is not shown.</strong> No
           names against these numbers, no messages, no prayer requests. If you
-          want to know how one particular person is doing, ask the missionary
+          want to know how one particular person is doing, ask the Guide
           walking with them. The app will not tell you, and that is on purpose.
         </p>
         <p>
@@ -496,18 +496,18 @@ function Recommendations() {
   const pending = db.recommendations.filter((r) => r.status === 'pending');
   const decided = db.recommendations.filter((r) => r.status !== 'pending');
   const nameOf = (id: string) =>
-    db.profiles.find((p) => p.id === id)?.full_name ?? 'A missionary';
+    db.profiles.find((p) => p.id === id)?.full_name ?? 'A Guide';
 
   if (pending.length === 0 && decided.length === 0) return null;
 
   return (
     <Card className="p-5">
       <h2 className="mb-1 text-xl font-bold text-navy">
-        🙋 Recommended by your missionaries
+        🙋 Recommended by your Guides
       </h2>
       <p className="mb-4 text-sm text-gray-500">
         These people do not have accounts yet. Invite one and they join already
-        paired with the missionary who put them forward.
+        paired with the Guide who put them forward.
       </p>
 
       {pending.length === 0 ? (
@@ -610,7 +610,7 @@ function Approvals() {
                 <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-sm font-semibold text-green-700">
                   🙋 Recommended by{' '}
                   {db.profiles.find((x) => x.id === p.recommended_by)?.full_name ??
-                    'a missionary'}
+                    'a Guide'}
                 </p>
               )}
             </div>
@@ -688,7 +688,7 @@ function Pairing() {
               onChange={(e) => setDm(e.target.value)}
               className="tap mt-1 w-full rounded-xl bg-gray-100 px-3 text-base"
             >
-              <option value="">Choose a missionary…</option>
+              <option value="">Choose a Guide…</option>
               {dms.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.full_name}
@@ -703,7 +703,7 @@ function Pairing() {
               onChange={(e) => setDs(e.target.value)}
               className="tap mt-1 w-full rounded-xl bg-gray-100 px-3 text-base"
             >
-              <option value="">Choose a explorer…</option>
+              <option value="">Choose an Explorer…</option>
               {unpairedDs.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.full_name}
@@ -740,7 +740,7 @@ function Pairing() {
         </div>
         {unpairedDs.length === 0 && (
           <p className="mt-3 text-sm text-gray-400">
-            Every approved seeker is already paired.
+            Every approved Explorer is already paired.
           </p>
         )}
       </Card>
@@ -783,8 +783,8 @@ function Pairing() {
                   <Avatar name={m.full_name} avatar={m.avatar} photo={m.photo} />
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-navy">{m.full_name}</p>
-                    {roleLabel(m.role) && (
-                      <p className="text-sm text-gray-500">{roleLabel(m.role)}</p>
+                    {roleLabel(m.role, currentUser?.role ?? '') && (
+                      <p className="text-sm text-gray-500">{roleLabel(m.role, currentUser?.role ?? '')}</p>
                     )}
                   </div>
                   {removable && (

@@ -107,7 +107,7 @@ export default function SignupPage() {
             No invitation yet?
           </h2>
           <p className="text-gray-600">
-            Ask someone at your church — an admin or the missionary you’ve been
+            Ask someone at your church — a Director or the Guide you’ve been
             talking with — to send you one. They enter your email and Beacon does
             the rest.
           </p>

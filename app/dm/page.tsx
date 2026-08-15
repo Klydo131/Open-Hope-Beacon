@@ -113,7 +113,7 @@ function Dashboard() {
         </p>
         <EmptyState
           title="No explorers yet"
-          hint="An admin will pair a explorer with you."
+          hint="A Director will pair an Explorer with you."
         />
       </div>
     );
@@ -336,7 +336,7 @@ function Dashboard() {
                       }}
                       className="rounded-xl bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-100"
                     >
-                      Remove seeker
+                      Remove Explorer
                     </button>
                   </div>
                 </Card>

@@ -153,7 +153,7 @@ export function MySeries() {
                           )}
                           {!assignment && (
                             <p className="text-sm text-gray-400">
-                              Your missionary will open this one for you next.
+                              Your Guide will open this one for you next.
                             </p>
                           )}
                         </div>

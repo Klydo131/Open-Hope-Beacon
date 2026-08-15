@@ -177,6 +177,115 @@ if (manifest) {
       );
 }
 
+// ---------------------------------------------------------------------------
+// The retired vocabulary stays retired.
+//
+// The roles have been renamed three times, and each rename left words behind in
+// places the previous sweep had filtered out as code: "pair missionaries with
+// seekers" on the Director's dashboard, "A missionary will be connected with you
+// soon" on an Explorer's waiting screen, "Your missionary can study these with
+// you" on the study shelf. The last of those survived TWO deliberate sweeps and
+// was found by screenshotting the app for a client deck.
+//
+// The reason it keeps happening is that the retired words are also legitimate
+// code: `role === 'admin'`, `/admin`, `is_admin()`, a `missionaries` count
+// variable, `seekerPriorities`. So a plain grep either misses the copy or
+// drowns in identifiers, and a person scanning the output makes the wrong call
+// on the boundary.
+//
+// This checks only what a person can READ: JSX text between tags, and quoted
+// strings that contain a space (so `'admin'` is a value and "A Director will
+// approve you" is a sentence). It is deliberately narrow — it would rather miss
+// an exotic case than cry wolf and be switched off.
+// ---------------------------------------------------------------------------
+{
+  console.log('\n─── the retired vocabulary stays retired ───────────────────');
+
+  const RETIRED = [
+    [/\bmissionar(y|ies)\b/i, 'missionary → Guide'],
+    [/\bdigital seekers?\b/i, 'Digital Seeker → Explorer'],
+    [/\bseekers?\b/i, 'seeker → Explorer'],
+  ];
+
+  const walkAll = (dir, out = []) => {
+    const full = path.join(root, dir);
+    if (!fs.existsSync(full)) return out;
+    for (const e of fs.readdirSync(full, { withFileTypes: true })) {
+      const rel = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (e.name === 'node_modules' || e.name === '.next') continue;
+        walkAll(rel, out);
+      } else if (/\.tsx$/.test(e.name)) out.push(rel);
+    }
+    return out;
+  };
+
+  const hits = [];
+  for (const file of walkAll('app').concat(walkAll('components'))) {
+    let src = fs.readFileSync(path.join(root, file), 'utf8');
+
+    // Comments are history and are ALLOWED to name what was retired — several
+    // exist precisely to explain the rename. Strip them first.
+    src = src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+
+    // Whole-file, not line-by-line. The first version matched `>text<` on a
+    // single line, so it never saw JSX text that wraps — which is most of it.
+    // "Your missionary can study these with\n you." sailed through the negative
+    // control untouched, and the check reported OK. A guard that cannot fail is
+    // worth less than no guard, because it also stops anyone looking.
+    const readable = [];
+
+    // Quoted sentences: a quoted run containing a space, so `'admin'` stays a
+    // value and "A Director will approve you" is prose.
+    for (const m of src.matchAll(/'([^'\n]*\s[^'\n]*)'|"([^"\n]*\s[^"\n]*)"/g)) {
+      const t = m[1] ?? m[2];
+      // Same prose test as the JSX branch below: a quoted run holding an
+      // expression is a value, not a sentence somebody reads.
+      if (/[=;(){}]/.test(t)) continue;
+      if (!/[A-Za-z]\s+[A-Za-z]/.test(t)) continue;
+      readable.push(t);
+    }
+
+    // JSX text: a run between a '>' and the next '<' containing no braces and
+    // no angle brackets. Applied to the WHOLE FILE, so text that wraps across
+    // lines is one match — that was the bug in the first version.
+    //
+    // The second version stripped tags and braces and scanned the residue,
+    // which is still JavaScript: `const missionaries = ...` and a variable
+    // called `seekerPriorities` both matched, and a check that reports fifteen
+    // problems when there are two is a check people learn to ignore. So this
+    // matches JSX text positively rather than by elimination, and then throws
+    // away anything that looks like code rather than prose.
+    for (const m of src.matchAll(/>([^<>{}]{4,})</g)) {
+      const t = m[1];
+      if (/[=;()]/.test(t)) continue;        // an expression, not a sentence
+      if (!/[A-Za-z]\s+[A-Za-z]/.test(t)) continue;  // needs two real words
+      readable.push(t);
+    }
+
+    for (const text of readable) {
+      for (const [re, fix] of RETIRED) {
+        const m = text.match(re);
+        if (m) {
+          const at = text.indexOf(m[0]);
+          hits.push(`${file} — ${fix} — “…${text.slice(Math.max(0, at - 34), at + 40).trim()}…”`);
+          break;
+        }
+      }
+    }
+  }
+
+  // This file's ok() takes only a message and never fails — the first version
+  // of this check called ok(condition, message) and printed a cheerful "OK true"
+  // while asserting nothing at all. Exactly the failure mode the rest of today
+  // kept producing: a check that reports success because it was wired wrong.
+  if (hits.length === 0) {
+    ok('no retired role word appears in anything a person can read');
+  } else {
+    for (const h of hits) fail(`retired vocabulary on screen — ${h}`);
+  }
+}
+
 console.log(
   bad === 0 ? '\nRESULT: one brand, one drawing ✓' : `\nRESULT: ${bad} BRAND PROBLEM(S)`,
 );

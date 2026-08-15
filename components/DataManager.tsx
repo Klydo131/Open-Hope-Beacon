@@ -62,7 +62,7 @@ export function DataManager() {
       <h2 className="mb-1 text-xl font-bold text-navy">💾 {t('churchData')}</h2>
       <p className="mb-4 text-sm text-gray-500">
         Your church owns its data. Take a full backup any time, keep a
-        spreadsheet of your seekers, or restore from a backup.
+        spreadsheet of your Explorers, or restore from a backup.
       </p>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -70,12 +70,12 @@ export function DataManager() {
           ⬇️ Download full backup
         </Button>
         <Button variant="ghost" onClick={downloadRoster}>
-          📊 Export seeker roster (CSV)
+          📊 Export Explorer roster (CSV)
         </Button>
       </div>
       <p className="mt-2 text-xs text-gray-400">
         The backup is a complete copy (everything). The roster is a simple
-        spreadsheet of seekers and their journey — opens in Excel or Google
+        spreadsheet of Explorers and their journey — opens in Excel or Google
         Sheets.
       </p>
 
@@ -116,7 +116,7 @@ export function DataManager() {
           </p>
           <p className="mt-1 text-sm text-amber-800">
             This backup has {pending.meta.profiles} people and{' '}
-            {pending.meta.pairings} seeker pairings
+            {pending.meta.pairings} Explorer pairings
             {pending.meta.exported_at
               ? `, saved ${new Date(pending.meta.exported_at).toLocaleString()}`
               : ''}

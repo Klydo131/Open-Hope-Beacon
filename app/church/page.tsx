@@ -142,7 +142,7 @@ function Body() {
       {seesMore && (
         <Card className="p-4">
           <p className="text-sm text-gray-600">
-            👋 {roleLabel(me.role) ? `As ${roleLabel(me.role)}, you` : 'You'} also
+            👋 {roleLabel(me.role, me.role) ? `As ${roleLabel(me.role, me.role)}, you` : 'You'} also
             have a private{' '}
             <strong>{me.role === 'admin' ? 'Admin' : 'Dashboard'}</strong> with the
             monitoring detail your role allows.

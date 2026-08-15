@@ -69,7 +69,7 @@ function Home() {
         <Card className="p-5">
           <p className="font-semibold text-navy">Your account is being reviewed.</p>
           <p className="text-gray-500">
-            A church admin will approve you and connect you with a missionary
+            A church admin will approve you and connect you with a Guide
             soon. You can still explore below.
           </p>
         </Card>
@@ -87,7 +87,7 @@ function Home() {
         <Paired pairingId={pairing.id} />
       ) : (
         <EmptyState
-          title="A missionary will be connected with you soon"
+          title="A Guide will be connected with you soon"
           hint="Until then, start your own study shelf below."
         />
       )}
@@ -213,7 +213,7 @@ function PrayerCorner() {
     <Card className="p-5">
       <h2 className="text-xl font-bold text-navy">🙏 Prayer</h2>
       <p className="mb-4 text-sm text-gray-500">
-        Share a request with your missionary. You can also let the whole church
+        Share a request with your Guide. You can also let the whole church
         pray — your name is never shown there.
       </p>
 
@@ -297,7 +297,7 @@ function Priorities() {
   const dm = pairing
     ? db.profiles.find((x) => x.id === pairing.dm_id)
     : undefined;
-  const firstName = dm?.full_name.split(' ')[0] ?? 'your missionary';
+  const firstName = dm?.full_name.split(' ')[0] ?? 'your Guide';
 
   const items: { icon: string; label: string; detail: string }[] = [];
   if (p.awaitingReply)
@@ -406,7 +406,7 @@ function Paired({ pairingId }: { pairingId: string }) {
         <h2 className="mb-3 text-xl font-bold text-navy">📚 Shared with me</h2>
         {shared.length === 0 ? (
           <p className="text-gray-500">
-            Your missionary will send readings and videos here.
+            Your Guide will send readings and videos here.
           </p>
         ) : (
           <div className="space-y-2">
@@ -464,7 +464,7 @@ function StudyShelf() {
     <Card className="p-5">
       <h2 className="text-xl font-bold text-navy">🗒️ My study shelf</h2>
       <p className="mb-4 text-sm text-gray-500">
-        Keep your own notes and media here. Your missionary can study these with
+        Keep your own notes and media here. Your Guide can study these with
         you.
       </p>
 

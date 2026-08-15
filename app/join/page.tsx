@@ -131,7 +131,7 @@ function Join() {
           <h1 className="mt-3 text-3xl font-extrabold">You’re invited to Hope Beacon</h1>
           <p className="mt-1 text-white/70">
             {isSeeker
-              ? 'Your church invited you to begin a journey of faith, walking with a missionary who cares about you.'
+              ? 'Your church invited you to begin a journey of faith, walking with a Guide who cares about you.'
               : 'Your church invited you to join the team. Confirm your details to get started.'}
           </p>
         </div>
