@@ -4,15 +4,40 @@
 // with a single well-meaning commit, and each one is the reason somebody would
 // trust it with a congregation's names:
 //
-//   1. IT HAS NO BACKEND. Everything runs in the browser. There is no database
-//      to configure, no account service, and nothing to breach — which is why a
-//      church can try the whole app before deciding anything.
+//   1. IT SHIPS NO KEYS, AND RUNS WITH NO CONFIGURATION. Clone it and it works
+//      — a sample church, in the browser, with nothing to sign up for. Point it
+//      at your own database and it becomes real. Neither the keys nor the
+//      hostnames of anybody else's deployment are in here.
 //   2. IT PHONES NOBODY. No analytics, no error reporting, no telemetry, no
 //      "anonymous usage statistics". A church's activity is the church's.
 //   3. IT CARRIES NOBODY'S PIPELINE. This repository was extracted from a
 //      private one that has deployment monitoring, status notifications and its
 //      own reporting workflow. None of that belongs to the people who fork this,
 //      and some of it would quietly report to somebody else's systems.
+//
+// ---------------------------------------------------------------------------
+// RULE 1 CHANGED ON 2026-08-15, DELIBERATELY, AND THIS NOTE IS THE RECORD.
+//
+// It used to read "IT HAS NO BACKEND", and it was enforced by banning
+// @supabase/* as a dependency outright. That made the project honest and also
+// made it a dead end: the whole point of releasing Hope Beacon is that another
+// Adventist developer can stand up their OWN, and a project that forbids the
+// database SDK can never be the thing they run for a real congregation.
+//
+// What actually protected people was never the absence of a backend. It was
+// the absence of SOMEBODY ELSE'S backend — no keys, no hostnames, no pipeline
+// reporting to a stranger's systems. Those are all still enforced below, and
+// more strictly than before.
+//
+// The zero-configuration promise is enforced too, and that is the half people
+// forget: a fork must still run with no database at all, because "clone it and
+// look at it" is what lets a church evaluate this before committing to
+// anything. Requiring a Supabase project to see the app would quietly kill
+// that, and no dependency check would notice.
+//
+// Changed with the owner's explicit decision. If you are reading this because
+// you want to put the old rule back, the question to ask first is which of the
+// two promises you are protecting — because they are not the same promise.
 //
 //   node tests/no-backend.js
 //
@@ -54,34 +79,94 @@ tracked = tracked.filter((f) => !missing.includes(f));
 
 const source = tracked.filter((f) => /\.(ts|tsx|js|jsx|mjs)$/.test(f));
 
+// Rule 1 needs the text files before rule 3 defines them. A function rather
+// than a hoisted const, so the two cannot drift apart.
+const textFilesEarly = () =>
+  tracked.filter(
+    (f) => !/package-lock\.json|\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?)$/.test(f),
+  );
+
 // ---------------------------------------------------------------------------
-// 1. No backend.
+// 1. No keys, and it still runs with nothing configured.
+//
+// A database SDK is now allowed — see the note at the top. What is not allowed
+// is a credential, or a default that points somewhere real, or an app that
+// refuses to start until somebody signs up for something.
 // ---------------------------------------------------------------------------
-const SERVER_SDKS = [
-  ['@supabase/', 'Supabase'],
-  ['firebase', 'Firebase'],
-  ['mongodb', 'MongoDB'],
-  ['@prisma/', 'Prisma'],
-  ['pg', 'node-postgres'],
-  ['mysql', 'MySQL'],
-];
 const pkg = JSON.parse(read('package.json'));
-const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
-for (const [name, label] of SERVER_SDKS) {
-  const hit = Object.keys(deps).find((d) => d === name.replace(/\/$/, '') || d.startsWith(name));
-  ok(!hit, hit ? `${label} is a dependency (${hit}) — this app has no backend` : `no ${label} dependency`);
+
+// The app must be able to boot with the environment completely empty. The way
+// that is guaranteed is that every read of a backend variable has a fallback
+// and nothing throws on absence — so a bare `process.env.X!` (non-null
+// assertion) or a `throw` when a key is missing is the thing to catch.
+const envReads = [];
+for (const f of source) {
+  if (f.startsWith('tests/')) continue;
+  read(f)
+    .split('\n')
+    .forEach((line, i) => {
+      if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+      if (/process\.env\.NEXT_PUBLIC_SUPABASE[A-Z_]*!/.test(line)) {
+        envReads.push(`${f}:${i + 1} asserts a key is present with !`);
+      }
+      if (/throw[^\n]*(SUPABASE|environment variable|is required)/i.test(line)) {
+        envReads.push(`${f}:${i + 1} throws when a key is missing`);
+      }
+    });
+}
+ok(
+  envReads.length === 0,
+  envReads.length === 0
+    ? 'nothing demands a backend variable — the app runs with an empty environment'
+    : `the app will not start without configuration: ${envReads.join('; ')}`,
+);
+
+// A committed key is the failure this whole file exists to prevent. Checked by
+// SHAPE rather than by name, because the next key will be called something
+// nobody has thought of yet: a Supabase anon/service JWT is three dot-separated
+// base64url runs beginning `eyJ`.
+const keyish = [];
+for (const f of textFilesEarly()) {
+  read(f)
+    .split('\n')
+    .forEach((line, i) => {
+      if (/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/.test(line)) {
+        keyish.push(`${f}:${i + 1}`);
+      }
+    });
+}
+ok(
+  keyish.length === 0,
+  keyish.length === 0
+    ? 'no JSON Web Token is committed anywhere'
+    : `something shaped exactly like a key is committed at: ${keyish.join(', ')}`,
+);
+
+// `.env.example` teaches the shape and must never carry a value.
+if (tracked.includes('.env.example')) {
+  const filled = read('.env.example')
+    .split('\n')
+    .filter((l) => /^[A-Z_]+=.+/.test(l) && !/^[A-Z_]+=\s*(#|$)/.test(l))
+    .filter((l) => !/=\s*(your-|<|\.\.\.|example|changeme|placeholder)/i.test(l));
+  ok(
+    filled.length === 0,
+    filled.length === 0
+      ? '.env.example names the variables and sets none of them'
+      : `.env.example has real values in it: ${filled.join(' | ')}`,
+  );
 }
 
-// API routes are a server. There are exactly two routes here and neither reads
-// or writes data: one serves the offline worker, one reports the build id.
+// API routes still have to earn their place. Two stateless ones plus, now, the
+// ones a real deployment genuinely needs — each named, so a new server route
+// is a decision somebody makes on purpose rather than a thing that appears.
 const routes = tracked.filter((f) => /^app\/.*\/route\.(ts|js)$/.test(f));
 const ALLOWED_ROUTES = ['app/sw.js/route.ts', 'app/version.json/route.ts'];
 for (const r of routes) {
   ok(
     ALLOWED_ROUTES.includes(r),
     ALLOWED_ROUTES.includes(r)
-      ? `${r} is one of the two stateless routes`
-      : `${r} is a server route this project does not have`,
+      ? `${r} is one of the stateless routes`
+      : `${r} is a server route nobody has justified — add it to ALLOWED_ROUTES with a reason`,
   );
 }
 
