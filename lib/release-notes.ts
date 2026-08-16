@@ -24,6 +24,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     items: [
       'Directors can now invite a person by e-mail in the role their church chose.',
       'An invited person sets their own password, then waits for a Director to approve access.',
+      'Directors can suspend an approved account without deleting it, then approve it again when access should return.',
       'Approved Guides and Explorers enter their own private workspace; only the paired two can read their conversation.',
     ],
   },

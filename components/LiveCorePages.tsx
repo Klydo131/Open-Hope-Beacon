@@ -456,7 +456,11 @@ export function LiveAdminPage() {
   const roleOptions: Role[] = profile?.role === 'executive' ? ['admin', 'dm', 'ds'] : ['dm', 'ds'];
   const guides = members.filter((member) => member.role === 'dm' && member.is_approved);
   const explorers = members.filter((member) => member.role === 'ds' && member.is_approved);
-  const pending = members.filter((member) => !member.is_approved && member.id !== profile?.id);
+  const manageable = members.filter(
+    (member) => member.id !== profile?.id && roleOptions.includes(member.role),
+  );
+  const pending = manageable.filter((member) => !member.is_approved);
+  const approved = manageable.filter((member) => member.is_approved);
 
   useEffect(() => {
     if (!roleOptions.includes(role)) setRole(roleOptions[0]);
@@ -501,6 +505,22 @@ export function LiveAdminPage() {
     }
   };
 
+  const disapprove = async (member: Profile) => {
+    if (!window.confirm(`Disapprove ${member.full_name || 'this account'}? They will lose workspace access until approved again.`)) return;
+    setBusy(member.id);
+    setError('');
+    setNotice('');
+    try {
+      await live.disapproveMember(member.id);
+      setNotice(`${member.full_name || 'Member'} no longer has workspace access.`);
+      await load();
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      setBusy('');
+    }
+  };
+
   const pair = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!dmId || !dsId) return;
@@ -524,7 +544,7 @@ export function LiveAdminPage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-extrabold text-navy">{church?.name || 'Church administration'}</h1>
-          <p className="mt-1 text-gray-500">Invite, approve and pair people. Conversations stay private.</p>
+          <p className="mt-1 text-gray-500">Invite, approve, disapprove and pair people. Conversations stay private.</p>
         </div>
 
         {error && <Notice tone="error">{error}</Notice>}
@@ -569,6 +589,37 @@ export function LiveAdminPage() {
               </Button>
             </div>
           </form>
+        </Card>
+
+        <Card className="p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-navy">Approved accounts</h2>
+              <p className="text-sm text-gray-500">Disapproval suspends workspace access without deleting the account.</p>
+            </div>
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-800">{approved.length}</span>
+          </div>
+          <div className="mt-4 space-y-2">
+            {loading ? <p className="text-gray-400">Loading…</p> : approved.length === 0 ? (
+              <p className="text-gray-400">No approved accounts to manage.</p>
+            ) : approved.map((member) => (
+              <div key={member.id} className="flex flex-col gap-3 rounded-xl bg-gray-50 px-4 py-3 sm:flex-row sm:items-center">
+                <Avatar name={member.full_name || 'Member'} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-navy">{member.full_name || 'Member'}</p>
+                  <p className="text-sm text-gray-500">{roleNoun(member.role)} · access approved</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  className="text-red-700"
+                  onClick={() => void disapprove(member)}
+                  disabled={busy === member.id}
+                >
+                  Disapprove
+                </Button>
+              </div>
+            ))}
+          </div>
         </Card>
 
         <Card className="p-5">

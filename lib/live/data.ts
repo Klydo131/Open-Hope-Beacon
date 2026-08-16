@@ -188,6 +188,16 @@ export async function approveMember(userId: string, role: Role): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** Suspend somebody's workspace access without deleting their account. */
+export async function disapproveMember(userId: string): Promise<void> {
+  if (userId === (await uid())) throw new Error('You cannot disapprove your own account.');
+  const { error } = await db()
+    .from('profiles')
+    .update({ is_approved: false })
+    .eq('id', userId);
+  if (error) throw new Error(error.message);
+}
+
 export async function setMemberRole(userId: string, role: Role): Promise<void> {
   // Not a security control — the trigger raises on a self-edit regardless. It
   // is here so the person gets "somebody else has to do that" instead of a

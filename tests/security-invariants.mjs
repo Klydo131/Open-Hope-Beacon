@@ -484,5 +484,21 @@ if (exists('supabase/migrations/0004_live_api_permissions.sql')) {
     'the auth trigger cannot be called as a public RPC');
 }
 
+if (exists('supabase/migrations/20260816130240_approval_revocation_gate.sql')) {
+  const revocation = read('supabase/migrations/20260816130240_approval_revocation_gate.sql');
+  ok(/create or replace function public\.is_approved_user\(\)/.test(revocation),
+    'approval revocation has one caller-scoped database gate');
+  ok(/and is_approved/.test(revocation) && /role = 'admin' and is_approved/.test(revocation),
+    'disapproved leadership immediately loses leadership authority');
+  ok(/create or replace function public\.in_pairing\(p uuid\)[\s\S]*select public\.is_approved_user\(\)/.test(revocation),
+    'the pairing helper used by message policies refuses disapproved callers');
+  ok(/create policy pairings_read[\s\S]*public\.is_approved_user\(\)/.test(revocation),
+    'a disapproved pairing member cannot read a pairing directly');
+  ok(/create policy journey_write[\s\S]*public\.is_approved_user\(\)/.test(revocation),
+    'a disapproved Guide cannot append journey history');
+  ok(/revoke all on function public\.is_approved_user\(\) from public, anon/.test(revocation),
+    'the approval helper is never callable anonymously');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);
