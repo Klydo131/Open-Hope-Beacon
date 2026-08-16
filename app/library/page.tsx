@@ -180,9 +180,15 @@ export default function LibraryPage() {
   return (
     <div className="min-h-screen">
       <header className="text-white" style={{ backgroundColor: NAVY }}>
+        {/* Back goes HOME, not back through history.
+            router.back() walks the browser's own stack, and the entry before
+            this one is very often the page you arrived from — which, if you
+            opened the app from a link or a bookmark, is outside the app
+            entirely. Pressing Back inside a product should never leave it. */}
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push('/')}
+            aria-label="Back to the app"
             className="rounded-full bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/20"
           >
             ← Back
