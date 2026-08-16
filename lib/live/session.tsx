@@ -8,8 +8,8 @@ import {
   useMemo,
   useState,
 } from 'react';
-import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase/client';
+import type { Session } from '@supabase/supabase-js';
+import { readBrowserSession } from '@/lib/supabase/client';
 import * as live from '@/lib/live/data';
 import type { Profile, Role } from '@/lib/types';
 
@@ -40,30 +40,19 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
   const [error, setError] = useState('');
 
   const refreshProfile = useCallback(async () => {
-    const client = supabase();
-    if (!client) {
-      setProfile(null);
-      return null;
-    }
-    const { data } = await client.auth.getSession();
-    if (!data.session) {
+    const nextSession = readBrowserSession();
+    if (!nextSession) {
       setSession(null);
       setProfile(null);
       return null;
     }
-    setSession(data.session);
+    setSession(nextSession);
     const next = await live.getMyProfile();
     setProfile(next);
     return next;
   }, []);
 
   useEffect(() => {
-    const client = supabase();
-    if (!client) {
-      setLoading(false);
-      return;
-    }
-
     let alive = true;
     const load = async (next: Session | null) => {
       if (!alive) return;
@@ -88,20 +77,13 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
       }
     };
 
-    client.auth
-      .getSession()
-      .then((result: { data: { session: Session | null } }) => void load(result.data.session));
-    const { data } = client.auth.onAuthStateChange(
-      (_event: AuthChangeEvent, next: Session | null) => {
-      // Supabase advises keeping auth callbacks synchronous. Load the profile
-      // on the next task so the callback never waits on another auth request.
-        window.setTimeout(() => void load(next), 0);
-      },
-    );
+    void load(readBrowserSession());
+    const syncAcrossTabs = () => void load(readBrowserSession());
+    window.addEventListener('storage', syncAcrossTabs);
 
     return () => {
       alive = false;
-      data.subscription.unsubscribe();
+      window.removeEventListener('storage', syncAcrossTabs);
     };
   }, []);
 

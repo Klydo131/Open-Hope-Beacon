@@ -14,6 +14,7 @@ import { createClient, type Session, type SupabaseClient } from '@supabase/supab
 import { IS_LIVE } from '@/lib/mode';
 
 let cached: SupabaseClient<any> | null = null;
+let authCached: SupabaseClient<any> | null = null;
 
 function authStorageKey() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
@@ -37,17 +38,51 @@ export function saveBrowserSession(session: Session) {
   }
 }
 
+export function readBrowserSession(): Session | null {
+  const key = authStorageKey();
+  if (typeof window === 'undefined' || !key) return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const session = JSON.parse(raw) as Session;
+    if (
+      typeof session.access_token !== 'string' ||
+      typeof session.refresh_token !== 'string' ||
+      typeof session.user?.id !== 'string'
+    ) return null;
+    return session;
+  } catch {
+    return null;
+  }
+}
+
+export function clearBrowserSession() {
+  const key = authStorageKey();
+  if (typeof window !== 'undefined' && key) window.localStorage.removeItem(key);
+}
+
 export function supabase() {
   if (!IS_LIVE) return null;
   if (cached) return cached;
-  // This is a client-only app, so the durable browser store is the source of
-  // truth for its session. The same-origin sign-in gateway hands the verified
-  // session to this client before any navigation occurs.
+  // Data calls use the already-verified first-party session directly. This
+  // prevents privacy shields from turning an unnecessary second Auth request
+  // into a false "not signed in" result after a successful gateway login.
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   cached = createClient<any>(
     url,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
-    { auth: { storageKey: authStorageKey() } },
+    { accessToken: async () => readBrowserSession()?.access_token ?? null },
   );
   return cached;
+}
+
+export function supabaseAuth() {
+  if (!IS_LIVE) return null;
+  if (authCached) return authCached;
+  authCached = createClient<any>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    { auth: { storageKey: authStorageKey() } },
+  );
+  return authCached;
 }

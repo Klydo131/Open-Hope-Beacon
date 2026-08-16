@@ -34,7 +34,13 @@
 //    than present and undrawn. The difference matters: a field that arrives and
 //    is not rendered is one careless change away from being rendered.
 
-import { saveBrowserSession, supabase } from '@/lib/supabase/client';
+import {
+  clearBrowserSession,
+  readBrowserSession,
+  saveBrowserSession,
+  supabase,
+  supabaseAuth,
+} from '@/lib/supabase/client';
 import type { Session } from '@supabase/supabase-js';
 import type { Profile, Pairing, Message, Stage, Track, Role, JourneyEvent } from '@/lib/types';
 
@@ -53,8 +59,7 @@ function db() {
 }
 
 async function uid(): Promise<string> {
-  const { data } = await db().auth.getUser();
-  const id = data.user?.id;
+  const id = readBrowserSession()?.user.id;
   if (!id) throw new Error('You are not signed in.');
   return id;
 }
@@ -106,7 +111,9 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 
 export async function signUp(email: string, password: string, fullName: string): Promise<void> {
   if (password.length < 10) throw new Error('Use at least 10 characters.');
-  const { error } = await db().auth.signUp({
+  const client = supabaseAuth();
+  if (!client) throw new NotLive();
+  const { error } = await client.auth.signUp({
     email: email.trim().toLowerCase(),
     password,
     // full_name only. A client cannot ask to be created as an admin: the
@@ -118,8 +125,7 @@ export async function signUp(email: string, password: string, fullName: string):
 }
 
 export async function signOut(): Promise<void> {
-  const { error } = await db().auth.signOut();
-  if (error) throw new Error(error.message);
+  clearBrowserSession();
 }
 
 // ---------------------------------------------------------------------------

@@ -528,6 +528,9 @@ if (exists('app/api/auth/sign-in/route.ts')) {
   ok(/saveBrowserSession\(payload\.session/.test(liveData) &&
       /localStorage\.setItem/.test(browserClient) && /localStorage\.getItem/.test(browserClient),
     'the browser saves and confirms the verified session before navigation');
+  ok(/accessToken:\s*async\s*\(\)\s*=>\s*readBrowserSession/.test(browserClient) &&
+      !/auth\.getUser\(\)/.test(liveData),
+    'live data uses the verified first-party session without a second Auth round trip');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

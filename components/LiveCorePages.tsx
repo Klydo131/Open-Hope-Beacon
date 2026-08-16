@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { NAVY, roleNoun, stageInfo } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAuth } from '@/lib/supabase/client';
 import type { Message, Profile, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { LiveAppShell } from '@/components/LiveAppShell';
@@ -131,7 +131,7 @@ export function LiveLoginPage() {
       setError('Enter your e-mail first.');
       return;
     }
-    const client = supabase();
+    const client = supabaseAuth();
     if (!client) return;
     setBusy(true);
     setError('');
@@ -269,7 +269,7 @@ export function LiveJoinPage() {
   useEffect(() => {
     let alive = true;
     const establishSession = async () => {
-      const client = supabase();
+      const client = supabaseAuth();
       if (!client) return;
       try {
         const code = params.get('code');
@@ -321,7 +321,7 @@ export function LiveJoinPage() {
       setError('The passwords do not match.');
       return;
     }
-    const client = supabase();
+    const client = supabaseAuth();
     if (!client) return;
     setBusy(true);
     setError('');
