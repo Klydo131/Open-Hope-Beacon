@@ -511,7 +511,7 @@ if (exists('supabase/migrations/20260816130240_approval_revocation_gate.sql')) {
 // ---------------------------------------------------------------------------
 if (exists('app/api/auth/sign-in/route.ts')) {
   const signInRoute = read('app/api/auth/sign-in/route.ts');
-  const livePages = read('components/LiveCorePages.tsx');
+  const liveData = read('lib/live/data.ts');
   ok(/createServerClient/.test(signInRoute) && /request\.cookies\.getAll\(\)/.test(signInRoute),
     'the sign-in route uses a request-scoped cookie client');
   ok(/headers\.set\(['"]Cache-Control['"],\s*['"]private, no-store/.test(signInRoute),
@@ -520,10 +520,14 @@ if (exists('app/api/auth/sign-in/route.ts')) {
     'cross-site login requests are refused');
   ok(!PRIVILEGED.test(signInRoute),
     'the sign-in route names no service-role or other privileged key');
-  ok(/request\.formData\(\)/.test(signInRoute) && /NextResponse\.redirect/.test(signInRoute),
-    'a browser login commits its cookie before a 303 navigation');
-  ok(/action="\/api\/auth\/sign-in"/.test(livePages) && /method="post"/.test(livePages),
-    'the password form uses a same-origin POST, never a URL or client fetch');
+  ok(/access_token:\s*authData\.session\.access_token/.test(signInRoute) &&
+      /refresh_token:\s*authData\.session\.refresh_token/.test(signInRoute),
+    'the same-origin gateway returns only the verified session needed by the browser');
+  ok(/fetch\('\/api\/auth\/sign-in'/.test(liveData) && /credentials:\s*'same-origin'/.test(liveData),
+    'the browser sends credentials only to Hope Beacon itself');
+  ok(/auth\.setSession\(payload\.session\)/.test(liveData) &&
+      /auth\.getSession\(\)/.test(liveData),
+    'the browser saves and confirms the verified session before navigation');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

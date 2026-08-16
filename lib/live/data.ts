@@ -62,6 +62,47 @@ async function uid(): Promise<string> {
 // Session
 // ---------------------------------------------------------------------------
 
+export interface SignInResult {
+  role: Role;
+  is_approved: boolean;
+}
+
+export async function signIn(email: string, password: string): Promise<SignInResult> {
+  let response: Response;
+  try {
+    response = await fetch('/api/auth/sign-in', {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+    });
+  } catch {
+    throw new Error('Could not reach live sign-in. Please try again.');
+  }
+
+  const payload = await response.json().catch(() => null);
+  if (
+    !response.ok ||
+    !payload?.profile ||
+    typeof payload?.session?.access_token !== 'string' ||
+    typeof payload?.session?.refresh_token !== 'string'
+  ) {
+    throw new Error(
+      typeof payload?.error === 'string'
+        ? payload.error
+        : 'Could not reach live sign-in. Please try again.',
+    );
+  }
+
+  const client = db();
+  const { error } = await client.auth.setSession(payload.session);
+  if (error) throw new Error('Your account signed in, but the app could not save the session.');
+  const { data } = await client.auth.getSession();
+  if (!data.session) throw new Error('Your account signed in, but the app could not save the session.');
+  return payload.profile as SignInResult;
+}
+
 export async function signUp(email: string, password: string, fullName: string): Promise<void> {
   if (password.length < 10) throw new Error('Use at least 10 characters.');
   const { error } = await db().auth.signUp({

@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-    if (authError || !authData.user) {
+    if (authError || !authData.user || !authData.session) {
       // Keep unknown addresses and wrong passwords indistinguishable. An
       // invitation-only church directory must not become enumerable.
       return expectsJson
@@ -124,6 +124,10 @@ export async function POST(request: NextRequest) {
       profile: {
         role: profile.role as Role,
         is_approved: Boolean(profile.is_approved),
+      },
+      session: {
+        access_token: authData.session.access_token,
+        refresh_token: authData.session.refresh_token,
       },
     };
     return expectsJson

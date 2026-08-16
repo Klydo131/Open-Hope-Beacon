@@ -108,6 +108,24 @@ export function LiveLoginPage() {
     }
   }, [sessionLoading, session, profile, router]);
 
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const password = form.get('password');
+    if (!emailLooksValid(email) || typeof password !== 'string' || !password) return;
+    setBusy(true);
+    setError('');
+    setNotice('');
+    try {
+      const mine = await live.signIn(email, password);
+      router.replace(mine.is_approved ? homeFor(mine.role) : '/login');
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const resetPassword = async () => {
     if (!emailLooksValid(email)) {
       setError('Enter your e-mail first.');
@@ -153,7 +171,7 @@ export function LiveLoginPage() {
       <PublicHeader title="Sign in to Hope Beacon" subtitle="Use your live church account." />
       <div className="mx-auto max-w-md space-y-5 px-4 py-8">
         <Card className="p-5">
-          <form action="/api/auth/sign-in" method="post" className="space-y-4">
+          <form onSubmit={submit} className="space-y-4">
             <label className="block">
               <span className="text-sm font-semibold text-gray-600">E-mail</span>
               <input
@@ -182,7 +200,7 @@ export function LiveLoginPage() {
             {error && <Notice tone="error">{error}</Notice>}
             {notice && <Notice tone="success">{notice}</Notice>}
             <Button type="submit" variant="gold" className="w-full" disabled={busy}>
-              Sign in
+              {busy ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
           <button
