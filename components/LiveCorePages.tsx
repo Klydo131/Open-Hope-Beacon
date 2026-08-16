@@ -87,7 +87,7 @@ export function LiveHomePage() {
 
 export function LiveLoginPage() {
   const router = useRouter();
-  const { session, profile, loading: sessionLoading, refreshProfile, signOut } = useLiveSession();
+  const { session, profile, loading: sessionLoading, signOut } = useLiveSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -107,10 +107,10 @@ export function LiveLoginPage() {
     setError('');
     setNotice('');
     try {
-      await live.signIn(email, password);
-      const mine = await refreshProfile();
-      if (!mine) throw new Error('Your account profile is not ready yet.');
-      if (mine.is_approved) router.replace(homeFor(mine.role));
+      const mine = await live.signIn(email, password);
+      // The server has placed the verified session in same-origin cookies.
+      // A full navigation gives every screen one fresh, consistent session.
+      window.location.replace(mine.is_approved ? homeFor(mine.role) : '/login');
     } catch (cause) {
       setError(errorText(cause));
     } finally {

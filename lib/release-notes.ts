@@ -26,6 +26,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'An invited person sets their own password, then waits for a Director to approve access.',
       'Directors can suspend an approved account without deleting it, then approve it again when access should return.',
       'Approved Guides and Explorers enter their own private workspace; only the paired two can read their conversation.',
+      'Sign-in now stays on Hope Beacon’s own secure connection, so browser privacy shields do not mistake a valid password for a failed login.',
     ],
   },
   {

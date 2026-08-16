@@ -62,16 +62,37 @@ async function uid(): Promise<string> {
 // Session
 // ---------------------------------------------------------------------------
 
-export async function signIn(email: string, password: string): Promise<void> {
-  const { error } = await db().auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password,
-  });
-  // The message is deliberately the same whether the address is unknown or the
-  // password is wrong. Telling them apart is a way to enumerate who has an
-  // account at a church, which for this app is a list of people exploring
-  // faith — not something to hand out.
-  if (error) throw new Error('That email and password did not match.');
+export interface SignInResult {
+  role: Role;
+  is_approved: boolean;
+}
+
+export async function signIn(email: string, password: string): Promise<SignInResult> {
+  let response: Response;
+  try {
+    // Keep the credential exchange on the app's own origin. Some privacy
+    // shields block a browser request to the Supabase Auth host before it ever
+    // reaches Auth, which used to look exactly like a wrong password.
+    response = await fetch('/api/auth/sign-in', {
+      method: 'POST',
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+    });
+  } catch {
+    throw new Error('Could not reach live sign-in. Please try again.');
+  }
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.profile) {
+    throw new Error(
+      typeof payload?.error === 'string'
+        ? payload.error
+        : 'Could not reach live sign-in. Please try again.',
+    );
+  }
+  return payload.profile as SignInResult;
 }
 
 export async function signUp(email: string, password: string, fullName: string): Promise<void> {
