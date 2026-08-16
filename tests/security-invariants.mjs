@@ -520,13 +520,13 @@ if (exists('app/api/auth/sign-in/route.ts')) {
     'cross-site login requests are refused');
   ok(!PRIVILEGED.test(signInRoute),
     'the sign-in route names no service-role or other privileged key');
-  ok(/access_token:\s*authData\.session\.access_token/.test(signInRoute) &&
-      /refresh_token:\s*authData\.session\.refresh_token/.test(signInRoute),
+  ok(/session:\s*authData\.session/.test(signInRoute),
     'the same-origin gateway returns only the verified session needed by the browser');
   ok(/fetch\('\/api\/auth\/sign-in'/.test(liveData) && /credentials:\s*'same-origin'/.test(liveData),
     'the browser sends credentials only to Hope Beacon itself');
-  ok(/auth\.setSession\(payload\.session\)/.test(liveData) &&
-      /auth\.getSession\(\)/.test(liveData),
+  const browserClient = read('lib/supabase/client.ts');
+  ok(/saveBrowserSession\(payload\.session/.test(liveData) &&
+      /localStorage\.setItem/.test(browserClient) && /localStorage\.getItem/.test(browserClient),
     'the browser saves and confirms the verified session before navigation');
 }
 

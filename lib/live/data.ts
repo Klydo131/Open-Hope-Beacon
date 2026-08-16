@@ -34,7 +34,8 @@
 //    than present and undrawn. The difference matters: a field that arrives and
 //    is not rendered is one careless change away from being rendered.
 
-import { supabase } from '@/lib/supabase/client';
+import { saveBrowserSession, supabase } from '@/lib/supabase/client';
+import type { Session } from '@supabase/supabase-js';
 import type { Profile, Pairing, Message, Stage, Track, Role, JourneyEvent } from '@/lib/types';
 
 /** Thrown when a live call is made with no database configured. */
@@ -95,11 +96,11 @@ export async function signIn(email: string, password: string): Promise<SignInRes
     );
   }
 
-  const client = db();
-  const { error } = await client.auth.setSession(payload.session);
-  if (error) throw new Error('Your account signed in, but the app could not save the session.');
-  const { data } = await client.auth.getSession();
-  if (!data.session) throw new Error('Your account signed in, but the app could not save the session.');
+  try {
+    saveBrowserSession(payload.session as Session);
+  } catch {
+    throw new Error('Your account signed in, but the app could not save the session.');
+  }
   return payload.profile as SignInResult;
 }
 

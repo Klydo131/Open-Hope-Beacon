@@ -125,10 +125,7 @@ export async function POST(request: NextRequest) {
         role: profile.role as Role,
         is_approved: Boolean(profile.is_approved),
       },
-      session: {
-        access_token: authData.session.access_token,
-        refresh_token: authData.session.refresh_token,
-      },
+      session: authData.session,
     };
     return expectsJson
       ? jsonResponse(result, 200, pendingCookies, pendingHeaders)

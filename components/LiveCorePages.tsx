@@ -118,7 +118,7 @@ export function LiveLoginPage() {
     setNotice('');
     try {
       const mine = await live.signIn(email, password);
-      router.replace(mine.is_approved ? homeFor(mine.role) : '/login');
+      window.location.replace(mine.is_approved ? homeFor(mine.role) : '/login');
     } catch (cause) {
       setError(errorText(cause));
     } finally {
