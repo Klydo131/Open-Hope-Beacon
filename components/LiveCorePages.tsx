@@ -88,10 +88,18 @@ export function LiveHomePage() {
 export function LiveLoginPage() {
   const router = useRouter();
   const { session, profile, loading: sessionLoading, signOut } = useLiveSession();
+  const params = useSearchParams();
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(() => {
+    switch (params.get('error')) {
+      case 'credentials': return 'That email and password did not match.';
+      case 'missing': return 'Enter your e-mail and password.';
+      case 'profile': return 'Your account profile is not ready yet.';
+      case 'unavailable': return 'Could not reach live sign-in. Please try again.';
+      default: return '';
+    }
+  });
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
@@ -99,24 +107,6 @@ export function LiveLoginPage() {
       router.replace(homeFor(profile.role));
     }
   }, [sessionLoading, session, profile, router]);
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!emailLooksValid(email) || !password) return;
-    setBusy(true);
-    setError('');
-    setNotice('');
-    try {
-      const mine = await live.signIn(email, password);
-      // The server has placed the verified session in same-origin cookies.
-      // A full navigation gives every screen one fresh, consistent session.
-      window.location.replace(mine.is_approved ? homeFor(mine.role) : '/login');
-    } catch (cause) {
-      setError(errorText(cause));
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const resetPassword = async () => {
     if (!emailLooksValid(email)) {
@@ -148,7 +138,6 @@ export function LiveLoginPage() {
               className="mt-5"
               onClick={async () => {
                 await signOut();
-                setPassword('');
               }}
             >
               Sign out
@@ -164,14 +153,18 @@ export function LiveLoginPage() {
       <PublicHeader title="Sign in to Hope Beacon" subtitle="Use your live church account." />
       <div className="mx-auto max-w-md space-y-5 px-4 py-8">
         <Card className="p-5">
-          <form onSubmit={submit} className="space-y-4">
+          <form action="/api/auth/sign-in" method="post" className="space-y-4">
             <label className="block">
               <span className="text-sm font-semibold text-gray-600">E-mail</span>
               <input
                 type="email"
+                name="email"
                 autoComplete="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setError('');
+                }}
                 className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-lg outline-none focus:ring-2 focus:ring-gold"
                 required
               />
@@ -180,9 +173,8 @@ export function LiveLoginPage() {
               <span className="text-sm font-semibold text-gray-600">Password</span>
               <input
                 type="password"
+                name="password"
                 autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
                 className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-lg outline-none focus:ring-2 focus:ring-gold"
                 required
               />
@@ -190,7 +182,7 @@ export function LiveLoginPage() {
             {error && <Notice tone="error">{error}</Notice>}
             {notice && <Notice tone="success">{notice}</Notice>}
             <Button type="submit" variant="gold" className="w-full" disabled={busy}>
-              {busy ? 'Signing in…' : 'Sign in'}
+              Sign in
             </Button>
           </form>
           <button

@@ -7,45 +7,74 @@ export const dynamic = 'force-dynamic';
 type PendingCookie = { name: string; value: string; options: CookieOptions };
 
 const roles = new Set<Role>(['executive', 'admin', 'dm', 'ds']);
+const homeForRole: Record<Role, string> = {
+  executive: '/admin',
+  admin: '/admin',
+  dm: '/dm',
+  ds: '/ds',
+};
 
-function response(
+function withSession(
+  next: NextResponse,
+  cookies: PendingCookie[] = [],
+  authHeaders: Record<string, string> = {},
+) {
+  Object.entries(authHeaders).forEach(([name, value]) => next.headers.set(name, value));
+  next.headers.set('Cache-Control', 'private, no-store, max-age=0');
+  next.headers.set('Pragma', 'no-cache');
+  cookies.forEach(({ name, value, options }) => next.cookies.set(name, value, options));
+  return next;
+}
+
+function jsonResponse(
   body: object,
   status: number,
   cookies: PendingCookie[] = [],
   authHeaders: Record<string, string> = {},
 ) {
-  const next = NextResponse.json(body, {
-    status,
-    headers: {
-      ...authHeaders,
-      'Cache-Control': 'private, no-store, max-age=0',
-      Pragma: 'no-cache',
-    },
-  });
-  cookies.forEach(({ name, value, options }) => next.cookies.set(name, value, options));
-  return next;
+  return withSession(NextResponse.json(body, { status }), cookies, authHeaders);
+}
+
+function formRedirect(
+  request: NextRequest,
+  path: string,
+  cookies: PendingCookie[] = [],
+  authHeaders: Record<string, string> = {},
+) {
+  return withSession(
+    NextResponse.redirect(new URL(path, request.url), 303),
+    cookies,
+    authHeaders,
+  );
 }
 
 export async function POST(request: NextRequest) {
   // A cross-site form must not be able to sign a visitor into somebody else's
-  // account. Browsers send Origin on this JSON POST; non-browser clients may
+  // account. Browsers send Origin on this same-origin POST; non-browser clients may
   // omit it, so absence is allowed while a different origin is not.
   const origin = request.headers.get('origin');
   if (origin && origin !== request.nextUrl.origin) {
-    return response({ error: 'Sign-in request was refused.' }, 403);
+    return jsonResponse({ error: 'Sign-in request was refused.' }, 403);
   }
 
-  const input = await request.json().catch(() => null);
+  const expectsJson = request.headers.get('content-type')?.includes('application/json') ?? false;
+  const input = expectsJson
+    ? await request.json().catch(() => null)
+    : Object.fromEntries(await request.formData().catch(() => new FormData()));
   const email = typeof input?.email === 'string' ? input.email.trim().toLowerCase() : '';
   const password = typeof input?.password === 'string' ? input.password : '';
   if (!email || email.length > 254 || !password || password.length > 1024) {
-    return response({ error: 'Enter your e-mail and password.' }, 400);
+    return expectsJson
+      ? jsonResponse({ error: 'Enter your e-mail and password.' }, 400)
+      : formRedirect(request, '/login?error=missing');
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) {
-    return response({ error: 'Live sign-in is not configured.' }, 503);
+    return expectsJson
+      ? jsonResponse({ error: 'Live sign-in is not configured.' }, 503)
+      : formRedirect(request, '/login?error=unavailable');
   }
 
   let pendingCookies: PendingCookie[] = [];
@@ -65,12 +94,14 @@ export async function POST(request: NextRequest) {
     if (authError || !authData.user) {
       // Keep unknown addresses and wrong passwords indistinguishable. An
       // invitation-only church directory must not become enumerable.
-      return response(
-        { error: 'That email and password did not match.' },
-        401,
-        pendingCookies,
-        pendingHeaders,
-      );
+      return expectsJson
+        ? jsonResponse(
+            { error: 'That email and password did not match.' },
+            401,
+            pendingCookies,
+            pendingHeaders,
+          )
+        : formRedirect(request, '/login?error=credentials', pendingCookies, pendingHeaders);
     }
 
     const { data: profile, error: profileError } = await supabase
@@ -79,31 +110,43 @@ export async function POST(request: NextRequest) {
       .eq('id', authData.user.id)
       .single();
     if (profileError || !profile || !roles.has(profile.role as Role)) {
-      return response(
-        { error: 'Your account profile is not ready yet.' },
-        409,
-        pendingCookies,
-        pendingHeaders,
-      );
+      return expectsJson
+        ? jsonResponse(
+            { error: 'Your account profile is not ready yet.' },
+            409,
+            pendingCookies,
+            pendingHeaders,
+          )
+        : formRedirect(request, '/login?error=profile', pendingCookies, pendingHeaders);
     }
 
-    return response(
-      {
-        profile: {
-          role: profile.role as Role,
-          is_approved: Boolean(profile.is_approved),
-        },
+    const result = {
+      profile: {
+        role: profile.role as Role,
+        is_approved: Boolean(profile.is_approved),
       },
-      200,
-      pendingCookies,
-      pendingHeaders,
-    );
+    };
+    return expectsJson
+      ? jsonResponse(result, 200, pendingCookies, pendingHeaders)
+      : formRedirect(
+          request,
+          result.profile.is_approved ? homeForRole[result.profile.role] : '/login',
+          pendingCookies,
+          pendingHeaders,
+        );
   } catch {
-    return response(
-      { error: 'Could not reach live sign-in. Please try again.' },
-      503,
-      pendingCookies,
-      pendingHeaders,
-    );
+    return expectsJson
+      ? jsonResponse(
+          { error: 'Could not reach live sign-in. Please try again.' },
+          503,
+          pendingCookies,
+          pendingHeaders,
+        )
+      : formRedirect(
+          request,
+          '/login?error=unavailable',
+          pendingCookies,
+          pendingHeaders,
+        );
   }
 }
