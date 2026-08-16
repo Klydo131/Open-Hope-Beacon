@@ -88,7 +88,8 @@ export async function signUp(email: string, password: string, fullName: string):
 }
 
 export async function signOut(): Promise<void> {
-  await db().auth.signOut();
+  const { error } = await db().auth.signOut();
+  if (error) throw new Error(error.message);
 }
 
 // ---------------------------------------------------------------------------
@@ -272,8 +273,62 @@ export async function createPairing(dmId: string, dsId: string, track: Track): P
   if (dmId === dsId) throw new Error('Somebody cannot be paired with themselves.');
   const { error } = await db()
     .from('pairings')
-    .insert({ dm_id: dmId, ds_id: dsId, track, created_by: await uid() });
+    // An Explorer is never at Create. By the time an account is paired, the
+    // church has already made contact; the shared relationship starts here.
+    .insert({
+      dm_id: dmId,
+      ds_id: dsId,
+      track,
+      journey_stage: 'connect',
+      created_by: await uid(),
+    });
   if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
+// Invitations
+// ---------------------------------------------------------------------------
+
+export async function inviteMember({
+  email,
+  role,
+  fullName,
+  recommendedBy,
+}: {
+  email: string;
+  role: Role;
+  fullName: string;
+  recommendedBy?: string;
+}): Promise<void> {
+  const client = db();
+  const { data, error } = await client.functions.invoke('invite', {
+    body: {
+      email: email.trim().toLowerCase(),
+      role,
+      full_name: fullName.trim(),
+      recommended_by: recommendedBy,
+    },
+  });
+
+  if (error) {
+    // functions-js exposes the response on context for non-2xx results. Read
+    // the function's useful reason instead of showing "non-2xx status code".
+    const response = (error as { context?: unknown }).context;
+    if (response instanceof Response) {
+      let reason = '';
+      try {
+        const body = (await response.clone().json()) as { error?: string };
+        reason = body.error ?? '';
+      } catch {
+        // If the response was not JSON, fall back to the SDK message below.
+      }
+      if (reason) throw new Error(reason);
+    }
+    throw new Error(error.message);
+  }
+  if (data && typeof data === 'object' && 'error' in data) {
+    throw new Error(String((data as { error: unknown }).error));
+  }
 }
 
 const ORDER: Stage[] = ['create', 'connect', 'care', 'call', 'cultivate', 'commission'];

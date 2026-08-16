@@ -31,8 +31,9 @@ Keep the sample-data build deployed as your fallback **even if live works**.
 | Core database schema + RLS | done, applied, twelve attacks proved refused |
 | Live data layer (`lib/live/data.ts`) | done |
 | Invitations schema + redemption | done, applied, proved |
-| `supabase/functions/invite/` | written, **not yet deployed** |
-| Screens wired to the live database | **NOT DONE** — the biggest remaining piece |
+| `supabase/functions/invite/` | written and ready to deploy |
+| Live sign-in, invitations, approval, pairing and conversation | done |
+| Live lessons, prayer, meetings and materials | later; use the separate sample deployment |
 
 ---
 
@@ -101,42 +102,40 @@ supabase secrets set SITE_URL=https://<your-vercel-domain> --project-ref bcpuush
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
 
-### 6. Make yourself the first Director
+### 6. Make yourself the first Executive Director
 
 There is no public sign-up, so the first account is a chicken-and-egg problem.
-In the SQL editor, after signing up once through the app:
+Create the first Auth user in Supabase, then run this once in the SQL editor:
 
 ```sql
 insert into public.churches (name) values ('Your Church') returning id;
 -- take that id:
 update public.profiles
-set role = 'admin', is_approved = true, church_id = '<the id>'
+set role = 'executive', is_approved = true, is_head_executive = true,
+    church_id = '<the id>'
 where id = '<your auth user id>';
+insert into public.church_executives (church_id, executive_id)
+values ('<the id>', '<your auth user id>');
 ```
 
 From then on every other account arrives by invitation.
 
 ---
 
-## Tasks for another agent (Codex)
+## What is already connected in live mode
 
 Work in this order. Each is independently shippable.
 
-### A. Wire the screens to the live database — **the big one**
+### A. Core live screens
 
-`lib/live/data.ts` exists and is complete for the core loop. The screens still
-read from `lib/demo/store.tsx`. The pattern to follow is in the private repo:
-components branch on `IS_LIVE` from `lib/mode.ts` and call the live functions
-instead of the store.
-
-Start with, in order: sign-in → the Director's member list and approvals →
-the Guide's roster → one conversation. That is the demo path. Everything else
-can stay on sample data.
+`IS_LIVE` now selects a dedicated email/password gateway, invitation join,
+Director approval and pairing, Guide roster/conversation, and Explorer
+conversation. Tutorial controls and sample personas do not render in live mode.
 
 **Do not** add a `setMyRole()` to the live layer. The demo store has one; it is
 a toy there and a privilege escalation here.
 
-### B. Wire the invite button to the function
+### B. Invitation button
 
 ```ts
 const { data, error } = await supabase().functions.invoke('invite', {
@@ -144,11 +143,9 @@ const { data, error } = await supabase().functions.invoke('invite', {
 });
 ```
 
-Show `error.message` to the Director verbatim. The function returns real
-reasons; the private repo's version showed "non-2xx status code" for months and
-told nobody anything.
+The Director screen calls this function and shows its useful server response.
 
-### C. Port the remaining schema
+### C. Remaining future work
 
 Lessons, meetings, prayer, materials and the audit log exist in the private
 repo's migrations. Each becomes a new numbered file here — `0003_lessons.sql`

@@ -18,6 +18,16 @@ export interface ReleaseNote {
 
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    id: '2026-08-16-live-invitations',
+    date: '2026-08-16',
+    title: 'Invitation e-mails and live church accounts',
+    items: [
+      'Directors can now invite a person by e-mail in the role their church chose.',
+      'An invited person sets their own password, then waits for a Director to approve access.',
+      'Approved Guides and Explorers enter their own private workspace; only the paired two can read their conversation.',
+    ],
+  },
+  {
     id: '2026-08-12-auto-update-and-names',
     date: '2026-08-12',
     title: 'Simpler names, and updates that just happen',

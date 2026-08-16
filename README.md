@@ -141,6 +141,12 @@ or your own server all work. There is nothing platform-specific in it.
 
 Fair question, and it is the one everybody asks. Here is the short answer.
 
+When Supabase variables are present, the front door becomes a live
+e-mail/password gateway. Invitations, password setup, approval, role routing,
+pairing and the private Guide–Explorer conversation use that church's database.
+The sample tutorial and sample personas remain available only in the separate
+unconfigured build.
+
 **Nothing is missing from the app.** Every screen works — messages send, lessons
 assign, stages advance. They just read and write a store that lives in your
 browser, so the data never leaves your device and two people cannot share it.

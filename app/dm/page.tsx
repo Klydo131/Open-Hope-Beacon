@@ -13,6 +13,8 @@ import {
   activeLabel,
   todayKey,
 } from '@/lib/engagement';
+import { IS_LIVE } from '@/lib/mode';
+import { LiveGuidePage } from '@/components/LiveCorePages';
 
 // A missionary's dashboard: what needs doing today, how the flock is spread
 // across the journey, and then the seekers themselves — ordered by who needs
@@ -21,6 +23,7 @@ import {
 // RLS guarantees this can never contain another missionary's seeker; the demo
 // store mirrors that by filtering on dm_id.
 export default function DmSeekers() {
+  if (IS_LIVE) return <LiveGuidePage />;
   return (
     <AppShell allow={['dm']}>
       <Dashboard />

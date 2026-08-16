@@ -16,6 +16,8 @@ import { LocaleProvider } from '@/lib/i18n';
 import { BUILD_ID } from '@/lib/build-info';
 import { APP_NAME, APP_SHORT_NAME, APP_DESCRIPTION } from '@/lib/brand';
 import { INDEXABLE } from '@/lib/site-visibility';
+import { IS_DEMO } from '@/lib/mode';
+import { LiveSessionProvider } from '@/lib/live/session';
 
 export const metadata: Metadata = {
   // The name comes from lib/brand.ts so a fork changes it in one place. It also
@@ -74,18 +76,18 @@ export default function RootLayout({
         <SelfHeal />
         <LocaleProvider>
           <DemoProvider>
-            {children}
-            <ConsentHost />
-            <TutorialHost />
-            {/* Delete this line when you connect a real backend — see
-                components/DemoRibbon.tsx. */}
-            <DemoRibbon />
-            {/* Inside the provider because it now hides itself while the
-                tutorial is running: both sit in the bottom-right corner, so the
-                install card landed on top of the step panel at exactly the
-                moment someone was being asked to follow instructions. */}
-            <InstallPrompt />
-            <FeedbackNudgeHost />
+            <LiveSessionProvider>
+              {children}
+              {IS_DEMO && (
+                <>
+                  <ConsentHost />
+                  <TutorialHost />
+                  <DemoRibbon />
+                  <FeedbackNudgeHost />
+                </>
+              )}
+              <InstallPrompt />
+            </LiveSessionProvider>
           </DemoProvider>
 
           <AutoUpdate />

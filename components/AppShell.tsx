@@ -17,6 +17,8 @@ import { emitQuest } from '@/lib/quest';
 import { useLocale } from '@/lib/i18n';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { BackButton } from '@/components/BackButton';
+import { IS_LIVE } from '@/lib/mode';
+import { LiveAppShell, LiveUnsupported } from '@/components/LiveAppShell';
 
 const NAV: Record<Role, { href: string; label: string }[]> = {
   executive: [{ href: '/admin', label: 'Admin' }],
@@ -31,6 +33,23 @@ const NAV: Record<Role, { href: string; label: string }[]> = {
 // so a "wrong role" screen only ever exposes made-up people. There is no
 // backend here to protect (see ARCHITECTURE.md).
 export function AppShell({
+  allow,
+  children,
+}: {
+  allow: Role[];
+  children: React.ReactNode;
+}) {
+  if (IS_LIVE) {
+    return (
+      <LiveAppShell allow={allow}>
+        <LiveUnsupported />
+      </LiveAppShell>
+    );
+  }
+  return <DemoAppShell allow={allow}>{children}</DemoAppShell>;
+}
+
+function DemoAppShell({
   allow,
   children,
 }: {
@@ -327,4 +346,3 @@ export function AppShell({
     </div>
   );
 }
-

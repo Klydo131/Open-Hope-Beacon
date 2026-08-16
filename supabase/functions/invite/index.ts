@@ -37,6 +37,15 @@ const json = (body: unknown, status = 200) =>
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
 
+const safeOrigin = (value: string | null) => {
+  try {
+    const url = new URL(value ?? '');
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.origin : '';
+  } catch {
+    return '';
+  }
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
@@ -84,9 +93,29 @@ Deno.serve(async (req) => {
   // the database by somebody who already holds it, deliberately — it is the one
   // role that reaches across churches.
   if (!['admin', 'dm', 'ds'].includes(role)) return json({ error: 'Unknown role.' }, 400);
+  if (role === 'admin' && me.role !== 'executive') {
+    return json({ error: 'Only an Executive Director may invite a Director.' }, 403);
+  }
 
   // The church is the CALLER'S, read from their profile. Not from the body.
   const church = me.church_id;
+
+  let recommendedBy: string | null = null;
+  if (body.recommended_by) {
+    if (role !== 'ds') {
+      return json({ error: 'Only an Explorer invitation may name a Guide.' }, 400);
+    }
+    const { data: guide } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('id', body.recommended_by)
+      .eq('church_id', church)
+      .eq('role', 'dm')
+      .eq('is_approved', true)
+      .maybeSingle();
+    if (!guide) return json({ error: 'Choose an approved Guide from this church.' }, 400);
+    recommendedBy = guide.id;
+  }
 
   const { data: invite, error: inviteErr } = await admin
     .from('invites')
@@ -96,7 +125,7 @@ Deno.serve(async (req) => {
       role,
       full_name: fullName || null,
       invited_by: me.id,
-      recommended_by: body.recommended_by ?? null,
+      recommended_by: recommendedBy,
     })
     .select('id')
     .single();
@@ -111,7 +140,10 @@ Deno.serve(async (req) => {
 
   // Send it. Supabase creates the auth user and mails the link through whatever
   // SMTP the project is configured with.
-  const site = Deno.env.get('SITE_URL') ?? '';
+  // SITE_URL is the stable production choice. Origin keeps a fresh fork and
+  // localhost usable before that secret is set; Supabase still enforces its
+  // own redirect allow-list before including the URL in mail.
+  const site = safeOrigin(Deno.env.get('SITE_URL')) || safeOrigin(req.headers.get('Origin'));
   const { error: mailErr } = await admin.auth.admin.inviteUserByEmail(email, {
     data: { full_name: fullName },
     redirectTo: site ? `${site}/join` : undefined,

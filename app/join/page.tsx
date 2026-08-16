@@ -8,6 +8,8 @@ import { NAVY } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import type { Invite, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { IS_LIVE } from '@/lib/mode';
+import { LiveJoinPage } from '@/components/LiveCorePages';
 
 // Where each role lands after completing the demo sign-up.
 const DEMO_HOME: Record<Role, string> = {
@@ -24,7 +26,7 @@ const DEMO_HOME: Record<Role, string> = {
 export default function JoinPage() {
   return (
     <Suspense fallback={<Shell><p className="text-white/70">Loading…</p></Shell>}>
-      <Join />
+      {IS_LIVE ? <LiveJoinPage /> : <Join />}
     </Suspense>
   );
 }

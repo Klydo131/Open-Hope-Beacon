@@ -416,5 +416,73 @@ if (exists('components/Mailbox.tsx')) {
   ok(/safeLinkHref\(m\.link\)/.test(mail), 'Mailbox routes the call-to-action through safeLinkHref');
 }
 
+// ---------------------------------------------------------------------------
+// 12. Live sign-in is a gateway, never a disguised sample-data tutorial.
+//
+// The public repository intentionally keeps its sample walkthrough. A church
+// deployment intentionally does not: setting its database variables changes
+// the front door to e-mail/password authentication and removes the tutorial
+// hosts from the rendered layout. Both halves are asserted because deleting
+// either branch would make one mode silently impersonate the other.
+// ---------------------------------------------------------------------------
+if (exists('app/login/page.tsx') && exists('components/LiveCorePages.tsx')) {
+  const login = read('app/login/page.tsx');
+  const livePages = read('components/LiveCorePages.tsx');
+  const layout = read('app/layout.tsx');
+  ok(/IS_LIVE\s*\?\s*<LiveLoginPage\s*\/>\s*:\s*<DemoLogin\s*\/>/.test(login),
+    'the login route chooses either the live gateway or the sample persona chooser');
+  ok(/autoComplete="email"/.test(livePages) && /autoComplete="current-password"/.test(livePages),
+    'the live gateway asks for e-mail and password');
+  ok(/\{IS_DEMO\s*&&/.test(layout) && /<TutorialHost\s*\/>/.test(layout),
+    'the tutorial host renders only in sample-data mode');
+  ok(/auth\.updateUser\(\{[\s\S]{0,120}password/.test(livePages),
+    'an invitation link sets a password on the invited account');
+  ok(/router\.replace\(`\/join\$\{query\}\$\{hash\}`\)/.test(livePages),
+    'a mail callback landing at the site root is routed to the password screen');
+}
+
+// ---------------------------------------------------------------------------
+// 13. Invitations cannot outrun approval or mint leadership.
+//
+// Screen checks are useful feedback, not security. These assertions keep the
+// role boundary and the approval gate in the SQL that every Data API write has
+// to cross, including a hand-written request that never opens the app.
+// ---------------------------------------------------------------------------
+if (exists('supabase/migrations/0003_invite_approval_gate.sql')) {
+  const gate = read('supabase/migrations/0003_invite_approval_gate.sql');
+  ok(/v_invite\.church_id,\s*false,\s*v_invite\.recommended_by/s.test(gate),
+    'an invited account starts unapproved');
+  ok(/validate_invite_privilege/.test(gate) && /new\.role = 'executive'/.test(gate),
+    'the database refuses invitations that mint an Executive Director');
+  ok(/new\.role = 'admin' and v_inviter\.role <> 'executive'/.test(gate),
+    'only an Executive Director may invite a Director');
+  ok(/pair_recommended_explorer_after_approval/.test(gate) && /not old\.is_approved\s+and new\.is_approved/.test(gate),
+    'a recommended Explorer is paired only after approval');
+  const redemption = gate.slice(gate.indexOf('create or replace function public.handle_new_user'),
+    gate.indexOf('-- A Director may approve'));
+  ok(!/insert into public\.pairings/.test(redemption),
+    'invitation redemption itself creates no pre-approval pairing');
+}
+
+if (exists('supabase/functions/invite/index.ts')) {
+  const inviteFunction = read('supabase/functions/invite/index.ts');
+  ok(/safeOrigin\(Deno\.env\.get\('SITE_URL'\)\) \|\| safeOrigin\(req\.headers\.get\('Origin'\)\)/.test(inviteFunction),
+    'invitation links use the stable site URL or the validated calling origin');
+}
+
+if (exists('supabase/migrations/0004_live_api_permissions.sql')) {
+  const permissions = read('supabase/migrations/0004_live_api_permissions.sql');
+  ok(/revoke all on table public\.profiles from anon/.test(permissions),
+    'anonymous visitors receive no profile table privilege');
+  ok(/grant select, update on table public\.profiles to authenticated/.test(permissions),
+    'signed-in profiles can be read and approved under RLS');
+  ok(/grant select, insert, update on table public\.messages to authenticated/.test(permissions),
+    'signed-in pairing members can use messages under RLS');
+  ok(/alter publication supabase_realtime add table public\.messages/.test(permissions),
+    'live message delivery is enabled once and idempotently');
+  ok(/revoke all on function public\.handle_new_user\(\) from public, anon, authenticated/.test(permissions),
+    'the auth trigger cannot be called as a public RPC');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

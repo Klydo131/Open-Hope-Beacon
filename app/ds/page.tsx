@@ -13,6 +13,8 @@ import { Meetings } from '@/components/Meetings';
 import { MySeries } from '@/components/MySeries';
 import type { MaterialType } from '@/lib/types';
 import { seekerPriorities, meetingWhen } from '@/lib/engagement';
+import { IS_LIVE } from '@/lib/mode';
+import { LiveExplorerPage } from '@/components/LiveCorePages';
 
 const MATERIAL_ICON: Record<string, string> = {
   pdf: '📄',
@@ -35,6 +37,7 @@ const VERSES = [
 // The seeker's home: a warm, quiet room to study the Word, keep their own study
 // shelf, and talk with their missionary.
 export default function DsHome() {
+  if (IS_LIVE) return <LiveExplorerPage />;
   return (
     <AppShell allow={['ds']}>
       <Home />

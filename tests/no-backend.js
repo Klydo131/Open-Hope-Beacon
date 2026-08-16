@@ -249,6 +249,13 @@ const GUARDRAILS = new Set([
   'tests/no-backend.js',
   'tests/no-secrets.js',
   'tests/security-invariants.mjs',
+  // Deployment instructions must name the settings they teach, and the Edge
+  // Function must name its server-only runtime variables. They remain subject
+  // to the credential-shape scan above, so this permits documentation and
+  // server configuration names without permitting an actual key.
+  'docs/BUILD-BRIEF.md',
+  'docs/DEMO-SETUP.md',
+  'supabase/functions/invite/index.ts',
   // .env.example's whole job is to say "never put the service_role key in
   // here". A warning that cannot name the thing it warns about is not a
   // warning, and the alternative — vaguer wording — is worse than the risk.

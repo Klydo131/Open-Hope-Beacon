@@ -43,8 +43,8 @@ Director invites Guides by email  ─────────▶  invites row + 
         │                                              │
         │                                              ▼
         │                                     Guide clicks link, sets password,
-        │                                     lands holding role 'dm', approved,
-        │                                     in the right church, at Create
+        │                                     then waits for Director approval
+        │                                     before entering the Guide workspace
         ▼
 Guide meets somebody in real life who might welcome a companion
         │
@@ -57,7 +57,8 @@ Guide RECOMMENDS them (name + email) ──────▶  the Director decides
         │        and in RLS, not just the UI.           │
         ▼                                              ▼
                                           Explorer clicks link, sets password,
-                                          and arrives ALREADY PAIRED with that
+                                          and waits for Director approval. On
+                                          approval they are paired with that
                                           Guide, at Connect
                                                        │
                                                        ▼
@@ -102,14 +103,19 @@ are enforced in the database rather than the UI:
 - `lib/live/data.ts` — the live data layer for the core loop. Complete.
 - `supabase/migrations/0001_core_schema.sql` — schema, helpers, RLS, applied.
 - `supabase/migrations/0002_invitations.sql` — invites + redemption, applied.
-- `supabase/functions/invite/index.ts` — written, **not yet deployed**.
+- `supabase/migrations/0003_invite_approval_gate.sql` — approval boundary and
+  role hardening.
+- `supabase/migrations/0004_live_api_permissions.sql` — explicit Data API
+  grants and message realtime.
+- `supabase/functions/invite/index.ts` — invitation mail function.
+- Live mode's home, email/password sign-in, invitation join, Director,
+  Guide, Explorer, pairing, stage and conversation screens.
 
-**Not done — this is your work:**
+**Still intentionally sample-only:**
 
-- The screens still read from `lib/demo/store.tsx`. Nothing calls
-  `lib/live/data.ts` yet.
-- The invite button is not wired to the Edge Function.
 - Lessons, meetings, prayer and materials have no live schema yet.
+- Their routes explain that those supporting screens remain in the separate
+  sample-data deployment rather than pretending sample records are live.
 
 ---
 
@@ -165,8 +171,9 @@ if (error) setError(error.message);   // show it verbatim
 
 Deploy first: `supabase functions deploy invite --project-ref bcpuushjwcejytdthlnn`
 
-**Done when:** a real invitation email arrives and the link creates an approved
-account in the right role.
+**Done when:** a real invitation email arrives, the link sets a password on an
+unapproved account in the right role, and a Director's separate approval opens
+that role's workspace.
 
 ### Step 5 — The rest of the schema
 

@@ -1,0 +1,150 @@
+'use client';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { roleLabel, NAVY } from '@/lib/brand';
+import type { Role } from '@/lib/types';
+import { homeFor, useLiveSession } from '@/lib/live/session';
+import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { Avatar, Button, Card } from '@/components/ui';
+
+export function LiveAppShell({
+  allow,
+  children,
+}: {
+  allow: Role[];
+  children: React.ReactNode;
+}) {
+  const { session, profile, loading, error, signOut } = useLiveSession();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (loading) return;
+    if (!session) router.replace('/login');
+    else if (profile?.is_approved && !allow.includes(profile.role)) {
+      router.replace(homeFor(profile.role));
+    }
+  }, [session, profile, loading, allow, router]);
+
+  if (loading) return <LiveLoading />;
+  if (!session) return null;
+
+  if (!profile) {
+    return (
+      <CenteredCard title="Your account is not ready">
+        <p className="text-gray-600">{error || 'Ask your Director to check your account.'}</p>
+        <Button
+          className="mt-4"
+          onClick={async () => {
+            await signOut();
+            router.replace('/login');
+          }}
+        >
+          Sign out
+        </Button>
+      </CenteredCard>
+    );
+  }
+
+  if (!profile.is_approved) {
+    return (
+      <CenteredCard title="Your account is being reviewed">
+        <p className="text-gray-600">
+          Your invitation worked. A Director or Executive Director now needs to approve
+          your account before you enter the app.
+        </p>
+        <p className="mt-3 text-sm text-gray-500">
+          Signed in as {session.user.email ?? profile.full_name}
+        </p>
+        <Button
+          className="mt-5"
+          onClick={async () => {
+            await signOut();
+            router.replace('/login');
+          }}
+        >
+          Sign out
+        </Button>
+      </CenteredCard>
+    );
+  }
+
+  if (!allow.includes(profile.role)) return null;
+
+  return (
+    <div className="min-h-screen bg-[#f5f6f8]">
+      <header className="sticky top-0 z-20 text-white shadow-md" style={{ backgroundColor: NAVY }}>
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-3 sm:px-4">
+          <Link
+            href={homeFor(profile.role)}
+            className="flex min-w-0 flex-1 items-center gap-3"
+            aria-label="Hope Beacon home"
+          >
+            <HopeBeaconMark size={40} />
+            <div className="min-w-0">
+              <p className="truncate text-lg font-extrabold sm:text-xl">Hope Beacon</p>
+              <p className="truncate text-xs text-white/60">Live church app</p>
+            </div>
+          </Link>
+
+          <div className="hidden min-w-0 text-right sm:block">
+            <p className="max-w-48 truncate text-sm font-semibold">{profile.full_name}</p>
+            <p className="text-xs text-white/60">{roleLabel(profile.role, profile.role)}</p>
+          </div>
+          <Avatar name={profile.full_name || session.user.email || 'Member'} size={36} onDark />
+          <button
+            className="tap-sm shrink-0 rounded-xl bg-white/10 px-3 text-sm font-semibold hover:bg-white/20"
+            onClick={async () => {
+              await signOut();
+              router.replace('/login');
+            }}
+          >
+            Sign out
+          </button>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6">{children}</main>
+
+      <footer className="border-t border-black/5 py-5 text-center text-xs text-gray-400">
+        Invitation-only. Access is enforced by the church database.
+      </footer>
+    </div>
+  );
+}
+
+export function LiveUnsupported() {
+  return (
+    <Card className="p-6">
+      <h1 className="text-2xl font-extrabold text-navy">This live screen is being connected</h1>
+      <p className="mt-2 text-gray-600">
+        The secure invitation, approval, pairing and conversation path is live. This supporting
+        screen remains available in the separate sample-data demo.
+      </p>
+    </Card>
+  );
+}
+
+function LiveLoading() {
+  return (
+    <div className="grid min-h-screen place-items-center" style={{ backgroundColor: NAVY }}>
+      <div className="text-center text-white">
+        <HopeBeaconMark size={64} className="mx-auto" />
+        <p className="mt-4 text-white/70">Opening Hope Beacon…</p>
+      </div>
+    </div>
+  );
+}
+
+function CenteredCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="grid min-h-screen place-items-center px-4" style={{ backgroundColor: NAVY }}>
+      <Card className="w-full max-w-md p-6 text-center">
+        <HopeBeaconMark size={56} className="mx-auto" />
+        <h1 className="mt-4 text-2xl font-extrabold text-navy">{title}</h1>
+        <div className="mt-3">{children}</div>
+      </Card>
+    </div>
+  );
+}
