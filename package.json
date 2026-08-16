@@ -34,6 +34,8 @@
     "verify:all": "node scripts/verify.mjs --all"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.3",
     "next": "^15.5.20",
     "react": "19.0.0",
     "react-dom": "19.0.0"

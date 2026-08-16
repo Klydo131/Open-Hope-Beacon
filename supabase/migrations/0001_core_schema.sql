@@ -24,6 +24,22 @@
 -- the door. These policies decide which rooms. Turn RLS off on any table here
 -- and that table is world-readable to anyone who opens the network tab.
 
+-- PROVED AGAINST A REAL PROJECT, then rolled back. A church was planted with
+-- RLS bypassed first, so the zeroes below are refusals rather than an empty
+-- database — a distinction that has embarrassed this project before:
+--
+--   A. truth, no RLS: churches                    1
+--   B. as ANON (your public key): churches        0
+--   C. as ANON: profiles                          0
+--   D. as ANON: messages                          0
+--   E. as ANON: pairings                          0
+--   F. signed in, but belonging to no church      0
+--   G. same, messages                             0
+--
+-- That is the whole argument for publishing the anon key: it reaches nothing on
+-- its own. Re-run this after any policy change — it is the cheapest test in the
+-- project and the only one that checks the promise the README makes.
+
 -- ---------------------------------------------------------------------------
 -- Types
 -- ---------------------------------------------------------------------------

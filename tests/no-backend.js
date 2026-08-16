@@ -249,6 +249,15 @@ const GUARDRAILS = new Set([
   'tests/no-backend.js',
   'tests/no-secrets.js',
   'tests/security-invariants.mjs',
+  // .env.example's whole job is to say "never put the service_role key in
+  // here". A warning that cannot name the thing it warns about is not a
+  // warning, and the alternative — vaguer wording — is worse than the risk.
+  //
+  // The exemption is narrow and deliberately so: this skips the FORBIDDEN_TERMS
+  // scan only. The checks that actually matter for this file still apply — it
+  // is still scanned for a committed JSON Web Token, and still required to set
+  // no values at all. Naming a key is safe; carrying one is not.
+  '.env.example',
 ]);
 for (const f of textFiles) {
   if (GUARDRAILS.has(f)) continue;
