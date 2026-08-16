@@ -36,6 +36,27 @@
 --   F. signed in, but belonging to no church      0
 --   G. same, messages                             0
 --
+-- THE ATTACK SUITE, run against a real project with five real accounts:
+--
+--   Explorer self-approves                REFUSED 42501
+--   Explorer self-promotes to Director    REFUSED 42501
+--   Explorer moves their own church       REFUSED 42501
+--   Explorer edits their own name         allowed      ← control: app still works
+--   Explorer reads their own journey      0 rows
+--   Explorer forges a message as Guide    REFUSED 42501
+--   Outsider posts into a conversation    REFUSED 42501
+--   Outsider reads that conversation      0 rows
+--   Unrelated Guide reads the messages    0 rows
+--   THE DIRECTOR reads the messages       0 rows       ← the privacy promise
+--   Paired Guide reads the messages       1 row        ← control
+--   Director reads the roster             5 rows       ← control
+--
+-- The controls are the half that makes the rest mean anything. The first run of
+-- this suite reported "Explorer self-approves: ALLOWED — CRITICAL", which was
+-- false: the fixture had already set is_approved = true, so the update changed
+-- nothing and the trigger correctly saw no change. A test that starts in the
+-- state it is trying to reach proves nothing at all.
+--
 -- That is the whole argument for publishing the anon key: it reaches nothing on
 -- its own. Re-run this after any policy change — it is the cheapest test in the
 -- project and the only one that checks the promise the README makes.
@@ -189,6 +210,35 @@ returns boolean language sql stable security definer set search_path to 'public'
   select public.my_church_id() = c or public.oversees_church(c);
 $$;
 
+/**
+ * The church a profile belongs to, read WITHOUT re-entering profiles' policies.
+ *
+ * This exists because the obvious spelling deadlocks. A pairings policy that
+ * says `manages_church((select church_id from profiles where id = ds_id))`
+ * makes that subquery subject to profiles' RLS — and profiles_read_paired
+ * queries pairings, which re-enters pairings' policy, which queries profiles.
+ * Postgres calls it "infinite recursion detected in policy for relation
+ * profiles" and every affected read fails outright.
+ *
+ * It was caught by running the attack suite against a real database rather than
+ * by reading the schema, which is the argument for running it.
+ */
+create or replace function public.church_of(p uuid)
+returns uuid language sql stable security definer set search_path to 'public' as $$
+  select church_id from public.profiles where id = p;
+$$;
+
+/** Are you and this person the two halves of an active pairing? Same reason. */
+create or replace function public.is_paired_with(other uuid)
+returns boolean language sql stable security definer set search_path to 'public' as $$
+  select exists (
+    select 1 from public.pairings
+    where status = 'active'
+      and ((dm_id = (select auth.uid()) and ds_id = other)
+        or (ds_id = (select auth.uid()) and dm_id = other))
+  );
+$$;
+
 /** One of the two people in this pairing. */
 create or replace function public.in_pairing(p uuid)
 returns boolean language sql stable security definer set search_path to 'public' as $$
@@ -338,15 +388,7 @@ create policy profiles_read_church on public.profiles
 
 -- A Guide and their Explorer can each see the other, and nobody else's.
 create policy profiles_read_paired on public.profiles
-  for select to authenticated
-  using (
-    exists (
-      select 1 from public.pairings p
-      where p.status = 'active'
-        and ((p.dm_id = (select auth.uid()) and p.ds_id = public.profiles.id)
-          or (p.ds_id = (select auth.uid()) and p.dm_id = public.profiles.id))
-    )
-  );
+  for select to authenticated using (public.is_paired_with(id));
 
 -- You may edit yourself; the trigger above decides which columns survive.
 create policy profiles_update_self on public.profiles
@@ -367,20 +409,20 @@ create policy pairings_read on public.pairings
   using (
     dm_id = (select auth.uid())
     or ds_id = (select auth.uid())
-    or public.manages_church((select church_id from public.profiles where id = ds_id))
+    or public.manages_church(public.church_of(ds_id))
   );
 
 create policy pairings_write on public.pairings
   for insert to authenticated
-  with check (public.manages_church((select church_id from public.profiles where id = ds_id)));
+  with check (public.manages_church(public.church_of(ds_id)));
 
 -- A Guide moves the journey along; leadership can end a pairing.
 create policy pairings_update on public.pairings
   for update to authenticated
   using (dm_id = (select auth.uid())
-         or public.manages_church((select church_id from public.profiles where id = ds_id)))
+         or public.manages_church(public.church_of(ds_id)))
   with check (dm_id = (select auth.uid())
-         or public.manages_church((select church_id from public.profiles where id = ds_id)));
+         or public.manages_church(public.church_of(ds_id)));
 
 -- Messages ------------------------------------------------------------------
 -- THE PRIVACY PROMISE, and it is one policy. No Director branch, no executive
@@ -415,7 +457,7 @@ create policy journey_read on public.journey_events
       select 1 from public.pairings p
       where p.id = pairing_id
         and (p.dm_id = (select auth.uid())
-             or public.manages_church((select church_id from public.profiles where id = p.ds_id)))
+             or public.manages_church(public.church_of(p.ds_id)))
     )
   );
 
