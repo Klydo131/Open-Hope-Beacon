@@ -160,7 +160,23 @@ if (tracked.includes('.env.example')) {
 // ones a real deployment genuinely needs — each named, so a new server route
 // is a decision somebody makes on purpose rather than a thing that appears.
 const routes = tracked.filter((f) => /^app\/.*\/route\.(ts|js)$/.test(f));
-const ALLOWED_ROUTES = ['app/sw.js/route.ts', 'app/version.json/route.ts'];
+// Each of these is a server route somebody had to justify, which is the point
+// of the list: adding one is a decision, not a drive-by.
+//
+//   app/sw.js/route.ts          serves the service worker from this origin.
+//   app/version.json/route.ts   the app asking itself what build it is serving.
+//   app/api/auth/sign-in/route.ts
+//       The first-party sign-in gateway. It exists so the browser sends a
+//       password to Hope Beacon's own origin and never to a third party, and it
+//       returns only the verified session — which is exactly what the checks in
+//       tests/security-invariants.mjs assert about it. It arrived with the live
+//       session handoff and was never added here, so this suite had been failing
+//       on a route the rest of the suite treats as required.
+const ALLOWED_ROUTES = [
+  'app/sw.js/route.ts',
+  'app/version.json/route.ts',
+  'app/api/auth/sign-in/route.ts',
+];
 for (const r of routes) {
   ok(
     ALLOWED_ROUTES.includes(r),

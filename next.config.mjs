@@ -29,19 +29,54 @@
 // this conditional rather than in the shipped list.
 const DEV = process.env.NODE_ENV === 'development';
 
+// The backend origin, when this deployment has one.
+//
+// "IF YOU CONNECT A BACKEND: add its origin to connect-src" is the instruction
+// written above, and it was never followed — including here, by us. The result
+// is not a subtle degradation: lib/mode.ts decides IS_LIVE from these two
+// variables and lib/supabase/client.ts then makes every data call FROM THE
+// BROWSER, so a deployment with keys set had all of them refused by its own
+// Content-Security-Policy. Signing in, loading a dashboard, sharing anything —
+// all dead, and dead in the console only, where a server log will never show it.
+//
+// Deriving the origin here rather than asking a deployer to paste it means the
+// instruction cannot be missed again: configure the backend and the policy
+// follows. Demo deployments set nothing and stay locked to 'self'.
+//
+// media-src and img-src get it too. Files still live on the device today, so
+// blob: is what plays — but the moment a fork serves a shared file from Storage
+// it arrives on a signed, cross-origin URL, and a player that renders, sits at
+// 0:00 and never says why is exactly the bug this same policy caused in the
+// sibling app. Naming the origin now costs nothing and removes the trap.
+const connectSources = ["'self'"];
+const mediaSources = ["'self'", 'blob:', 'data:'];
+const imageSources = ["'self'", 'data:', 'blob:'];
+if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  try {
+    const backend = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);
+    if (backend.protocol === 'https:') {
+      connectSources.push(backend.origin, `wss://${backend.host}`);
+      mediaSources.push(backend.origin);
+      imageSources.push(backend.origin);
+    }
+  } catch {
+    // A malformed URL fails closed to same-origin rather than widening.
+  }
+}
+
 const csp = [
   "default-src 'self'",
-  "img-src 'self' data: blob:",
+  `img-src ${imageSources.join(' ')}`,
   "font-src 'self' data:",
   // Next.js injects small inline bootstrap scripts; 'unsafe-inline' is scoped to
   // scripts we ship. No third-party script origins are allowed.
   `script-src 'self' 'unsafe-inline'${DEV ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "connect-src 'self'",
+  `connect-src ${connectSources.join(' ')}`,
   // Files the person saved to their own device play from a blob: URL. Without
   // this, media-src falls back to default-src 'self', blob: is not 'self', and
   // every local audio/video file fails to play with no visible error.
-  "media-src 'self' blob:",
+  `media-src ${mediaSources.join(' ')}`,
   // The only third-party frames allowed, and only these: the YouTube and
   // Facebook video players. frame-src otherwise falls back to default-src
   // 'self' and every embed is blocked. Scripts, XHR and everything else stay

@@ -95,6 +95,10 @@ const staticChecks = [
   ['test portability', 'tests/test-portability.mjs'],
   ['brand consistency', 'tests/brand-consistency.mjs'],
   ['media guardrails', 'tests/media-guardrails.js'],
+  // Reads the CSP header itself. Every live data call is made from the browser,
+  // so a policy that omits the backend origin kills the whole app in the
+  // console — where nothing else in this suite is looking.
+  ['backend CSP', 'tests/backend-csp.mjs'],
   ['real-time and pairing media', 'tests/realtime-and-media.mjs'],
   ['update floor', 'tests/min-build.mjs'],
   // The auto-update policy, asserted both ways. The browser suite can only
