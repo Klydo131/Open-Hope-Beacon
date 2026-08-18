@@ -312,7 +312,7 @@ Deno.serve(async (req) => {
     fromName: await setting(admin, 'MAIL_FROM_NAME'),
   };
 
-  const sent = await sendInvitation({
+  let sent = await sendInvitation({
     ...mail,
     to: email,
     name: fullName,
@@ -320,6 +320,50 @@ Deno.serve(async (req) => {
     link: joinUrl,
     codeUrl,
   });
+
+  // FALL BACK TO SUPABASE'S OWN MAILER RATHER THAN GIVING UP.
+  //
+  // Every Supabase project has a built-in email service. It is not as good as a
+  // real provider — the message uses the project's Auth template rather than
+  // the church's words, and the free tier allows only a handful of messages an
+  // hour — but it has one property that matters enormously right now: it is
+  // sent BY Supabase, from inside Supabase, so nothing about it can be refused
+  // by a provider's IP allow-list.
+  //
+  // That is exactly the wall this project hit. The Brevo key, sender and site
+  // URL were all correct and loaded; Brevo simply refused every call because
+  // its allow-list was on and Edge Functions have no fixed address to add.
+  // Invitations stopped for a day over a setting in somebody else's dashboard.
+  //
+  // resetPasswordForEmail and not inviteUserByEmail, because by this point
+  // generateLink has already created the account — an invite would be refused
+  // as "already registered". A recovery mail is the right shape anyway: it
+  // takes the person to /join to set a password, which is what somebody
+  // finishing an invitation needs to do.
+  //
+  // Deliberately SECOND. When a church has configured a provider, that provider
+  // sends, and the message is the church's. This is what happens instead of
+  // nothing.
+  let via = sent.ok ? 'provider' : '';
+  if (!sent.ok) {
+    const { error: builtInErr } = await admin.auth.resetPasswordForEmail(email, {
+      redirectTo: `${site}/join?recovery=1`,
+    });
+    if (!builtInErr) {
+      via = 'supabase';
+      sent = {
+        ok: true,
+        reason: '',
+      };
+    } else {
+      // Both routes refused. Say both reasons — being told only about the
+      // second one sends the reader to fix the wrong thing.
+      sent = {
+        ok: false,
+        reason: `${sent.reason} Supabase's own mailer also refused it: ${String(builtInErr.message ?? '')}.`,
+      };
+    }
+  }
 
   // SAY, IN THE LOG, WHETHER THE MAIL ACTUALLY WENT.
   //
@@ -337,6 +381,7 @@ Deno.serve(async (req) => {
   console.log(JSON.stringify({
     at: 'invite',
     delivery: sent.ok ? 'email' : 'link',
+    via,
     resent,
     link_kind: linkKind,
     reason: sent.ok ? '' : sent.reason,
@@ -359,7 +404,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  return json({ ok: true, invite_id: inviteId, delivery: 'email', resent });
+  return json({ ok: true, invite_id: inviteId, delivery: 'email', via, resent });
 });
 
 /**
