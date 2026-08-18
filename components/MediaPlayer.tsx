@@ -88,10 +88,30 @@ export function MediaPlayer({ item, theme }: { item: MediaMeta; theme: RoomTheme
   }
 
   if (missing) {
+    // WHY THIS MESSAGE CHANGED. It used to read "This file is no longer saved
+    // on this device", which is true for the person who added the file and
+    // deleted it, and false for everybody else. An Explorer opening something
+    // their Guide shared never had the file: it is in the Guide's browser, and
+    // "no longer" told them something had broken when nothing had.
+    //
+    // The library is on-device by design — see the first line of
+    // lib/localMedia.ts, "files never leave the browser". That is a real
+    // privacy property and worth keeping. What it cannot do is move a file
+    // between two people, and the app was letting somebody share one anyway,
+    // then blaming the recipient's device for the result.
+    //
+    // So: say where the file actually is, and say the thing that does work. A
+    // link travels; a blob in IndexedDB does not.
     return (
-      <p className="rounded-xl bg-gray-50 p-3 text-sm text-gray-500">
-        This file is no longer saved on this device.
-      </p>
+      <div className="rounded-xl bg-amber-50 p-4 text-sm ring-1 ring-amber-200">
+        <p className="font-semibold text-amber-900">This file is not on this device.</p>
+        <p className="mt-1 text-amber-800">
+          Items added to the library are kept in the browser that added them, so
+          they never travel on their own. If someone shared this with you, ask
+          them to send a link instead — a link opens anywhere. If you added it
+          yourself, it was removed from this browser, or added on another one.
+        </p>
+      </div>
     );
   }
 
