@@ -49,7 +49,7 @@ function Join() {
   const params = useSearchParams();
   const token = params.get('token') ?? '';
   const router = useRouter();
-  const { inviteByToken, acceptInvite, signInAs } = useDemo();
+  const { db, inviteByToken, acceptInvite, signInAs } = useDemo();
 
   const invite = inviteByToken(token);
   const status: Invite['status'] | undefined = invite?.status;
@@ -69,6 +69,11 @@ function Join() {
   });
   const [primed, setPrimed] = useState(false);
   const [error, setError] = useState('');
+  // Permission to hold their details. Unticked by default and required to
+  // continue — a box that arrives already ticked is not consent, it is a
+  // default somebody failed to notice.
+  const [consent, setConsent] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   // Prefill the name from the invite once it's known (works for both paths).
   useEffect(() => {
@@ -99,7 +104,7 @@ function Join() {
   }
 
   const submit = () => {
-    if (!f.full_name.trim()) return;
+    if (!f.full_name.trim() || !consent) return;
     setError('');
 
     // Staff don't fill the seeker-only fields.
@@ -114,6 +119,7 @@ function Join() {
         : [],
       city_of_residence: isSeeker ? f.city_of_residence || undefined : undefined,
       work_industry: isSeeker ? f.work_industry || undefined : undefined,
+      consent_at: new Date().toISOString(),
     };
 
     const id = acceptInvite(token, fields);
@@ -139,7 +145,13 @@ function Join() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md space-y-6 px-4 py-8">
+      {/* pb-32, not py-8. The install banner is position:fixed at the bottom of
+          the viewport with z-55, and this page builds its own layout instead of
+          using AppShell, so it never inherited the clearance every other screen
+          has. The end of the form — the optional questions and the join button
+          itself — sat underneath it on a phone. Caught by a browser test that
+          could not click its own link. */}
+      <div className="mx-auto max-w-md space-y-6 px-4 pb-32 pt-8">
         <Card className="p-5">
           <h2 className="mb-1 text-xl font-bold text-navy">
             {isSeeker ? 'Complete your sign-up' : 'Set up your account'}
@@ -149,38 +161,96 @@ function Join() {
               ? 'Just a few details so your church can care for you well.'
               : 'Just confirm your details.'}
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Name *" value={f.full_name} onChange={set('full_name')} />
-            <Field
-              label="Preferred contact"
-              value={f.preferred_contact}
-              onChange={set('preferred_contact')}
-              placeholder="Email, phone, Messenger…"
-            />
-            {isSeeker && (
-              <>
-                <Field label="Birthday" type="date" value={f.birthday} onChange={set('birthday')} />
-                <Field label="Gender" value={f.gender} onChange={set('gender')} />
-                <Field label="Status" value={f.status} onChange={set('status')} />
-                <Field
-                  label="City of residence"
-                  value={f.city_of_residence}
-                  onChange={set('city_of_residence')}
-                />
-                <Field
-                  label="Work / Industry"
-                  value={f.work_industry}
-                  onChange={set('work_industry')}
-                />
-                <Field
-                  label="Topics of interest"
-                  value={f.topics}
-                  onChange={set('topics')}
-                  placeholder="Comma-separated"
-                />
-              </>
-            )}
+          {/* THREE REQUIRED THINGS, THEN EVERYTHING ELSE BEHIND A LINK.
+              This used to be one flat grid of eight boxes, and eight boxes is
+              what a form looks like when nobody decided which of them matter.
+              Somebody who was invited by a person they know should be able to
+              finish in under a minute; the rest helps their Guide and can wait
+              until they feel like typing it. */}
+          <div className="space-y-4">
+            <Field label="Your name *" value={f.full_name} onChange={set('full_name')} />
+
+            {/* Read-only, because it is the address the invitation was sent to.
+                An editable email here would let somebody redirect an
+                invitation that was not addressed to them. */}
+            <label className="block">
+              <span className="text-sm font-semibold text-gray-500">Email *</span>
+              <input
+                readOnly
+                value={invite.email}
+                aria-describedby="email-why"
+                // text-base, not text-lg: this is the one field the reader is being
+                // asked to CHECK rather than fill, and at text-lg a normal
+                // address ran off the end of a phone screen — "…@example.co"
+                // with the rest cut off, which is worse than useless when the
+                // point is to confirm it is yours.
+                className="tap mt-1 w-full cursor-not-allowed rounded-xl bg-gray-100 px-4 text-base text-gray-500 outline-none"
+              />
+              <span id="email-why" className="mt-1 block text-xs text-gray-400">
+                This is the address your invitation was sent to.
+              </span>
+            </label>
           </div>
+
+          {/* PERMISSION. Named church, plain words, and the right to withdraw
+              stated in the same breath as the request — a permission you
+              cannot see how to take back is not much of a permission. */}
+          <label className="mt-5 flex items-start gap-3 rounded-xl bg-navy/5 p-4">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="mt-1 h-5 w-5 shrink-0"
+            />
+            <span className="text-sm leading-relaxed text-gray-700">
+              I give permission for <strong>{db.church_name}</strong> to keep my
+              contact details so someone from the church can stay in touch with
+              me about my studies. I can withdraw this at any time from
+              Settings, and my details are removed when I do.{' '}
+              <span className="text-red-600">*</span>
+            </span>
+          </label>
+
+          {isSeeker && (
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => setShowMore((v) => !v)}
+                className="text-sm font-semibold text-navy underline"
+              >
+                {showMore ? 'Hide the optional questions' : 'Tell your Guide a little more (optional)'}
+              </button>
+              {showMore && (
+                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Preferred contact"
+                    value={f.preferred_contact}
+                    onChange={set('preferred_contact')}
+                    placeholder="Phone, Messenger…"
+                  />
+                  <Field label="Birthday" type="date" value={f.birthday} onChange={set('birthday')} />
+                  <Field label="Gender" value={f.gender} onChange={set('gender')} />
+                  <Field label="Status" value={f.status} onChange={set('status')} />
+                  <Field
+                    label="City of residence"
+                    value={f.city_of_residence}
+                    onChange={set('city_of_residence')}
+                  />
+                  <Field
+                    label="Work / Industry"
+                    value={f.work_industry}
+                    onChange={set('work_industry')}
+                  />
+                  <Field
+                    label="Topics of interest"
+                    value={f.topics}
+                    onChange={set('topics')}
+                    placeholder="Comma-separated"
+                  />
+                </div>
+              )}
+            </div>
+          )}
           {error && (
             <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-red-700 ring-1 ring-red-200">
               {error}
@@ -189,16 +259,17 @@ function Join() {
           <div className="mt-6">
             <Button
               variant="gold"
-              disabled={!f.full_name.trim()}
+              disabled={!f.full_name.trim() || !consent}
               onClick={submit}
             >
               Join Hope Beacon →
             </Button>
           </div>
-          <p className="mt-3 text-xs text-gray-400">
-            By joining you’ll see how your information is cared for, and can stop
-            or remove it any time.
-          </p>
+          {!consent && (
+            <p className="mt-3 text-xs text-gray-500">
+              Tick the permission box above to continue.
+            </p>
+          )}
         </Card>
       </div>
     </div>

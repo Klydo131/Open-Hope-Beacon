@@ -296,6 +296,8 @@ export interface Ctx {
       topics_of_interest?: string[];
       city_of_residence?: string;
       work_industry?: string;
+      /** When they ticked the permission box. Absent means they did not. */
+      consent_at?: string;
     },
   ) => string | null;
 }
@@ -1996,6 +1998,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         topics_of_interest?: string[];
         city_of_residence?: string;
         work_industry?: string;
+        consent_at?: string;
       },
     ): string | null => {
       const invite = db.invites.find((i) => i.token === token);
@@ -2017,6 +2020,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
             city_of_residence: profile.city_of_residence,
             work_industry: profile.work_industry,
             preferred_language: 'en',
+            // Recorded at the moment it was given. A consent nobody wrote down
+            // is not a consent — if the church is ever asked when this person
+            // agreed to their details being held, the answer has to exist.
+            consent_at: profile.consent_at,
             is_approved: true, // admin-invited → approved, ready to be paired
             created_at: nowIso(),
           },
