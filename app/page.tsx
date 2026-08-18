@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useDemo } from '@/lib/demo/store';
 import { QuestPicker } from '@/components/QuestPicker';
 import { FeedbackButton } from '@/components/Feedback';
-import { NAVY, roleNoun, APP_SHORT_NAME } from '@/lib/brand';
+import { NAVY, TUTORIAL_PURPLE, roleNoun, APP_SHORT_NAME } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 import type { Role } from '@/lib/types';
@@ -69,8 +69,13 @@ function DemoHome() {
         // in a 900px viewport, so the scroll cue — the only thing telling a
         // visitor there is more page — was pushed below the fold on exactly the
         // device most people will open this on.
+        // TUTORIAL_PURPLE, not NAVY. This screen and the live front door were
+        // pixel-for-pixel the same — same mark, same title, same gold button,
+        // same "I have an invitation" — so pressing "Open the tutorial" landed
+        // you somewhere indistinguishable from where you started, and the
+        // reasonable conclusion was that the button did nothing.
         className="flex min-h-[100svh] flex-col items-center justify-center px-4 py-10 text-center text-white"
-        style={{ backgroundColor: NAVY }}
+        style={{ backgroundColor: TUTORIAL_PURPLE }}
       >
         <div className="mx-auto w-full max-w-md">
           {/* The glow is one radial gradient behind the mark. It costs nothing
@@ -91,7 +96,18 @@ function DemoHome() {
           <h1 className="mt-6 text-5xl font-extrabold tracking-tight">
             {APP_SHORT_NAME}
           </h1>
-          <p className="mt-3 text-lg text-white/75">{t('appTagline')}</p>
+          <p className="mt-2 text-lg text-white/75">{t('appTagline')}</p>
+
+          {/* Said here as well as in the bar, because this is the screen a
+              person forms their first impression on, and the bar is 46px of
+              chrome that eyes skip. */}
+          <p className="mx-auto mt-5 inline-block rounded-full bg-white/15 px-4 py-1.5 text-sm font-bold tracking-wide">
+            🧪 TUTORIAL — sample people
+          </p>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/70">
+            Everyone in here was invented for you to look around with. Nothing
+            is saved anywhere and nothing can reach a real church.
+          </p>
 
           <div className="mt-9">
             {currentUser ? (
@@ -108,7 +124,7 @@ function DemoHome() {
                 className="w-full px-7 text-xl"
                 onClick={() => router.push('/login')}
               >
-                {t('signIn')}
+                Choose someone to be →
               </Button>
             )}
           </div>

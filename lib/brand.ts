@@ -26,6 +26,25 @@ export const BRAND_FROM = '#2F80ED';
 export const BRAND_TO = '#3EB489';
 
 export const NAVY = '#1E2A4A';
+
+/**
+ * The tutorial's own colour.
+ *
+ * The tutorial used to be drawn in NAVY, exactly like the live app: same mark,
+ * same title, same gold Sign in, same "I have an invitation". A person who
+ * pressed "Open the tutorial" landed on a screen indistinguishable from the one
+ * they had just left and reasonably concluded nothing had happened.
+ *
+ * That is not only confusing, it is the failure the demo ribbon was written to
+ * prevent — somebody typing a real person's details into sample data because
+ * nothing on screen said which app they were in. A colour is the one signal
+ * that works before anybody reads a word.
+ *
+ * Deep plum rather than a warning colour: the tutorial is a legitimate part of
+ * the product, not a mistake to escape from. It matches the purple the demo
+ * notice has always used.
+ */
+export const TUTORIAL_PURPLE = '#4C3575';
 export const GOLD = '#E8B84B';
 
 // The six disciple-making stages, in order, with the brand color for each.

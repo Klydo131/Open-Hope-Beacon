@@ -16,6 +16,7 @@
 import { ConsentHost } from '@/components/ConsentHost';
 import { TutorialHost } from '@/components/TutorialHost';
 import { DemoRibbon } from '@/components/DemoRibbon';
+import { TutorialBar } from '@/components/TutorialBar';
 import { FeedbackNudgeHost } from '@/components/FeedbackNudgeHost';
 import { useTutorialMode } from '@/lib/tutorial';
 
@@ -24,6 +25,7 @@ export function TutorialExtras() {
   if (!tutorial) return null;
   return (
     <>
+      <TutorialBar />
       <ConsentHost />
       <TutorialHost />
       <DemoRibbon />

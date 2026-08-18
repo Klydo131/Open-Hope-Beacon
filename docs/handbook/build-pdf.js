@@ -82,7 +82,7 @@ function inline(text) {
   });
   out = escapeHtml(out);
   out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) =>
-    `<a href="${href}">${label}</a>`);
+    `<a href="${absolute(href)}">${label}</a>`);
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   out = out.replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
   return out.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${escapeHtml(codes[i])}</code>`);
@@ -90,6 +90,32 @@ function inline(text) {
 
 const slug = (text) => text.toLowerCase()
   .replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
+
+// Where the docs live, for turning a relative link into one that works.
+const REPO_DOCS = 'https://github.com/klydo131/open-hope-beacon/blob/main/docs/';
+
+/**
+ * Make a link work from inside a PDF.
+ *
+ * THE BUG THIS FIXES. The Markdown says `[START-HERE.md](START-HERE.md)`, which
+ * is correct on GitHub — same directory, resolves fine. Inside a PDF it is
+ * resolved against wherever the reader saved the file, so it points at a
+ * document that is not there and the browser says "File not found". Every
+ * cross-reference in every guide was dead the moment the PDF left this folder,
+ * which is a hard thing to discover if you only ever read the Markdown.
+ *
+ * In-page anchors (#part-3) are left exactly as they are: those resolve inside
+ * the PDF itself, and rewriting them would break the contents table, which is
+ * the one set of links that WAS working.
+ */
+function absolute(href) {
+  if (/^(https?:|mailto:|#)/i.test(href)) return href;
+  const [file, anchor] = href.split('#');
+  if (/\.md$/i.test(file)) {
+    return REPO_DOCS + file + (anchor ? `#${anchor}` : '');
+  }
+  return href;
+}
 
 function render(markdown) {
   const lines = markdown.split('\n');
