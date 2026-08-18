@@ -10,6 +10,7 @@ import { supabaseAuth } from '@/lib/supabase/client';
 import type { Message, Profile, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { LiveAppShell } from '@/components/LiveAppShell';
+import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -721,6 +722,10 @@ export function LiveGuidePage() {
         })}
       </div>
       {rows.length === 0 && !error && <Card className="mt-6 p-6 text-center text-gray-500">No active pairing yet.</Card>}
+
+      {/* Last on the page on purpose: the people waiting on this Guide come
+          first, and writing is what you do once everyone is answered. */}
+      <div className="mt-6"><LiveBlogDesk /></div>
     </LiveAppShell>
   );
 }
@@ -872,6 +877,11 @@ export function LiveExplorerPage() {
             <Conversation messages={messages} myId={profile?.id ?? ''} body={body} setBody={setBody} send={send} busy={busy} />
           </>
         )}
+
+        {/* Below the conversation, because a message addressed to you matters
+            more than one addressed to everybody. Renders nothing at all when
+            there is nothing to read, rather than an empty card. */}
+        <LiveBlogFeed selfId={profile?.id} />
       </div>
     </LiveAppShell>
   );

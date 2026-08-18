@@ -490,3 +490,143 @@ export function subscribeToMessages(pairingId: string, onChange: () => void) {
     client.removeChannel(channel);
   };
 }
+
+// ---------------------------------------------------------------------------
+// Blog.
+//
+// A Guide writes once, to the people they walk with. See migration 0006.
+//
+// As everywhere else in this file, nothing here filters by who may see what —
+// row level security does that, and the queries are deliberately identical for
+// every caller. A Guide asking for their posts gets their own; an Explorer
+// asking for the feed gets what was published to them. The one exception is the
+// reader count, which cannot be a policy because it is an aggregate: it comes
+// from a SECURITY DEFINER function that returns a number and never the names
+// behind it.
+// ---------------------------------------------------------------------------
+
+export type BlogVisibility = 'private' | 'published';
+export type BlogAudienceKind = 'all' | 'selected';
+
+/** A post as its author sees it: with the count, and who it was addressed to. */
+export interface MyBlogPost {
+  id: string;
+  title: string;
+  body: string;
+  visibility: BlogVisibility;
+  audience: BlogAudienceKind;
+  created_at: string;
+  updated_at: string | null;
+  reader_count: number;
+  audience_ids: string[];
+}
+
+/** A post as a reader sees it. No count, no audience — neither is their business. */
+export interface FeedPost {
+  id: string;
+  author_id: string;
+  title: string;
+  body: string;
+  created_at: string;
+}
+
+/** The caller's own posts, drafts included, each with its reader count. */
+export async function listMyBlogPosts(): Promise<MyBlogPost[]> {
+  const { data, error } = await db().rpc('my_blog_posts');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as MyBlogPost[];
+}
+
+/**
+ * What this caller may read. The policy decides; this asks for everything.
+ *
+ * A Guide's own published posts come back here too, which is why the caller
+ * filters by author — a Guide's feed should show what was written FOR them,
+ * not an echo of their own writing.
+ */
+export async function listBlogFeed(): Promise<FeedPost[]> {
+  const { data, error } = await db()
+    .from('blog_posts')
+    .select('id, author_id, title, body, created_at')
+    .eq('visibility', 'published')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as FeedPost[];
+}
+
+/**
+ * Write one. `church_id` is pinned to the caller's own church by the policy, so
+ * sending a different one is rejected by the database rather than by this code.
+ */
+export async function createBlogPost(m: {
+  title: string;
+  body: string;
+  visibility: BlogVisibility;
+  audience: BlogAudienceKind;
+  dsIds?: string[];
+}): Promise<string> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+
+  const { data: me } = await supabase
+    .from('profiles').select('church_id').eq('id', uid).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+
+  const { data, error } = await supabase
+    .from('blog_posts')
+    .insert({
+      author_id: uid,
+      church_id: me.church_id,
+      title: m.title.trim(),
+      body: m.body.trim(),
+      visibility: m.visibility,
+      audience: m.audience,
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+
+  // Named recipients only when the post is addressed to some rather than all.
+  // Writing them for an 'all' post would leave rows that quietly become wrong
+  // the moment the Guide is paired with somebody new.
+  if (m.audience === 'selected' && m.dsIds?.length) {
+    const { error: audErr } = await supabase
+      .from('blog_audience')
+      .insert(m.dsIds.map((ds) => ({ post_id: data.id as string, ds_id: ds })));
+    if (audErr) throw new Error(audErr.message);
+  }
+  return data.id as string;
+}
+
+/** Publish a draft, or take a post off the front page without losing it. */
+export async function setBlogVisibility(id: string, visibility: BlogVisibility): Promise<void> {
+  const { error } = await db()
+    .from('blog_posts')
+    .update({ visibility, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/** Delete. The audience rows and the views go with it, by foreign key cascade. */
+export async function deleteBlogPost(id: string): Promise<void> {
+  const { error } = await db().from('blog_posts').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Record that the caller read a post.
+ *
+ * Deliberately never throws. A view that fails to record is not worth showing
+ * anybody an error about, and certainly not worth interrupting their reading
+ * for. The function is idempotent per person, so calling it on every page load
+ * is correct rather than merely harmless.
+ */
+export async function recordBlogView(id: string): Promise<void> {
+  try {
+    await db().rpc('record_blog_view', { p: id });
+  } catch {
+    // Counting is a convenience for the writer, never a gate for the reader.
+  }
+}

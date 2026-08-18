@@ -272,6 +272,14 @@ const GUARDRAILS = new Set([
   'docs/BUILD-BRIEF.md',
   'docs/DEMO-SETUP.md',
   'supabase/functions/invite/index.ts',
+  // The handbook generators are documentation that happens to be JavaScript.
+  // They teach an IT reader which variables to set and which key must never be
+  // public, so they have to name both — the same reason DEMO-SETUP.md is here.
+  // Nothing in docs/handbook/ ships to a browser or a server; it produces .docx
+  // files. They stay subject to the credential-shape scan above, so naming a
+  // key is permitted and carrying one is still caught.
+  'docs/handbook/build-handbook.js',
+  'docs/handbook/build-ai-guide.js',
   // .env.example's whole job is to say "never put the service_role key in
   // here". A warning that cannot name the thing it warns about is not a
   // warning, and the alternative — vaguer wording — is worse than the risk.
