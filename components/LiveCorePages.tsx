@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { NAVY, roleNoun, stageInfo } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
-import { supabaseAuth } from '@/lib/supabase/client';
+import { saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
 import type { Message, Profile, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { LiveAppShell } from '@/components/LiveAppShell';
@@ -123,7 +123,21 @@ export function LiveLoginPage() {
     setNotice('');
     try {
       const mine = await live.signIn(email, password);
-      window.location.replace(mine.is_approved ? homeFor(mine.role) : '/login');
+      if (!mine.is_approved) {
+        // SAY SOMETHING. This used to be `window.location.replace('/login')`,
+        // which reloaded the very page the person was already looking at and
+        // told them nothing. From the other side of the screen that is
+        // indistinguishable from a wrong password: you type a password you know
+        // is right, the page blinks, and you are back at the form. People
+        // retype it, then conclude the app is broken — and they are not wrong
+        // to, because a correct password that appears to do nothing IS broken.
+        setError(
+          'Your password is correct, but your account is waiting for a Director to approve it. '
+          + 'Ask your church to approve you, then sign in again.',
+        );
+        return;
+      }
+      window.location.replace(homeFor(mine.role));
     } catch (cause) {
       setError(errorText(cause));
     } finally {
@@ -444,6 +458,23 @@ export function LiveJoinPage() {
 
         const { data } = await client.auth.getSession();
         if (!data.session) throw new Error('This invitation link is invalid or has expired.');
+
+        // HAND THE SESSION OVER EXPLICITLY. There are two clients in this app:
+        // the auth client, which owns sign-in, and the data client, which reads
+        // its token out of local storage through readBrowserSession(). They
+        // agree on the storage key and today they agree on the format, so this
+        // line is redundant — right up until a library upgrade changes the
+        // shape the auth client writes.
+        //
+        // The cost of being wrong is not an error message. readBrowserSession()
+        // returns null when it cannot parse what it finds, the profile read
+        // then fails, and this screen concludes the person is unapproved and
+        // shows them a waiting room. Silently telling an approved member they
+        // are not approved is the single worst outcome this file can produce,
+        // and it is one library bump away. So the session is written in the
+        // exact shape the data client expects, by us, here.
+        saveBrowserSession(data.session);
+
         const mine = await live.getMyProfile();
         if (!alive) return;
         setEmail(data.session.user.email ?? '');
@@ -503,6 +534,10 @@ export function LiveJoinPage() {
       });
       if (passwordError) throw passwordError;
 
+      // updateUser can rotate the tokens, so re-publish whatever is current.
+      const { data: fresh } = await client.auth.getSession();
+      if (fresh.session) saveBrowserSession(fresh.session);
+
       if (!recovery) {
         await live.updateMyProfile({
           full_name: name.trim() || undefined,
@@ -522,7 +557,13 @@ export function LiveJoinPage() {
       }
 
       const mine = await refreshProfile();
-      if (mine?.is_approved) router.replace(homeFor(mine.role));
+      // THREE OUTCOMES, NOT TWO. The version of this line that read
+      // `if (mine?.is_approved) … else waitingRoom` collapsed "we could not
+      // read your profile" into "you are not approved", which is how somebody
+      // whose Director invited them personally ends up staring at a waiting
+      // room. A read that failed is an error and says so.
+      if (!mine) throw new Error('Your account was created, but we could not load it. Please sign in.');
+      if (mine.is_approved) router.replace(homeFor(mine.role));
       else setDonePending(true);
     } catch (cause) {
       setError(errorText(cause));
