@@ -66,7 +66,7 @@ export function LiveMailPage() {
   const [copied, setCopied] = useState('');
   const [busy, setBusy] = useState('');
   // Set when a resend could not be emailed and must be passed on by hand.
-  const [handLink, setHandLink] = useState<{ to: string; url: string; why: string } | null>(null);
+  const [handLink, setHandLink] = useState<{ to: string; url: string; why: string; wait?: number } | null>(null);
   const [sentTo, setSentTo] = useState('');
 
   const load = useCallback(async () => {
@@ -97,7 +97,7 @@ export function LiveMailPage() {
         fullName: invite.full_name ?? '',
       });
       if (result.delivery === 'link' && result.link) {
-        setHandLink({ to: invite.email, url: result.link, why: result.mailNote ?? '' });
+        setHandLink({ to: invite.email, url: result.link, why: result.mailNote ?? '', wait: result.waitSeconds });
       } else {
         setSentTo(invite.email);
       }
@@ -142,8 +142,8 @@ export function LiveMailPage() {
       )}
 
       {sentTo && (
-        <p className="rounded-xl bg-green-50 px-4 py-3 text-green-800 ring-1 ring-green-300">
-          ✓ Invitation re-sent to {sentTo}.
+        <p className="rounded-xl bg-green-50 px-4 py-3 font-semibold text-green-800 ring-1 ring-green-300">
+          ✓ Invitation link re-sent to {sentTo}.
         </p>
       )}
 
@@ -151,18 +151,29 @@ export function LiveMailPage() {
         // A church with no working mail provider is a normal state and must not
         // be a dead end: the account and the link are real, only the postman is
         // missing, so the Director becomes the postman.
-        <div className="rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-300">
-          <p className="font-bold text-amber-900">Send this link to {handLink.to} yourself</p>
-          <p className="mt-1 text-sm text-amber-800">
+        <div className={`rounded-2xl p-4 ring-1 ${
+          handLink.wait ? 'bg-blue-50 ring-blue-300' : 'bg-amber-50 ring-amber-300'
+        }`}>
+          {/* A cooldown is not a fault. See LiveCorePages for the reasoning. */}
+          <p className={`font-bold ${handLink.wait ? 'text-blue-900' : 'text-amber-900'}`}>
+            {handLink.wait
+              ? `Nearly — wait ${handLink.wait} seconds, then press Re-send once`
+              : `Send this link to ${handLink.to} yourself`}
+          </p>
+          <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
             {handLink.why || 'No email service is set up on this project yet.'}
           </p>
-          <p className="mt-1 text-sm text-amber-800">This link works, and can be used once.</p>
+          <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
+            This link works, and can be used once.
+          </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <input
               readOnly
               value={handLink.url}
               onFocus={(e) => e.currentTarget.select()}
-              className="tap min-w-0 flex-1 rounded-xl bg-white px-3 text-sm ring-1 ring-amber-300"
+              className={`tap min-w-0 flex-1 rounded-xl bg-white px-3 text-sm ring-1 ${
+                handLink.wait ? 'ring-blue-300' : 'ring-amber-300'
+              }`}
             />
             <Button variant="ghost" onClick={() => { void navigator.clipboard?.writeText(handLink.url); }}>
               Copy link

@@ -312,7 +312,7 @@ Deno.serve(async (req) => {
     fromName: await setting(admin, 'MAIL_FROM_NAME'),
   };
 
-  let sent = await sendInvitation({
+  let sent: MailOutcome = await sendInvitation({
     ...mail,
     to: email,
     name: fullName,
@@ -356,12 +356,34 @@ Deno.serve(async (req) => {
         reason: '',
       };
     } else {
-      // Both routes refused. Say both reasons — being told only about the
-      // second one sends the reader to fix the wrong thing.
-      sent = {
-        ok: false,
-        reason: `${sent.reason} Supabase's own mailer also refused it: ${String(builtInErr.message ?? '')}.`,
-      };
+      const why = String(builtInErr.message ?? '');
+      // A COOLDOWN IS NOT A FAILURE, and must not be reported as one.
+      //
+      // Supabase allows one message per address per minute. Pressing Re-send
+      // twice in quick succession — exactly what somebody does when they are
+      // not sure the first press worked — comes back as "you can only request
+      // this after 58 seconds", and the first version of this buried that at
+      // the end of a paragraph about Brevo's IP allow-list. The reader
+      // reasonably concluded the whole email system had failed again, when in
+      // fact it was working and asking them to wait a moment.
+      const cooldown = /after (\d+) seconds/i.exec(why);
+      if (cooldown) {
+        sent = {
+          ok: false,
+          waitSeconds: Number(cooldown[1]),
+          reason:
+            'Almost — the mail service allows one message per address per minute, and '
+            + `one has just gone out. Wait ${cooldown[1]} seconds and press Re-send once. `
+            + 'The link below works in the meantime.',
+        };
+      } else {
+        // Genuinely both refused. Say both reasons: being told only the second
+        // sends the reader to fix the wrong thing.
+        sent = {
+          ok: false,
+          reason: `${sent.reason} Supabase's own mailer also refused it: ${why}.`,
+        };
+      }
     }
   }
 
@@ -385,6 +407,7 @@ Deno.serve(async (req) => {
     resent,
     link_kind: linkKind,
     reason: sent.ok ? '' : sent.reason,
+    wait_seconds: sent.waitSeconds ?? 0,
     have_key: Boolean(mail.key),
     have_from: Boolean(mail.from),
     have_site_url: Boolean(site),
@@ -401,11 +424,19 @@ Deno.serve(async (req) => {
       delivery: 'link',
       link: joinUrl,
       mailNote: sent.reason,
+      waitSeconds: sent.waitSeconds,
     });
   }
 
   return json({ ok: true, invite_id: inviteId, delivery: 'email', via, resent });
 });
+
+interface MailOutcome {
+  ok: boolean;
+  reason: string;
+  /** Set when the only thing wrong is a per-address cooldown, not a fault. */
+  waitSeconds?: number;
+}
 
 /**
  * Send the invitation through Brevo.
@@ -423,7 +454,7 @@ Deno.serve(async (req) => {
 async function sendInvitation(m: {
   to: string; name: string; church: string; link: string; codeUrl: string;
   key: string; from: string; fromName: string;
-}): Promise<{ ok: boolean; reason: string }> {
+}): Promise<MailOutcome> {
   const key = m.key;
   const from = m.from;
   if (!key) return { ok: false, reason: 'No email service is configured yet, so the link is below to send by hand.' };

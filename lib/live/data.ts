@@ -434,6 +434,14 @@ export interface InviteResult {
   link?: string;
   /** Why it could not be emailed, in words a person can act on. */
   mailNote?: string;
+  /**
+   * Set when the ONLY thing wrong is a per-address cooldown. A number here
+   * means "this will work, shortly" — a very different thing from a fault, and
+   * the screen must not draw them the same way.
+   */
+  waitSeconds?: number;
+  /** Which route carried it: the church's provider, or Supabase's own mailer. */
+  via?: 'provider' | 'supabase';
   /** True when this refreshed an invitation that was already open. */
   resent?: boolean;
   already?: boolean;

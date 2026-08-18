@@ -805,7 +805,7 @@ export function LiveAdminPage() {
   const [dsId, setDsId] = useState('');
   const [busy, setBusy] = useState('');
   // Set when the invitation could not be emailed and must be passed on by hand.
-  const [handLink, setHandLink] = useState<{ to: string; url: string; why: string } | null>(null);
+  const [handLink, setHandLink] = useState<{ to: string; url: string; why: string; wait?: number } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -865,14 +865,20 @@ export function LiveAdminPage() {
       // the link the function hands back for exactly this case, was thrown away
       // one layer down.
       if (result.delivery === 'link' && result.link) {
-        setHandLink({ to, url: result.link, why: result.mailNote ?? '' });
+        setHandLink({ to, url: result.link, why: result.mailNote ?? '', wait: result.waitSeconds });
         setNotice('');
       } else {
         setHandLink(null);
+        // Say WHERE it went and BY WHICH ROUTE. "Sent" on its own is the
+        // message this screen showed all day while nothing was being sent, so
+        // it has to carry something only a real send could produce.
+        const how = result.via === 'supabase'
+          ? ' It went through Supabase\u2019s own mail service, so it will look plain.'
+          : '';
         setNotice(
-          result.resent
-            ? `Invitation re-sent to ${to}.`
-            : `Invitation e-mail sent to ${to}.`,
+          (result.resent
+            ? `\u2713 Invitation link re-sent to ${to}.`
+            : `\u2713 Invitation link sent to ${to}.`) + how,
         );
       }
       setName('');
@@ -953,14 +959,22 @@ export function LiveAdminPage() {
             // state, and it must not be a dead end. The account and the link
             // are real and work exactly once; the only thing missing is the
             // postman, so the Director becomes the postman.
-            <div className="mt-4 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-300">
-              <p className="font-bold text-amber-900">
-                Send this link to {handLink.to} yourself
+            <div className={`mt-4 rounded-2xl p-4 ring-1 ${
+              handLink.wait ? 'bg-blue-50 ring-blue-300' : 'bg-amber-50 ring-amber-300'
+            }`}>
+              {/* A COOLDOWN AND A FAULT ARE DIFFERENT THINGS and must not look
+                  the same. One means "wait a moment"; the other means "go and
+                  change a setting". Drawn identically, a sixty-second timer
+                  reads as the email system failing again. */}
+              <p className={`font-bold ${handLink.wait ? 'text-blue-900' : 'text-amber-900'}`}>
+                {handLink.wait
+                  ? `Nearly — wait ${handLink.wait} seconds, then press Send once`
+                  : `Send this link to ${handLink.to} yourself`}
               </p>
-              <p className="mt-1 text-sm text-amber-800">
+              <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
                 {handLink.why || 'No email service is set up on this project yet.'}
               </p>
-              <p className="mt-1 text-sm text-amber-800">
+              <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
                 The account is created and this link works. It can be used once.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -968,7 +982,9 @@ export function LiveAdminPage() {
                   readOnly
                   value={handLink.url}
                   onFocus={(e) => e.currentTarget.select()}
-                  className="tap min-w-0 flex-1 rounded-xl bg-white px-3 text-sm ring-1 ring-amber-300"
+                  className={`tap min-w-0 flex-1 rounded-xl bg-white px-3 text-sm ring-1 ${
+                    handLink.wait ? 'ring-blue-300' : 'ring-amber-300'
+                  }`}
                 />
                 <Button
                   variant="ghost"
