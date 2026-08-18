@@ -14,6 +14,7 @@ import { MySeries } from '@/components/MySeries';
 import type { MaterialType } from '@/lib/types';
 import { seekerPriorities, meetingWhen } from '@/lib/engagement';
 import { IS_LIVE } from '@/lib/mode';
+import { BlogFeed } from '@/components/Blog';
 import { LiveExplorerPage } from '@/components/LiveCorePages';
 
 const MATERIAL_ICON: Record<string, string> = {
@@ -94,6 +95,10 @@ function Home() {
           hint="Until then, start your own study shelf below."
         />
       )}
+
+      {/* Above the study material: a Guide's post is a person speaking, and it
+          should not sit underneath a reading list. */}
+      <BlogFeed userId={currentUser!.id} />
 
       <MySeries />
       <MyLessons />

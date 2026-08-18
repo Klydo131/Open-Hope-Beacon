@@ -27,6 +27,8 @@ import type {
   Role,
   Stage,
   Track,
+  BlogVisibility,
+  BlogAudienceKind,
 } from '../types';
 import { nextStage, roleLabel, canKick } from '../brand';
 
@@ -261,6 +263,17 @@ export interface Ctx {
   addFollowUp: (pairingId: string, title: string, dueOn?: string) => void;
   toggleFollowUp: (id: string) => void;
   deleteFollowUp: (id: string) => void;
+  // Blog. A Guide writes; the Explorers they walk with read.
+  addBlogPost: (m: {
+    title: string;
+    body: string;
+    visibility: BlogVisibility;
+    audience: BlogAudienceKind;
+    dsIds?: string[];
+  }) => void;
+  setBlogVisibility: (id: string, visibility: BlogVisibility) => void;
+  deleteBlogPost: (id: string) => void;
+  recordBlogView: (id: string) => void;
   kickMember: (targetId: string) => void;
   disapproveMember: (targetId: string) => void;
   createInvite: (m: {
@@ -1281,6 +1294,118 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     [userId],
   );
 
+  // -------------------------------------------------------------------------
+  // Blog.
+  //
+  // A post belongs to its author and nobody else can touch it — every mutation
+  // below re-checks author_id against the signed-in user rather than trusting
+  // the id it was handed. In the demo store that is belt and braces; in the
+  // live backend the same rule is a row level security policy, and writing them
+  // the same way here keeps the two from drifting.
+  // -------------------------------------------------------------------------
+  const addBlogPost = useCallback(
+    (m: {
+      title: string;
+      body: string;
+      visibility: BlogVisibility;
+      audience: BlogAudienceKind;
+      dsIds?: string[];
+    }) => {
+      const title = m.title.trim();
+      const body = m.body.trim();
+      if (!userId || !title || !body) return;
+      const id = uid();
+      persistUpdate((prev) => ({
+        ...prev,
+        blog_posts: [
+          {
+            id,
+            author_id: userId,
+            title,
+            body,
+            visibility: m.visibility,
+            audience: m.audience,
+            created_at: nowIso(),
+          },
+          ...prev.blog_posts,
+        ],
+        // Named Explorers are only meaningful for a 'selected' post. Writing
+        // them for an 'all' post would leave rows that quietly become wrong the
+        // moment the Guide is paired with somebody new.
+        blog_audience:
+          m.audience === 'selected'
+            ? [
+                ...prev.blog_audience,
+                ...(m.dsIds ?? []).map((ds) => ({ id: uid(), post_id: id, ds_id: ds })),
+              ]
+            : prev.blog_audience,
+        analytics: [...prev.analytics, ev(userId, 'blog_written')],
+      }));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId],
+  );
+
+  const setBlogVisibility = useCallback(
+    (id: string, visibility: BlogVisibility) => {
+      if (!userId) return;
+      persistUpdate((prev) => ({
+        ...prev,
+        blog_posts: prev.blog_posts.map((p) =>
+          p.id === id && p.author_id === userId
+            ? { ...p, visibility, updated_at: nowIso() }
+            : p,
+        ),
+      }));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId],
+  );
+
+  const deleteBlogPost = useCallback(
+    (id: string) => {
+      if (!userId) return;
+      persistUpdate((prev) => {
+        const mine = prev.blog_posts.find((p) => p.id === id && p.author_id === userId);
+        if (!mine) return prev;
+        // The views and the audience rows go with it. Leaving them behind would
+        // keep counting readers for something nobody can read.
+        return {
+          ...prev,
+          blog_posts: prev.blog_posts.filter((p) => p.id !== id),
+          blog_audience: prev.blog_audience.filter((a) => a.post_id !== id),
+          blog_views: prev.blog_views.filter((v) => v.post_id !== id),
+        };
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId],
+  );
+
+  const recordBlogView = useCallback(
+    (id: string) => {
+      if (!userId) return;
+      persistUpdate((prev) => {
+        // One row per person, not per open. A number that climbs every time
+        // somebody scrolls past tells the writer nothing about whether anyone
+        // actually read it.
+        const already = prev.blog_views.some((v) => v.post_id === id && v.viewer_id === userId);
+        // A Guide re-reading their own post is not a reader.
+        const post = prev.blog_posts.find((p) => p.id === id);
+        if (already || !post || post.author_id === userId) return prev;
+        return {
+          ...prev,
+          blog_views: [
+            ...prev.blog_views,
+            { id: uid(), post_id: id, viewer_id: userId, created_at: nowIso() },
+          ],
+        };
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [userId],
+  );
+
   const deleteFollowUp = useCallback(
     (id: string) => {
       if (!userId) return;
@@ -2021,6 +2146,10 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     addFollowUp,
     toggleFollowUp,
     deleteFollowUp,
+    addBlogPost,
+    setBlogVisibility,
+    deleteBlogPost,
+    recordBlogView,
     kickMember,
     disapproveMember,
     importData,

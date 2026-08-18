@@ -1,0 +1,324 @@
+'use client';
+
+// The Guide's blog, and the Explorer's reading of it.
+//
+// WHY THIS EXISTS AS WELL AS THE CHAT. A conversation is one-to-one and expects
+// a reply; that is its strength and also its cost. Some things a Guide wants to
+// say are said once, to everybody, and should sit somewhere an Explorer can
+// read them at midnight without owing an answer by morning. Sermon notes, a
+// thought for the week, what is happening on Sabbath.
+//
+// TWO SWITCHES, DELIBERATELY. `visibility` decides whether a post exists for
+// anyone but its author — a draft is private until it is ready. `audience`
+// decides who receives it once published. One flag would have meant the only
+// way to take a post off the front page is to delete it, and a Guide should be
+// able to retire last month's note without destroying it.
+//
+// THE COUNTER SHOWS A NUMBER AND NEVER A NAME. It counts people rather than
+// opens, so re-reading does not inflate it, and the author is excluded from
+// their own count. Who read what is recorded only so the number can mean
+// "readers"; it is never displayed. An Explorer should be able to read quietly,
+// for the same reason they are never shown their own journey stage and the
+// prayer wall carries no names.
+
+import { useEffect, useMemo, useState } from 'react';
+import { useDemo } from '@/lib/demo/store';
+import { Button, Card, EmptyState } from '@/components/ui';
+import type { BlogAudienceKind, BlogPost } from '@/lib/types';
+
+function when(iso: string): string {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (mins < 60) return `${Math.max(1, mins)} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+}
+
+/** Paragraphs, from a plain textarea. No markdown, no HTML, nothing to escape. */
+function Body({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/\n{2,}/).map((para, i) => (
+        <p key={i} className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-gray-700">
+          {para}
+        </p>
+      ))}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The Guide's side: write, publish, hide, delete.
+// ---------------------------------------------------------------------------
+export function BlogDesk({ userId }: { userId: string }) {
+  const { db, addBlogPost, setBlogVisibility, deleteBlogPost } = useDemo();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [audience, setAudience] = useState<BlogAudienceKind>('all');
+  const [picked, setPicked] = useState<string[]>([]);
+  const [confirming, setConfirming] = useState('');
+
+  const mine = db.blog_posts.filter((p) => p.author_id === userId);
+
+  // Everyone this Guide currently walks with.
+  const explorers = useMemo(
+    () =>
+      db.pairings
+        .filter((p) => p.dm_id === userId && p.status === 'active')
+        .map((p) => ({
+          id: p.ds_id,
+          name: db.profiles.find((x) => x.id === p.ds_id)?.full_name ?? 'An Explorer',
+        })),
+    [db.pairings, db.profiles, userId],
+  );
+
+  const readers = (postId: string) =>
+    db.blog_views.filter((v) => v.post_id === postId).length;
+
+  const canPost = title.trim().length > 0 && body.trim().length > 0
+    && (audience === 'all' || picked.length > 0);
+
+  const submit = () => {
+    if (!canPost) return;
+    addBlogPost({ title, body, visibility: 'published', audience, dsIds: picked });
+    setTitle('');
+    setBody('');
+    setAudience('all');
+    setPicked([]);
+    setOpen(false);
+  };
+
+  const saveDraft = () => {
+    if (!title.trim() || !body.trim()) return;
+    addBlogPost({ title, body, visibility: 'private', audience, dsIds: picked });
+    setTitle('');
+    setBody('');
+    setPicked([]);
+    setOpen(false);
+  };
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-navy">✍️ Your blog</h2>
+          <p className="text-sm text-gray-500">
+            Something said once, to everyone you walk with. They read it in their
+            own time and owe you no reply.
+          </p>
+        </div>
+        <Button onClick={() => setOpen((v) => !v)}>{open ? 'Close' : 'Write'}</Button>
+      </div>
+
+      {open && (
+        <div className="mt-4 rounded-xl bg-navy/5 p-4">
+          <label className="block text-sm font-semibold text-navy" htmlFor="blog-title">
+            Title
+          </label>
+          <input
+            id="blog-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="What I keep coming back to in Psalm 23"
+            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2"
+          />
+
+          <label className="mt-3 block text-sm font-semibold text-navy" htmlFor="blog-body">
+            Post
+          </label>
+          <textarea
+            id="blog-body"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={7}
+            placeholder="Leave a blank line between paragraphs."
+            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2"
+          />
+
+          <fieldset className="mt-3">
+            <legend className="text-sm font-semibold text-navy">Who sees it</legend>
+            <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                name="blog-audience"
+                checked={audience === 'all'}
+                onChange={() => setAudience('all')}
+              />
+              Everyone I walk with
+              <span className="text-gray-400">
+                ({explorers.length} {explorers.length === 1 ? 'person' : 'people'}, and anyone paired with me later)
+              </span>
+            </label>
+            <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                name="blog-audience"
+                checked={audience === 'selected'}
+                onChange={() => setAudience('selected')}
+              />
+              Only the people I choose
+            </label>
+          </fieldset>
+
+          {audience === 'selected' && (
+            <div className="mt-2 rounded-xl bg-white p-3 ring-1 ring-black/5">
+              {explorers.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  You are not walking with anyone yet, so there is nobody to choose.
+                </p>
+              ) : (
+                explorers.map((e) => (
+                  <label key={e.id} className="flex items-center gap-2 py-1 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={picked.includes(e.id)}
+                      onChange={() =>
+                        setPicked((p) =>
+                          p.includes(e.id) ? p.filter((x) => x !== e.id) : [...p, e.id],
+                        )
+                      }
+                    />
+                    {e.name}
+                  </label>
+                ))
+              )}
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button onClick={submit} disabled={!canPost}>
+              Publish
+            </Button>
+            <Button variant="ghost" onClick={saveDraft} disabled={!title.trim() || !body.trim()}>
+              Save as draft
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 space-y-3">
+        {mine.length === 0 && (
+          <EmptyState title="Nothing written yet" hint="Your first post can be three sentences." />
+        )}
+        {mine.map((p) => (
+          <article key={p.id} className="rounded-xl bg-white p-4 ring-1 ring-black/5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="flex-1 text-lg font-bold text-navy">{p.title}</h3>
+              {p.visibility === 'private' ? (
+                <span className="rounded-full bg-gray-200 px-2.5 py-1 text-[11px] font-bold text-gray-700">
+                  DRAFT
+                </span>
+              ) : (
+                <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-bold text-green-800">
+                  {p.audience === 'all' ? 'EVERYONE' : 'CHOSEN PEOPLE'}
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-gray-400">{when(p.created_at)}</p>
+            <Body text={p.body} />
+
+            <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
+              {/* A draft has no readers and saying "0 readers" about something
+                  nobody could open reads like failure rather than a choice. */}
+              {p.visibility === 'published' && (
+                <span className="text-sm text-gray-500" title="People who opened this. Names are never shown.">
+                  👁 {readers(p.id)} {readers(p.id) === 1 ? 'reader' : 'readers'}
+                </span>
+              )}
+              <span className="flex-1" />
+              <Button
+                variant="ghost"
+                onClick={() =>
+                  setBlogVisibility(p.id, p.visibility === 'published' ? 'private' : 'published')
+                }
+              >
+                {p.visibility === 'published' ? 'Make private' : 'Publish'}
+              </Button>
+              {confirming === p.id ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      deleteBlogPost(p.id);
+                      setConfirming('');
+                    }}
+                  >
+                    Delete for good
+                  </Button>
+                  <Button variant="ghost" onClick={() => setConfirming('')}>
+                    Keep
+                  </Button>
+                </>
+              ) : (
+                // Two steps, because deleting takes the post and its readers
+                // with it and there is no undo.
+                <Button variant="ghost" onClick={() => setConfirming(p.id)}>
+                  Delete
+                </Button>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The Explorer's side: what their Guide has published for them.
+// ---------------------------------------------------------------------------
+export function BlogFeed({ userId }: { userId: string }) {
+  const { db, recordBlogView } = useDemo();
+
+  // The Guides this person is actually walking with. A post from anybody else
+  // is not theirs to read, whatever its audience says.
+  const myGuides = useMemo(
+    () =>
+      new Set(
+        db.pairings.filter((p) => p.ds_id === userId && p.status === 'active').map((p) => p.dm_id),
+      ),
+    [db.pairings, userId],
+  );
+
+  const posts = useMemo(
+    () =>
+      db.blog_posts.filter((p) => {
+        if (p.visibility !== 'published') return false;
+        if (!myGuides.has(p.author_id)) return false;
+        if (p.audience === 'all') return true;
+        return db.blog_audience.some((a) => a.post_id === p.id && a.ds_id === userId);
+      }),
+    [db.blog_posts, db.blog_audience, myGuides, userId],
+  );
+
+  // Opening the page is reading it. There is no "mark as read" button to forget
+  // to press, and the store ignores a second view from the same person.
+  useEffect(() => {
+    posts.forEach((p) => recordBlogView(p.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [posts.map((p) => p.id).join(',')]);
+
+  if (posts.length === 0) return null;
+
+  const nameOf = (id: string) =>
+    db.profiles.find((x) => x.id === id)?.full_name ?? 'Your Guide';
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-xl font-bold text-navy">📖 From your Guide</h2>
+      <div className="mt-3 space-y-4">
+        {posts.map((p: BlogPost) => (
+          <article key={p.id} className="rounded-xl bg-navy/5 p-4">
+            <h3 className="text-lg font-bold text-navy">{p.title}</h3>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {nameOf(p.author_id)} · {when(p.created_at)}
+            </p>
+            <Body text={p.body} />
+          </article>
+        ))}
+      </div>
+    </Card>
+  );
+}

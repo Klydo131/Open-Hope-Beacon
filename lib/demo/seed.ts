@@ -582,6 +582,44 @@ export function makeSeed(): DB {
         created_at: iso(60 * 1),
       },
     ],
+    // A Guide's blog. One published post everybody paired with Maria can read,
+    // one draft only she can see — so the private/published switch is visible
+    // in the sample data rather than something you have to create to believe.
+    blog_posts: [
+      {
+        id: 'blog-sabbath',
+        author_id: 'dm-maria',
+        title: 'What I keep coming back to in Psalm 23',
+        body:
+          'Someone asked me this week why the psalm says "I shall not want" '
+          + 'when plainly we do want things, most of the time.\n\n'
+          + 'The line is not a promise that wanting stops. It is a claim about '
+          + 'who is doing the leading. A shepherd walks ahead; the sheep does '
+          + 'not need the whole map, only to keep the shepherd in sight.\n\n'
+          + 'If this week has been the kind where you cannot see very far '
+          + 'ahead, that is not a failure of faith. It is the ordinary shape of '
+          + 'following someone.',
+        visibility: 'published',
+        audience: 'all',
+        created_at: iso(60 * 26),
+      },
+      {
+        id: 'blog-draft',
+        author_id: 'dm-maria',
+        title: 'Notes for Sabbath — not finished',
+        body: 'Three things on hospitality. Still working out the second one.',
+        visibility: 'private',
+        audience: 'all',
+        created_at: iso(60 * 3),
+      },
+    ],
+    blog_audience: [],
+    // Two people have read the published post. The Guide is shown "2 readers"
+    // and never which two — see the note on BlogView in lib/types.ts.
+    blog_views: [
+      { id: 'view-1', post_id: 'blog-sabbath', viewer_id: 'ds-john', created_at: iso(60 * 20) },
+      { id: 'view-2', post_id: 'blog-sabbath', viewer_id: 'ds-grace', created_at: iso(60 * 9) },
+    ],
     church_name: 'Grace SDA Church',
   };
 }

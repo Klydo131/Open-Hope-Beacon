@@ -14,6 +14,7 @@ import {
   todayKey,
 } from '@/lib/engagement';
 import { IS_LIVE } from '@/lib/mode';
+import { BlogDesk } from '@/components/Blog';
 import { LiveGuidePage } from '@/components/LiveCorePages';
 
 // A missionary's dashboard: what needs doing today, how the flock is spread
@@ -348,6 +349,10 @@ function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Last on the page on purpose. The people waiting on this Guide come
+          first; writing is the thing you do once everyone is answered. */}
+      <BlogDesk userId={me.id} />
     </div>
   );
 }

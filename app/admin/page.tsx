@@ -123,6 +123,7 @@ const EVENT_LABEL: Record<AnalyticsEvent['type'], string> = {
   member_disapproved: 'Disapproved a sign-up',
   // The counts are visible to an admin; the note and reminder text never is.
   note_added: 'Wrote a private note',
+  blog_written: 'Wrote a blog post',
   followup_added: 'Set a follow-up',
   followup_done: 'Completed a follow-up',
 };

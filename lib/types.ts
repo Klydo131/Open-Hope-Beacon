@@ -207,6 +207,65 @@ export interface MaterialShare {
   created_at: string;
 }
 
+// ---------------------------------------------------------------------------
+// Blog posts — a Guide writing to the people they walk with.
+//
+// A Guide already has conversations, which are private and one-to-one. This is
+// the other thing they need: something said once to everybody, that an Explorer
+// can read in their own time without being asked a question or owing a reply.
+// Sermon notes, a thought for the week, what the church is doing on Sunday.
+//
+// TWO SWITCHES, NOT ONE. `visibility` is whether the post exists for anybody
+// but its author — a draft stays private until it is ready. `audience` is who
+// it reaches once published. Collapsing them into a single "public" flag would
+// mean the only way to stop showing a post is to delete it, and a Guide who
+// wants yesterday's note off the front page should not have to destroy it.
+// ---------------------------------------------------------------------------
+export type BlogVisibility = 'private' | 'published';
+export type BlogAudienceKind = 'all' | 'selected';
+
+export interface BlogPost {
+  id: string;
+  /** The Guide who wrote it. Only they may edit, hide or delete it. */
+  author_id: string;
+  title: string;
+  body: string;
+  /** 'private' means a draft: nobody but the author sees it, ever. */
+  visibility: BlogVisibility;
+  /** 'all' reaches every Explorer this Guide is paired with, today and later. */
+  audience: BlogAudienceKind;
+  created_at: string;
+  updated_at?: string;
+}
+
+/** Only used when audience === 'selected'. One row per named Explorer. */
+export interface BlogAudienceEntry {
+  id: string;
+  post_id: string;
+  ds_id: string;
+}
+
+/**
+ * One row the first time a person opens a post.
+ *
+ * The viewer is recorded so the count means "people", not "page loads" — a
+ * counter that climbs every time somebody scrolls past tells the writer
+ * nothing. The identity goes no further than that: the Guide is shown a
+ * NUMBER, never a list of names.
+ *
+ * That restraint is deliberate and matches the rest of the product. An Explorer
+ * is not shown their own journey stage and the prayer wall carries no names,
+ * for the same reason: somebody exploring faith should be able to read quietly
+ * without being watched doing it. A blog that reports "Marci opened this twice"
+ * changes what the app is.
+ */
+export interface BlogView {
+  id: string;
+  post_id: string;
+  viewer_id: string;
+  created_at: string;
+}
+
 export interface JourneyEvent {
   id: string;
   pairing_id: string;
@@ -255,7 +314,8 @@ export interface AnalyticsEvent {
     | 'member_disapproved'
     | 'note_added'
     | 'followup_added'
-    | 'followup_done';
+    | 'followup_done'
+    | 'blog_written';
   meta?: string;
   at: string;
 }
@@ -358,5 +418,8 @@ export interface DB {
   emails: DemoEmail[];
   seeker_notes: SeekerNote[];
   follow_ups: FollowUp[];
+  blog_posts: BlogPost[];
+  blog_audience: BlogAudienceEntry[];
+  blog_views: BlogView[];
   church_name: string;
 }
