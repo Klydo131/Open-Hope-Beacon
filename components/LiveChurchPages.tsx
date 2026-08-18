@@ -40,6 +40,7 @@ export function LiveChurchPage() {
     live.myChurch().then((c) => setChurchName(c?.name ?? undefined)).catch(() => {});
   }, []);
 
+
   if (!profile) return <p className="text-gray-500">Loading…</p>;
   const leads = profile.role === 'admin' || profile.role === 'executive';
 
@@ -68,6 +69,8 @@ export function LiveMailPage() {
   // Set when a resend could not be emailed and must be passed on by hand.
   const [handLink, setHandLink] = useState<{ to: string; url: string; why: string; wait?: number } | null>(null);
   const [sentTo, setSentTo] = useState('');
+  const [confirmCancel, setConfirmCancel] = useState('');
+  const [cancelled, setCancelled] = useState('');
 
   const load = useCallback(async () => {
     try { setInvites(await live.listInvites()); setError(''); }
@@ -109,6 +112,23 @@ export function LiveMailPage() {
     }
   };
 
+  const cancel = async (invite: live.OpenInvite) => {
+    setBusy(invite.id);
+    setError('');
+    setSentTo('');
+    setHandLink(null);
+    try {
+      await live.cancelInvite(invite.id);
+      setCancelled(invite.email);
+      setConfirmCancel('');
+      await load();
+    } catch (cause) {
+      setError(message(cause));
+    } finally {
+      setBusy('');
+    }
+  };
+
   if (!profile) return <p className="text-gray-500">Loading…</p>;
 
   const leads = profile.role === 'admin' || profile.role === 'executive';
@@ -139,6 +159,12 @@ export function LiveMailPage() {
 
       {error && (
         <p className="rounded-xl bg-red-50 px-4 py-3 text-red-700 ring-1 ring-red-200">{error}</p>
+      )}
+
+      {cancelled && (
+        <p className="rounded-xl bg-gray-100 px-4 py-3 text-gray-700 ring-1 ring-gray-300">
+          Invitation to {cancelled} withdrawn. That address can be invited again.
+        </p>
       )}
 
       {sentTo && (
@@ -217,6 +243,23 @@ export function LiveMailPage() {
                       <Button variant="gold" disabled={busy === i.id} onClick={() => resend(i)}>
                         {busy === i.id ? 'Sending…' : 'Re-send'}
                       </Button>
+                      {/* An invitation sent to the wrong address, or with the
+                          wrong role, used to be permanent — and because one
+                          open invitation per address is enforced, that slip
+                          also blocked the corrected one. Two taps, because
+                          deleting the wrong row loses a real invitation. */}
+                      <Button
+                        variant="ghost"
+                        disabled={busy === i.id}
+                        onClick={() => setConfirmCancel(confirmCancel === i.id ? '' : i.id)}
+                      >
+                        {confirmCancel === i.id ? 'Keep it' : 'Cancel'}
+                      </Button>
+                      {confirmCancel === i.id && (
+                        <Button variant="ghost" disabled={busy === i.id} onClick={() => cancel(i)}>
+                          Really cancel
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         onClick={() => {

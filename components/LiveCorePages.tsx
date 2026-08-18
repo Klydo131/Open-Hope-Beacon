@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { NAVY, roleNoun, stageInfo } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
-import { saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
+import { clearBrowserSession, saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
 import type { Message, Profile, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { LiveAppShell } from '@/components/LiveAppShell';
@@ -410,6 +410,38 @@ export function LiveJoinPage() {
         const codeEmail = params.get('email');
         const kind = params.get('type') === 'recovery' ? 'recovery' : 'invite';
 
+        // SUPABASE REPORTS A DEAD LINK IN THE HASH, NOT THE QUERY. An expired
+        // or already-used link arrives as
+        // `#error=access_denied&error_code=otp_expired`, with no token at all.
+        // Nothing looked for it, so the page found nothing to redeem, carried
+        // on, and fell through to whatever session happened to be in the
+        // browser already — presenting one person's account as another
+        // person's invitation. Read it first and say so.
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const linkError = hashParams.get('error_description') || hashParams.get('error');
+        if (linkError) {
+          throw new Error(
+            /expired/i.test(linkError)
+              ? 'This invitation link has expired or has already been used. Ask your church to send a new one.'
+              : decodeURIComponent(linkError.replace(/\+/g, ' ')),
+          );
+        }
+
+        const redeeming = Boolean(tokenHash || code);
+
+        // START FROM NOBODY when a link is being redeemed.
+        //
+        // A browser that has already completed one invitation still holds that
+        // person's session. Without this, opening a second person's link on the
+        // same device shows the FIRST person's name and address on the form —
+        // which is how an Explorer's invitation came to display a Guide's
+        // account. Worse than confusing: whoever is sitting there could finish
+        // somebody else's sign-up, or change their password.
+        if (redeeming) {
+          await client.auth.signOut({ scope: 'local' }).catch(() => {});
+          clearBrowserSession();
+        }
+
         if (tokenHash) {
           // The normal path. Works on any device, because the token carries
           // everything needed to redeem it.
@@ -442,7 +474,16 @@ export function LiveJoinPage() {
         }
 
         const { data } = await client.auth.getSession();
-        if (!data.session) throw new Error('This invitation link is invalid or has expired.');
+        if (!data.session) {
+          // NO TOKEN AND NO SESSION is a different thing from a bad token, and
+          // the two used to produce the same sentence. Somebody who opened
+          // /join out of curiosity was told their invitation was invalid.
+          throw new Error(
+            redeeming
+              ? 'This invitation link is invalid or has expired. Ask your church to send a new one.'
+              : 'Open the link in your invitation e-mail to finish setting up your account.',
+          );
+        }
 
         // HAND THE SESSION OVER EXPLICITLY. There are two clients in this app:
         // the auth client, which owns sign-in, and the data client, which reads

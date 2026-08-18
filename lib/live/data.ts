@@ -240,6 +240,24 @@ export async function listInvites(): Promise<OpenInvite[]> {
   return (data ?? []) as OpenInvite[];
 }
 
+/**
+ * Withdraw an invitation that has not been accepted.
+ *
+ * There was no way to take one back. An invitation sent to the wrong address,
+ * or with the wrong role chosen, simply stayed in the list for ever — and
+ * because the one-open-invite-per-address index then blocked a corrected one,
+ * a single slip made that person un-invitable until somebody went into the
+ * database.
+ *
+ * Only unredeemed invitations, and only for a church you manage: the
+ * invites_revoke policy in migration 0002 enforces both, so this cannot delete
+ * somebody's accepted membership or reach another church's list.
+ */
+export async function cancelInvite(id: string): Promise<void> {
+  const { error } = await db().from('invites').delete().eq('id', id).is('redeemed_at', null);
+  if (error) throw new Error(error.message);
+}
+
 /** The address each member was invited at. Leadership of that church only. */
 export async function memberContact(): Promise<Record<string, { email: string; joined_at: string }>> {
   const { data, error } = await db().rpc('church_member_contact');

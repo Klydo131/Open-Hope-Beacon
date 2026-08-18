@@ -129,6 +129,50 @@ Deno.serve(async (req) => {
     recommendedBy = guide.id;
   }
 
+  // ALREADY IN THIS CHURCH? THEN THERE IS NOTHING TO INVITE THEM TO.
+  //
+  // Nothing checked this, so inviting somebody who was already a member created
+  // a perfectly valid invitation for them. The Executive Director's own address
+  // ended up with an open invitation as a Guide sitting in the Invitations
+  // list — their account was untouched and still executive, but the screen
+  // said otherwise, and there was no way to tell which was true.
+  //
+  // Worse is what happens if such an invitation is ever accepted: the sign-up
+  // trigger reads the invite's role, so a Director could demote themselves by
+  // following a link. Refusing here closes that without relying on anybody
+  // noticing.
+  //
+  // Addresses live in auth.users, which only the service role can read — which
+  // is why this check belongs in this function and could not have been a policy.
+  {
+    // member_by_email is SECURITY DEFINER and granted to service_role ONLY.
+    // It answers "is this address registered?", which is an enumeration oracle
+    // in any browser's hands, so it is never exposed to one.
+    const { data: found } = await admin.rpc('member_by_email', { p_email: email });
+    const existing = Array.isArray(found) ? found[0] : found;
+
+    if (existing) {
+      const ROLE_NAME: Record<string, string> = {
+        executive: 'an Executive Director',
+        admin: 'a Director',
+        dm: 'a Guide',
+        ds: 'an Explorer',
+      };
+      const who = ROLE_NAME[String(existing.role)] ?? 'a member';
+      if (existing.church_id === church) {
+        return json({
+          error:
+            `${email} is already ${who} in this church`
+            + `${existing.full_name ? ` (${existing.full_name})` : ''}. `
+            + 'To change what they can do, use their entry in the member list rather than a new invitation.',
+        }, 409);
+      }
+      // A different church's member. Say nothing about which, or the refusal
+      // becomes a way to discover where an address is already registered.
+      return json({ error: `${email} already has a Hope Beacon account.` }, 409);
+    }
+  }
+
   const { data: invite, error: inviteErr } = await admin
     .from('invites')
     .insert({
