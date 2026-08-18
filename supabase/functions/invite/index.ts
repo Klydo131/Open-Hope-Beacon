@@ -133,12 +133,47 @@ Deno.serve(async (req) => {
     .select('id')
     .single();
 
+  // AN OPEN INVITATION MEANS RESEND, NOT REFUSE.
+  //
+  // 23505 is the one-open-invite-per-address index. The first version treated
+  // it as "nothing to do here" and returned 200 with `already: true` — before
+  // any of the email code below. So pressing Invite a second time created
+  // nothing, sent nothing, and reported success.
+  //
+  // That turned a small problem into a trap. The person's first invitation went
+  // out through a version whose link was broken, so they never got in; the
+  // unredeemed row stayed; and from then on EVERY attempt to re-invite them was
+  // silently swallowed by the index. The address was permanently un-invitable
+  // and the Director had no way to tell.
+  //
+  // Pressing Invite again on somebody who has not joined yet means "send it
+  // again" — nobody has ever meant anything else by it. So the existing row is
+  // reused and a fresh link is minted and posted. Reused rather than replaced
+  // deliberately: invited_by and created_at are the record of who asked for
+  // this and when, and a resend is not a new decision.
+  let inviteId = invite?.id;
+  let resent = false;
+  // Which kind of one-time link the reader will be holding, so /join knows how
+  // to redeem it.
+  let linkKind: 'invite' | 'recovery' = 'invite';
+
   if (inviteErr) {
-    // 23505 is the one-open-invite-per-address index doing its job.
-    if (inviteErr.code === '23505') {
+    if (inviteErr.code !== '23505') return json({ error: inviteErr.message }, 400);
+
+    const { data: open } = await admin
+      .from('invites')
+      .select('id, church_id, redeemed_at')
+      .eq('email', email)
+      .is('redeemed_at', null)
+      .maybeSingle();
+
+    // Only a Director of the SAME church may resend. Without this, the index
+    // becomes a way to discover which addresses another church has invited.
+    if (!open || open.church_id !== church) {
       return json({ ok: true, already: true, message: 'That person already has an open invitation.' });
     }
-    return json({ error: inviteErr.message }, 400);
+    inviteId = open.id;
+    resent = true;
   }
 
   // The church's own name, for the invitation. A message saying "a church has
@@ -171,18 +206,33 @@ Deno.serve(async (req) => {
   // Nothing depends on a dashboard setting anybody has to remember.
   const site = safeOrigin(Deno.env.get('SITE_URL')) || safeOrigin(req.headers.get('Origin'));
   if (!site) {
-    await admin.from('invites').delete().eq('id', invite.id);
+    if (!resent) await admin.from('invites').delete().eq('id', inviteId);
     return json({ error: 'Cannot work out this app\u2019s address. Set SITE_URL on the project.' }, 400);
   }
 
-  const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
+  // 'invite' only works for an address with no account yet. A resend usually
+  // HAS one — the first invitation created it — so that call fails with
+  // "already registered" and the resend dies for the one case it exists to
+  // serve. 'recovery' mints a set-a-password link for an existing account,
+  // which is exactly what somebody who never finished joining needs, and it
+  // lands on the same /join screen.
+  let { data: link, error: linkErr } = await admin.auth.admin.generateLink({
     type: 'invite',
     email,
     options: { data: { full_name: fullName }, redirectTo: `${site}/join` },
   });
 
+  if (linkErr && /already|registered|exists/i.test(String(linkErr.message ?? ''))) {
+    ({ data: link, error: linkErr } = await admin.auth.admin.generateLink({
+      type: 'recovery',
+      email,
+      options: { redirectTo: `${site}/join` },
+    }));
+    linkKind = 'recovery';
+  }
+
   if (linkErr) {
-    await admin.from('invites').delete().eq('id', invite.id);
+    if (!resent) await admin.from('invites').delete().eq('id', inviteId);
     const msg = String(linkErr.message ?? '');
     return json({
       error: /already|registered|exists/i.test(msg)
@@ -210,10 +260,10 @@ Deno.serve(async (req) => {
   // link needs. `type=invite` tells the page which kind it is holding.
   const tokenHash = link?.properties?.hashed_token ?? '';
   if (!tokenHash) {
-    await admin.from('invites').delete().eq('id', invite.id);
+    if (!resent) await admin.from('invites').delete().eq('id', inviteId);
     return json({ error: 'The sign-in link could not be created. Nothing was sent.' }, 500);
   }
-  const joinUrl = `${site}/join?token_hash=${encodeURIComponent(tokenHash)}&type=invite`;
+  const joinUrl = `${site}/join?token_hash=${encodeURIComponent(tokenHash)}&type=${linkKind}`;
 
   // The second address is the fallback for a mail client that mangles the long
   // one — some corporate filters rewrite links and break the hash. This one
@@ -225,7 +275,7 @@ Deno.serve(async (req) => {
   // did, is not a fallback.
   const code = link?.properties?.email_otp ?? '';
   const codeUrl = code
-    ? `${site}/join?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}&type=invite`
+    ? `${site}/join?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}&type=${linkKind}`
     : '';
 
   const sent = await sendInvitation({
@@ -252,6 +302,8 @@ Deno.serve(async (req) => {
   console.log(JSON.stringify({
     at: 'invite',
     delivery: sent.ok ? 'email' : 'link',
+    resent,
+    link_kind: linkKind,
     reason: sent.ok ? '' : sent.reason,
     have_key: Boolean((Deno.env.get('BREVO_API_KEY') || '').trim()),
     have_from: Boolean((Deno.env.get('MAIL_FROM') || '').trim()),
@@ -265,14 +317,14 @@ Deno.serve(async (req) => {
     // because a mail server had a bad minute.
     return json({
       ok: true,
-      invite_id: invite.id,
+      invite_id: inviteId,
       delivery: 'link',
       link: joinUrl,
       mailNote: sent.reason,
     });
   }
 
-  return json({ ok: true, invite_id: invite.id, delivery: 'email' });
+  return json({ ok: true, invite_id: inviteId, delivery: 'email', resent });
 });
 
 /**

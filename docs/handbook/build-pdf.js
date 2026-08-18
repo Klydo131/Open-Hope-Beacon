@@ -81,6 +81,18 @@ function inline(text) {
     return `\u0000${codes.length - 1}\u0000`;
   });
   out = escapeHtml(out);
+  // IMAGES BEFORE LINKS, and that order is not stylistic. `![alt](src)` is a
+  // link pattern with a `!` in front of it, so the link rule matches it first
+  // and turns every screenshot in the document into the literal text `!` next
+  // to a hyperlink. The first version of this builder did exactly that, which
+  // is why the guides had no pictures in them.
+  out = out.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, src) => {
+    const embedded = embed(src);
+    if (!embedded) return '';  // a missing image is worse as a broken icon
+    return `<figure><img src="${embedded}" alt="${alt}">`
+      + (alt ? `<figcaption>${alt}</figcaption>` : '')
+      + '</figure>';
+  });
   out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) =>
     `<a href="${absolute(href)}">${label}</a>`);
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -108,6 +120,43 @@ const REPO_DOCS = 'https://github.com/klydo131/open-hope-beacon/blob/main/docs/'
  * the PDF itself, and rewriting them would break the contents table, which is
  * the one set of links that WAS working.
  */
+/**
+ * Read an image off disk and return it as a data: URI.
+ *
+ * INLINED RATHER THAN LINKED, because the PDF has to survive being emailed.
+ * Chrome resolves a relative <img src> against the temporary HTML file, which
+ * works here and produces a document that silently loses every picture the
+ * moment it is moved — and the whole point of these is being handed to somebody
+ * on a memory stick.
+ *
+ * Returns '' for anything missing rather than throwing. A guide with one
+ * screenshot not yet captured should still build; the warning says which.
+ */
+function embed(src) {
+  if (/^data:/i.test(src)) return src;
+  if (/^https?:/i.test(src)) {
+    // Nothing is fetched at build time: an image that needs the network is an
+    // image the reader will not have either.
+    console.error(`  ! skipped remote image ${src} — inline it in docs/ instead`);
+    return '';
+  }
+  const file = path.resolve(DOCS, src);
+  if (!fs.existsSync(file)) {
+    console.error(`  ! missing image ${src}`);
+    return '';
+  }
+  const types = {
+    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+  };
+  const type = types[path.extname(file).toLowerCase()];
+  if (!type) {
+    console.error(`  ! unsupported image type ${src}`);
+    return '';
+  }
+  return `data:${type};base64,${fs.readFileSync(file).toString('base64')}`;
+}
+
 function absolute(href) {
   if (/^(https?:|mailto:|#)/i.test(href)) return href;
   const [file, anchor] = href.split('#');
@@ -235,6 +284,14 @@ const page = (title, body) => `<!doctype html>
   a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 7.5pt; color: #6b7280;
                            border: none; word-break: break-all; }
   strong { color: #0b1f3a; }
+  /* A screenshot is evidence, so it gets a frame and stays with its caption.
+     max-height keeps a tall phone screenshot from taking a whole page on its
+     own, which is what pushes the step it illustrates onto the next one. */
+  figure { margin: 12pt 0; text-align: center; page-break-inside: avoid; }
+  figure img { max-width: 100%; max-height: 165mm; height: auto;
+               border: 0.75pt solid #d1d5db; border-radius: 3pt; }
+  figcaption { margin-top: 4pt; font-size: 8.5pt; color: #6b7280;
+               font-style: italic; }
 </style></head><body>${body}</body></html>`;
 
 const targets = process.argv.slice(2);
