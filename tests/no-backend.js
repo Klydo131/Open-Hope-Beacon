@@ -325,6 +325,13 @@ const GUARDRAILS = new Set([
   // the credential-shape scan still applies, so naming a key is permitted and
   // carrying one is still caught.
   'scripts/setup.mjs',
+  // The migration that CREATES the mail settings table has to name the settings
+  // it is for, or a church cannot tell what to put in it. Same limits as the
+  // rest of this list: it is exempt from the TERM scan only, and the
+  // credential-shape scan below still applies — so naming BREVO_API_KEY is
+  // allowed and committing one is still caught. The file creates an empty
+  // table; the values are inserted by the deployment, never by the repo.
+  'supabase/migrations/0014_mail_settings_fallback.sql',
 ]);
 for (const f of textFiles) {
   if (GUARDRAILS.has(f)) continue;

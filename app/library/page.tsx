@@ -24,6 +24,7 @@ import {
 import { shareItem, blobToFile } from '@/lib/share';
 import { ShareButton } from '@/components/ShareSheet';
 import { MediaPlayer } from '@/components/MediaPlayer';
+import { Playlists } from '@/components/Playlists';
 import { useRoom } from '@/lib/room-theme';
 import { useDemo } from '@/lib/demo/store';
 import { homeFor, useLiveSession } from '@/lib/live/session';
@@ -352,6 +353,16 @@ export default function LibraryPage() {
         )}
 
         {/* My library */}
+        {/* Playlists sit ABOVE the file list on purpose. Somebody who has
+            already saved their music came here to play it, not to look at a
+            list of filenames; somebody with an empty library sees the list's
+            own empty state right below. */}
+        {ready && items.some((m) => m.type === 'audio' || m.type === 'video') && (
+          <div className="mb-4">
+            <Playlists items={items} onRefresh={refresh} />
+          </div>
+        )}
+
         {!ready ? (
           <p className="text-center text-gray-400">Loading your library…</p>
         ) : items.length === 0 ? (
