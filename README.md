@@ -72,6 +72,24 @@ role that shows you your own job in about ten minutes.
 
 Needs [Node 22 or newer](https://nodejs.org). Nothing else.
 
+## Then make it real, in four steps
+
+That demo keeps everything in your browser. To run this for an actual church —
+real accounts, real sign-in, two people on two phones seeing the same thing:
+
+```bash
+npm run setup      # asks two questions, writes your settings
+```
+
+Then run the migrations in `supabase/migrations/`, restart, and make yourself an
+administrator. **There is no code to write** — the schema, the security rules
+and the sign-in gateway all ship in this repository.
+
+Start the app and open **[/setup](http://localhost:3000/setup)**: it checks the
+connection, tells you which step you are on, and names what is missing instead
+of leaving you to guess. The written version is
+**[docs/SETUP.md](docs/SETUP.md)**.
+
 ---
 
 ## What it does

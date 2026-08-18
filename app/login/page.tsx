@@ -68,6 +68,31 @@ function DemoLogin() {
           </p>
         </Card>
 
+        {/*
+          The way out of the demo, on the screen where somebody first notices
+          they are in one.
+
+          This sign-in offers sample people, so a developer evaluating the
+          project meets the demo here and has no reason to think anything else
+          exists — the real e-mail-and-password door only appears once a
+          database is configured, which is precisely the step they have not
+          taken and cannot see. Naming it here is the difference between a
+          project that looks like a mock-up and one that looks like an app.
+        */}
+        <Card className="p-5" data-panel="go-live">
+          <h2 className="text-xl font-bold text-navy">Setting this up for your own church?</h2>
+          <p className="mt-1 text-gray-500">
+            These are sample people, kept in this browser. Connect a database and this same
+            screen becomes a real sign-in for your own members — there is no code to write.
+          </p>
+          <Link
+            href="/setup"
+            className="tap-sm mt-3 inline-flex items-center rounded-xl bg-navy px-5 font-semibold text-white"
+          >
+            Start setup
+          </Link>
+        </Card>
+
         <div>
           <p className="mb-3 text-center font-semibold text-gray-500">
             Explore as a sample user

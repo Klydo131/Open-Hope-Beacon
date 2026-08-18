@@ -1,9 +1,25 @@
 # Build your own Beacon: front end *and* backend
 
-Everything else in this repository says **"there is no backend."** That is true,
-and it is deliberate — but if you have read it five times and are now wondering
-*"so how do I actually make this work for my real church?"*, this file is the
-answer.
+> **Read [SETUP.md](SETUP.md) first if you just want it working.**
+>
+> This document is a course in designing a backend for this app. It is not the
+> instructions for running one, and for a while it was the only thing here that
+> looked like either — which sent people off to build from scratch a thing that
+> was already sitting in `supabase/migrations/`.
+>
+> The schema, the security rules and the sign-in gateway all ship in this
+> repository. Setting up your own Hope Beacon is four steps and no code:
+> `npm run setup`, run the migrations, restart, make yourself an administrator.
+> SETUP.md walks it, and the app's own `/setup` page checks your work as you go.
+>
+> Come back here when you want to know *why* the backend is shaped the way it
+> is, or you are porting it to a different stack.
+
+Everything else in this repository says **"there is no backend"** — meaning the
+app ships with none *switched on*, and runs entirely in your browser until you
+connect one. That is deliberate. But if you have read it five times and are now
+wondering *"so how do I actually make this work for my real church?"*, this file
+is the long answer.
 
 It takes you from the demo you have now to a working app that two people can
 sign into on two different phones and see the same thing.
