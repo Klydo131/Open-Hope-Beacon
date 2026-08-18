@@ -27,6 +27,13 @@ const Note = (label, text) => new Paragraph({ spacing:{before:130,after:190},
   children:[ new TextRun({ text:`${label}  `, bold:true, size:21, color:'7A5C00' }),
              new TextRun({ text, size:21, color:'4A3B00' }) ] });
 const Break = () => new Paragraph({ children:[new PageBreak()] });
+const Lead = (t) => new Paragraph({spacing:{after:200},children:[new TextRun({text:t,size:22,color:GREY,italics:true})]});
+const Warn = (l,t) => new Paragraph({spacing:{before:130,after:190},
+  shading:{type:ShadingType.CLEAR,fill:'FDECEC'},border:{left:{style:BorderStyle.SINGLE,size:14,color:'9B2C2C',space:10}},
+  children:[new TextRun({text:`${l}  `,bold:true,size:21,color:'8A1F1F'}),new TextRun({text:t,size:21,color:'5C1414'})]});
+const Prompt2 = (ls) => new Paragraph({spacing:{before:90,after:180},
+  shading:{type:ShadingType.CLEAR,fill:'EEF4FF'},border:{left:{style:BorderStyle.SINGLE,size:14,color:'2B5FCC',space:10}},
+  children:ls.flatMap((l,i)=>[...(i?[new TextRun({break:1})]:[]),new TextRun({text:l,size:20,color:'16305E',italics:true})])});
 
 const TOTAL = 9360;
 function T(headers, rows, widths){
@@ -61,6 +68,33 @@ push(
   new TableOfContents('Contents', { hyperlink:true, headingStyleRange:'1-2' }),
   new Paragraph({ spacing:{after:200}, children:[new TextRun({ text:'(Right-click → Update Field to refresh after editing.)', size:18, color:GREY, italics:true })] }),
   Break(),
+);
+
+// ---------------- The one-hour path ----------------
+push(
+  new Paragraph({text:'The one-hour path',heading:HeadingLevel.HEADING_1}),
+  Lead('Vercel + Supabase + Brevo + Claude, all free tiers. Follow it top to bottom and you will have a working church app with people in it.'),
+  T(['#','Step','Time','You are done when'],[
+    ['1','Fork github.com/klydo131/open-hope-beacon on GitHub','2 min','It is under your own account'],
+    ['2','supabase.com \u2192 New project. Pick a region near you. Save the database password.','5 min','Project says ACTIVE'],
+    ['3','SQL editor \u2192 run every file in supabase/migrations/ in filename order','10 min','No red errors; tables exist'],
+    ['4','vercel.com \u2192 Add New Project \u2192 import your fork \u2192 Deploy','5 min','A live URL that loads'],
+    ['5','Supabase \u2192 Settings \u2192 API. Copy the URL and the anon key.','1 min','Both on your clipboard'],
+    ['6','Vercel \u2192 Settings \u2192 Environment Variables \u2192 add both \u2192 Redeploy','4 min','The site asks you to sign in'],
+    ['7','Sign up on your own site with your real email','2 min','You are in, but everything is empty'],
+    ['8','SQL editor \u2192 run supabase/seed/01 (edit two lines first)','3 min','You are Executive Director'],
+    ['9','SQL editor \u2192 run supabase/seed/02 (no edits)','2 min','Your church has people in it'],
+    ['10','brevo.com \u2192 verify one sender \u2192 SMTP & API \u2192 copy SMTP details','10 min','Brevo confirms the address'],
+    ['11','Supabase \u2192 Authentication \u2192 SMTP \u2192 paste them in','3 min','Saved'],
+    ['12','Same screen \u2192 URL Configuration \u2192 add https://your-site/join','2 min','Saved'],
+    ['13','Invite somebody real from the app and watch it arrive','5 min','An email lands in their inbox'],
+  ],[760,3840,900,3860]),
+  Note('If you only have thirty minutes','stop after step 9. Steps 10\u201313 are email, and the app is fully usable without it \u2014 invitation links appear on screen to send by hand.'),
+  new Paragraph({text:'Where Claude fits',heading:HeadingLevel.HEADING_2}),
+  P('The free tier of Claude is enough for all of it, because none of these steps need code written. Use it as the person who has read the repository, and paste its answers rather than guessing.'),
+  Prompt2(['Good first message, with the repository open in front of you:','','"I am setting up Open Hope Beacon from github.com/klydo131/open-hope-beacon.','Read its README and docs/SETUP.md. I am on step 3 of the one-hour path','and the SQL editor gave me this error: <paste it>. What do I do?"']),
+  P('It is worth telling it two things about this project up front, because both are unusual and it will otherwise guess: the security lives in the database rather than in the screens, and the app is designed to run with no backend at all so an empty-looking install is often correct rather than broken.'),
+  Warn('One rule for the room.','If an assistant tells you something is secure, working or deployed, ask it how it knows. The honest answer names what it actually checked. The separate AI guide is entirely about this.'),
 );
 
 // ---------------- 1 ----------------
@@ -143,38 +177,42 @@ push(Break(),
 
 // ---------------- 6 ----------------
 push(Break(),
-  new Paragraph({ text:'6. Email', heading:HeadingLevel.HEADING_1 }),
-  P('The app sends exactly two kinds of message: an invitation, and a password reset. Both are one sentence and a link. Whatever delivers them can be small.'),
-  Note('Email is optional.','Without it, invitations are still created and the link is displayed on screen for the Director to pass on however they like. A church with no budget and no domain can run this.'),
-  new Paragraph({ text:'Three things that decide whether mail arrives', heading:HeadingLevel.HEADING_2 }),
-  Bullet('How the provider lets you prove you own the sending address. Verifying a single ADDRESS takes minutes. Verifying a DOMAIN needs DNS records and time. If you need to send this week, choose one that offers the first.'),
-  Bullet('Whether the free tier will deliver to strangers. Some deliver only to the account owner until a domain is verified — the API returns success and nothing arrives.'),
-  Bullet('Whether an IP allow-list is switched on. Serverless functions have no fixed outbound address, so the restriction must be OFF rather than added to.'),
-  new Paragraph({ text:'Options', heading:HeadingLevel.HEADING_2 }),
-  T(['Provider','Verify','Free tier','Notes'],[
-    ['Brevo','Address','~300/day','Used by the reference deployment. Check the IP allow-list.'],
-    ['Postmark','Domain','Trial','Best deliverability; approval is manual.'],
-    ['Amazon SES','Either','Very cheap','Starts sandboxed to verified addresses.'],
-    ['Your own SMTP','You own it','—','Postfix, a diocesan relay, a university server.'],
-  ],[1900,1400,1500,4560]),
-  new Paragraph({ text:'Configuring it', heading:HeadingLevel.HEADING_2 }),
-  P('If your auth service sends the mail, this is a dashboard change with no redeploy. Supply the five values every provider gives you:'),
-  Code(['Host:      smtp.your-provider.example','Port:      587','Username:  <from your provider>','Password:  <the SMTP key, not your login password>','Sender:    hello@yourchurch.example   # must be verified first']),
-  P('Also add your redirect URLs, or the link in the mail will land on a home page instead of a sign-up form:'),
+  new Paragraph({text:'6. Email',heading:HeadingLevel.HEADING_1}),
+  P('Yes — the email system comes with the fork. It is code in the repository, not something configured out of band: supabase/functions/invite/ is the function that issues invitations, and it is in every copy you clone.'),
+  P('What does NOT come with the fork is an account to send through. That is the part each church supplies, and it is a dashboard change rather than a code change.'),
+  Note('Email is optional.','Without it, invitations are still created and the link is shown on screen for a Director to pass on by hand — WhatsApp, a printed slip, out loud. A church with no budget and no domain can run this.'),
+  new Paragraph({text:'How the invitation actually travels',heading:HeadingLevel.HEADING_2}),
+  P('The app asks your authentication service to issue the invitation, and that service posts it using whatever SMTP you have given it. So you are not writing an email integration; you are giving your auth service a mail account.'),
+  Code(['app  →  invite function  →  Supabase Auth  →  your SMTP  →  inbox']),
+  new Paragraph({text:'Three things decide whether mail arrives',heading:HeadingLevel.HEADING_2}),
+  Bullet('How the provider proves you own the sending address. Verifying a single ADDRESS takes minutes. Verifying a DOMAIN needs DNS records and time. If you need to send this week, choose one that offers the first.'),
+  Bullet('Whether the free tier delivers to strangers. Some deliver only to the account owner until a domain is verified — the API returns success and nothing arrives, which is the worst possible failure because it looks like success.'),
+  Bullet('Whether an IP allow-list is switched on. Serverless functions have no fixed outbound address, so the restriction must be OFF rather than added to. Adding one address appears to work once and then fails from another region.'),
+  new Paragraph({text:'Setting it up',heading:HeadingLevel.HEADING_2}),
+  Num('Create a free account with any transactional mail provider. Brevo verifies a single address and is the fastest to a working send; Postmark has better deliverability but manual approval; your own Postfix or a diocesan relay is perfectly fine.'),
+  Num('Verify ONE sending address. Click the link they email you. Nothing works until this is done.'),
+  Num('Copy the SMTP details they give you — host, port, username, password.'),
+  Num('In Supabase: Project Settings → Authentication → SMTP Settings. Paste them in.'),
+  Code(['Host:      smtp.your-provider.example','Port:      587','Username:  from your provider (often not your email)','Password:  the SMTP key, not your login password','Sender:    the address you verified in step 2']),
+  Num('In the same area, add your redirect URLs, or the link in the mail lands on a home page instead of a sign-up form:'),
   Code(['http://localhost:3000/join','https://your-deployment.example/join']),
-  Note('Test by sending a real message','to an address that is not your own, and open it. A dashboard tick is not evidence. Almost every mail failure looks fine right up to the inbox.'),
-  P('docs/EMAIL.md in the repository has the longer version, including a troubleshooting table.'),
+  Note('Test by sending to somebody else.','Not to yourself. A dashboard tick is not evidence, and the free-tier restriction above hides precisely in the difference between your own address and anybody else\'s.'),
+  P('docs/EMAIL.md in the repository is the longer version, with a troubleshooting table.'),
 );
 
 // ---------------- 7 ----------------
 push(Break(),
-  new Paragraph({ text:'7. Create the first Director', heading:HeadingLevel.HEADING_1 }),
-  P('There is no public sign-up — every account arrives by invitation — so the first one is a chicken-and-egg problem you solve directly in the database.'),
-  Num('Sign up once through the app to create the auth user.'),
-  Num('In the SQL editor, create your church and promote yourself:'),
-  Code(["insert into public.churches (name)","values ('Your Church Name')","returning id;","","update public.profiles","set role = 'admin', is_approved = true, church_id = '<the id above>'","where id = '<your auth user id>';"]),
-  Num('Sign out and back in. You should land on the Director’s dashboard.'),
-  P('From then on you invite Guides, Guides recommend Explorers, and you approve them. Nobody else ever needs database access.'),
+  new Paragraph({text:'7. Make yourself the first Director, and put people in',heading:HeadingLevel.HEADING_1}),
+  P('There is no public sign-up \u2014 every account arrives by invitation \u2014 so the first seat is granted from a database session. Two scripts in the repository do it; you do not have to write SQL.'),
+  Num('Sign up once through the app with your own email.'),
+  Num('Open supabase/seed/01_make_me_the_first_director.sql. Change the two lines at the top to your address and your church name, then paste the whole file into the Supabase SQL editor and run it.'),
+  Num('Sign out and back in. You are now Executive Director.'),
+  new Paragraph({text:'Give yourself something to look at',heading:HeadingLevel.HEADING_2}),
+  P('A correctly installed Hope Beacon is indistinguishable from a broken one until somebody is in it: every screen works and every screen is empty. That is a terrible first five minutes and it makes a demonstration impossible.'),
+  Num('Run supabase/seed/02_demo_congregation.sql. No edits needed.'),
+  P('You now have two Guides, three Explorers, a conversation, a published blog post and a draft, prayer requests, a library, meetings, lesson series, and one member deliberately left unapproved so there is something for a Director to approve in front of an audience.'),
+  Code(['Sign in as any of these \u2014 password HopeBeacon2026!','','  maria@example.test    Guide','  david@example.test    Guide','  john@example.test     Explorer (paired with Maria)','  grace@example.test    Explorer','  pastor@example.test   Director']),
+  Note('Delete this before real members join.','The removal script is at the bottom of the same seed file. It is three deletes rather than one, because three foreign keys block instead of cascading.'),
 );
 
 // ---------------- 8 ----------------

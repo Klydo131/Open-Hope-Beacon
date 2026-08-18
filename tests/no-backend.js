@@ -280,6 +280,9 @@ const GUARDRAILS = new Set([
   // key is permitted and carrying one is still caught.
   'docs/handbook/build-handbook.js',
   'docs/handbook/build-ai-guide.js',
+  // The migration that CLOSES the privileged surface has to name the roles it
+  // closes it to. A guardrail that cannot say the word it guards is not one.
+  'supabase/migrations/0010_lock_definer_functions.sql',
   // .env.example's whole job is to say "never put the service_role key in
   // here". A warning that cannot name the thing it warns about is not a
   // warning, and the alternative — vaguer wording — is worse than the risk.
