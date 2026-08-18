@@ -873,8 +873,9 @@ export function LiveAdminPage() {
         // is not in the Redirect URLs allow-list that is silently ignored — a
         // project on its defaults mails everybody a link to localhost:3000. The
         // send reports success, the link is useless, and nothing in the result
-        // says so. This link is built by our own function from SITE_URL, so it
-        // is correct whatever the dashboard holds.
+        // says so. This link is built by our own invite function from the
+        // church's own configured address, so it is correct whatever the
+        // provider dashboard holds.
         setHandLink(result.link ? { to, url: result.link, why: 'sent' } : null);
         // Say WHERE it went and BY WHICH ROUTE. "Sent" on its own is the
         // message this screen showed all day while nothing was being sent, so
