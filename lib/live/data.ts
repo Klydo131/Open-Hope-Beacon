@@ -1014,3 +1014,59 @@ export async function completeAssignment(id: string, done: boolean): Promise<voi
     .update({ completed_at: done ? new Date().toISOString() : null }).eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+// ---------------------------------------------------------------------------
+// Lessons and notifications.
+// ---------------------------------------------------------------------------
+
+export interface Lesson {
+  id: string; church_id: string; author_id: string;
+  title: string; body: string; series_id: string | null;
+  position: number; created_at: string;
+}
+
+export async function listLessons(): Promise<Lesson[]> {
+  const { data, error } = await db().from('lessons').select('*')
+    .order('position', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Lesson[];
+}
+
+export async function addLesson(m: { title: string; body: string; seriesId?: string }): Promise<void> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', uid).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+  const { error } = await supabase.from('lessons').insert({
+    church_id: me.church_id, author_id: uid,
+    title: m.title.trim(), body: m.body, series_id: m.seriesId || null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export interface AppNotification {
+  id: string; user_id: string; type: string;
+  title: string; body: string; read_at: string | null; created_at: string;
+}
+
+/** Only ever this caller's own — enforced by policy, not by this query. */
+export async function listNotifications(): Promise<AppNotification[]> {
+  const { data, error } = await db().from('notifications').select('*')
+    .order('created_at', { ascending: false }).limit(50);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as AppNotification[];
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  const { error } = await db().from('notifications')
+    .update({ read_at: new Date().toISOString() }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  const { error } = await db().from('notifications')
+    .update({ read_at: new Date().toISOString() }).is('read_at', null);
+  if (error) throw new Error(error.message);
+}

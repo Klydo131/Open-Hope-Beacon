@@ -10,6 +10,7 @@ import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { Avatar, Button, Card } from '@/components/ui';
 import { LeftRail, RightRail, railGroupsFor } from '@/components/RoomRails';
 import { useRoom } from '@/lib/room-theme';
+import { LiveBell } from '@/components/LiveBell';
 
 /** One header link. Icon on a phone, icon and word once there is room. */
 function ShellLink({ href, icon, label }: { href: string; icon: string; label: string }) {
@@ -133,6 +134,8 @@ export function LiveAppShell({
             <ShellLink href="/profile"  icon="🙂" label="Profile" />
             <ShellLink href="/settings" icon="⚙️" label="Settings" />
           </nav>
+
+          <LiveBell />
 
           <div className="hidden min-w-0 text-right sm:block">
             <p className="max-w-48 truncate text-sm font-semibold">{profile.full_name}</p>
