@@ -9,6 +9,21 @@ import { homeFor, useLiveSession } from '@/lib/live/session';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { Avatar, Button, Card } from '@/components/ui';
 
+/** One header link. Icon on a phone, icon and word once there is room. */
+function ShellLink({ href, icon, label }: { href: string; icon: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      title={label}
+      className="tap-sm grid shrink-0 place-items-center gap-1 rounded-full bg-white/10 px-2.5 hover:bg-white/20 lg:flex lg:px-3"
+    >
+      <span aria-hidden>{icon}</span>
+      <span className="hidden text-sm font-semibold lg:inline">{label}</span>
+    </Link>
+  );
+}
+
 export function LiveAppShell({
   allow,
   children,
@@ -87,6 +102,21 @@ export function LiveAppShell({
               <p className="truncate text-xs text-white/60">Live church app</p>
             </div>
           </Link>
+
+          {/* THE REST OF THE APP.
+              These five pages existed and worked in live mode all along — the
+              live shell simply did not link to any of them, while the demo
+              shell linked to all five. So a signed-in member could reach their
+              dashboard and nothing else: no library, no church page, no mail,
+              no profile, no settings. The pages were never missing; the door
+              was. */}
+          <nav className="flex shrink-0 items-center gap-1" aria-label="Sections">
+            <ShellLink href="/church"   icon="⛪" label="Church" />
+            <ShellLink href="/library"  icon="📚" label="Library" />
+            <ShellLink href="/mail"     icon="✉️" label="Mail" />
+            <ShellLink href="/profile"  icon="🙂" label="Profile" />
+            <ShellLink href="/settings" icon="⚙️" label="Settings" />
+          </nav>
 
           <div className="hidden min-w-0 text-right sm:block">
             <p className="max-w-48 truncate text-sm font-semibold">{profile.full_name}</p>
