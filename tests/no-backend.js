@@ -295,6 +295,13 @@ const GUARDRAILS = new Set([
   // The migration that CLOSES the privileged surface has to name the roles it
   // closes it to. A guardrail that cannot say the word it guards is not one.
   'supabase/migrations/0010_lock_definer_functions.sql',
+  // 0016 GRANTS to service_role and to nothing else — that grant is the entire
+  // security property of the file, since member_by_email answers "is this
+  // address registered?" and is an enumeration oracle in any browser's hands.
+  // Same reasoning as 0010 above: a guardrail that cannot name what it guards
+  // is not one. Still subject to the credential-shape scan, so naming the role
+  // is allowed and committing a key is caught.
+  'supabase/migrations/0016_member_by_email_lookup.sql',
   // .env.example's whole job is to say "never put the service_role key in
   // here". A warning that cannot name the thing it warns about is not a
   // warning, and the alternative — vaguer wording — is worse than the risk.
