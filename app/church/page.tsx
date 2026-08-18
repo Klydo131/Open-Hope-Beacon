@@ -2,6 +2,9 @@
 
 import { useDemo } from '@/lib/demo/store';
 import { AppShell } from '@/components/AppShell';
+import { LiveAppShell } from '@/components/LiveAppShell';
+import { LiveChurchPage } from '@/components/LiveChurchPages';
+import { useIsLive } from '@/lib/tutorial';
 import { Card } from '@/components/ui';
 import { ChurchBillboard } from '@/components/ChurchBillboard';
 import { FeedbackButton } from '@/components/Feedback';
@@ -16,6 +19,13 @@ import type { Role } from '@/lib/types';
 const ALL: Role[] = ['executive', 'admin', 'dm', 'ds'];
 
 export default function ChurchPage() {
+  if (useIsLive()) {
+    return (
+      <LiveAppShell allow={['executive', 'admin', 'dm', 'ds']}>
+        <LiveChurchPage />
+      </LiveAppShell>
+    );
+  }
   return (
     <AppShell allow={ALL}>
       <Body />

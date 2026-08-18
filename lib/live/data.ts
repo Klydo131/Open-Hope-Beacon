@@ -209,6 +209,49 @@ export async function withdrawMyConsent(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Who has been invited, and who has not arrived yet
+// ---------------------------------------------------------------------------
+
+export interface OpenInvite {
+  id: string;
+  email: string;
+  role: Role;
+  full_name: string | null;
+  created_at: string;
+  redeemed_at: string | null;
+  expires_at: string;
+}
+
+/**
+ * Invitations this church has sent.
+ *
+ * The point of this list is the ones that have NOT been accepted. An invitation
+ * that silently failed to send looks exactly like one the person has not got
+ * round to opening, and until this existed there was nowhere at all to see the
+ * difference — a Director pressed Invite, got a confirmation, and that was the
+ * last anybody heard of it.
+ */
+export async function listInvites(): Promise<OpenInvite[]> {
+  const { data, error } = await db()
+    .from('invites')
+    .select('id, email, role, full_name, created_at, redeemed_at, expires_at')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as OpenInvite[];
+}
+
+/** The address each member was invited at. Leadership of that church only. */
+export async function memberContact(): Promise<Record<string, { email: string; joined_at: string }>> {
+  const { data, error } = await db().rpc('church_member_contact');
+  if (error) throw new Error(error.message);
+  const out: Record<string, { email: string; joined_at: string }> = {};
+  for (const row of (data ?? []) as { id: string; email: string; joined_at: string }[]) {
+    out[row.id] = { email: row.email, joined_at: row.joined_at };
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // The church and its people
 // ---------------------------------------------------------------------------
 

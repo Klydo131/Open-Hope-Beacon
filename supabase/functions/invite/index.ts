@@ -26,7 +26,7 @@
 //   - reveal whether an address already has an account. Same response either
 //     way, because the difference is a way to enumerate a church's members.
 
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -39,6 +39,34 @@ const json = (body: unknown, status = 200) =>
     status,
     headers: { ...CORS, 'Content-Type': 'application/json' },
   });
+
+/**
+ * Read one setting: the environment first, then public.app_settings.
+ *
+ * Edge Function secrets are the right home for a key and stay the recommended
+ * way to configure this. But an installation whose secrets are simply unset has
+ * no symptom anybody sees — the function returns 200, says it handed back a
+ * link instead, and unless somebody reads that response the invitations just
+ * stop arriving. A whole day went that way here.
+ *
+ * So a church that can run one SQL statement can configure email without
+ * dashboard access. app_settings has RLS on with no policies and every grant
+ * revoked from PUBLIC, anon and authenticated, so the service role this
+ * function holds is the only thing that can read it.
+ */
+async function setting(admin: SupabaseClient, name: string): Promise<string> {
+  const fromEnv = (Deno.env.get(name) || '').trim();
+  if (fromEnv) return fromEnv;
+  try {
+    const { data } = await admin
+      .from('app_settings').select('value').eq('key', name).maybeSingle();
+    return String(data?.value ?? '').trim();
+  } catch {
+    // The table is optional. A project that never created it is configured by
+    // environment only, which is a perfectly good way to run this.
+    return '';
+  }
+}
 
 const safeOrigin = (value: string | null) => {
   try {
@@ -204,7 +232,7 @@ Deno.serve(async (req) => {
   // account is created and a one-time code is minted. So we build the address
   // from what WE know, write the words ourselves, and post it through Brevo.
   // Nothing depends on a dashboard setting anybody has to remember.
-  const site = safeOrigin(Deno.env.get('SITE_URL')) || safeOrigin(req.headers.get('Origin'));
+  const site = safeOrigin(await setting(admin, 'SITE_URL')) || safeOrigin(req.headers.get('Origin'));
   if (!site) {
     if (!resent) await admin.from('invites').delete().eq('id', inviteId);
     return json({ error: 'Cannot work out this app\u2019s address. Set SITE_URL on the project.' }, 400);
@@ -278,7 +306,14 @@ Deno.serve(async (req) => {
     ? `${site}/join?code=${encodeURIComponent(code)}&email=${encodeURIComponent(email)}&type=${linkKind}`
     : '';
 
+  const mail = {
+    key: await setting(admin, 'BREVO_API_KEY'),
+    from: await setting(admin, 'MAIL_FROM'),
+    fromName: await setting(admin, 'MAIL_FROM_NAME'),
+  };
+
   const sent = await sendInvitation({
+    ...mail,
     to: email,
     name: fullName,
     church: churchName,
@@ -305,9 +340,9 @@ Deno.serve(async (req) => {
     resent,
     link_kind: linkKind,
     reason: sent.ok ? '' : sent.reason,
-    have_key: Boolean((Deno.env.get('BREVO_API_KEY') || '').trim()),
-    have_from: Boolean((Deno.env.get('MAIL_FROM') || '').trim()),
-    have_site_url: Boolean((Deno.env.get('SITE_URL') || '').trim()),
+    have_key: Boolean(mail.key),
+    have_from: Boolean(mail.from),
+    have_site_url: Boolean(site),
   }));
 
   if (!sent.ok) {
@@ -342,12 +377,13 @@ Deno.serve(async (req) => {
  */
 async function sendInvitation(m: {
   to: string; name: string; church: string; link: string; codeUrl: string;
+  key: string; from: string; fromName: string;
 }): Promise<{ ok: boolean; reason: string }> {
-  const key = (Deno.env.get('BREVO_API_KEY') || '').trim();
-  const from = (Deno.env.get('MAIL_FROM') || '').trim();
+  const key = m.key;
+  const from = m.from;
   if (!key) return { ok: false, reason: 'No email service is configured yet, so the link is below to send by hand.' };
   if (!from) return { ok: false, reason: 'MAIL_FROM is not set, so the link is below to send by hand.' };
-  const fromName = (Deno.env.get('MAIL_FROM_NAME') || m.church || 'Hope Beacon').trim();
+  const fromName = (m.fromName || m.church || 'Hope Beacon').trim();
 
   const first = (m.name || '').trim().split(/\s+/)[0] || 'there';
   const e = (t: string) =>

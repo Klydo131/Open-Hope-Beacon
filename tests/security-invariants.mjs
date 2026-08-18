@@ -488,8 +488,18 @@ if (exists('supabase/migrations/0003_invite_approval_gate.sql')) {
 
 if (exists('supabase/functions/invite/index.ts')) {
   const inviteFunction = read('supabase/functions/invite/index.ts');
-  ok(/safeOrigin\(Deno\.env\.get\('SITE_URL'\)\) \|\| safeOrigin\(req\.headers\.get\('Origin'\)\)/.test(inviteFunction),
+  // SITE_URL now comes through setting(), which reads the environment first and
+  // falls back to a service-role-only table — so a church that cannot reach the
+  // Edge Functions screen can still configure email. What is being protected is
+  // unchanged and is what this asserts: the address in an invitation is either
+  // configured deliberately or is the calling origin AFTER safeOrigin has
+  // validated it. An unvalidated header would let a caller point a real
+  // church's invitations at a site of their choosing.
+  ok(/safeOrigin\(await setting\(admin, 'SITE_URL'\)\) \|\| safeOrigin\(req\.headers\.get\('Origin'\)\)/.test(inviteFunction),
     'invitation links use the stable site URL or the validated calling origin');
+  // And the fallback store must never be readable by a browser.
+  ok(/revoke all on public\.app_settings from public/.test(read('supabase/migrations/0014_mail_settings_fallback.sql') || ''),
+    'the mail settings fallback is revoked from PUBLIC, not just anon');
 }
 
 if (exists('supabase/migrations/0004_live_api_permissions.sql')) {
