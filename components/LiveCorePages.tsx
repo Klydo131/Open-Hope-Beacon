@@ -11,6 +11,7 @@ import type { Message, Profile, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
+import { LiveAskForPrayer, LivePrayerForGuide, LivePrayerWall } from '@/components/LivePrayer';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -683,6 +684,15 @@ export function LiveAdminPage() {
             ))}
           </div>
         </Card>
+
+        {/* The WALL, not the named requests. A Director is shown totals and
+            never an identity; one who needs to know how a particular person is
+            doing asks their Guide. prayer_wall() returns no identifier at all,
+            so there is nothing to read even in the raw response.
+
+            Worth stating because it was once reported as a bug — "the admin
+            cannot see the prayer" — when it was the design working. */}
+        <LivePrayerWall />
       </div>
     </LiveAppShell>
   );
@@ -722,6 +732,13 @@ export function LiveGuidePage() {
         })}
       </div>
       {rows.length === 0 && !error && <Card className="mt-6 p-6 text-center text-gray-500">No active pairing yet.</Card>}
+
+      {/* Named requests from their own Explorers, then the nameless wall the
+          rest of the church sees. Both, because a Guide is also a member. */}
+      <div className="mt-6 space-y-6">
+        <LivePrayerForGuide nameFor={(id) => rows.find((r) => r.ds_id === id)?.ds_name ?? 'An Explorer'} />
+        <LivePrayerWall />
+      </div>
 
       {/* Last on the page on purpose: the people waiting on this Guide come
           first, and writing is what you do once everyone is answered. */}
@@ -882,6 +899,8 @@ export function LiveExplorerPage() {
             more than one addressed to everybody. Renders nothing at all when
             there is nothing to read, rather than an empty card. */}
         <LiveBlogFeed selfId={profile?.id} />
+        <LiveAskForPrayer />
+        <LivePrayerWall />
       </div>
     </LiveAppShell>
   );
