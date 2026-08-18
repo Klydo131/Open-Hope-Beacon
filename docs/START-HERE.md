@@ -20,8 +20,9 @@ Jump to the one you need if you are not.
 never opened a terminal. Part 7 is for someone who wants to know exactly what
 Part 8 is doing on their behalf.
 
-**Total cost: nothing.** Every service below has a free tier that a normal
-church stays inside. Nobody is asked for a card.
+**Cost: all four services have a free tier**, and a single church is normally
+well inside them. None of them asks for a card to begin. Limits change, so check
+each provider's own pricing page before you commit.
 
 **Total time: about an hour**, most of it waiting for things to start.
 
@@ -56,12 +57,18 @@ explains how to swap any of them.
 
 ### The four
 
-| Tool | Its job in one line | Free tier |
+| Tool | Its job in one line | Cost |
 |---|---|---|
-| **GitHub** | Holds the code, and how you get updates | Unlimited public repositories |
-| **Supabase** | The database, and who is allowed to sign in | 2 projects, 500 MB each |
-| **Vercel** | Turns the code into a website people can visit | Personal projects, generous limits |
-| **Brevo** | Sends the invitation emails | 300 emails a day |
+| **GitHub** | Holds the code, and how you get updates | Free for public repositories |
+| **Supabase** | The database, and who is allowed to sign in | Has a free tier |
+| **Vercel** | Turns the code into a website people can visit | Has a free tier |
+| **Brevo** | Sends the invitation emails | Has a free tier |
+
+**Check each provider's current free-tier limits yourself before committing to
+one.** All four are generous enough for a single church today, and all four are
+changed by their owners without asking us — a number printed here would be wrong
+eventually, and you would find out at the worst possible moment. Each one states
+its limits on its own pricing page.
 
 ### Why Supabase
 
@@ -99,8 +106,9 @@ Hope Beacon is invitation-only. There is no public sign-up page — the *only* w
 in is a Director sending someone an invitation. So sending email is not a
 feature, it is the front door.
 
-Brevo sends 300 a day free, forever, with no card. A church inviting its whole
-congregation will not reach that in a week.
+Brevo has a free tier with a daily sending allowance that a single church is
+unlikely to reach, and it does not ask for a card to start. Check the current
+number on their pricing page rather than trusting one printed here.
 
 **The important part is that Brevo is replaceable in one file.** All the sending
 lives in a single function at the bottom of
@@ -246,9 +254,14 @@ It asks two questions and checks your answers.
 > **It will stop you if you paste the wrong key.** That settings page shows two
 > that look alike and sit next to each other. One is meant to go to every
 > visitor's browser; the other bypasses every security rule you are about to
-> create. The setup command reads which one you pasted and refuses the dangerous
-> one. This is the single most common serious mistake and the app will not let
-> you make it.
+> create.
+>
+> Supabase issues them in two formats depending on when your project was made —
+> either a long string with two dots in it, or a pair beginning
+> `sb_publishable_` and `sb_secret_`. **You want the publishable one either
+> way.** The setup command understands both formats and refuses the dangerous
+> one in both. This is the single most common serious mistake, and the app will
+> not let you make it.
 
 ### Step 3 — Create the tables
 
@@ -330,10 +343,17 @@ your address.
 Then deploy the invitation sender:
 
 ```bash
+npx supabase login
 npx supabase functions deploy invite --project-ref YOUR_PROJECT_REF
 ```
 
-Your project ref is in your Supabase URL: `https://<ref>.supabase.co`.
+`login` opens a browser once and remembers you; without it the deploy is
+rejected. Your project ref is the part of your Supabase URL before
+`.supabase.co`.
+
+**No terminal handy?** Paste it in the dashboard instead: **Edge Functions →
+Deploy a new function**, name it exactly `invite`, and paste the contents of
+`supabase/functions/invite/index.ts`.
 
 > **Check, and do not skip this one:** invite somebody — use a second email
 > address of your own. The message should arrive **from your church's name, not
@@ -358,7 +378,7 @@ Getting it onto the internet, where your congregation can reach it.
    | Name | Value |
    |---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | `https://<your-ref>.supabase.co` |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the long `eyJ…` publishable key |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the publishable key (`eyJ…` or `sb_publishable_…`) |
 
    > **Not the service_role key. Ever.** Anything named `NEXT_PUBLIC_` is sent
    > to every visitor's browser. That is fine for the publishable key — it is
@@ -534,7 +554,7 @@ npm run dev            # localhost:3000, sample data, in-browser only
 # 3. Point it at your own Supabase project
 cat > .env.local <<'EOF'
 NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable key, the eyJ... one>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable key: eyJ... or sb_publishable_...>
 EOF
 # or: npm run setup  — same result, and it refuses the service_role key
 

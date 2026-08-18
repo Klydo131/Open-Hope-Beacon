@@ -61,27 +61,59 @@ function checkUrl(value) {
 }
 
 /**
- * Does this look like the publishable key?
+ * Does this look like the key that is safe to publish?
  *
- * Three dot-separated parts is the shape of the token these keys use. The check
- * that matters more is the SECOND one below: refusing a key that says it can
- * bypass your security rules. Pasting the wrong one of the two keys on that
- * settings page is the single most damaging mistake available here, and it is
- * an easy one — they sit next to each other and look alike.
+ * SUPABASE ISSUES TWO DIFFERENT KEY FORMATS AND THIS HAS TO KNOW BOTH.
+ *
+ *   legacy   eyJhbGci….eyJyb2xl….sig    a JWT; the role is inside it
+ *            anon = safe, service_role = catastrophic
+ *   current  sb_publishable_…  /  sb_secret_…
+ *            new projects are given these, and the role is in the prefix
+ *
+ * The first version of this only understood the JWT shape, and it got BOTH
+ * modern keys wrong in the same way: three dot-separated parts or nothing. A
+ * new project's publishable key — perfectly valid, the app works with it — was
+ * rejected as a typo, so anybody who created a Supabase project recently could
+ * not get through setup at all.
+ *
+ * The dangerous half of that is worse and is the reason this was rewritten.
+ * `sb_secret_…` bypasses every security rule in the database exactly as
+ * `service_role` does, and it was being answered with "that does not look like
+ * the key" — a message that says try again, not a message that says stop. The
+ * one mistake this function exists to catch was the one it failed to name, and
+ * somebody told they had a typo will go back, decide the tool is confused, and
+ * write the key into .env.local by hand.
+ *
+ * Refusing an unfamiliar format outright would be wrong in the other direction:
+ * key formats change, and a setup script that rejects tomorrow's key is a
+ * setup script nobody can use. So an unrecognised shape is allowed through,
+ * while anything that positively identifies itself as privileged is stopped.
  */
 function checkKey(value) {
   const trimmed = value.trim();
   if (!trimmed) return 'Nothing was entered.';
   if (/\s/.test(trimmed)) return 'That has a space or line break in it. Copy the whole key again.';
 
+  const STOP = (what) =>
+    `STOP. That is the ${what}, which bypasses every security rule in your ` +
+    'database. It must never be given to a browser. Go back and copy the ' +
+    'PUBLIC key instead — the one meant to be published.';
+
+  // Current format. The role is stated in the prefix, so no decoding needed.
+  if (/^sb_secret_/i.test(trimmed)) return STOP('secret key');
+  if (/^sb_publishable_/i.test(trimmed)) return null;
+
   const parts = trimmed.split('.');
   if (parts.length !== 3) {
-    return 'That does not look like the key. It is a long string with two dots in it.';
+    return (
+      'That does not look like either kind of key. It is either a long string ' +
+      'with two dots in it, or one starting sb_publishable_.'
+    );
   }
 
-  // Read the claims without verifying anything — this is a typo check, not
-  // authentication. If it does not decode, let it through: an unfamiliar key
-  // format is not evidence of a wrong key.
+  // Legacy format. Read the claims without verifying anything — this is a typo
+  // check, not authentication. If it does not decode, let it through: an
+  // unfamiliar key format is not evidence of a wrong key.
   let claims;
   try {
     claims = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
@@ -90,13 +122,7 @@ function checkKey(value) {
   }
 
   const role = String(claims?.role ?? '');
-  if (role && role !== 'anon') {
-    return (
-      `STOP. That key carries the role "${role}", which bypasses every security rule ` +
-      'in your database. It must never be given to a browser. Go back and copy the ' +
-      'PUBLIC key instead — the one meant to be published.'
-    );
-  }
+  if (role && role !== 'anon') return STOP(`key for the role "${role}"`);
   return null;
 }
 

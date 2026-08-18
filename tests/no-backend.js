@@ -318,6 +318,13 @@ const GUARDRAILS = new Set([
   // so naming a key stays allowed and carrying one is still caught.
   'docs/START-HERE.md',
   'docs/AI-SETUP-GUIDE.md',
+  // The setup script's ONE job is refusing the privileged key, and it now has
+  // to handle both formats Supabase issues — the JWT carrying a role, and the
+  // sb_secret_ prefix. It cannot check for a thing it is not allowed to name,
+  // for the same reason .env.example is on this list. Same limits as the rest:
+  // the credential-shape scan still applies, so naming a key is permitted and
+  // carrying one is still caught.
+  'scripts/setup.mjs',
 ]);
 for (const f of textFiles) {
   if (GUARDRAILS.has(f)) continue;
