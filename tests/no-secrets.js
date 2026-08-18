@@ -158,26 +158,35 @@ if (tracked.includes(seed)) {
 }
 
 // ---------------------------------------------------------------------------
-// 6. Nobody's actual Supabase project named in the repository.
+// 6. Only the demo project may be named. Any other is a leak.
 //
-// A project ref is not a credential — the anon key is public by design and the
-// URL ships to every browser. This check is not about secrecy. It is about a
-// PUBLIC TEMPLATE naming ONE person's backend: every reader who follows the
-// instructions literally points their copy, their deploy and their probing at
-// a stranger's database. The instructions must describe the reader's project,
-// not the author's.
+// This repository DOES name a live Supabase project on purpose. It is the
+// maintainers' own, published so a developer evaluating Hope Beacon can see a
+// working backend rather than assemble one before learning whether they want
+// it. That is a deliberate choice by its owner, not an accident, and this check
+// is not here to reverse it.
 //
-// This exists because it already happened. Setup docs written for one demo were
-// committed here with a live ref in four places, and nothing caught it — the
-// other checks all look for key-shaped strings, and a ref is not key-shaped.
+// What the check is for is every OTHER project. The same repository is worked
+// on alongside a private client deployment holding real churches and real
+// members, and a ref pasted from the wrong terminal reads exactly like a ref
+// pasted from the right one. Nothing else here would catch it: the other checks
+// hunt key-shaped strings, and a ref is twenty plain lowercase letters.
 //
-// Refs are exactly twenty lowercase letters. That shape also matches ordinary
-// words, so only the two positions that mean "a real project" are searched:
-// a <ref>.supabase.co host, and a --project-ref argument.
+// So the rule is an allow-list of one, and anything else fails loudly.
+//
+// If the demo project is ever retired or replaced, change DEMO_REFS. Do not
+// delete the check — the value is in what it refuses, not what it permits.
 // ---------------------------------------------------------------------------
+const DEMO_REFS = new Set([
+  'bcpuushjwcejytdthlnn', // Open Hope Beacon — the published demo backend
+]);
+
+// Refs are exactly twenty lowercase letters. That shape also matches ordinary
+// words, so only the two positions that can mean a real project are searched:
+// a <ref>.supabase.co host, and a --project-ref argument.
 const REF_HOST = /\b([a-z]{20})\.supabase\.co/g;
 const REF_FLAG = /--project-ref[= ]+([a-z]{20})\b/g;
-const refHits = [];
+const foreignRefs = [];
 for (const file of tracked) {
   if (!/\.(md|ts|tsx|js|mjs|json|ya?ml|sql|env\.example)$/i.test(file)) continue;
   if (file === 'tests/no-secrets.js') continue;
@@ -185,16 +194,19 @@ for (const file of tracked) {
   for (const re of [REF_HOST, REF_FLAG]) {
     re.lastIndex = 0;
     let m;
-    while ((m = re.exec(body))) refHits.push(`${file}: ${m[1]}`);
+    while ((m = re.exec(body))) {
+      if (!DEMO_REFS.has(m[1])) foreignRefs.push(`${file}: ${m[1]}`);
+    }
   }
 }
-if (refHits.length) {
+if (foreignRefs.length) {
   fail(
-    'a real Supabase project ref is named in the repository — use <your-project-ref>:\n    ' +
-      [...new Set(refHits)].join('\n    '),
+    'a Supabase project other than the published demo is named here:\n    ' +
+      [...new Set(foreignRefs)].join('\n    ') +
+      '\n    If this is a private deployment, remove it. If the demo project moved, update DEMO_REFS.',
   );
 } else {
-  ok('no real Supabase project is named; the docs describe the reader\'s own');
+  ok('only the published demo project is named; no private deployment leaked');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

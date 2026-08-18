@@ -80,12 +80,23 @@ New project → import `klydo131/open-hope-beacon` → add two environment
 variables:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL       = https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_URL       = https://bcpuushjwcejytdthlnn.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY  = <Settings -> API -> anon public>
 ```
 
 Leave both **unset** to deploy the sample-data fallback instead. That is the
 whole switch — see `lib/mode.ts`.
+
+> **The project named above is ours, and it is named on purpose.** It is the
+> published Hope Beacon demo backend, here so you can point a checkout at a
+> working database and see the thing running before deciding whether you want
+> it. Evaluate against it freely.
+>
+> **Do not build your church on it.** Create your own Supabase project and use
+> its ref everywhere this guide shows ours — your members' data belongs in a
+> database you control, under your own backups and your own account. Everything
+> in `supabase/migrations/` runs on a fresh project in one pass, so standing up
+> your own is a five-minute job, not a port.
 
 > The anon key is not a secret. It ships to every browser by design. What
 > protects the data is row level security, which is why the attack suite in
@@ -96,8 +107,8 @@ whole switch — see `lib/mode.ts`.
 ### 5. Deploy the invite function
 
 ```bash
-supabase functions deploy invite --project-ref <your-project-ref>
-supabase secrets set SITE_URL=https://<your-vercel-domain> --project-ref <your-project-ref>
+supabase functions deploy invite --project-ref bcpuushjwcejytdthlnn
+supabase secrets set SITE_URL=https://<your-vercel-domain> --project-ref bcpuushjwcejytdthlnn
 ```
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
