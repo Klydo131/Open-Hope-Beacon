@@ -304,6 +304,20 @@ const GUARDRAILS = new Set([
   // is still scanned for a committed JSON Web Token, and still required to set
   // no values at all. Naming a key is safe; carrying one is not.
   '.env.example',
+  // The two setup guides, for the same reason and under the same limits.
+  // START-HERE.md is the document a church's IT volunteer is handed: it has to
+  // name NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY because
+  // they are the two things they must type, and it has to name the
+  // service_role key because the most dangerous mistake available at that
+  // moment is pasting that one instead. AI-SETUP-GUIDE.md's warning is
+  // literally "no assistant needs your service_role key" — a warning that
+  // cannot say the word is not a warning.
+  //
+  // Every hostname in both is a placeholder: `<your-ref>.supabase.co`,
+  // `your-church.vercel.app`. The credential-shape scan still applies to both,
+  // so naming a key stays allowed and carrying one is still caught.
+  'docs/START-HERE.md',
+  'docs/AI-SETUP-GUIDE.md',
 ]);
 for (const f of textFiles) {
   if (GUARDRAILS.has(f)) continue;

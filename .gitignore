@@ -53,3 +53,8 @@ docs/handbook/package*.json
 # Local environment files — never commit keys
 .env.local
 .env*.local
+
+# Generated guides. The Markdown in docs/ is the source; these are built from it
+# with `node docs/handbook/build-pdf.js`. Committing them would give the repo two
+# copies of every guide that drift apart, and the PDF is always the stale one.
+docs/handbook/pdf/

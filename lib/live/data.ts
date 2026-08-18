@@ -58,6 +58,22 @@ function db() {
   return client;
 }
 
+/**
+ * Who is signed in, from the session this app already verified.
+ *
+ * USE THIS, NEVER the Auth client's own getUser. Eleven calls in this file
+ * drifted onto it while features were being added, and each one is a second
+ * network round trip to the Auth server before the query the caller actually
+ * wanted. That is not just slow — a browser with tracking protection on
+ * (Safari, Brave, Firefox in strict mode) can fail that request while the
+ * session itself is perfectly good, so the feature reports "not signed in" to
+ * somebody who is signed in, on their phone, in the middle of a conversation.
+ *
+ * The session in local storage was verified server-side by /api/auth/sign-in
+ * before it was ever written. Reading the id out of it asks nobody anything.
+ * lib/supabase/client.ts takes the access token from the same place, for the
+ * same reason.
+ */
 async function uid(): Promise<string> {
   const id = readBrowserSession()?.user.id;
   if (!id) throw new Error('You are not signed in.');
@@ -591,18 +607,16 @@ export async function createBlogPost(m: {
   dsIds?: string[];
 }): Promise<string> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
+  const me_id = await uid();
 
   const { data: me } = await supabase
-    .from('profiles').select('church_id').eq('id', uid).maybeSingle();
+    .from('profiles').select('church_id').eq('id', me_id).maybeSingle();
   if (!me?.church_id) throw new Error('Your account is not in a church yet.');
 
   const { data, error } = await supabase
     .from('blog_posts')
     .insert({
-      author_id: uid,
+      author_id: me_id,
       church_id: me.church_id,
       title: m.title.trim(),
       body: m.body.trim(),
@@ -690,18 +704,16 @@ export interface WallEntry {
 /** Raise a request. church_id is pinned by the policy, not trusted from here. */
 export async function addPrayerRequest(body: string, shareWithChurch: boolean): Promise<void> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
+  const me_id = await uid();
   const text = body.trim();
   if (!text) throw new Error('Write something first.');
 
   const { data: me } = await supabase
-    .from('profiles').select('church_id').eq('id', uid).maybeSingle();
+    .from('profiles').select('church_id').eq('id', me_id).maybeSingle();
   if (!me?.church_id) throw new Error('Your account is not in a church yet.');
 
   const { error } = await supabase.from('prayer_requests').insert({
-    ds_id: uid,
+    ds_id: me_id,
     church_id: me.church_id,
     body: text,
     share_with_church: shareWithChurch,
@@ -797,9 +809,7 @@ export async function addMaterial(m: {
   description?: string;
 }): Promise<string> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
+  const me_id = await uid();
 
   const url = m.url.trim();
   // Checked here so the person gets a sentence rather than a constraint
@@ -807,14 +817,14 @@ export async function addMaterial(m: {
   if (!/^https?:\/\//i.test(url)) throw new Error('The address needs to start with http:// or https://');
 
   const { data: me } = await supabase
-    .from('profiles').select('church_id').eq('id', uid).maybeSingle();
+    .from('profiles').select('church_id').eq('id', me_id).maybeSingle();
   if (!me?.church_id) throw new Error('Your account is not in a church yet.');
 
   const { data, error } = await supabase
     .from('materials')
     .insert({
       church_id: me.church_id,
-      added_by: uid,
+      added_by: me_id,
       title: m.title.trim(),
       description: m.description?.trim() || null,
       kind: m.kind,
@@ -840,14 +850,12 @@ export async function listShares(pairingId: string): Promise<MaterialShare[]> {
 /** Share one into a pairing. Only the Guide of that pairing may, by policy. */
 export async function shareMaterial(materialId: string, pairingId: string, note?: string): Promise<void> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
+  const me_id = await uid();
 
   const { error } = await supabase.from('material_shares').insert({
     material_id: materialId,
     pairing_id: pairingId,
-    shared_by: uid,
+    shared_by: me_id,
     note: note?.trim() || null,
   });
   // The unique index is the one somebody will hit, so it gets words rather
@@ -905,13 +913,11 @@ export async function listRecommendations(): Promise<Recommendation[]> {
 /** A Guide puts a name forward. They cannot invite; a Director decides. */
 export async function recommendSomeone(m: { full_name: string; email: string; note?: string }): Promise<void> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
-  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', uid).maybeSingle();
+  const me_id = await uid();
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', me_id).maybeSingle();
   if (!me?.church_id) throw new Error('Your account is not in a church yet.');
   const { error } = await supabase.from('recommendations').insert({
-    church_id: me.church_id, dm_id: uid,
+    church_id: me.church_id, dm_id: me_id,
     full_name: m.full_name.trim(), email: m.email.trim().toLowerCase(),
     note: m.note?.trim() || null,
   });
@@ -920,9 +926,9 @@ export async function recommendSomeone(m: { full_name: string; email: string; no
 
 export async function decideRecommendation(id: string, status: 'invited' | 'declined'): Promise<void> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
+  const me_id = await uid();
   const { error } = await supabase.from('recommendations')
-    .update({ status, decided_by: auth.user?.id, decided_at: new Date().toISOString() })
+    .update({ status, decided_by: me_id, decided_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw new Error(error.message);
 }
@@ -941,11 +947,9 @@ export async function listNotes(pairingId: string): Promise<SeekerNote[]> {
 
 export async function addNote(pairingId: string, body: string): Promise<void> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
+  const me_id = await uid();
   const { error } = await supabase.from('seeker_notes')
-    .insert({ pairing_id: pairingId, author_id: uid, body: body.trim() });
+    .insert({ pairing_id: pairingId, author_id: me_id, body: body.trim() });
   if (error) throw new Error(error.message);
 }
 
@@ -968,11 +972,9 @@ export async function listFollowUps(): Promise<FollowUp[]> {
 
 export async function addFollowUp(pairingId: string, title: string, dueOn?: string): Promise<void> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
+  const me_id = await uid();
   const { error } = await supabase.from('follow_ups')
-    .insert({ pairing_id: pairingId, owner_id: uid, title: title.trim(), due_on: dueOn || null });
+    .insert({ pairing_id: pairingId, owner_id: me_id, title: title.trim(), due_on: dueOn || null });
   if (error) throw new Error(error.message);
 }
 
@@ -1006,10 +1008,8 @@ export async function listLessonSeries(): Promise<LessonSeries[]> {
 
 export async function addLessonSeries(m: { title: string; topic: string; description?: string }): Promise<void> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
-  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', uid).maybeSingle();
+  const me_id = await uid();
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', me_id).maybeSingle();
   if (!me?.church_id) throw new Error('Your account is not in a church yet.');
   const { error } = await supabase.from('lesson_series').insert({
     church_id: me.church_id, title: m.title.trim(),
@@ -1026,11 +1026,9 @@ export async function listAssignments(): Promise<LessonAssignment[]> {
 
 export async function assignSeries(pairingId: string, seriesId: string): Promise<void> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
+  const me_id = await uid();
   const { error } = await supabase.from('lesson_assignments')
-    .insert({ pairing_id: pairingId, series_id: seriesId, assigned_by: uid });
+    .insert({ pairing_id: pairingId, series_id: seriesId, assigned_by: me_id });
   if (error) throw new Error(error.code === '23505' ? 'Already assigned.' : error.message);
 }
 
@@ -1059,13 +1057,11 @@ export async function listLessons(): Promise<Lesson[]> {
 
 export async function addLesson(m: { title: string; body: string; seriesId?: string }): Promise<void> {
   const supabase = db();
-  const { data: auth } = await supabase.auth.getUser();
-  const uid = auth.user?.id;
-  if (!uid) throw new Error('Not signed in.');
-  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', uid).maybeSingle();
+  const me_id = await uid();
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', me_id).maybeSingle();
   if (!me?.church_id) throw new Error('Your account is not in a church yet.');
   const { error } = await supabase.from('lessons').insert({
-    church_id: me.church_id, author_id: uid,
+    church_id: me.church_id, author_id: me_id,
     title: m.title.trim(), body: m.body, series_id: m.seriesId || null,
   });
   if (error) throw new Error(error.message);

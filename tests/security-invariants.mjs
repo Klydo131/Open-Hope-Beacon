@@ -429,12 +429,34 @@ if (exists('app/login/page.tsx') && exists('components/LiveCorePages.tsx')) {
   const login = read('app/login/page.tsx');
   const livePages = read('components/LiveCorePages.tsx');
   const layout = read('app/layout.tsx');
-  ok(/IS_LIVE\s*\?\s*<LiveLoginPage\s*\/>\s*:\s*<DemoLogin\s*\/>/.test(login),
+  // The choice moved from a build-time constant to a per-visitor one when the
+  // tutorial got its own door (lib/tutorial.tsx), so the shape to assert is
+  // `live ? <LiveLoginPage/> : <DemoLogin/>` fed by useIsLive(). What is being
+  // protected is unchanged and is asserted below as well: the two modes must
+  // still be separate branches, because deleting either would let one silently
+  // impersonate the other.
+  ok(/live\s*\?\s*<LiveLoginPage\s*\/>\s*:\s*<DemoLogin\s*\/>/.test(login)
+     && /useIsLive\(\)/.test(login),
     'the login route chooses either the live gateway or the sample persona chooser');
   ok(/autoComplete="email"/.test(livePages) && /autoComplete="current-password"/.test(livePages),
     'the live gateway asks for e-mail and password');
-  ok(/\{IS_DEMO\s*&&/.test(layout) && /<TutorialHost\s*\/>/.test(layout),
+  // The tutorial hosts moved out of the layout into components/TutorialExtras,
+  // because the layout is a server component and could therefore only ever read
+  // a build-time flag — which meant that on a church's deployment the guided
+  // walk could not appear no matter what the visitor chose. The guarantee being
+  // asserted is the same one: they render in tutorial mode and nowhere else.
+  const extras = exists('components/TutorialExtras.tsx')
+    ? read('components/TutorialExtras.tsx') : '';
+  ok(/<TutorialExtras\s*\/>/.test(layout)
+     && /<TutorialHost\s*\/>/.test(extras)
+     && /if\s*\(!tutorial\)\s*return null;/.test(extras),
     'the tutorial host renders only in sample-data mode');
+  // And the mode can only ever move in the safe direction: asking for the
+  // tutorial must not be able to switch a database on, and a deployment with no
+  // keys must not be able to leave the tutorial.
+  const tutorialMode = exists('lib/tutorial.tsx') ? read('lib/tutorial.tsx') : '';
+  ok(/live:\s*IS_LIVE\s*&&\s*!tutorial/.test(tutorialMode),
+    'live mode still requires the deployment to actually have a database');
   ok(/auth\.updateUser\(\{[\s\S]{0,120}password/.test(livePages),
     'an invitation link sets a password on the invited account');
   ok(/router\.replace\(`\/join\$\{query\}\$\{hash\}`\)/.test(livePages),
