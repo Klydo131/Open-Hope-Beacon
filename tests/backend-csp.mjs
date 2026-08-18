@@ -29,7 +29,15 @@ const ok = (c, m) => {
   console.log(`${c ? 'OK  ' : 'BAD '} ${m}`);
 };
 
-const BACKEND = 'https://project-under-test.supabase.co';
+// Deliberately not a real provider hostname. tests/no-backend.js forbids a live
+// database hostname anywhere in a tracked file, and it is right to — this repo
+// must never carry somebody's real project reference. The config only parses
+// the URL and checks the scheme, so any https origin exercises the same path.
+//
+// It scans TRACKED files, which is why this passed while the file was still
+// untracked and failed the moment it was committed. Worth knowing: a new test
+// file is not actually checked by that guard until it is in git.
+const BACKEND = 'https://backend.example.test';
 
 // next.config.mjs reads process.env at module scope, so each mode needs a fresh
 // evaluation. The query string defeats the ES module cache; without it the
