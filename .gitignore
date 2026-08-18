@@ -43,3 +43,9 @@ tsconfig.tsbuildinfo
 # scratch notes, exports, a local copy of somebody's real data.
 /private/
 /scratch/
+
+# Generated handbooks (build output)
+docs/handbook/*.docx
+docs/handbook/*.pdf
+docs/handbook/node_modules/
+docs/handbook/package*.json
