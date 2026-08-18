@@ -8,7 +8,7 @@ import { roleNoun, NAVY } from '@/lib/brand';
 import { Avatar, Button, Card } from '@/components/ui';
 import type { Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
-import { IS_LIVE } from '@/lib/mode';
+import { useIsLive } from '@/lib/tutorial';
 import { LiveLoginPage } from '@/components/LiveCorePages';
 
 // Typed against Role on purpose: when a role is added or retired, TypeScript
@@ -39,7 +39,8 @@ function Header({ subtitle }: { subtitle: string }) {
 // Sign-in. There is no backend here: pick a sample persona and explore any
 // role. Nothing leaves the browser.
 export default function Login() {
-  return IS_LIVE ? <LiveLoginPage /> : <DemoLogin />;
+  const live = useIsLive();
+  return live ? <LiveLoginPage /> : <DemoLogin />;
 }
 
 function DemoLogin() {

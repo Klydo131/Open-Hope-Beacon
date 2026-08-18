@@ -13,7 +13,7 @@ import {
   activeLabel,
   todayKey,
 } from '@/lib/engagement';
-import { IS_LIVE } from '@/lib/mode';
+import { useIsLive } from '@/lib/tutorial';
 import { BlogDesk } from '@/components/Blog';
 import { LiveGuidePage } from '@/components/LiveCorePages';
 
@@ -24,7 +24,7 @@ import { LiveGuidePage } from '@/components/LiveCorePages';
 // RLS guarantees this can never contain another missionary's seeker; the demo
 // store mirrors that by filtering on dm_id.
 export default function DmSeekers() {
-  if (IS_LIVE) return <LiveGuidePage />;
+  if (useIsLive()) return <LiveGuidePage />;
   return (
     <AppShell allow={['dm']}>
       <Dashboard />

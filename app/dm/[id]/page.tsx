@@ -19,13 +19,13 @@ import {
   activeShort,
 } from '@/lib/engagement';
 import { Meetings } from '@/components/Meetings';
-import { IS_LIVE } from '@/lib/mode';
+import { useIsLive } from '@/lib/tutorial';
 import { LiveConversationPage } from '@/components/LiveCorePages';
 
 type TabKey = 'talk' | 'journey' | 'care' | 'resources';
 
 export default function SeekerDetail() {
-  if (IS_LIVE) return <LiveConversationPage />;
+  if (useIsLive()) return <LiveConversationPage />;
   return (
     <AppShell allow={['dm']}>
       <Detail />

@@ -13,7 +13,7 @@ import { Meetings } from '@/components/Meetings';
 import { MySeries } from '@/components/MySeries';
 import type { MaterialType } from '@/lib/types';
 import { seekerPriorities, meetingWhen } from '@/lib/engagement';
-import { IS_LIVE } from '@/lib/mode';
+import { useIsLive } from '@/lib/tutorial';
 import { BlogFeed } from '@/components/Blog';
 import { LiveExplorerPage } from '@/components/LiveCorePages';
 
@@ -38,7 +38,7 @@ const VERSES = [
 // The seeker's home: a warm, quiet room to study the Word, keep their own study
 // shelf, and talk with their missionary.
 export default function DsHome() {
-  if (IS_LIVE) return <LiveExplorerPage />;
+  if (useIsLive()) return <LiveExplorerPage />;
   return (
     <AppShell allow={['ds']}>
       <Home />

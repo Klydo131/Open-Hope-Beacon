@@ -3,21 +3,18 @@ import './globals.css';
 import { DemoProvider } from '@/lib/demo/store';
 import { ServiceWorker } from '@/components/ServiceWorker';
 import { SelfHeal } from '@/components/SelfHeal';
-import { TutorialHost } from '@/components/TutorialHost';
 import { InstallPrompt } from '@/components/InstallPrompt';
-import { FeedbackNudgeHost } from '@/components/FeedbackNudgeHost';
 
 import { AutoUpdate } from '@/components/AutoUpdate';
 import { VersionWatch } from '@/components/VersionWatch';
 import { OnlineStatus } from '@/components/OnlineStatus';
-import { ConsentHost } from '@/components/ConsentHost';
-import { DemoRibbon } from '@/components/DemoRibbon';
 import { LocaleProvider } from '@/lib/i18n';
 import { BUILD_ID } from '@/lib/build-info';
 import { APP_NAME, APP_SHORT_NAME, APP_DESCRIPTION } from '@/lib/brand';
 import { INDEXABLE } from '@/lib/site-visibility';
-import { IS_DEMO } from '@/lib/mode';
 import { LiveSessionProvider } from '@/lib/live/session';
+import { TutorialModeProvider } from '@/lib/tutorial';
+import { TutorialExtras } from '@/components/TutorialExtras';
 
 export const metadata: Metadata = {
   // The name comes from lib/brand.ts so a fork changes it in one place. It also
@@ -75,20 +72,15 @@ export default function RootLayout({
             it exists to catch. */}
         <SelfHeal />
         <LocaleProvider>
-          <DemoProvider>
-            <LiveSessionProvider>
-              {children}
-              {IS_DEMO && (
-                <>
-                  <ConsentHost />
-                  <TutorialHost />
-                  <DemoRibbon />
-                  <FeedbackNudgeHost />
-                </>
-              )}
-              <InstallPrompt />
-            </LiveSessionProvider>
-          </DemoProvider>
+          <TutorialModeProvider>
+            <DemoProvider>
+              <LiveSessionProvider>
+                {children}
+                <TutorialExtras />
+                <InstallPrompt />
+              </LiveSessionProvider>
+            </DemoProvider>
+          </TutorialModeProvider>
 
           <AutoUpdate />
           <VersionWatch />

@@ -10,7 +10,7 @@ import { Button, Card } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 import type { Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
-import { IS_LIVE } from '@/lib/mode';
+import { useIsLive } from '@/lib/tutorial';
 import { LiveHomePage } from '@/components/LiveCorePages';
 
 // The front door, in the order a person actually needs it.
@@ -34,7 +34,8 @@ import { LiveHomePage } from '@/components/LiveCorePages';
 // The order is the message: this is a real app that happens to come with a
 // demonstration, not a demonstration wearing an app's clothes.
 export default function Home() {
-  return IS_LIVE ? <LiveHomePage /> : <DemoHome />;
+  const live = useIsLive();
+  return live ? <LiveHomePage /> : <DemoHome />;
 }
 
 function DemoHome() {

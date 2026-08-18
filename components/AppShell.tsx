@@ -17,7 +17,8 @@ import { emitQuest } from '@/lib/quest';
 import { useLocale } from '@/lib/i18n';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { BackButton } from '@/components/BackButton';
-import { IS_LIVE } from '@/lib/mode';
+import { useIsLive } from '@/lib/tutorial';
+import { ModeSwitch } from '@/components/ModeSwitch';
 import { LiveAppShell, LiveUnsupported } from '@/components/LiveAppShell';
 
 const NAV: Record<Role, { href: string; label: string }[]> = {
@@ -39,7 +40,7 @@ export function AppShell({
   allow: Role[];
   children: React.ReactNode;
 }) {
-  if (IS_LIVE) {
+  if (useIsLive()) {
     return (
       <LiveAppShell allow={allow}>
         <LiveUnsupported />
@@ -147,6 +148,10 @@ function DemoAppShell({
                 until the manifest's minimal-ui request is honoured. This is
                 the one that works everywhere. */}
             <BackButton home={NAV[currentUser.role][0].href} />
+            {/* The way back to the live app. Somebody who opened the tutorial
+                to look around has to be able to leave it, and until this was
+                here the only route out was editing the address bar. */}
+            <ModeSwitch onDark />
             <Link
               href={NAV[currentUser.role][0].href}
               className="flex shrink-0 items-center gap-2 sm:gap-3"

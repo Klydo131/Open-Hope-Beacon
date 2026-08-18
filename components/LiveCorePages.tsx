@@ -10,6 +10,7 @@ import { saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
 import type { Message, Profile, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { LiveAppShell } from '@/components/LiveAppShell';
+import { useTutorialMode } from '@/lib/tutorial';
 import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer, LivePrayerForGuide, LivePrayerWall } from '@/components/LivePrayer';
 import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
@@ -38,6 +39,7 @@ function PublicHeader({ title, subtitle }: { title: string; subtitle: string }) 
 
 export function LiveHomePage() {
   const { session, profile, loading } = useLiveSession();
+  const { enterTutorial } = useTutorialMode();
   const router = useRouter();
 
   useEffect(() => {
@@ -75,6 +77,40 @@ export function LiveHomePage() {
         <p className="mt-7 max-w-sm text-sm leading-relaxed text-white/55">
           Invitation only. Your church invites you; there is no public sign-up.
         </p>
+
+        {/* THE WAY INTO THE TUTORIAL, AND IT HAS TO BE ON THIS SCREEN.
+            "Invitation only, there is no public sign-up" is true and it is also
+            a closed door to everybody who has not been invited yet — which is
+            every church still deciding, and every IT person asked to evaluate
+            this. They arrived here, read that sentence, and had nowhere to go.
+            The tutorial existed and was compiled into this very page, and there
+            was no link to it anywhere.
+
+            Kept BELOW the real door on purpose. A member arriving with an
+            invitation should never have to read past a tutorial pitch to find
+            the way in — this is a real app that comes with a demonstration, not
+            a demonstration wearing an app's clothes. */}
+        <div className="mt-10 w-full max-w-sm rounded-2xl bg-white/10 p-5 text-center ring-1 ring-white/15">
+          <p className="text-base font-bold">Not invited yet? Look around first.</p>
+          <p className="mt-1.5 text-sm leading-relaxed text-white/70">
+            A complete working church with sample people in it. Every feature the
+            real app has, including the guided walk for your role.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              enterTutorial();
+              router.push('/');
+            }}
+            className="tap mt-4 w-full rounded-xl bg-white/90 px-4 font-bold text-navy hover:bg-white"
+          >
+            🧪 Open the tutorial
+          </button>
+          <p className="mt-2.5 text-xs text-white/55">
+            Runs entirely in this browser. No account, no database, nothing sent
+            anywhere — and nothing you do there can touch a church's real data.
+          </p>
+        </div>
 
         <a
           href="https://github.com/Klydo131/Open-Hope-Beacon"
@@ -237,36 +273,23 @@ export function LiveLoginPage() {
             </Button>
           </form>
 
-          {/* TRY AN ACCOUNT.
-              These are REAL sign-ins with real passwords against the real
-              database, not a client-side role switch. Every row level security
-              policy applies exactly as it does to a member, which is the point:
-              somebody evaluating the app should meet the same walls a church
-              will, not a demonstration that politely hides things.
+          {/* WHERE "TRY AN ACCOUNT" WENT.
+              Three buttons used to sit here that signed you in as Maria, John
+              or Pastor Ramos against THIS database, using seeded rows and a
+              shared password. It was removed, and the reason is worth keeping.
 
-              A client-side "become an admin" button would be a privilege
-              escalation wearing a friendly face, and this app deliberately has
-              none — not in live, not anywhere.
+              The tutorial is not part of the live app. Those buttons made it
+              part of it: trying the app meant putting invented members into a
+              real church's database and signing in as them. A church that had
+              not run the seed got "those sample accounts are not in this
+              database" — which reads as the app being broken — and a church
+              that HAD run it now has fictional people in its member list and a
+              shared password on three real accounts.
 
-              Shown only while the sample accounts exist. A church that has run
-              the removal script never sees this. */}
-          <TryAnAccount
-            onPick={async (address) => {
-              setBusy(true);
-              setError('');
-              try {
-                const mine = await live.signIn(address, 'HopeBeacon2026!');
-                router.replace(homeFor(mine.role));
-              } catch (cause) {
-                setError(
-                  'Those sample accounts are not in this database. Run supabase/seed/02_demo_congregation.sql, or sign in above.',
-                );
-                setBusy(false);
-              }
-            }}
-            busy={busy}
-          />
-
+              Somebody who wants to look around before joining goes to the
+              tutorial, which is offline, invents its people in the browser, and
+              cannot reach any database at all. That is a cleaner answer to the
+              same question, and it is the one on the front door. */}
           <form onSubmit={() => {}} className="hidden">
           </form>
           <button
@@ -291,44 +314,6 @@ export function LiveLoginPage() {
   );
 }
 
-
-/**
- * The sample accounts, offered on the live sign-in.
- *
- * WHY THIS BELONGS IN LIVE AND NOT ONLY IN THE TUTORIAL. The offline demo shows
- * what the app does. This shows that it does the same thing against a real
- * database with real security — which is the question an IT person actually has,
- * and the one a sample-data walkthrough cannot answer.
- */
-function TryAnAccount({ onPick, busy }: { onPick: (email: string) => void; busy: boolean }) {
-  const people = [
-    { email: 'maria@example.test',  who: 'Maria Santos',  role: 'Guide' },
-    { email: 'john@example.test',   who: 'John Reyes',    role: 'Explorer' },
-    { email: 'pastor@example.test', who: 'Pastor Ramos',  role: 'Director' },
-  ];
-  return (
-    <div className="mt-6 rounded-2xl bg-navy/5 p-4">
-      <p className="text-sm font-bold text-navy">Just looking? Try an account.</p>
-      <p className="mt-0.5 text-xs text-gray-500">
-        Real sign-ins to the real database. You will see exactly what that person sees, and nothing more.
-      </p>
-      <div className="mt-3 grid gap-2 sm:grid-cols-3">
-        {people.map((p) => (
-          <button
-            key={p.email}
-            type="button"
-            disabled={busy}
-            onClick={() => onPick(p.email)}
-            className="rounded-xl bg-white px-3 py-2 text-left ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-50"
-          >
-            <span className="block text-sm font-semibold text-navy">{p.role}</span>
-            <span className="block text-xs text-gray-500">{p.who}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function LiveSignupPage() {
   return (

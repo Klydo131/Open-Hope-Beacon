@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { NAVY } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
-import { IS_LIVE } from '@/lib/mode';
+import { useIsLive } from '@/lib/tutorial';
 import { LiveSignupPage } from '@/components/LiveCorePages';
 
 // Sign-up — for people who have an invitation but not a working email link.
@@ -21,7 +21,8 @@ import { LiveSignupPage } from '@/components/LiveCorePages';
 // a link opened on the wrong device, a copy-paste that lost the tail. Without
 // this page those people have no way in but to ask for a new invitation.
 export default function SignupPage() {
-  return IS_LIVE ? <LiveSignupPage /> : <DemoSignupPage />;
+  const live = useIsLive();
+  return live ? <LiveSignupPage /> : <DemoSignupPage />;
 }
 
 function DemoSignupPage() {

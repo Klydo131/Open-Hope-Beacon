@@ -14,11 +14,11 @@ import { momentum, quietCount, trend } from '@/lib/analytics-trend';
 import { MomentumLine, TrendChart } from '@/components/TrendChart';
 import type { AnalyticsEvent, MaterialType, Role, Track } from '@/lib/types';
 import { relTime } from '@/lib/activity';
-import { IS_LIVE } from '@/lib/mode';
+import { useIsLive } from '@/lib/tutorial';
 import { LiveAdminPage } from '@/components/LiveCorePages';
 
 export default function Admin() {
-  if (IS_LIVE) return <LiveAdminPage />;
+  if (useIsLive()) return <LiveAdminPage />;
   return (
     // Executives too, which they were not.
     //

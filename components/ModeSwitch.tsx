@@ -2,78 +2,104 @@
 
 // Move between the live app and the offline tutorial.
 //
-// The two are the SAME APP with the same features. Live keeps real people in a
-// real database; the tutorial keeps sample people in this browser and works on
-// a plane. Neither is a cut-down version of the other, and the switch exists so
-// nobody has to take that on trust — you press it and see.
+// THEY ARE TWO SEPARATE THINGS. Live keeps real people in a real database and
+// is invitation-only. The tutorial invents its people in this browser, works on
+// a plane, and cannot reach a database at all. Neither is a cut-down version of
+// the other — the same screens and the same features, different data behind
+// them — and this control exists so nobody has to take that on trust.
 //
-// HOW THE MODE IS ACTUALLY CHOSEN. lib/mode.ts asks one question: are Supabase
-// keys present in this build? So a deployment is live or offline by
-// configuration, not by a toggle somebody can flip by accident. This control
-// therefore does one of two honest things rather than pretending:
+// It used to only DESCRIBE the mode, because the mode was fixed at build time
+// by whether Supabase keys were present. A visitor to a deployed church app
+// could not reach the tutorial by any route, and the one link this panel
+// offered pointed at a query parameter nothing read. lib/tutorial.tsx moved the
+// choice to runtime, so this now actually moves you.
 //
-//   - on a LIVE deployment it offers the tutorial, which is always available
-//   - on an OFFLINE deployment it explains what turning live on requires
-//
-// A switch that claimed to enable a database it has no keys for would be the
-// worst kind of button: the kind that looks like it worked.
+// It can only ever move in the safe direction. Choosing the tutorial cannot
+// touch a database; leaving it cannot conjure one that was never configured,
+// which is why a deployment with no keys is told what it would take rather than
+// given a button that looks like it worked.
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { IS_LIVE } from '@/lib/mode';
+import { useRouter } from 'next/navigation';
+import { useTutorialMode } from '@/lib/tutorial';
 
 export function ModeSwitch({ onDark = false }: { onDark?: boolean }) {
   const [open, setOpen] = useState(false);
+  const { tutorial, hasDatabase, enterTutorial, leaveTutorial } = useTutorialMode();
+  const router = useRouter();
+
+  const go = (action: () => void) => {
+    action();
+    setOpen(false);
+    // Back to the front door. Whichever mode you just left, the screen you were
+    // on belongs to it — a Guide's desk full of sample people is not a screen
+    // the live app should try to redraw with real ones.
+    router.push('/');
+  };
 
   return (
     <div className="relative shrink-0">
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Switch between the live app and the tutorial"
-        title="Live or tutorial"
+        title={tutorial ? 'You are in the tutorial' : 'You are in the live app'}
         className={
           onDark
             ? 'tap-sm grid place-items-center rounded-full bg-white/10 px-2.5 hover:bg-white/20'
             : 'tap-sm grid place-items-center rounded-full bg-navy/5 px-2.5 hover:bg-navy/10'
         }
       >
-        <span aria-hidden>{IS_LIVE ? '🟢' : '🧪'}</span>
+        <span aria-hidden>{tutorial ? '🧪' : '🟢'}</span>
         <span className="ml-1 hidden text-xs font-bold lg:inline">
-          {IS_LIVE ? 'LIVE' : 'TUTORIAL'}
+          {tutorial ? 'TUTORIAL' : 'LIVE'}
         </span>
       </button>
 
       {open && (
         <div className="absolute right-0 z-40 mt-2 w-72 rounded-2xl bg-white p-4 text-left shadow-2xl ring-1 ring-black/10">
           <p className="font-bold text-navy">
-            {IS_LIVE ? 'You are in the live app' : 'You are in the tutorial'}
+            {tutorial ? 'You are in the tutorial' : 'You are in the live app'}
           </p>
           <p className="mt-1 text-sm text-gray-600">
-            {IS_LIVE
-              ? 'Real people, real database, real security. Every feature here also works in the tutorial.'
-              : 'Sample people kept in this browser. Works offline. Every feature here also works live.'}
+            {tutorial
+              ? 'Sample people, invented in this browser. Nothing here is sent anywhere, and nothing here can reach your church database.'
+              : 'Real people, real database, real security. Every feature here also works in the tutorial.'}
           </p>
 
           <div className="mt-3 space-y-2">
-            {IS_LIVE ? (
+            {tutorial && hasDatabase && (
+              <button
+                type="button"
+                onClick={() => go(leaveTutorial)}
+                className="tap block w-full rounded-xl bg-navy px-3 text-left text-sm font-semibold text-white hover:bg-navy/90"
+              >
+                🟢 Go to the live app
+              </button>
+            )}
+
+            {!tutorial && (
               <>
-                <Link
-                  href="/?tutorial=1"
-                  className="block rounded-xl bg-navy/5 px-3 py-2 text-sm font-semibold text-navy hover:bg-navy/10"
+                <button
+                  type="button"
+                  onClick={() => go(enterTutorial)}
+                  className="tap block w-full rounded-xl bg-navy/5 px-3 text-left text-sm font-semibold text-navy hover:bg-navy/10"
                 >
                   🧪 Open the tutorial
-                </Link>
+                </button>
                 <p className="text-xs text-gray-500">
                   Nothing you do there touches the church database.
                 </p>
               </>
-            ) : (
+            )}
+
+            {tutorial && !hasDatabase && (
               <>
                 <p className="rounded-xl bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                  To run this against a real database, set{' '}
+                  This copy has no database connected, so the tutorial is all
+                  there is. To run it against a real one, set{' '}
                   <span className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_URL</span> and{' '}
-                  <span className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</span> on your
-                  host and redeploy.
+                  <span className="font-mono text-xs">NEXT_PUBLIC_SUPABASE_ANON_KEY</span> on
+                  your host and redeploy.
                 </p>
                 <p className="text-xs text-gray-500">
                   That is the whole switch — there is no flag to remember.

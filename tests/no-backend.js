@@ -225,6 +225,18 @@ for (const f of source) {
   for (const c of calls) {
     // Its own origin during a local test run is not somebody else's server.
     if (/localhost|127\.0\.0\.1/.test(c)) continue;
+    // SERVER-SIDE CODE IS NOT SHIPPED CODE. This rule protects the promise that
+    // the app a visitor downloads talks to nobody — so it is about what runs in
+    // a BROWSER. supabase/functions/ runs on the fork owner's own Supabase
+    // project, under their own key, and one of its jobs is literally to post an
+    // invitation to an email provider. Forbidding that would forbid the app
+    // having invitations at all.
+    //
+    // The exemption is the directory, not the URL: a fork that swaps Brevo for
+    // Postmark should not have to edit a test to do it. Anything under app/,
+    // components/ or lib/ is still held to the original rule, which is where
+    // the promise actually lives.
+    if (f.startsWith('supabase/functions/')) continue;
     ok(false, `${f} fetches an external URL: ${c.slice(0, 70)}`);
   }
 }
