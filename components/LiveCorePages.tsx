@@ -804,6 +804,8 @@ export function LiveAdminPage() {
   const [dmId, setDmId] = useState('');
   const [dsId, setDsId] = useState('');
   const [busy, setBusy] = useState('');
+  // Set when the invitation could not be emailed and must be passed on by hand.
+  const [handLink, setHandLink] = useState<{ to: string; url: string; why: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -848,13 +850,31 @@ export function LiveAdminPage() {
     setError('');
     setNotice('');
     try {
-      await live.inviteMember({
+      const result = await live.inviteMember({
         fullName: name,
         email,
         role,
         recommendedBy: role === 'ds' && guideId ? guideId : undefined,
       });
-      setNotice(`Invitation e-mail sent to ${email.trim().toLowerCase()}.`);
+      const to = email.trim().toLowerCase();
+
+      // TELL THE TRUTH ABOUT WHAT HAPPENED. This said "Invitation e-mail sent"
+      // unconditionally, including when the function had reported that it could
+      // not send anything. Invitations went nowhere for a day while the screen
+      // said they had gone — and the one thing that would have made it obvious,
+      // the link the function hands back for exactly this case, was thrown away
+      // one layer down.
+      if (result.delivery === 'link' && result.link) {
+        setHandLink({ to, url: result.link, why: result.mailNote ?? '' });
+        setNotice('');
+      } else {
+        setHandLink(null);
+        setNotice(
+          result.resent
+            ? `Invitation re-sent to ${to}.`
+            : `Invitation e-mail sent to ${to}.`,
+        );
+      }
       setName('');
       setEmail('');
       setGuideId('');
@@ -928,6 +948,39 @@ export function LiveAdminPage() {
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">Send an invitation e-mail</h2>
           <p className="mt-1 text-sm text-gray-500">The chosen role comes from the server-side invitation record.</p>
+          {handLink && (
+            // A church that has not set up a mail provider yet is a normal
+            // state, and it must not be a dead end. The account and the link
+            // are real and work exactly once; the only thing missing is the
+            // postman, so the Director becomes the postman.
+            <div className="mt-4 rounded-2xl bg-amber-50 p-4 ring-1 ring-amber-300">
+              <p className="font-bold text-amber-900">
+                Send this link to {handLink.to} yourself
+              </p>
+              <p className="mt-1 text-sm text-amber-800">
+                {handLink.why || 'No email service is set up on this project yet.'}
+              </p>
+              <p className="mt-1 text-sm text-amber-800">
+                The account is created and this link works. It can be used once.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <input
+                  readOnly
+                  value={handLink.url}
+                  onFocus={(e) => e.currentTarget.select()}
+                  className="tap min-w-0 flex-1 rounded-xl bg-white px-3 text-sm ring-1 ring-amber-300"
+                />
+                <Button
+                  variant="ghost"
+                  onClick={() => { void navigator.clipboard?.writeText(handLink.url); }}
+                >
+                  Copy link
+                </Button>
+                <Button variant="ghost" onClick={() => setHandLink(null)}>Done</Button>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={sendInvite} className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Full name" value={name} onChange={setName} />
             <Field label="E-mail" type="email" value={email} onChange={setEmail} />

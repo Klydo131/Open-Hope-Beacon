@@ -376,6 +376,27 @@ export async function createPairing(dmId: string, dsId: string, track: Track): P
 // Invitations
 // ---------------------------------------------------------------------------
 
+/**
+ * What the invite function actually reports back.
+ *
+ * `delivery` is the honest bit: 'email' means it left, 'link' means it did not
+ * and the URL below is the only way that person is getting in. A church with no
+ * mail provider configured yet is a normal state, not an error — but it has to
+ * be a VISIBLE state, or invitations quietly go nowhere.
+ */
+export interface InviteResult {
+  ok?: boolean;
+  delivery?: 'email' | 'link';
+  /** Present when delivery is 'link'. Hand this to the person yourself. */
+  link?: string;
+  /** Why it could not be emailed, in words a person can act on. */
+  mailNote?: string;
+  /** True when this refreshed an invitation that was already open. */
+  resent?: boolean;
+  already?: boolean;
+  message?: string;
+}
+
 export async function inviteMember({
   email,
   role,
@@ -386,7 +407,7 @@ export async function inviteMember({
   role: Role;
   fullName: string;
   recommendedBy?: string;
-}): Promise<void> {
+}): Promise<InviteResult> {
   const client = db();
   const { data, error } = await client.functions.invoke('invite', {
     body: {
@@ -416,6 +437,12 @@ export async function inviteMember({
   if (data && typeof data === 'object' && 'error' in data) {
     throw new Error(String((data as { error: unknown }).error));
   }
+  // RETURN IT. This used to be Promise<void>, so the Director's screen said
+  // "Invitation e-mail sent" whatever came back — including when the function
+  // had plainly reported that it could not send anything and had handed back a
+  // link to pass on by hand. The owner sent invitations for a day and was told
+  // each time that they had gone.
+  return (data ?? {}) as InviteResult;
 }
 
 const ORDER: Stage[] = ['create', 'connect', 'care', 'call', 'cultivate', 'commission'];

@@ -26,6 +26,7 @@ import { ShareButton } from '@/components/ShareSheet';
 import { MediaPlayer } from '@/components/MediaPlayer';
 import { useRoom } from '@/lib/room-theme';
 import { useDemo } from '@/lib/demo/store';
+import { homeFor, useLiveSession } from '@/lib/live/session';
 import { STARTER_KIT, KIT_TOPICS } from '@/lib/starter-kit';
 
 const ICON: Record<string, string> = {
@@ -38,6 +39,10 @@ const ICON: Record<string, string> = {
 
 // A personal, on-device media library. Everything is saved locally (IndexedDB)
 // and shared straight from the device — Beacon never hosts the files.
+const DEMO_HOME: Record<string, string> = {
+  executive: '/admin', admin: '/admin', dm: '/dm', ds: '/ds',
+};
+
 export default function LibraryPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -45,6 +50,14 @@ export default function LibraryPage() {
   // version gets from the shell.
   const { currentUser } = useDemo();
   const { theme } = useRoom(currentUser?.id ?? null, currentUser?.role ?? 'ds');
+
+  // BACK GOES TO YOUR OWN HOME, not to '/'. On the live app '/' is the public
+  // front door — the sign-in page — so a signed-in Director pressing Back
+  // landed on a screen offering to sign them in, reading as if the app had
+  // logged them out. It is only the right destination for somebody who is not
+  // signed in at all.
+  const { profile } = useLiveSession();
+  const backHome = profile ? homeFor(profile.role) : currentUser ? DEMO_HOME[currentUser.role] : '/';
 
   const [ready, setReady] = useState(false);
   const [items, setItems] = useState<MediaMeta[]>([]);
@@ -187,7 +200,7 @@ export default function LibraryPage() {
             entirely. Pressing Back inside a product should never leave it. */}
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.push(backHome)}
             aria-label="Back to the app"
             className="rounded-full bg-white/10 px-3 py-2 text-sm font-semibold hover:bg-white/20"
           >
