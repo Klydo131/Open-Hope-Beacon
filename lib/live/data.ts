@@ -630,3 +630,89 @@ export async function recordBlogView(id: string): Promise<void> {
     // Counting is a convenience for the writer, never a gate for the reader.
   }
 }
+
+// ---------------------------------------------------------------------------
+// Prayer.
+//
+// Two audiences given deliberately different things (migration 0007). A Guide
+// sees their own Explorers' requests WITH the name, because praying for someone
+// you walk with is the point. The congregation sees shared ones with NO name,
+// served by prayer_wall() rather than by a policy — a policy grants whole rows,
+// and the row carries ds_id, so "leaders see the request but not who wrote it"
+// would be a promise the network tab disproves in one click.
+// ---------------------------------------------------------------------------
+
+export type PrayerStatus = 'open' | 'praying' | 'answered';
+
+/** A request as its author or their Guide sees it: with the person attached. */
+export interface PrayerRequestRow {
+  id: string;
+  ds_id: string;
+  body: string;
+  share_with_church: boolean;
+  status: PrayerStatus;
+  created_at: string;
+}
+
+/** A request as the congregation sees it. No name, no id of the person. */
+export interface WallEntry {
+  id: string;
+  body: string;
+  status: PrayerStatus;
+  created_at: string;
+}
+
+/** Raise a request. church_id is pinned by the policy, not trusted from here. */
+export async function addPrayerRequest(body: string, shareWithChurch: boolean): Promise<void> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+  const text = body.trim();
+  if (!text) throw new Error('Write something first.');
+
+  const { data: me } = await supabase
+    .from('profiles').select('church_id').eq('id', uid).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+
+  const { error } = await supabase.from('prayer_requests').insert({
+    ds_id: uid,
+    church_id: me.church_id,
+    body: text,
+    share_with_church: shareWithChurch,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * The requests this caller may see WITH a name: their own if they are an
+ * Explorer, their Explorers' if they are a Guide. A Director gets nothing here
+ * and that is correct — they are shown the wall instead.
+ */
+export async function listPrayerRequests(): Promise<PrayerRequestRow[]> {
+  const { data, error } = await db()
+    .from('prayer_requests')
+    .select('id, ds_id, body, share_with_church, status, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PrayerRequestRow[];
+}
+
+/** The church wall. Anonymous by construction — see migration 0007. */
+export async function listPrayerWall(): Promise<WallEntry[]> {
+  const { data, error } = await db().rpc('prayer_wall');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as WallEntry[];
+}
+
+/** Either side may move the status; only the author owns the words. */
+export async function setPrayerStatus(id: string, status: PrayerStatus): Promise<void> {
+  const { error } = await db().from('prayer_requests').update({ status }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/** Withdraw a request. Only the author may; a Guide cannot delete a confidence. */
+export async function deletePrayerRequest(id: string): Promise<void> {
+  const { error } = await db().from('prayer_requests').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
