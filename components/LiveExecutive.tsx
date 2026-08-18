@@ -1,0 +1,189 @@
+'use client';
+
+// What a Director and an Executive Director see beyond the member list.
+//
+// The live executive page had invitations, approvals and pairing and nothing
+// else, which is a workspace for administering people rather than a view of a
+// ministry. This adds the three things the sample-data version has and the live
+// one did not: the numbers, the board report, and the library.
+//
+// EVERY NUMBER HERE IS A COUNT, NEVER A CONTENT. A leader is shown how many
+// conversations are happening and never a conversation, how many prayer
+// requests exist and never who wrote one. That is the same line the rest of the
+// product draws, and it is drawn in the DATABASE — prayer_wall() and
+// church_meeting_summary() return aggregates, and messages are unreadable to a
+// leader by policy. Nothing here is a screen politely declining to render
+// something it could have.
+
+import { useCallback, useEffect, useState } from 'react';
+import * as live from '@/lib/live/data';
+import { Button, Card } from '@/components/ui';
+
+const message = (cause: unknown) =>
+  cause instanceof Error ? cause.message : 'Something went wrong.';
+
+interface Numbers {
+  guides: number;
+  explorers: number;
+  awaiting: number;
+  pairings: number;
+  prayers: number;
+  library: number;
+  meetings: number;
+  stages: Record<string, number>;
+}
+
+const STAGES = ['create', 'connect', 'care', 'call', 'cultivate', 'commission'] as const;
+const STAGE_LABEL: Record<string, string> = {
+  create: 'Create', connect: 'Connect', care: 'Care',
+  call: 'Call', cultivate: 'Cultivate', commission: 'Commission',
+};
+
+function Stat({ n, label, tone = 'navy' }: { n: number; label: string; tone?: 'navy' | 'gold' | 'grey' }) {
+  const bg = tone === 'gold' ? 'bg-gold/15' : tone === 'grey' ? 'bg-gray-100' : 'bg-navy/5';
+  return (
+    <div className={`rounded-xl ${bg} p-4 text-center`}>
+      <p className="text-3xl font-extrabold text-navy">{n}</p>
+      <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-gray-500">{label}</p>
+    </div>
+  );
+}
+
+export function LiveChurchOverview() {
+  const [n, setN] = useState<Numbers | null>(null);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try {
+      // Read everything this caller is entitled to and count it. The database
+      // has already decided what that is; nothing is filtered here.
+      const [members, pairings, wall, meetings, materials] = await Promise.all([
+        live.listMembers(),
+        live.listPairings(),
+        live.listPrayerWall(),
+        live.listChurchMeetings(),
+        live.listMaterials(),
+      ]);
+      const stages: Record<string, number> = {};
+      for (const s of STAGES) stages[s] = 0;
+      for (const p of pairings) {
+        if (p.status === 'active') stages[p.journey_stage] = (stages[p.journey_stage] ?? 0) + 1;
+      }
+      setN({
+        guides: members.filter((m) => m.role === 'dm' && m.is_approved).length,
+        explorers: members.filter((m) => m.role === 'ds' && m.is_approved).length,
+        awaiting: members.filter((m) => !m.is_approved).length,
+        pairings: pairings.filter((p) => p.status === 'active').length,
+        prayers: wall.length,
+        library: materials.length,
+        meetings: meetings.length,
+        stages,
+      });
+      setError('');
+    } catch (cause) {
+      setError(message(cause));
+    }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  if (error) {
+    return (
+      <Card className="p-5">
+        <h2 className="text-xl font-bold text-navy">📊 Your church at a glance</h2>
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-200">
+          {error}
+        </p>
+      </Card>
+    );
+  }
+  if (!n) return <Card className="p-5 text-gray-400">Loading the numbers…</Card>;
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-xl font-bold text-navy">📊 Your church at a glance</h2>
+      <p className="mt-1 text-sm text-gray-500">
+        Counts only. You are never shown a conversation, and never who wrote a prayer request.
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat n={n.guides} label="Guides" />
+        <Stat n={n.explorers} label="Explorers" />
+        <Stat n={n.pairings} label="Walking together" tone="gold" />
+        <Stat n={n.awaiting} label="Awaiting approval" tone={n.awaiting ? 'gold' : 'grey'} />
+      </div>
+
+      <h3 className="mt-6 text-sm font-bold uppercase tracking-wide text-gray-500">Where people are on the journey</h3>
+      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {STAGES.map((s) => (
+          <Stat key={s} n={n.stages[s] ?? 0} label={STAGE_LABEL[s]} tone="grey" />
+        ))}
+      </div>
+
+      <div className="mt-6 grid grid-cols-3 gap-3">
+        <Stat n={n.prayers} label="On the prayer wall" tone="grey" />
+        <Stat n={n.library} label="In the library" tone="grey" />
+        <Stat n={n.meetings} label="Meetings" tone="grey" />
+      </div>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// The board report: the same numbers, in a form you can read out or print.
+// ---------------------------------------------------------------------------
+export function LiveBoardReport({ churchName }: { churchName?: string }) {
+  const [lines, setLines] = useState<string[] | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [members, pairings, wall, meetings] = await Promise.all([
+          live.listMembers(), live.listPairings(), live.listPrayerWall(), live.listChurchMeetings(),
+        ]);
+        if (!alive) return;
+        const active = pairings.filter((p) => p.status === 'active');
+        const byStage = STAGES
+          .map((s) => `${STAGE_LABEL[s]}: ${active.filter((p) => p.journey_stage === s).length}`)
+          .join(' · ');
+        setLines([
+          `${churchName ?? 'This church'} — Hope Beacon report`,
+          `Prepared ${new Date().toLocaleDateString()}`,
+          '',
+          `Guides serving: ${members.filter((m) => m.role === 'dm' && m.is_approved).length}`,
+          `People being walked with: ${members.filter((m) => m.role === 'ds' && m.is_approved).length}`,
+          `Active relationships: ${active.length}`,
+          `Awaiting approval: ${members.filter((m) => !m.is_approved).length}`,
+          '',
+          `Journey: ${byStage}`,
+          '',
+          `Prayer requests shared with the church: ${wall.length}`,
+          `Meetings arranged: ${meetings.length}`,
+          '',
+          'No conversation, name or prayer author appears in this report, by design.',
+        ]);
+        setError('');
+      } catch (cause) { if (alive) setError(message(cause)); }
+    })();
+    return () => { alive = false; };
+  }, [churchName]);
+
+  if (error || !lines) return null;
+
+  const text = lines.join('\n');
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-navy">🧾 Report for the board</h2>
+          <p className="text-sm text-gray-500">Numbers a board can be told, with nothing private in them.</p>
+        </div>
+        <Button variant="ghost" onClick={() => { void navigator.clipboard?.writeText(text); }}>Copy</Button>
+      </div>
+      <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
+{text}
+      </pre>
+    </Card>
+  );
+}

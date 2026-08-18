@@ -13,6 +13,8 @@ import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer, LivePrayerForGuide, LivePrayerWall } from '@/components/LivePrayer';
 import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
+import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
+import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveLessonSeries } from '@/components/LiveMinistry';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -686,6 +688,10 @@ export function LiveAdminPage() {
           </div>
         </Card>
 
+        {/* The numbers first: a leader opens this to find out how the ministry
+            is going, not to administer one more person. */}
+        <LiveChurchOverview />
+
         {/* The WALL, not the named requests. A Director is shown totals and
             never an identity; one who needs to know how a particular person is
             doing asks their Guide. prayer_wall() returns no identifier at all,
@@ -693,7 +699,10 @@ export function LiveAdminPage() {
 
             Worth stating because it was once reported as a bug — "the admin
             cannot see the prayer" — when it was the design working. */}
+        <LiveRecommendationsForDirector />
+        <LiveLessonSeries manage />
         <LivePrayerWall />
+        <LiveBoardReport churchName={church?.name} />
       </div>
     </LiveAppShell>
   );
@@ -733,6 +742,12 @@ export function LiveGuidePage() {
         })}
       </div>
       {rows.length === 0 && !error && <Card className="mt-6 p-6 text-center text-gray-500">No active pairing yet.</Card>}
+
+      <div className="mt-6 space-y-6">
+        <LiveRecommend />
+        <LiveFollowUps pairings={rows.map((r) => ({ id: r.id, ds_name: r.ds_name }))} />
+        <LiveLessonSeries />
+      </div>
 
       {/* The library, with a share button per Explorer. Links rather than
           files, so what arrives actually opens on their phone. */}
@@ -906,6 +921,7 @@ export function LiveExplorerPage() {
             more than one addressed to everybody. Renders nothing at all when
             there is nothing to read, rather than an empty card. */}
         <LiveSharedWithMe />
+        <LiveLessonSeries />
         <LiveBlogFeed selfId={profile?.id} />
         <LiveAskForPrayer />
         <LivePrayerWall />

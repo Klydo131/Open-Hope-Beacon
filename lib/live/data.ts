@@ -837,3 +837,180 @@ export async function unshareMaterial(shareId: string): Promise<void> {
   const { error } = await db().from('material_shares').delete().eq('id', shareId);
   if (error) throw new Error(error.message);
 }
+
+/**
+ * Meetings across the church, as a leader may know them: when, online or in
+ * person, and what state they are in. No title, no location, no notes.
+ *
+ * A separate function rather than a filtered read of `meetings`, because a
+ * policy grants whole ROWS and a row carries the notes. "Leaders see that a
+ * meeting is happening, not what was said in it" has to be true of the result
+ * that crosses the wire, not of the screen that renders it.
+ */
+export interface ChurchMeeting {
+  starts_at: string;
+  mode: 'online' | 'in_person';
+  status: 'proposed' | 'confirmed' | 'cancelled' | 'done';
+}
+
+export async function listChurchMeetings(): Promise<ChurchMeeting[]> {
+  const { data, error } = await db().rpc('church_meeting_summary');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ChurchMeeting[];
+}
+
+// ---------------------------------------------------------------------------
+// Recommendations, a Guide's private tools, and lesson series.
+// ---------------------------------------------------------------------------
+
+export interface Recommendation {
+  id: string; church_id: string; dm_id: string;
+  full_name: string; email: string; note: string | null;
+  status: 'pending' | 'invited' | 'declined';
+  decided_by: string | null; decided_at: string | null; created_at: string;
+}
+
+export async function listRecommendations(): Promise<Recommendation[]> {
+  const { data, error } = await db().from('recommendations').select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Recommendation[];
+}
+
+/** A Guide puts a name forward. They cannot invite; a Director decides. */
+export async function recommendSomeone(m: { full_name: string; email: string; note?: string }): Promise<void> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', uid).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+  const { error } = await supabase.from('recommendations').insert({
+    church_id: me.church_id, dm_id: uid,
+    full_name: m.full_name.trim(), email: m.email.trim().toLowerCase(),
+    note: m.note?.trim() || null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function decideRecommendation(id: string, status: 'invited' | 'declined'): Promise<void> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const { error } = await supabase.from('recommendations')
+    .update({ status, decided_by: auth.user?.id, decided_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export interface SeekerNote {
+  id: string; pairing_id: string; author_id: string; body: string; created_at: string;
+}
+
+/** Private to the author. A leader cannot read these — see migration 0011. */
+export async function listNotes(pairingId: string): Promise<SeekerNote[]> {
+  const { data, error } = await db().from('seeker_notes').select('*')
+    .eq('pairing_id', pairingId).order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SeekerNote[];
+}
+
+export async function addNote(pairingId: string, body: string): Promise<void> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+  const { error } = await supabase.from('seeker_notes')
+    .insert({ pairing_id: pairingId, author_id: uid, body: body.trim() });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  const { error } = await db().from('seeker_notes').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export interface FollowUp {
+  id: string; pairing_id: string; owner_id: string;
+  title: string; due_on: string | null; done_at: string | null; created_at: string;
+}
+
+export async function listFollowUps(): Promise<FollowUp[]> {
+  const { data, error } = await db().from('follow_ups').select('*')
+    .order('due_on', { ascending: true, nullsFirst: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as FollowUp[];
+}
+
+export async function addFollowUp(pairingId: string, title: string, dueOn?: string): Promise<void> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+  const { error } = await supabase.from('follow_ups')
+    .insert({ pairing_id: pairingId, owner_id: uid, title: title.trim(), due_on: dueOn || null });
+  if (error) throw new Error(error.message);
+}
+
+export async function toggleFollowUp(id: string, done: boolean): Promise<void> {
+  const { error } = await db().from('follow_ups')
+    .update({ done_at: done ? new Date().toISOString() : null }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteFollowUp(id: string): Promise<void> {
+  const { error } = await db().from('follow_ups').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export interface LessonSeries {
+  id: string; church_id: string; title: string;
+  description: string | null; topic: string; is_published: boolean; created_at: string;
+}
+
+export interface LessonAssignment {
+  id: string; pairing_id: string; series_id: string;
+  assigned_by: string; completed_at: string | null; created_at: string;
+}
+
+export async function listLessonSeries(): Promise<LessonSeries[]> {
+  const { data, error } = await db().from('lesson_series').select('*')
+    .order('topic', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as LessonSeries[];
+}
+
+export async function addLessonSeries(m: { title: string; topic: string; description?: string }): Promise<void> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', uid).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+  const { error } = await supabase.from('lesson_series').insert({
+    church_id: me.church_id, title: m.title.trim(),
+    topic: m.topic.trim() || 'General', description: m.description?.trim() || null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function listAssignments(): Promise<LessonAssignment[]> {
+  const { data, error } = await db().from('lesson_assignments').select('*');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as LessonAssignment[];
+}
+
+export async function assignSeries(pairingId: string, seriesId: string): Promise<void> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+  const { error } = await supabase.from('lesson_assignments')
+    .insert({ pairing_id: pairingId, series_id: seriesId, assigned_by: uid });
+  if (error) throw new Error(error.code === '23505' ? 'Already assigned.' : error.message);
+}
+
+export async function completeAssignment(id: string, done: boolean): Promise<void> {
+  const { error } = await db().from('lesson_assignments')
+    .update({ completed_at: done ? new Date().toISOString() : null }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
