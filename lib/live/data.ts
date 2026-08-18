@@ -157,6 +157,15 @@ export async function updateMyProfile(patch: Partial<Profile>): Promise<void> {
     preferred_contact: patch.preferred_contact,
     preferred_language: patch.preferred_language,
     topics_of_interest: patch.topics_of_interest,
+    // The sign-up fields added in 0013. Listed one by one for the same reason
+    // the four above are: this object is an allow-list, and the moment it
+    // becomes a spread it stops being one.
+    birthday: patch.birthday,
+    gender: patch.gender,
+    life_status: patch.life_status,
+    city_of_residence: patch.city_of_residence,
+    work_industry: patch.work_industry,
+    consent_at: patch.consent_at,
   };
   for (const k of Object.keys(safe) as (keyof typeof safe)[]) {
     if (safe[k] === undefined) delete safe[k];
@@ -164,6 +173,22 @@ export async function updateMyProfile(patch: Partial<Profile>): Promise<void> {
   if (Object.keys(safe).length === 0) return;
 
   const { error } = await db().from('profiles').update(safe).eq('id', await uid());
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Withdraw the permission given at sign-up.
+ *
+ * The sign-up form promises "I can withdraw this at any time from Settings, and
+ * my details are removed when I do." This is the mechanism behind that promise;
+ * a promise without one is worse than not making it.
+ *
+ * It clears exactly what was collected under the permission and nothing else.
+ * The account, the Guide, the conversation and the study history all stay —
+ * destroying those was never what was agreed to.
+ */
+export async function withdrawMyConsent(): Promise<void> {
+  const { error } = await db().rpc('withdraw_my_consent');
   if (error) throw new Error(error.message);
 }
 

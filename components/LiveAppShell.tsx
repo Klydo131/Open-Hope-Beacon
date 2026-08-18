@@ -11,6 +11,7 @@ import { Avatar, Button, Card } from '@/components/ui';
 import { LeftRail, RightRail, railGroupsFor } from '@/components/RoomRails';
 import { useRoom } from '@/lib/room-theme';
 import { LiveBell } from '@/components/LiveBell';
+import { ModeSwitch } from '@/components/ModeSwitch';
 
 /** One header link. Icon on a phone, icon and word once there is room. */
 function ShellLink({ href, icon, label }: { href: string; icon: string; label: string }) {
@@ -135,6 +136,7 @@ export function LiveAppShell({
             <ShellLink href="/settings" icon="⚙️" label="Settings" />
           </nav>
 
+          <ModeSwitch onDark />
           <LiveBell />
 
           <div className="hidden min-w-0 text-right sm:block">

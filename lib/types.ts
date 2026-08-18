@@ -27,6 +27,13 @@ export interface Profile {
   birthday?: string;
   gender?: string;
   status?: string;
+  // The live database's name for the same thing as `status` above. `status` is
+  // already a column on pairings and on invites meaning something entirely
+  // different, and a third meaning of one word on the table everything joins to
+  // is how a wrong join gets written one day and nobody notices. The demo store
+  // keeps `status`; the live schema uses `life_status`; both are declared here
+  // because one Profile type serves both.
+  life_status?: string;
   topics_of_interest: string[];
   city_of_residence?: string;
   work_industry?: string;

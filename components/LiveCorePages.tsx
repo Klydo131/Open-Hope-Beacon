@@ -222,6 +222,39 @@ export function LiveLoginPage() {
               {busy ? 'Signing in…' : 'Sign in'}
             </Button>
           </form>
+
+          {/* TRY AN ACCOUNT.
+              These are REAL sign-ins with real passwords against the real
+              database, not a client-side role switch. Every row level security
+              policy applies exactly as it does to a member, which is the point:
+              somebody evaluating the app should meet the same walls a church
+              will, not a demonstration that politely hides things.
+
+              A client-side "become an admin" button would be a privilege
+              escalation wearing a friendly face, and this app deliberately has
+              none — not in live, not anywhere.
+
+              Shown only while the sample accounts exist. A church that has run
+              the removal script never sees this. */}
+          <TryAnAccount
+            onPick={async (address) => {
+              setBusy(true);
+              setError('');
+              try {
+                const mine = await live.signIn(address, 'HopeBeacon2026!');
+                router.replace(homeFor(mine.role));
+              } catch (cause) {
+                setError(
+                  'Those sample accounts are not in this database. Run supabase/seed/02_demo_congregation.sql, or sign in above.',
+                );
+                setBusy(false);
+              }
+            }}
+            busy={busy}
+          />
+
+          <form onSubmit={() => {}} className="hidden">
+          </form>
           <button
             type="button"
             onClick={resetPassword}
@@ -239,6 +272,45 @@ export function LiveLoginPage() {
             Invitation help
           </Link>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+
+/**
+ * The sample accounts, offered on the live sign-in.
+ *
+ * WHY THIS BELONGS IN LIVE AND NOT ONLY IN THE TUTORIAL. The offline demo shows
+ * what the app does. This shows that it does the same thing against a real
+ * database with real security — which is the question an IT person actually has,
+ * and the one a sample-data walkthrough cannot answer.
+ */
+function TryAnAccount({ onPick, busy }: { onPick: (email: string) => void; busy: boolean }) {
+  const people = [
+    { email: 'maria@example.test',  who: 'Maria Santos',  role: 'Guide' },
+    { email: 'john@example.test',   who: 'John Reyes',    role: 'Explorer' },
+    { email: 'pastor@example.test', who: 'Pastor Ramos',  role: 'Director' },
+  ];
+  return (
+    <div className="mt-6 rounded-2xl bg-navy/5 p-4">
+      <p className="text-sm font-bold text-navy">Just looking? Try an account.</p>
+      <p className="mt-0.5 text-xs text-gray-500">
+        Real sign-ins to the real database. You will see exactly what that person sees, and nothing more.
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        {people.map((p) => (
+          <button
+            key={p.email}
+            type="button"
+            disabled={busy}
+            onClick={() => onPick(p.email)}
+            className="rounded-xl bg-white px-3 py-2 text-left ring-1 ring-black/10 hover:bg-gray-50 disabled:opacity-50"
+          >
+            <span className="block text-sm font-semibold text-navy">{p.role}</span>
+            <span className="block text-xs text-gray-500">{p.who}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -271,6 +343,29 @@ export function LiveSignupPage() {
   );
 }
 
+// The invited person's front door.
+//
+// This is the ONE screen where somebody who has never used Hope Beacon, was
+// sent a link by their church, and has no account yet, becomes a member. Three
+// separate things had to be right for that to happen and none of them were:
+//
+//   1. THE LINK HAD TO REDEEM. It arrived as `?code=…` and was pushed through
+//      exchangeCodeForSession, which is the PKCE route and needs a verifier
+//      this browser never had. Every invitation failed identically, which is
+//      why it read as "it just errors" rather than as anything intermittent.
+//      Invitations now arrive as `?token_hash=…&type=invite` and redeem
+//      through verifyOtp, which needs nothing from the device.
+//
+//   2. IT HAD TO ASK WHAT THE CHURCH ACTUALLY NEEDS. This asked for a name and
+//      a password. The form the client specified — the one the demo has always
+//      shown — asks a little about the person and, before any of it, asks
+//      permission to keep it. Showing one form in the demo and a different one
+//      live is the gap that makes a demo feel like an advertisement.
+//
+//   3. ACCEPTING HAD TO PUT THEM IN THE APP. It ended on "one approval
+//      remains" for everybody, including people whose Director had personally
+//      addressed the invitation. Migration 0013 makes a matched invitation the
+//      approval, so an invited person now lands on their own home screen.
 export function LiveJoinPage() {
   const params = useSearchParams();
   const router = useRouter();
@@ -280,10 +375,30 @@ export function LiveJoinPage() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [donePending, setDonePending] = useState(false);
   const [error, setError] = useState('');
-  const recovery = params.get('recovery') === '1';
+  const [churchName, setChurchName] = useState('');
+  const [role, setRole] = useState<Role>('ds');
+  const recovery = params.get('recovery') === '1' || params.get('type') === 'recovery';
+
+  // The optional half of the form. Everything here is the person's to give or
+  // withhold, so it starts collapsed and nothing in it blocks the button.
+  const [consent, setConsent] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const [extra, setExtra] = useState({
+    preferred_contact: '',
+    birthday: '',
+    gender: '',
+    life_status: '',
+    city_of_residence: '',
+    work_industry: '',
+    topics: '',
+  });
+  const setExtraField =
+    (key: keyof typeof extra) => (event: React.ChangeEvent<HTMLInputElement>) =>
+      setExtra((prev) => ({ ...prev, [key]: event.target.value }));
 
   useEffect(() => {
     let alive = true;
@@ -291,15 +406,31 @@ export function LiveJoinPage() {
       const client = supabaseAuth();
       if (!client) return;
       try {
-        const code = params.get('code');
         const tokenHash = params.get('token_hash');
-        if (code) {
-          const { error: exchangeError } = await client.auth.exchangeCodeForSession(code);
-          if (exchangeError) throw exchangeError;
-        } else if (tokenHash) {
-          const kind = params.get('type') === 'recovery' ? 'recovery' : 'invite';
+        const code = params.get('code');
+        const codeEmail = params.get('email');
+        const kind = params.get('type') === 'recovery' ? 'recovery' : 'invite';
+
+        if (tokenHash) {
+          // The normal path. Works on any device, because the token carries
+          // everything needed to redeem it.
           const { error: otpError } = await client.auth.verifyOtp({ token_hash: tokenHash, type: kind });
           if (otpError) throw otpError;
+        } else if (code && codeEmail) {
+          // The six-digit fallback, for a mail client that mangled the link.
+          // Redeemed against the address it was issued for — NOT through
+          // exchangeCodeForSession, which is the mistake this whole screen was
+          // built on.
+          const { error: otpError } = await client.auth.verifyOtp({
+            email: codeEmail,
+            token: code,
+            type: kind,
+          });
+          if (otpError) throw otpError;
+        } else if (code) {
+          // A genuine PKCE code, from a flow this browser started itself.
+          const { error: exchangeError } = await client.auth.exchangeCodeForSession(code);
+          if (exchangeError) throw exchangeError;
         } else if (window.location.hash.includes('access_token=')) {
           const hash = new URLSearchParams(window.location.hash.slice(1));
           const access_token = hash.get('access_token');
@@ -317,6 +448,15 @@ export function LiveJoinPage() {
         if (!alive) return;
         setEmail(data.session.user.email ?? '');
         setName(mine?.full_name || String(data.session.user.user_metadata.full_name ?? ''));
+        if (mine?.role) setRole(mine.role);
+        // The church's own name, so the permission being asked for names who is
+        // asking. "I give permission for the church" is not consent to anything.
+        try {
+          const church = await live.myChurch();
+          if (alive && church?.name) setChurchName(church.name);
+        } catch {
+          /* The name is a courtesy. Not having it must not block joining. */
+        }
         await refreshProfile();
       } catch (cause) {
         if (alive) setError(errorText(cause));
@@ -330,6 +470,8 @@ export function LiveJoinPage() {
     };
   }, [params, refreshProfile]);
 
+  const isSeeker = role === 'ds';
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (password.length < 10) {
@@ -338,6 +480,16 @@ export function LiveJoinPage() {
     }
     if (password !== confirm) {
       setError('The passwords do not match.');
+      return;
+    }
+    if (!recovery && !consent) {
+      setError('Tick the permission box to continue.');
+      return;
+    }
+    // The database cannot check this — a CHECK constraint may not read the
+    // clock — so it is checked here, where the person can see what they typed.
+    if (extra.birthday && extra.birthday > new Date().toISOString().slice(0, 10)) {
+      setError('That birthday is in the future.');
       return;
     }
     const client = supabaseAuth();
@@ -350,7 +502,25 @@ export function LiveJoinPage() {
         data: name.trim() ? { full_name: name.trim() } : undefined,
       });
       if (passwordError) throw passwordError;
-      if (name.trim()) await live.updateMyProfile({ full_name: name.trim() });
+
+      if (!recovery) {
+        await live.updateMyProfile({
+          full_name: name.trim() || undefined,
+          preferred_contact: extra.preferred_contact.trim() || undefined,
+          birthday: isSeeker ? extra.birthday || undefined : undefined,
+          gender: isSeeker ? extra.gender.trim() || undefined : undefined,
+          life_status: isSeeker ? extra.life_status.trim() || undefined : undefined,
+          city_of_residence: isSeeker ? extra.city_of_residence.trim() || undefined : undefined,
+          work_industry: isSeeker ? extra.work_industry.trim() || undefined : undefined,
+          topics_of_interest: isSeeker
+            ? extra.topics.split(',').map((t) => t.trim()).filter(Boolean)
+            : undefined,
+          consent_at: new Date().toISOString(),
+        });
+      } else if (name.trim()) {
+        await live.updateMyProfile({ full_name: name.trim() });
+      }
+
       const mine = await refreshProfile();
       if (mine?.is_approved) router.replace(homeFor(mine.role));
       else setDonePending(true);
@@ -381,22 +551,48 @@ export function LiveJoinPage() {
   return (
     <div className="min-h-screen">
       <PublicHeader
-        title={recovery ? 'Set a new password' : 'Finish your invitation'}
-        subtitle={recovery ? 'Choose a password only you know.' : 'Your church has already chosen your role.'}
+        title={recovery ? 'Set a new password' : 'You’re invited to Hope Beacon'}
+        subtitle={
+          recovery
+            ? 'Choose a password only you know.'
+            : isSeeker
+              ? 'Someone from your church will walk with you, at whatever pace suits you.'
+              : 'Your church has already chosen your role. Confirm your details to get started.'
+        }
       />
-      <div className="mx-auto max-w-md px-4 py-8">
+      {/* pb-32, not py-8: the install banner is fixed to the bottom of the
+          viewport, and the join button is the last thing on this page. */}
+      <div className="mx-auto max-w-md px-4 pb-32 pt-8">
         <Card className="p-5">
           {error && !email ? (
             <>
               <Notice tone="error">{error}</Notice>
-              <Link href="/signup" className="mt-4 inline-block font-semibold text-navy underline">Invitation help</Link>
+              <p className="mt-3 text-sm text-gray-500">
+                Invitation links can only be used once. Ask your church to send a new one.
+              </p>
+              <Link href="/login" className="mt-4 inline-block font-semibold text-navy underline">Go to sign in</Link>
             </>
           ) : (
             <form onSubmit={submit} className="space-y-4">
-              <p className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600">{email}</p>
+              {/* Read-only, because it is the address the invitation was sent
+                  to. An editable box here would let somebody redirect an
+                  invitation that was not addressed to them. */}
+              <label className="block">
+                <span className="text-sm font-semibold text-gray-600">Email</span>
+                <input
+                  readOnly
+                  value={email}
+                  aria-describedby="join-email-why"
+                  className="tap mt-1 w-full cursor-not-allowed rounded-xl bg-gray-100 px-4 text-base text-gray-500 outline-none"
+                />
+                <span id="join-email-why" className="mt-1 block text-xs text-gray-400">
+                  This is the address your invitation was sent to.
+                </span>
+              </label>
+
               {!recovery && (
                 <label className="block">
-                  <span className="text-sm font-semibold text-gray-600">Full name</span>
+                  <span className="text-sm font-semibold text-gray-600">Your name</span>
                   <input
                     value={name}
                     onChange={(event) => setName(event.target.value)}
@@ -406,23 +602,37 @@ export function LiveJoinPage() {
                   />
                 </label>
               )}
+
               <label className="block">
-                <span className="text-sm font-semibold text-gray-600">New password</span>
-                <input
-                  type="password"
-                  autoComplete="new-password"
-                  minLength={10}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-lg outline-none focus:ring-2 focus:ring-gold"
-                  required
-                />
+                <span className="text-sm font-semibold text-gray-600">
+                  {recovery ? 'New password' : 'Choose a password'}
+                </span>
+                <div className="relative mt-1">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    minLength={10}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="tap w-full rounded-xl bg-gray-100 pl-4 pr-12 text-lg outline-none focus:ring-2 focus:ring-gold"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    className="absolute inset-y-0 right-0 grid w-12 place-items-center text-gray-500"
+                  >
+                    {showPassword ? '🙈' : '👁️'}
+                  </button>
+                </div>
                 <span className="mt-1 block text-xs text-gray-400">At least 10 characters.</span>
               </label>
+
               <label className="block">
                 <span className="text-sm font-semibold text-gray-600">Confirm password</span>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   minLength={10}
                   value={confirm}
@@ -431,15 +641,125 @@ export function LiveJoinPage() {
                   required
                 />
               </label>
+
+              {!recovery && (
+                <>
+                  {/* PERMISSION. Named church, plain words, and the right to
+                      withdraw stated in the same breath as the request — a
+                      permission you cannot see how to take back is not much of
+                      a permission. Unticked by default: a box that arrives
+                      already ticked is not consent, it is a default nobody
+                      noticed. */}
+                  <label className="flex items-start gap-3 rounded-xl bg-navy/5 p-4">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={(event) => setConsent(event.target.checked)}
+                      className="mt-1 h-5 w-5 shrink-0"
+                    />
+                    <span className="text-sm leading-relaxed text-gray-700">
+                      I give permission for <strong>{churchName || 'my church'}</strong> to
+                      keep my contact details so someone from the church can stay in touch
+                      with me about my studies. I can withdraw this at any time from
+                      Settings, and my details are removed when I do.{' '}
+                      <span className="text-red-600">*</span>
+                    </span>
+                  </label>
+
+                  {isSeeker && (
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowMore((v) => !v)}
+                        className="text-sm font-semibold text-navy underline"
+                      >
+                        {showMore
+                          ? 'Hide the optional questions'
+                          : 'Tell your Guide a little more (optional)'}
+                      </button>
+                      {showMore && (
+                        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                          <JoinField
+                            label="Preferred contact"
+                            value={extra.preferred_contact}
+                            onChange={setExtraField('preferred_contact')}
+                            placeholder="Phone, Messenger…"
+                          />
+                          <JoinField
+                            label="Birthday"
+                            type="date"
+                            value={extra.birthday}
+                            onChange={setExtraField('birthday')}
+                          />
+                          <JoinField label="Gender" value={extra.gender} onChange={setExtraField('gender')} />
+                          <JoinField label="Status" value={extra.life_status} onChange={setExtraField('life_status')} />
+                          <JoinField
+                            label="City of residence"
+                            value={extra.city_of_residence}
+                            onChange={setExtraField('city_of_residence')}
+                          />
+                          <JoinField
+                            label="Work / Industry"
+                            value={extra.work_industry}
+                            onChange={setExtraField('work_industry')}
+                          />
+                          <JoinField
+                            label="Topics of interest"
+                            value={extra.topics}
+                            onChange={setExtraField('topics')}
+                            placeholder="Comma-separated"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
               {error && <Notice tone="error">{error}</Notice>}
-              <Button type="submit" variant="gold" className="w-full" disabled={busy}>
-                {busy ? 'Saving…' : recovery ? 'Save new password' : 'Create my account'}
+              <Button
+                type="submit"
+                variant="gold"
+                className="w-full"
+                disabled={busy || (!recovery && !consent)}
+              >
+                {busy ? 'Saving…' : recovery ? 'Save new password' : 'Join Hope Beacon →'}
               </Button>
+              {!recovery && !consent && (
+                <p className="text-xs text-gray-500">Tick the permission box above to continue.</p>
+              )}
             </form>
           )}
         </Card>
       </div>
     </div>
+  );
+}
+
+function JoinField({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  type?: string;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-semibold text-gray-500">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-base outline-none focus:ring-2 focus:ring-gold"
+      />
+    </label>
   );
 }
 
