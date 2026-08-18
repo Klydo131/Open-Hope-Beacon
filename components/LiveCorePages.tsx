@@ -12,6 +12,7 @@ import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer, LivePrayerForGuide, LivePrayerWall } from '@/components/LivePrayer';
+import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -733,6 +734,12 @@ export function LiveGuidePage() {
       </div>
       {rows.length === 0 && !error && <Card className="mt-6 p-6 text-center text-gray-500">No active pairing yet.</Card>}
 
+      {/* The library, with a share button per Explorer. Links rather than
+          files, so what arrives actually opens on their phone. */}
+      <div className="mt-6">
+        <LiveLibraryForGuide pairings={rows.map((r) => ({ id: r.id, ds_name: r.ds_name }))} />
+      </div>
+
       {/* Named requests from their own Explorers, then the nameless wall the
           rest of the church sees. Both, because a Guide is also a member. */}
       <div className="mt-6 space-y-6">
@@ -898,6 +905,7 @@ export function LiveExplorerPage() {
         {/* Below the conversation, because a message addressed to you matters
             more than one addressed to everybody. Renders nothing at all when
             there is nothing to read, rather than an empty card. */}
+        <LiveSharedWithMe />
         <LiveBlogFeed selfId={profile?.id} />
         <LiveAskForPrayer />
         <LivePrayerWall />

@@ -716,3 +716,124 @@ export async function deletePrayerRequest(id: string): Promise<void> {
   const { error } = await db().from('prayer_requests').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+// ---------------------------------------------------------------------------
+// Library.
+//
+// A resource is a title and a LINK (migration 0008). The app also has an
+// on-device library that keeps files in the browser that added them — a real
+// privacy property, and one that cannot move a file between two people. A link
+// travels on its own; a blob in IndexedDB does not. Uploading files to object
+// storage is a later, deliberate decision with a quota attached.
+// ---------------------------------------------------------------------------
+
+export type MaterialKind = 'link' | 'video' | 'audio' | 'pdf' | 'image';
+
+export interface Material {
+  id: string;
+  church_id: string;
+  added_by: string;
+  title: string;
+  description: string | null;
+  kind: MaterialKind;
+  external_url: string;
+  is_published: boolean;
+  created_at: string;
+}
+
+export interface MaterialShare {
+  id: string;
+  material_id: string;
+  pairing_id: string;
+  shared_by: string;
+  note: string | null;
+  created_at: string;
+}
+
+/**
+ * Everything this caller may see. For a Guide that is their church's library;
+ * for an Explorer it is only what was shared with them. Same query either way —
+ * the policy decides, not this function.
+ */
+export async function listMaterials(): Promise<Material[]> {
+  const { data, error } = await db()
+    .from('materials')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Material[];
+}
+
+/** Add one to the church library. Guides and leaders only, by policy. */
+export async function addMaterial(m: {
+  title: string;
+  url: string;
+  kind: MaterialKind;
+  description?: string;
+}): Promise<string> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+
+  const url = m.url.trim();
+  // Checked here so the person gets a sentence rather than a constraint
+  // violation. The database checks it too, which is the one that counts.
+  if (!/^https?:\/\//i.test(url)) throw new Error('The address needs to start with http:// or https://');
+
+  const { data: me } = await supabase
+    .from('profiles').select('church_id').eq('id', uid).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+
+  const { data, error } = await supabase
+    .from('materials')
+    .insert({
+      church_id: me.church_id,
+      added_by: uid,
+      title: m.title.trim(),
+      description: m.description?.trim() || null,
+      kind: m.kind,
+      external_url: url,
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(error.message);
+  return data.id as string;
+}
+
+/** What has been shared into one pairing. Both people in it may read this. */
+export async function listShares(pairingId: string): Promise<MaterialShare[]> {
+  const { data, error } = await db()
+    .from('material_shares')
+    .select('*')
+    .eq('pairing_id', pairingId)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as MaterialShare[];
+}
+
+/** Share one into a pairing. Only the Guide of that pairing may, by policy. */
+export async function shareMaterial(materialId: string, pairingId: string, note?: string): Promise<void> {
+  const supabase = db();
+  const { data: auth } = await supabase.auth.getUser();
+  const uid = auth.user?.id;
+  if (!uid) throw new Error('Not signed in.');
+
+  const { error } = await supabase.from('material_shares').insert({
+    material_id: materialId,
+    pairing_id: pairingId,
+    shared_by: uid,
+    note: note?.trim() || null,
+  });
+  // The unique index is the one somebody will hit, so it gets words rather
+  // than a constraint name.
+  if (error) {
+    throw new Error(error.code === '23505' ? 'That is already shared with them.' : error.message);
+  }
+}
+
+/** Unshare. Only whoever shared it may take it back. */
+export async function unshareMaterial(shareId: string): Promise<void> {
+  const { error } = await db().from('material_shares').delete().eq('id', shareId);
+  if (error) throw new Error(error.message);
+}
