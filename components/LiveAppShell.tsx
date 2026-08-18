@@ -8,6 +8,8 @@ import type { Role } from '@/lib/types';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { Avatar, Button, Card } from '@/components/ui';
+import { LeftRail, RightRail, railGroupsFor } from '@/components/RoomRails';
+import { useRoom } from '@/lib/room-theme';
 
 /** One header link. Icon on a phone, icon and word once there is room. */
 function ShellLink({ href, icon, label }: { href: string; icon: string; label: string }) {
@@ -33,6 +35,17 @@ export function LiveAppShell({
 }) {
   const { session, profile, loading, error, signOut } = useLiveSession();
   const router = useRouter();
+
+  // The office. These are the same rails the sample-data shell has used all
+  // along — LeftRail, RightRail, the themes, the note, the ambient player.
+  // They were never ported here, which is why the live app felt like a
+  // different, smaller product than the one people were shown. Same components,
+  // same hook, so the two cannot drift again without both drifting.
+  //
+  // Hidden below xl by the rails themselves, exactly as in the demo: a phone
+  // and a tablet get the single column, because the page they flank is the one
+  // that matters and there is no room for three.
+  const room = useRoom(profile?.id ?? null, profile?.role ?? 'ds');
 
   useEffect(() => {
     if (loading) return;
@@ -87,6 +100,9 @@ export function LiveAppShell({
 
   if (!allow.includes(profile.role)) return null;
 
+  const groups = railGroupsFor(profile.role, {});
+  const today: { label: string; value: string }[] = [];
+
   return (
     <div className="min-h-screen bg-[#f5f6f8]">
       <header className="sticky top-0 z-20 text-white shadow-md" style={{ backgroundColor: NAVY }}>
@@ -135,7 +151,31 @@ export function LiveAppShell({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-6">{children}</main>
+      {/* Three columns from xl up, one column below it — the same breakpoint
+          the sample-data shell uses, so a phone and a tablet get the identical
+          layout there and here. The rails hide themselves; nothing about the
+          page underneath changes. */}
+      <div className="mx-auto flex max-w-[1600px] items-start gap-6 px-4">
+        {room.prefs.leftRail && <LeftRail groups={groups} theme={room.theme} />}
+
+        {/* pb-28 rather than pb-24, matching the demo. Several things float
+            over the bottom of the screen — the install prompt, the feedback
+            nudge — and a page that can scroll a little past its own content is
+            what stops them sitting across the last line of a card. */}
+        <main className="page-in mx-auto w-full min-w-0 max-w-5xl pb-28 pt-6">{children}</main>
+
+        {room.prefs.rightRail && (
+          <RightRail
+            role={profile.role}
+            name={profile.full_name}
+            theme={room.theme}
+            themes={room.themes}
+            prefs={room.prefs}
+            update={room.update}
+            today={today}
+          />
+        )}
+      </div>
 
       <footer className="border-t border-black/5 py-5 text-center text-xs text-gray-400">
         Invitation-only. Access is enforced by the church database.

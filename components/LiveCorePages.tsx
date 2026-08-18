@@ -73,8 +73,7 @@ export function LiveHomePage() {
           I have an invitation
         </Link>
         <p className="mt-7 max-w-sm text-sm leading-relaxed text-white/55">
-          This live church app is invitation-only. Sign-in uses your e-mail and password;
-          the tutorial and sample-data demo are separate.
+          Invitation only. Your church invites you; there is no public sign-up.
         </p>
 
         <a
@@ -95,6 +94,7 @@ export function LiveLoginPage() {
   const { session, profile, loading: sessionLoading, signOut } = useLiveSession();
   const params = useSearchParams();
   const [email, setEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(() => {
     switch (params.get('error')) {
@@ -194,13 +194,27 @@ export function LiveLoginPage() {
             </label>
             <label className="block">
               <span className="text-sm font-semibold text-gray-600">Password</span>
-              <input
-                type="password"
-                name="password"
-                autoComplete="current-password"
-                className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-lg outline-none focus:ring-2 focus:ring-gold"
-                required
-              />
+              {/* An eye, because a password box you cannot read back is where
+                  a wrong character hides — and on a phone keyboard that is most
+                  of them. Standard everywhere else; it was missing here. */}
+              <div className="relative mt-1">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  autoComplete="current-password"
+                  className="tap w-full rounded-xl bg-gray-100 px-4 pr-12 text-lg outline-none focus:ring-2 focus:ring-gold"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-lg hover:bg-black/5"
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </label>
             {error && <Notice tone="error">{error}</Notice>}
             {notice && <Notice tone="success">{notice}</Notice>}

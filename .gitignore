@@ -49,3 +49,7 @@ docs/handbook/*.docx
 docs/handbook/*.pdf
 docs/handbook/node_modules/
 docs/handbook/package*.json
+
+# Local environment files — never commit keys
+.env.local
+.env*.local
