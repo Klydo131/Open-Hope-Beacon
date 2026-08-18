@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Avatar, Button, Card } from '@/components/ui';
+import { InstallCard } from '@/components/InstallCard';
 import { NAVY, roleNoun } from '@/lib/brand';
 import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
@@ -223,6 +224,10 @@ export function LiveSettingsPage() {
 
   return (
     <div className="space-y-6">
+      {/* First, because it is the first thing somebody does on a new device,
+          and because device alerts below are far more useful once the app is
+          installed. */}
+      <InstallCard />
       <NotificationCard />
       {leads && <ChurchNameCard />}
       <TutorialCard />

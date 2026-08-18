@@ -29,9 +29,23 @@ interface BIPEvent extends Event {
 }
 
 const SNOOZE_KEY = 'beacon-install-snoozed-until';
-const SNOOZE_DAYS = 7;
+// Two days, not seven. "Not right now" is a reasonable thing for somebody to
+// mean, and a week of silence afterwards is how a person who genuinely wanted
+// the app never gets asked again — the whole point of an install prompt is that
+// it comes back. Anyone who truly does not want it presses "No thanks", which
+// is a separate, permanent choice.
+const SNOOZE_DAYS = 2;
 
-function isStandalone(): boolean {
+/**
+ * Already installed?
+ *
+ * Exported because the automatic prompt is not enough on its own. Chrome fires
+ * beforeinstallprompt only when its own engagement heuristics are satisfied,
+ * Firefox never fires it at all, and once somebody snoozes, nothing offers it
+ * again for days. So installing also has to be something a person can go and
+ * find — see InstallCard.
+ */
+export function isStandalone(): boolean {
   if (typeof window === 'undefined') return false;
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
@@ -59,11 +73,11 @@ function isStandalone(): boolean {
 // like a security warning about the site itself, which is worse than the problem
 // it describes. Simply not offering the install prevents the frozen copy from
 // ever existing; Settings explains the situation to anyone who goes looking.
-function isInstallable(): boolean {
+export function isInstallable(): boolean {
   return onCanonicalHost();
 }
 
-function isIos(): boolean {
+export function isIos(): boolean {
   if (typeof navigator === 'undefined') return false;
   return (
     /iphone|ipad|ipod/i.test(navigator.userAgent) ||
@@ -72,7 +86,7 @@ function isIos(): boolean {
   );
 }
 
-function isMacSafari(): boolean {
+export function isMacSafari(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent;
   return (

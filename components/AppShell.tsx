@@ -19,6 +19,7 @@ import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { BackButton } from '@/components/BackButton';
 import { useIsLive } from '@/lib/tutorial';
 import { ModeSwitch } from '@/components/ModeSwitch';
+import { InstallChip } from '@/components/InstallChip';
 import { LiveAppShell, LiveUnsupported } from '@/components/LiveAppShell';
 
 const NAV: Record<Role, { href: string; label: string }[]> = {
@@ -152,6 +153,7 @@ function DemoAppShell({
                 to look around has to be able to leave it, and until this was
                 here the only route out was editing the address bar. */}
             <ModeSwitch onDark />
+            <InstallChip onDark />
             <Link
               href={NAV[currentUser.role][0].href}
               className="flex shrink-0 items-center gap-2 sm:gap-3"

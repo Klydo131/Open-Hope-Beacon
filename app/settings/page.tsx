@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { InstallCard } from '@/components/InstallCard';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveSettingsPage } from '@/components/LiveAccountPages';
 import { useIsLive } from '@/lib/tutorial';
@@ -413,6 +414,12 @@ function Body() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-extrabold text-navy">⚙️ {t('settings')}</h1>
+
+      {/* The same card the live app shows. Installing is a browser thing, not a
+          database thing, so it belongs in both modes — and somebody trying the
+          tutorial on a tablet is exactly the person who wants it on their home
+          screen. */}
+      <InstallCard />
 
       {canRename && <ChurchNameCard />}
 
