@@ -430,7 +430,16 @@ export async function createPairing(dmId: string, dsId: string, track: Track): P
 export interface InviteResult {
   ok?: boolean;
   delivery?: 'email' | 'link';
-  /** Present when delivery is 'link'. Hand this to the person yourself. */
+  /**
+   * The join link, ALWAYS present.
+   *
+   * Not only for the failure case. Supabase builds the link in its own email
+   * from the project's Site URL, and if the app's address is not in the Redirect
+   * URLs allow-list that is silently ignored — a project on its defaults mails
+   * everybody a link to http://localhost:3000. The send reports success and the
+   * link is useless. This one is built by our own function from SITE_URL, so it
+   * is correct whatever the dashboard says.
+   */
   link?: string;
   /** Why it could not be emailed, in words a person can act on. */
   mailNote?: string;

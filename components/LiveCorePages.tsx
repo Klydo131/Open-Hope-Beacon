@@ -868,7 +868,14 @@ export function LiveAdminPage() {
         setHandLink({ to, url: result.link, why: result.mailNote ?? '', wait: result.waitSeconds });
         setNotice('');
       } else {
-        setHandLink(null);
+        // KEEP THE LINK ON SCREEN EVEN ON SUCCESS. Supabase builds the link in
+        // its own email from the project's Site URL, and if the app's address
+        // is not in the Redirect URLs allow-list that is silently ignored — a
+        // project on its defaults mails everybody a link to localhost:3000. The
+        // send reports success, the link is useless, and nothing in the result
+        // says so. This link is built by our own function from SITE_URL, so it
+        // is correct whatever the dashboard holds.
+        setHandLink(result.link ? { to, url: result.link, why: 'sent' } : null);
         // Say WHERE it went and BY WHICH ROUTE. "Sent" on its own is the
         // message this screen showed all day while nothing was being sent, so
         // it has to carry something only a real send could produce.
@@ -960,21 +967,35 @@ export function LiveAdminPage() {
             // are real and work exactly once; the only thing missing is the
             // postman, so the Director becomes the postman.
             <div className={`mt-4 rounded-2xl p-4 ring-1 ${
-              handLink.wait ? 'bg-blue-50 ring-blue-300' : 'bg-amber-50 ring-amber-300'
+              handLink.wait
+                ? 'bg-blue-50 ring-blue-300'
+                : handLink.why === 'sent'
+                  ? 'bg-green-50 ring-green-300'
+                  : 'bg-amber-50 ring-amber-300'
             }`}>
               {/* A COOLDOWN AND A FAULT ARE DIFFERENT THINGS and must not look
                   the same. One means "wait a moment"; the other means "go and
                   change a setting". Drawn identically, a sixty-second timer
                   reads as the email system failing again. */}
-              <p className={`font-bold ${handLink.wait ? 'text-blue-900' : 'text-amber-900'}`}>
+              <p className={`font-bold ${
+                handLink.wait ? 'text-blue-900' : handLink.why === 'sent' ? 'text-green-900' : 'text-amber-900'
+              }`}>
                 {handLink.wait
                   ? `Nearly — wait ${handLink.wait} seconds, then press Send once`
-                  : `Send this link to ${handLink.to} yourself`}
+                  : handLink.why === 'sent'
+                    ? 'Their link, in case the e-mail does not arrive'
+                    : `Send this link to ${handLink.to} yourself`}
               </p>
-              <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
-                {handLink.why || 'No email service is set up on this project yet.'}
+              <p className={`mt-1 text-sm ${
+                handLink.wait ? 'text-blue-800' : handLink.why === 'sent' ? 'text-green-800' : 'text-amber-800'
+              }`}>
+                {handLink.why === 'sent'
+                  ? 'Worth keeping. The app built this one itself, so it is correct even if the address in the e-mail is not.'
+                  : handLink.why || 'No email service is set up on this project yet.'}
               </p>
-              <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
+              <p className={`mt-1 text-sm ${
+                handLink.wait ? 'text-blue-800' : handLink.why === 'sent' ? 'text-green-800' : 'text-amber-800'
+              }`}>
                 The account is created and this link works. It can be used once.
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -983,7 +1004,9 @@ export function LiveAdminPage() {
                   value={handLink.url}
                   onFocus={(e) => e.currentTarget.select()}
                   className={`tap min-w-0 flex-1 rounded-xl bg-white px-3 text-sm ring-1 ${
-                    handLink.wait ? 'ring-blue-300' : 'ring-amber-300'
+                    handLink.wait
+                      ? 'ring-blue-300'
+                      : handLink.why === 'sent' ? 'ring-green-300' : 'ring-amber-300'
                   }`}
                 />
                 <Button

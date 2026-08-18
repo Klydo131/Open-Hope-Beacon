@@ -216,10 +216,20 @@ Deno.serve(async (req) => {
     }
   }
 
-  // A LINK TO PASS ON BY HAND, but only when the mail did not go. Minting one
-  // otherwise would burn a single-use token nobody asked for.
+  // A LINK TO PASS ON BY HAND, ALWAYS — not only when the send failed.
+  //
+  // The emailed link is built by Supabase from the project's Site URL, and if
+  // the app's address is not in the Redirect URLs allow-list that setting is
+  // silently ignored and the mail carries whatever Site URL says. A project
+  // still on its default sent every invited person a link to
+  // http://localhost:3000, which is a machine they do not have. The email
+  // "succeeded" and was useless, and the Director had no way to tell.
+  //
+  // This link is built HERE, from SITE_URL, so it is right whatever the
+  // dashboard says. Handing it over every time costs one extra token and means
+  // a church is never stuck behind a setting only its Supabase owner can reach.
   let joinUrl = '';
-  if (sendError) {
+  {
     let { data: link } = await admin.auth.admin.generateLink({
       type: 'invite',
       email,
@@ -266,5 +276,14 @@ Deno.serve(async (req) => {
     });
   }
 
-  return json({ ok: true, invite_id: inviteId, delivery: 'email', via, resent });
+  return json({
+    ok: true,
+    invite_id: inviteId,
+    delivery: 'email',
+    via,
+    resent,
+    // The Director gets it as well as the recipient. If the emailed link is
+    // wrong because Site URL is unset, this one still works.
+    link: joinUrl,
+  });
 });
