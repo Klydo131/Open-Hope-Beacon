@@ -236,6 +236,28 @@ Deno.serve(async (req) => {
     codeUrl,
   });
 
+  // SAY, IN THE LOG, WHETHER THE MAIL ACTUALLY WENT.
+  //
+  // Without this the function looks identical from outside whether the email
+  // was delivered or silently fell back to "here is a link, send it yourself" —
+  // both are a 200, and the Supabase log shows only `POST | 200`. Somebody
+  // debugging "the invitation never arrived" therefore had nothing to read, and
+  // the first question (are the three secrets even set?) could not be answered
+  // without redeploying.
+  //
+  // No address and no key material: the recipient is somebody's private
+  // business and this log is readable by anyone with project access. Which
+  // secrets are PRESENT is not a secret, and it is the thing that is actually
+  // wrong nine times in ten.
+  console.log(JSON.stringify({
+    at: 'invite',
+    delivery: sent.ok ? 'email' : 'link',
+    reason: sent.ok ? '' : sent.reason,
+    have_key: Boolean((Deno.env.get('BREVO_API_KEY') || '').trim()),
+    have_from: Boolean((Deno.env.get('MAIL_FROM') || '').trim()),
+    have_site_url: Boolean((Deno.env.get('SITE_URL') || '').trim()),
+  }));
+
   if (!sent.ok) {
     // The account exists and the link is good even though the mail did not go,
     // so the invitation row STAYS and the Director is handed the link to pass
