@@ -157,5 +157,45 @@ if (tracked.includes(seed)) {
   else ok('sample data contains no phone numbers');
 }
 
+// ---------------------------------------------------------------------------
+// 6. Nobody's actual Supabase project named in the repository.
+//
+// A project ref is not a credential — the anon key is public by design and the
+// URL ships to every browser. This check is not about secrecy. It is about a
+// PUBLIC TEMPLATE naming ONE person's backend: every reader who follows the
+// instructions literally points their copy, their deploy and their probing at
+// a stranger's database. The instructions must describe the reader's project,
+// not the author's.
+//
+// This exists because it already happened. Setup docs written for one demo were
+// committed here with a live ref in four places, and nothing caught it — the
+// other checks all look for key-shaped strings, and a ref is not key-shaped.
+//
+// Refs are exactly twenty lowercase letters. That shape also matches ordinary
+// words, so only the two positions that mean "a real project" are searched:
+// a <ref>.supabase.co host, and a --project-ref argument.
+// ---------------------------------------------------------------------------
+const REF_HOST = /\b([a-z]{20})\.supabase\.co/g;
+const REF_FLAG = /--project-ref[= ]+([a-z]{20})\b/g;
+const refHits = [];
+for (const file of tracked) {
+  if (!/\.(md|ts|tsx|js|mjs|json|ya?ml|sql|env\.example)$/i.test(file)) continue;
+  if (file === 'tests/no-secrets.js') continue;
+  const body = read(file);
+  for (const re of [REF_HOST, REF_FLAG]) {
+    re.lastIndex = 0;
+    let m;
+    while ((m = re.exec(body))) refHits.push(`${file}: ${m[1]}`);
+  }
+}
+if (refHits.length) {
+  fail(
+    'a real Supabase project ref is named in the repository — use <your-project-ref>:\n    ' +
+      [...new Set(refHits)].join('\n    '),
+  );
+} else {
+  ok('no real Supabase project is named; the docs describe the reader\'s own');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

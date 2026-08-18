@@ -80,7 +80,7 @@ New project → import `klydo131/open-hope-beacon` → add two environment
 variables:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL       = https://bcpuushjwcejytdthlnn.supabase.co
+NEXT_PUBLIC_SUPABASE_URL       = https://<your-project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY  = <Settings -> API -> anon public>
 ```
 
@@ -96,8 +96,8 @@ whole switch — see `lib/mode.ts`.
 ### 5. Deploy the invite function
 
 ```bash
-supabase functions deploy invite --project-ref bcpuushjwcejytdthlnn
-supabase secrets set SITE_URL=https://<your-vercel-domain> --project-ref bcpuushjwcejytdthlnn
+supabase functions deploy invite --project-ref <your-project-ref>
+supabase secrets set SITE_URL=https://<your-vercel-domain> --project-ref <your-project-ref>
 ```
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
