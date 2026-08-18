@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { LiveAppShell } from '@/components/LiveAppShell';
+import { LiveSettingsPage } from '@/components/LiveAccountPages';
+import { useIsLive } from '@/lib/tutorial';
 import { Card, Button } from '@/components/ui';
 import { useLocale, LANGUAGES } from '@/lib/i18n';
 import { useDemo } from '@/lib/demo/store';
@@ -35,6 +38,16 @@ const SIZES: { key: 'small' | 'normal' | 'large' | 'xlarge'; scale: number }[] =
 ];
 
 export default function SettingsPage() {
+  // Live settings are their own screen. The tutorial's version manages sample
+  // data — export it, wipe it, restore it — and none of those are things a
+  // church's real database should offer behind a settings tab.
+  if (useIsLive()) {
+    return (
+      <LiveAppShell allow={ALL}>
+        <LiveSettingsPage />
+      </LiveAppShell>
+    );
+  }
   return (
     <AppShell allow={ALL}>
       <Body />

@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useRef, useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { AppShell } from '@/components/AppShell';
+import { LiveAppShell } from '@/components/LiveAppShell';
+import { LiveProfilePage } from '@/components/LiveAccountPages';
+import { useIsLive } from '@/lib/tutorial';
 import { Avatar, Button, Card } from '@/components/ui';
 import { roleLabel } from '@/lib/brand';
 import type { Role } from '@/lib/types';
@@ -27,6 +30,17 @@ const ROLE_STYLE: Record<Role, { bg: string; icon: string; blurb: string }> = {
 };
 
 export default function ProfilePage() {
+  // The live editor is a separate component rather than a branch inside this
+  // one: the tutorial keeps an avatar and an uploaded picture in browser
+  // storage and the profiles table has columns for neither, so the two are not
+  // the same form with a different backend.
+  if (useIsLive()) {
+    return (
+      <LiveAppShell allow={ALL}>
+        <LiveProfilePage />
+      </LiveAppShell>
+    );
+  }
   return (
     <AppShell allow={ALL}>
       <Editor />

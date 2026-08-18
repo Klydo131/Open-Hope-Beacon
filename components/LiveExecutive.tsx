@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
+import { Pdf, downloadBlob } from '@/lib/pdf';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Something went wrong.';
@@ -179,11 +180,83 @@ export function LiveBoardReport({ churchName }: { churchName?: string }) {
           <h2 className="text-xl font-bold text-navy">🧾 Report for the board</h2>
           <p className="text-sm text-gray-500">Numbers a board can be told, with nothing private in them.</p>
         </div>
-        <Button variant="ghost" onClick={() => { void navigator.clipboard?.writeText(text); }}>Copy</Button>
+        {/* COPY WAS THE ONLY WAY OUT OF THIS CARD, and a board does not want a
+            paste. They want a file to attach to the minutes. Three formats
+            because they are asked for by three different people: PDF for the
+            meeting pack, CSV for anyone who wants to put it in a spreadsheet,
+            and Copy for a quick message.
+
+            No library for any of it. lib/pdf.ts writes the PDF by hand — PDF is
+            a text format — because adding a rendering dependency to a project
+            that runs on free tiers, to lay out fifteen lines, is a bad trade. */}
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          <Button variant="ghost" onClick={() => { void navigator.clipboard?.writeText(text); }}>Copy</Button>
+          <Button variant="ghost" onClick={() => downloadPdf(lines, churchName)}>PDF</Button>
+          <Button variant="ghost" onClick={() => downloadCsv(lines, churchName)}>CSV</Button>
+        </div>
       </div>
       <pre className="mt-3 whitespace-pre-wrap rounded-xl bg-gray-50 p-4 text-sm leading-relaxed text-gray-700">
 {text}
       </pre>
     </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Taking the report away with you
+// ---------------------------------------------------------------------------
+
+/** A filename a person can find again, from the church's own name. */
+function reportSlug(churchName?: string | null) {
+  const base = (churchName || 'church').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return `${base || 'church'}-board-report-${new Date().toISOString().slice(0, 10)}`;
+}
+
+function downloadPdf(lines: string[], churchName?: string | null) {
+  const pdf = new Pdf();
+  // A navy band at the top, so the page is recognisably from this app when it
+  // is printed and passed round a table.
+  pdf.rect(0, 0, pdf.W, 64, [30, 42, 74]);
+  pdf.text(40, 34, 'Hope Beacon', { size: 20, bold: true, color: [255, 255, 255] });
+  pdf.text(40, 52, 'Report for the board', { size: 10, color: [220, 225, 235] });
+
+  let y = 104;
+  for (const line of lines) {
+    if (!line) { y += 9; continue; }
+    // The first two lines are the title block; a blank line separates sections,
+    // and a line ending in a colon-free label reads as a heading.
+    const heading = line.endsWith('report') || line.startsWith('Prepared');
+    pdf.text(40, y, line, { size: heading ? 12 : 11, bold: heading });
+    y += heading ? 18 : 16;
+    if (y > pdf.H - 60) break;  // one page, by design; the report is short
+  }
+
+  pdf.text(40, pdf.H - 40, 'No conversation, name or prayer author appears in this report.', {
+    size: 8, color: [120, 130, 145],
+  });
+  downloadBlob(pdf.blob(), `${reportSlug(churchName)}.pdf`);
+}
+
+function downloadCsv(lines: string[], churchName?: string | null) {
+  // The report is "Label: value" lines plus headings and blanks. Splitting on
+  // the FIRST colon only matters — "Journey: Create: 0 · Connect: 0" has
+  // several, and everything after the first belongs to the value.
+  const rows: string[][] = [['Measure', 'Value']];
+  for (const line of lines) {
+    if (!line) continue;
+    const at = line.indexOf(': ');
+    if (at === -1) rows.push([line, '']);
+    else rows.push([line.slice(0, at), line.slice(at + 2)]);
+  }
+  // Quote every field and double any quote inside it. A church name with a
+  // comma in it is not exotic, and an unquoted one silently shifts a column.
+  const csv = rows
+    .map((r) => r.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+  // The BOM is what makes Excel read this as UTF-8 rather than mangling any
+  // accented character in the church's name.
+  downloadBlob(
+    new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }),
+    `${reportSlug(churchName)}.csv`,
   );
 }
