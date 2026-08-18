@@ -143,6 +143,7 @@ failure.
 
 ## Taking it further
 
+- [EMAIL.md](EMAIL.md) — sending invitations by mail, with any provider (optional)
 - [BACKENDS.md](BACKENDS.md) — using a host other than the one these migrations assume
 - [SECURITY.md](SECURITY.md) — what the rules guarantee, and what they do not
 - [BUILD-YOUR-OWN.md](BUILD-YOUR-OWN.md) — the long course, if you want to build the backend yourself

@@ -44,11 +44,15 @@ Keep the sample-data build deployed as your fallback **even if live works**.
 Project → **Settings → Authentication → SMTP Settings**.
 
 Turn on a custom SMTP server. Any provider works; the app is deliberately not
-coupled to one. Suggested, in order of how fast you can be sending:
+coupled to one — see [EMAIL.md](EMAIL.md) for how to choose, and for the three
+things that actually decide whether mail arrives. Suggested here in order of how
+fast you can be sending:
 
 - **Brevo** — verify one sender address, ~15 minutes, 300/day free.
-- **Resend** — instant if you send from `onboarding@resend.dev`; a custom domain
-  needs DNS records that take time to propagate.
+- **Resend** — its shared sender `onboarding@resend.dev` delivers **only to the
+  address that owns the Resend account**. The API accepts everything else and
+  returns success, and nothing arrives. Fine for a smoke test, useless for
+  inviting anybody. Reaching real people needs a verified domain.
 - **Postmark** — the best deliverability of the three, but account approval is
   manual and will probably not land before tomorrow.
 
