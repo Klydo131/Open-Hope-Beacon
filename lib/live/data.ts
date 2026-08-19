@@ -1337,3 +1337,121 @@ export async function resolveReport(
   if (error) throw new Error(error.message);
   if (data !== true) throw new Error('That report could not be updated.');
 }
+
+// ---------------------------------------------------------------------------
+// Files in a conversation
+// ---------------------------------------------------------------------------
+//
+// The note further up this file said object storage was "a later, deliberate
+// decision with a quota attached". This is that decision. The demo keeps
+// attachments in the sender's own IndexedDB — a real privacy property, and
+// also the reason the bytes never travel: the row syncs and the file does not.
+// A Guide sending an Explorer a study sheet needs the file to arrive.
+//
+// Private bucket, 10 MB a file, a fixed list of types. Both the row and the
+// object are guarded by membership of the pairing (migration 0022) — a row
+// anyone could read leaks filenames, and an object anyone could fetch leaks
+// the file, a storage path being guessable in a way a row id is not.
+
+export interface PairingFile {
+  id: string;
+  pairing_id: string;
+  owner_id: string;
+  title: string;
+  mime: string;
+  size: number;
+  path: string;
+  created_at: string;
+}
+
+const MEDIA_BUCKET = 'pairing-media';
+/** Kept in step with the bucket's own file_size_limit in migration 0022. */
+export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+
+export async function listPairingFiles(pairingId: string): Promise<PairingFile[]> {
+  const { data, error } = await db()
+    .from('pairing_media')
+    .select('id, pairing_id, owner_id, title, mime, size, path, created_at')
+    .eq('pairing_id', pairingId)
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PairingFile[];
+}
+
+/**
+ * Send a file.
+ *
+ * THE UPLOAD HAPPENS FIRST AND THE ROW SECOND, and if the row fails the object
+ * is removed again. The other order leaves a row pointing at nothing, which
+ * renders as a broken attachment for ever — worse than a failure the sender
+ * can see and retry.
+ *
+ * The path is `<pairing_id>/<uuid>` and never the person's filename. Filenames
+ * carry spaces, accents and occasionally somebody's full name; the title is
+ * kept in the row, where it belongs.
+ */
+export async function sendPairingFile(pairingId: string, file: File): Promise<PairingFile> {
+  const client = db();
+  // uid() reads the session this app verified server-side and stored itself.
+  // Asking Supabase Auth again would be a second round trip for something
+  // already known, and tests/security-invariants.mjs forbids it by name — it
+  // caught this exact line on the first attempt.
+  const me = await uid();
+
+  if (file.size > MAX_ATTACHMENT_BYTES) {
+    throw new Error(
+      `That file is ${Math.round(file.size / 1024 / 1024)} MB. The limit is 10 MB — `
+      + 'try a photo rather than a video, or share a link instead.',
+    );
+  }
+
+  const path = `${pairingId}/${crypto.randomUUID()}`;
+  const { error: upErr } = await client.storage
+    .from(MEDIA_BUCKET)
+    .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+  if (upErr) throw new Error(upErr.message);
+
+  const { data, error } = await client
+    .from('pairing_media')
+    .insert({
+      pairing_id: pairingId,
+      owner_id: me,
+      title: file.name || 'Attachment',
+      mime: file.type || '',
+      size: file.size,
+      path,
+    })
+    .select('id, pairing_id, owner_id, title, mime, size, path, created_at')
+    .single();
+
+  if (error) {
+    // Do not leave bytes nobody can reach.
+    await client.storage.from(MEDIA_BUCKET).remove([path]).catch(() => {});
+    throw new Error(error.message);
+  }
+  return data as PairingFile;
+}
+
+/**
+ * A URL the browser can actually open.
+ *
+ * Signed and short-lived, because the bucket is private. One hour: long enough
+ * to read a PDF on a slow connection, short enough that a URL pasted into a
+ * group chat stops working.
+ */
+export async function pairingFileUrl(path: string): Promise<string> {
+  const { data, error } = await db().storage.from(MEDIA_BUCKET).createSignedUrl(path, 3600);
+  if (error) throw new Error(error.message);
+  return data.signedUrl;
+}
+
+/** Take back something you sent. Only the sender; see migration 0022. */
+export async function removePairingFile(file: PairingFile): Promise<void> {
+  const client = db();
+  const { error } = await client.from('pairing_media').delete().eq('id', file.id);
+  if (error) throw new Error(error.message);
+  // The row is what the screen reads, so its removal is what matters and is
+  // done first. An orphaned object is invisible and costs a few kilobytes; an
+  // orphaned row is a broken attachment on somebody's screen.
+  await client.storage.from(MEDIA_BUCKET).remove([file.path]).catch(() => {});
+}

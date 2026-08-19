@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NAVY, roleNoun, stageInfo } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
@@ -1404,20 +1404,52 @@ export function LiveConversationPage() {
   const { profile } = useLiveSession();
   const [pairing, setPairing] = useState<live.PairingView | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [files, setFiles] = useState<live.PairingFile[]>([]);
   const [body, setBody] = useState('');
   const [error, setError] = useState('');
+  const [attachError, setAttachError] = useState('');
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [pairs, nextMessages] = await Promise.all([live.listPairings(), live.listMessages(pairingId)]);
+      const [pairs, nextMessages, nextFiles] = await Promise.all([
+        live.listPairings(),
+        live.listMessages(pairingId),
+        // Never allowed to take the conversation down with it: a church whose
+        // storage is misconfigured must still be able to talk.
+        live.listPairingFiles(pairingId).catch(() => [] as live.PairingFile[]),
+      ]);
       setPairing(pairs.find((pair) => pair.id === pairingId) ?? null);
       setMessages(nextMessages);
+      setFiles(nextFiles);
       await live.markRead(pairingId);
     } catch (cause) {
       setError(errorText(cause));
     }
   }, [pairingId]);
+
+  const attach = useCallback(async (chosen: File) => {
+    setAttachError('');
+    setBusy(true);
+    try {
+      await live.sendPairingFile(pairingId, chosen);
+      await load();
+    } catch (cause) {
+      setAttachError(errorText(cause));
+    } finally {
+      setBusy(false);
+    }
+  }, [pairingId, load]);
+
+  const dropFile = useCallback(async (file: live.PairingFile) => {
+    setAttachError('');
+    try {
+      await live.removePairingFile(file);
+      await load();
+    } catch (cause) {
+      setAttachError(errorText(cause));
+    }
+  }, [load]);
 
   useEffect(() => {
     void load();
@@ -1470,7 +1502,18 @@ export function LiveConversationPage() {
             </div>
           </Card>
           {error && <Notice tone="error">{error}</Notice>}
-          <Conversation messages={messages} myId={profile?.id ?? ''} body={body} setBody={setBody} send={send} busy={busy} />
+          <Conversation
+            messages={messages}
+            files={files}
+            myId={profile?.id ?? ''}
+            body={body}
+            setBody={setBody}
+            send={send}
+            busy={busy}
+            onAttach={(chosen) => void attach(chosen)}
+            onRemoveFile={(file) => void dropFile(file)}
+            attachError={attachError}
+          />
           {/* Reporting runs BOTH ways. A Guide receiving something they should
               not have received needs this as much as an Explorer does, and a
               route only the junior party can use is one nobody uses. */}
@@ -1488,6 +1531,12 @@ export function LiveConversationPage() {
 export function LiveExplorerPage() {
   const { profile } = useLiveSession();
   const [pairing, setPairing] = useState<live.MyPairing | null>(null);
+  const [files, setFiles] = useState<live.PairingFile[]>([]);
+  const [attachError, setAttachError] = useState('');
+  // The attach handler is created once and would otherwise capture whatever
+  // `pairing` was at that render — null, on the first one. A ref reads the
+  // current value at the moment the file is chosen.
+  const pairingRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1499,6 +1548,9 @@ export function LiveExplorerPage() {
       setPairing(mine);
       if (mine) {
         setMessages(await live.listMessages(mine.id));
+        // The Explorer sends files too. A route only the Guide can use turns a
+        // conversation into a broadcast.
+        setFiles(await live.listPairingFiles(mine.id).catch(() => [] as live.PairingFile[]));
         await live.markRead(mine.id);
       }
     } catch (cause) {
@@ -1506,8 +1558,34 @@ export function LiveExplorerPage() {
     }
   }, []);
 
+  const attach = useCallback(async (chosen: File) => {
+    const id = pairingRef.current;
+    if (!id) return;
+    setAttachError('');
+    setBusy(true);
+    try {
+      await live.sendPairingFile(id, chosen);
+      await load();
+    } catch (cause) {
+      setAttachError(errorText(cause));
+    } finally {
+      setBusy(false);
+    }
+  }, [load]);
+
+  const dropFile = useCallback(async (file: live.PairingFile) => {
+    setAttachError('');
+    try {
+      await live.removePairingFile(file);
+      await load();
+    } catch (cause) {
+      setAttachError(errorText(cause));
+    }
+  }, [load]);
+
   useEffect(() => { void load(); }, [load]);
   const pairingId = pairing?.id;
+  useEffect(() => { pairingRef.current = pairingId ?? null; }, [pairingId]);
   useEffect(
     () => pairingId ? live.subscribeToMessages(pairingId, () => void load()) : undefined,
     [pairingId, load],
@@ -1550,7 +1628,18 @@ export function LiveExplorerPage() {
               <p className="mt-1 text-xl font-bold text-navy">{pairing.dm_name}</p>
               <p className="mt-2 text-sm text-gray-500">Only you and your Guide can read this conversation.</p>
             </Card>
-            <Conversation messages={messages} myId={profile?.id ?? ''} body={body} setBody={setBody} send={send} busy={busy} />
+            <Conversation
+              messages={messages}
+              files={files}
+              myId={profile?.id ?? ''}
+              body={body}
+              setBody={setBody}
+              send={send}
+              busy={busy}
+              onAttach={(chosen) => void attach(chosen)}
+              onRemoveFile={(file) => void dropFile(file)}
+              attachError={attachError}
+            />
             {/* THE ONE THAT MATTERS MOST. The Explorer is the person with the
                 least standing in this relationship and the most reason to stay
                 silent, so their route out has to be on the same screen as the
@@ -1576,40 +1665,113 @@ export function LiveExplorerPage() {
   );
 }
 
+/**
+ * One thing in the conversation, whichever kind it is.
+ *
+ * ONE LIST, SORTED BY TIME — learned the hard way on the demo side, where
+ * messages and attachments were two separate render passes and every file drew
+ * at the bottom however long ago it was sent. The timestamps said one thing and
+ * the order said another. Live never had attachments to get this wrong with; it
+ * is built this way from the start so it never can.
+ */
+type Entry =
+  | { kind: 'message'; id: string; at: string; who: string; message: Message }
+  | { kind: 'file'; id: string; at: string; who: string; file: live.PairingFile };
+
 function Conversation({
   messages,
+  files,
   myId,
   body,
   setBody,
   send,
   busy,
+  onAttach,
+  onRemoveFile,
+  attachError,
 }: {
   messages: Message[];
+  files: live.PairingFile[];
   myId: string;
   body: string;
   setBody: (value: string) => void;
   send: (event: React.FormEvent) => void;
   busy: boolean;
+  onAttach?: (file: File) => void;
+  onRemoveFile?: (file: live.PairingFile) => void;
+  attachError?: string;
 }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const timeline: Entry[] = [
+    ...messages.map((m): Entry => ({
+      kind: 'message', id: m.id, at: m.created_at, who: m.sender_id, message: m,
+    })),
+    ...files.map((f): Entry => ({
+      kind: 'file', id: f.id, at: f.created_at, who: f.owner_id, file: f,
+    })),
+  ].sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
+
   return (
     <Card className="overflow-hidden">
       <div className="max-h-[55vh] min-h-72 space-y-3 overflow-y-auto p-4 sm:p-5">
-        {messages.length === 0 && <p className="py-16 text-center text-gray-400">Start with a welcome.</p>}
-        {messages.map((message) => {
-          const mine = message.sender_id === myId;
+        {timeline.length === 0 && <p className="py-16 text-center text-gray-400">Start with a welcome.</p>}
+        {timeline.map((entry) => {
+          const mine = entry.who === myId;
           return (
-            <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+            <div key={`${entry.kind}-${entry.id}`} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${mine ? 'bg-navy text-white' : 'bg-gray-100 text-gray-800'}`}>
-                <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                {entry.kind === 'message' ? (
+                  <p className="whitespace-pre-wrap break-words">{entry.message.body}</p>
+                ) : (
+                  <LiveAttachment
+                    file={entry.file}
+                    mine={mine}
+                    onRemove={mine && onRemoveFile ? () => onRemoveFile(entry.file) : undefined}
+                  />
+                )}
                 <p className={`mt-1 text-[11px] ${mine ? 'text-white/50' : 'text-gray-400'}`}>
-                  {new Date(message.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(entry.at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
             </div>
           );
         })}
       </div>
+
+      {attachError && (
+        <p className="border-t border-black/5 bg-red-50 px-4 py-2 text-sm text-red-800">{attachError}</p>
+      )}
+
       <form onSubmit={send} className="flex gap-2 border-t border-black/5 p-3 sm:p-4">
+        {onAttach && (
+          <>
+            <input
+              ref={fileRef}
+              type="file"
+              className="hidden"
+              aria-hidden="true"
+              tabIndex={-1}
+              onChange={(event) => {
+                const chosen = event.target.files?.[0];
+                // Reset first: choosing the same file twice in a row fires no
+                // change event otherwise, and the second attempt looks broken.
+                event.target.value = '';
+                if (chosen) onAttach(chosen);
+              }}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              className="shrink-0 px-3"
+              disabled={busy}
+              onClick={() => fileRef.current?.click()}
+              aria-label="Attach a file"
+            >
+              📎
+            </Button>
+          </>
+        )}
         <input
           value={body}
           onChange={(event) => setBody(event.target.value)}
@@ -1620,6 +1782,67 @@ function Conversation({
         <Button type="submit" variant="gold" disabled={busy || !body.trim()}>Send</Button>
       </form>
     </Card>
+  );
+}
+
+/**
+ * One attachment, opened through a signed URL.
+ *
+ * The bucket is private, so these have no permanent address — the URL is minted
+ * per view and expires in an hour. That is also why it is fetched on the click
+ * rather than for every file in the thread at once: a long conversation would
+ * otherwise mint dozens of signed URLs nobody opens.
+ */
+function LiveAttachment({
+  file,
+  mine,
+  onRemove,
+}: {
+  file: live.PairingFile;
+  mine: boolean;
+  onRemove?: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState('');
+
+  const open = async () => {
+    setBusy(true);
+    setFailed('');
+    try {
+      const url = await live.pairingFileUrl(file.path);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch {
+      setFailed('That file could not be opened.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const size = file.size >= 1024 * 1024
+    ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(file.size / 1024))} KB`;
+
+  return (
+    <span className="block">
+      <button
+        type="button"
+        onClick={() => void open()}
+        disabled={busy}
+        className={`block break-words text-left font-semibold underline underline-offset-2 ${mine ? 'text-white' : 'text-navy'}`}
+      >
+        📎 {file.title}
+      </button>
+      <span className={`block text-[11px] ${mine ? 'text-white/60' : 'text-gray-500'}`}>
+        {busy ? 'Opening…' : size}
+        {onRemove && (
+          <>
+            {' · '}
+            <button type="button" onClick={onRemove} className="underline underline-offset-2">Remove</button>
+          </>
+        )}
+      </span>
+      {failed && <span className={`block text-[11px] ${mine ? 'text-red-200' : 'text-red-600'}`}>{failed}</span>}
+    </span>
   );
 }
 
