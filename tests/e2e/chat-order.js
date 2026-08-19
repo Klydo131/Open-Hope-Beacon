@@ -59,7 +59,7 @@ async function openFirstSeekerRoom(page) {
   ok((await openFirstSeekerRoom(page)) > 0, 'the conversation opens');
 
   const send = async (body) => {
-    await page.locator('[data-quest="chat-send"] input[aria-label="Message"]').fill(body);
+    await page.locator('[data-quest="chat-send"] textarea[aria-label="Message"]').fill(body);
     await page.locator('[data-quest="chat-send"]').getByRole('button', { name: /^Send$/ }).click();
     // Long enough for the store to write and re-render, short enough that four
     // of these do not dominate the run.

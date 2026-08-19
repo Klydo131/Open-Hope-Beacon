@@ -95,7 +95,7 @@ async function openFirstSeekerRoom(page) {
   );
 
   const marker = `live sync ${Date.now()}`;
-  await a.locator('[data-quest="chat-send"] input[aria-label="Message"]').fill(marker);
+  await a.locator('[data-quest="chat-send"] textarea[aria-label="Message"]').fill(marker);
   await a.locator('[data-quest="chat-send"]').getByRole('button', { name: /^Send$/ }).click();
 
   // No reload of page B anywhere in this block. That is the point.

@@ -16,6 +16,7 @@ import { LiveAppShell } from '@/components/LiveAppShell';
 import { useTutorialMode } from '@/lib/tutorial';
 import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer, LivePrayerForGuide, LivePrayerWall } from '@/components/LivePrayer';
+import { MessageBox } from '@/components/MessageBox';
 import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
 import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveLessonSeries } from '@/components/LiveMinistry';
@@ -1816,7 +1817,12 @@ function Conversation({
 
   return (
     <Card className="overflow-hidden">
-      <div className="max-h-[55vh] min-h-72 space-y-3 overflow-y-auto p-4 sm:p-5">
+      {/* `dvh`, not `vh`. `vh` is the layout viewport, which does not shrink
+          when a phone's on-screen keyboard opens — so the thread kept its full
+          height and the message you had just written sat underneath the
+          keyboard. `dvh` is the part actually visible. The plain `vh` line
+          stays underneath it for anything too old to know `dvh`. */}
+      <div className="max-h-[55vh] min-h-72 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-5 [max-height:55dvh]">
         {timeline.length === 0 && <p className="py-16 text-center text-gray-400">Start with a welcome.</p>}
         {timeline.map((entry) => {
           const mine = entry.who === myId;
@@ -1845,7 +1851,7 @@ function Conversation({
         <p className="border-t border-black/5 bg-red-50 px-4 py-2 text-sm text-red-800">{attachError}</p>
       )}
 
-      <form onSubmit={send} className="flex gap-2 border-t border-black/5 p-3 sm:p-4">
+      <form onSubmit={send} className="flex items-end gap-2 border-t border-black/5 p-3 sm:p-4">
         {onAttach && (
           <>
             <input
@@ -1874,14 +1880,8 @@ function Conversation({
             </Button>
           </>
         )}
-        <input
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          maxLength={4000}
-          placeholder="Write a message"
-          className="tap min-w-0 flex-1 rounded-xl bg-gray-100 px-4 text-base outline-none focus:ring-2 focus:ring-gold"
-        />
-        <Button type="submit" variant="gold" disabled={busy || !body.trim()}>Send</Button>
+        <MessageBox value={body} onChange={setBody} />
+        <Button type="submit" variant="gold" disabled={busy || !body.trim()} className="shrink-0 self-end">Send</Button>
       </form>
     </Card>
   );

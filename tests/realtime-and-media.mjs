@@ -110,20 +110,27 @@ ok(
 // The regression this section exists to prevent a third time.
 //
 // [data-quest="chat-send"] is the tutorial anchor, and other suites index into
-// it positionally — the message box is its first <input>, Send is its first
-// <button>. Putting the hidden file picker inside captured the first selector
-// and typing timed out. Moving only the picker, and leaving the Attach button
-// inside, then captured the second: the suite clicked Attach instead of Send,
-// no message was sent, and nothing on screen looked wrong. Silent, and two
-// separate debugging sessions.
+// it positionally — the message box is its first text control, Send is its
+// first <button>. Putting the hidden file picker inside captured the first
+// selector and typing timed out. Moving only the picker, and leaving the Attach
+// button inside, then captured the second: the suite clicked Attach instead of
+// Send, no message was sent, and nothing on screen looked wrong. Silent, and
+// two separate debugging sessions.
+//
+// The message box became <MessageBox> — a growing textarea — when a one-line
+// <input> turned out to be why nobody could read back a long message they had
+// written. So the count below moved from <input> to <MessageBox>, and the
+// no-raw-<input> rule that replaced it is the stronger of the two: it forbids
+// the file picker by construction rather than by a separate check.
 const chatCode = stripComments(chat);
 const afterAnchor = chatCode.slice(chatCode.indexOf('data-quest="chat-send"'));
 const formEnd = afterAnchor.indexOf('</form>');
 const inForm = formEnd === -1 ? afterAnchor : afterAnchor.slice(0, formEnd);
 
 ok(
-  (inForm.match(/<input/g) || []).length === 1,
-  'the chat-send region holds exactly one input (the message box)',
+  (inForm.match(/<MessageBox/g) || []).length === 1
+    && (inForm.match(/<input/g) || []).length === 0,
+  'the chat-send region holds exactly one message box and no raw <input>',
 );
 ok(
   (inForm.match(/<Button/g) || []).length === 1 && /type="submit"/.test(inForm),

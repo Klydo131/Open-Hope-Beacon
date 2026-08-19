@@ -8,6 +8,7 @@ import type { Message, PairingMedia } from '@/lib/types';
 import { Attachment } from './Attachment';
 import { ReportDialog } from './ReportDialog';
 import { Button } from './ui';
+import { MessageBox } from '@/components/MessageBox';
 
 /**
  * One thing in the conversation, whichever kind it is.
@@ -205,7 +206,8 @@ export function Chat({ pairingId }: { pairingId: string }) {
         // highlight has to cover the box as well as the button — it used to
         // ring only Send, which pointed at the wrong half of the instruction.
         data-quest="chat-send"
-        className="flex gap-2 border-t border-black/5 p-3"
+        // items-end so Send stays level with the bottom of a box that grows.
+        className="flex items-end gap-2 border-t border-black/5 p-3"
         onSubmit={(e) => {
           e.preventDefault();
           if (!text.trim()) return;
@@ -214,14 +216,13 @@ export function Chat({ pairingId }: { pairingId: string }) {
           setText('');
         }}
       >
-        <input
+        <MessageBox
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={setText}
           placeholder="Type a message…"
-          className="tap w-full min-w-0 flex-1 rounded-xl bg-gray-100 px-4 text-lg outline-none focus:ring-2 focus:ring-gold"
-          aria-label="Message"
+          className="text-lg"
         />
-        <span className="shrink-0">
+        <span className="shrink-0 self-end">
           <Button type="submit" disabled={!text.trim()} className="px-4 sm:px-5">
             Send
           </Button>
