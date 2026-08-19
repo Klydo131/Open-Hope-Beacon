@@ -15,6 +15,7 @@
 // congregation "here is the code you are running" and then shows them somebody
 // else's.
 
+import Link from 'next/link';
 import { Card } from '@/components/ui';
 
 /** Change this if you deploy a modified version. See the note above. */
@@ -29,6 +30,19 @@ export function SourceCard() {
         read it, run it for your own church, and change it. If you change it and
         run it for other people, you pass those same freedoms on to them.
       </p>
+      {/* The conduct policy sits here rather than only in the report dialog.
+          Somebody deciding whether to report needs to read it BEFORE they are
+          upset, and the only place they will find it then is Settings. */}
+      <div className="mt-4 rounded-xl bg-gray-50 p-3 ring-1 ring-gray-200">
+        <Link href="/policy" className="font-semibold text-navy underline underline-offset-4">
+          How we treat each other →
+        </Link>
+        <p className="mt-1 text-sm text-gray-600">
+          What is expected of everyone here, how to report something that is
+          wrong, and what happens next.
+        </p>
+      </div>
+
       <div className="mt-4 flex flex-wrap gap-2">
         <a
           href={SOURCE_URL}

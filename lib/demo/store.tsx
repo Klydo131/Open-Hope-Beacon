@@ -22,6 +22,8 @@ import type {
   Pairing,
   PrayerRequest,
   Recommendation,
+  Report,
+  ReportReason,
   PairingMedia,
   Profile,
   Role,
@@ -275,6 +277,20 @@ export interface Ctx {
   deleteBlogPost: (id: string) => void;
   recordBlogView: (id: string) => void;
   kickMember: (targetId: string) => void;
+  /** Raise a safeguarding report about another member. Guide or Explorer. */
+  reportPerson: (args: {
+    subjectId: string;
+    reason: ReportReason;
+    detail?: string;
+    pairingId?: string;
+    messageId?: string;
+  }) => void;
+  /** A Director closes a report. Never deletes it. */
+  resolveReport: (
+    reportId: string,
+    status: 'actioned' | 'dismissed',
+    outcome?: string,
+  ) => void;
   disapproveMember: (targetId: string) => void;
   createInvite: (m: {
     full_name: string;
@@ -1747,6 +1763,119 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     [persist, signOut],
   );
 
+  // --- Safeguarding: reporting a person ----------------------------------
+  //
+  // A Guide and an Explorer talk privately, and nobody else can read it. That
+  // is right for the conversation and it is also the reason this has to exist:
+  // if one of them sends something inappropriate, there was no third party to
+  // tell short of leaving the church.
+  //
+  // Three rules the shape of this enforces:
+  //
+  //   * EITHER SIDE MAY REPORT. Not only the Explorer. A Guide receiving
+  //     something they should not have received has the same route out, and a
+  //     tool only the "junior" party can use is one nobody uses.
+  //   * THE OTHER PERSON IS NOT TOLD. No notification, no read receipt, no
+  //     change they could notice. Somebody who fears being found out reporting
+  //     does not report.
+  //   * IT GOES TO PEOPLE, NOT TO A QUEUE. Every Director and Executive
+  //     Director of the church is notified by name, because a report that
+  //     nobody is looking at is worse than no report — it teaches the person
+  //     who raised it that speaking up achieves nothing.
+
+  const reportPerson = useCallback(
+    (args: {
+      subjectId: string;
+      reason: ReportReason;
+      detail?: string;
+      pairingId?: string;
+      messageId?: string;
+    }) => {
+      if (!userId) return;
+      setDb((prev) => {
+        const reporter = prev.profiles.find((p) => p.id === userId);
+        const subject = prev.profiles.find((p) => p.id === args.subjectId);
+        // Reporting yourself is a mis-tap, not a report.
+        if (!reporter || !subject || args.subjectId === userId) return prev;
+
+        const leaders = prev.profiles.filter(
+          (p) => p.role === 'admin' || p.role === 'executive',
+        );
+
+        const report: Report = {
+          id: uid(),
+          reporter_id: userId,
+          subject_id: args.subjectId,
+          pairing_id: args.pairingId,
+          message_id: args.messageId,
+          reason: args.reason,
+          detail: args.detail?.trim() || undefined,
+          status: 'open',
+          created_at: nowIso(),
+        };
+
+        return saveDb({
+          ...prev,
+          reports: [report, ...prev.reports],
+          notifications: [
+            ...leaders.map((leader) => ({
+              id: uid(),
+              user_id: leader.id,
+              type: 'report',
+              title: 'A safeguarding report needs your attention',
+              // The reporter IS named to the Directors. Anonymous reporting
+              // sounds kinder and is not: a Director cannot ask what happened,
+              // cannot support the person, and cannot tell a grudge from a
+              // genuine concern. What is protected is that the SUBJECT is
+              // never told — which is the part that actually deters people.
+              body: `${reporter.full_name} reported ${subject.full_name}.`,
+              created_at: nowIso(),
+            })),
+            ...prev.notifications,
+          ],
+          // The subject's id is deliberately not the analytics subject here;
+          // the event records that a report happened, not who it was about.
+          analytics: [...prev.analytics, ev(userId, 'report_raised', args.reason)],
+        });
+      });
+    },
+    [userId],
+  );
+
+  /**
+   * A Director closes a report.
+   *
+   * Closing is not the same as acting: `dismissed` says a Director looked and
+   * judged there was nothing to answer, which is a real and common outcome and
+   * must be as easy to record as the other. What is NOT offered is deleting
+   * it — a safeguarding record that can be made to disappear is not a record.
+   */
+  const resolveReport = useCallback(
+    (reportId: string, status: 'actioned' | 'dismissed', outcome?: string) => {
+      if (!userId) return;
+      setDb((prev) => {
+        const caller = prev.profiles.find((p) => p.id === userId);
+        if (!caller || (caller.role !== 'admin' && caller.role !== 'executive')) return prev;
+        return saveDb({
+          ...prev,
+          reports: prev.reports.map((r) =>
+            r.id === reportId
+              ? {
+                  ...r,
+                  status,
+                  decided_by: userId,
+                  decided_at: nowIso(),
+                  outcome: outcome?.trim() || undefined,
+                }
+              : r,
+          ),
+          analytics: [...prev.analytics, ev(userId, 'report_resolved', status)],
+        });
+      });
+    },
+    [userId],
+  );
+
   // --- Kick / Disapprove -------------------------------------------------
 
   const kickMember = useCallback(
@@ -2158,6 +2287,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     deleteBlogPost,
     recordBlogView,
     kickMember,
+    reportPerson,
+    resolveReport,
     disapproveMember,
     importData,
     createInvite,

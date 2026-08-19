@@ -6,6 +6,7 @@ import { NAVY } from '@/lib/brand';
 import { emitQuest } from '@/lib/quest';
 import type { Message, PairingMedia } from '@/lib/types';
 import { Attachment } from './Attachment';
+import { ReportDialog } from './ReportDialog';
 import { Button } from './ui';
 
 /**
@@ -30,9 +31,10 @@ type Entry =
 // the store; in production this is the `messages` table with Realtime and RLS
 // that only lets the two participants read or write.
 export function Chat({ pairingId }: { pairingId: string }) {
-  const { db, userId, sendMessage, markMessagesRead, attachMedia, removeMedia, mediaFor } =
-    useDemo();
+  const { db, userId, sendMessage, markMessagesRead, attachMedia, removeMedia, mediaFor,
+    reportPerson } = useDemo();
   const [text, setText] = useState('');
+  const [reporting, setReporting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -71,6 +73,26 @@ export function Chat({ pairingId }: { pairingId: string }) {
 
   const nameOf = (id: string) =>
     db.profiles.find((p) => p.id === id)?.full_name ?? 'Unknown';
+
+  // The other person in this pairing — the only person this conversation's
+  // Report control can be about, which is why it takes no "who" step.
+  const pairing = db.pairings.find((p) => p.id === pairingId);
+  const otherId =
+    pairing && userId
+      ? (pairing.dm_id === userId ? pairing.ds_id : pairing.dm_id)
+      : '';
+
+  if (reporting && otherId) {
+    return (
+      <ReportDialog
+        subjectName={nameOf(otherId)}
+        onCancel={() => setReporting(false)}
+        onSubmit={(reason, detail) =>
+          reportPerson({ subjectId: otherId, reason, detail, pairingId })
+        }
+      />
+    );
+  }
 
   return (
     <div className="flex h-[26rem] flex-col rounded-2xl bg-white ring-1 ring-black/5">
@@ -164,6 +186,18 @@ export function Chat({ pairingId }: { pairingId: string }) {
         >
           Attach a file
         </Button>
+        {/* A plain link, not a button, and pushed to the far end. Reporting
+            somebody must be reachable without hunting for it and must never be
+            hit by a thumb aiming at Send or Attach. */}
+        {otherId && (
+          <button
+            type="button"
+            onClick={() => setReporting(true)}
+            className="ml-auto shrink-0 px-2 text-sm text-gray-400 underline underline-offset-2 hover:text-red-600"
+          >
+            Report
+          </button>
+        )}
       </div>
 
       <form

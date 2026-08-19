@@ -322,7 +322,12 @@ export interface AnalyticsEvent {
     | 'note_added'
     | 'followup_added'
     | 'followup_done'
-    | 'blog_written';
+    | 'blog_written'
+    // Safeguarding. The subject of the event is the REASON, never the person
+    // reported — analytics is read by anyone who can see the church's trends,
+    // and "who has been reported" is not a trend, it is an accusation.
+    | 'report_raised'
+    | 'report_resolved';
   meta?: string;
   at: string;
 }
@@ -405,6 +410,58 @@ export interface Recommendation {
   invite_id?: string;
 }
 
+/**
+ * Somebody said something that should not have been said.
+ *
+ * WHY THIS EXISTS. This app pairs a Guide with an Explorer in a private
+ * conversation nobody else can read — which is the right design for a
+ * spiritual conversation and exactly the design that needs a way out. An
+ * Explorer sent something inappropriate to their Guide, or the other way
+ * about, and until now the only options were to say nothing or to leave.
+ *
+ * A report is deliberately NOT a message to the other person, and it does not
+ * warn them. It goes to the church's Directors, who are the people with the
+ * standing to act.
+ */
+export interface Report {
+  id: string;
+  /** Who raised it. A Guide or an Explorer; both may report. */
+  reporter_id: string;
+  /** Who it is about. */
+  subject_id: string;
+  /** The conversation it came from, when it came from one. */
+  pairing_id?: string;
+  /**
+   * The specific message, when one was named. Kept as an id rather than a copy
+   * of the text: the Director reads it in place, in its own thread, with what
+   * came before and after it. A quoted line with no context is how a
+   * misunderstanding becomes a removal.
+   */
+  message_id?: string;
+  reason: ReportReason;
+  /** The reporter's own words. Optional — some things are hard to write down. */
+  detail?: string;
+  status: 'open' | 'actioned' | 'dismissed';
+  created_at: string;
+  decided_by?: string;
+  decided_at?: string;
+  /** What the Director did, in their words, so the record explains itself. */
+  outcome?: string;
+}
+
+/**
+ * The reasons offered, in the order they are shown.
+ *
+ * A short list on purpose. A long one makes a person hunt for the exact label
+ * and give up; "something else" catches everything and is not a lesser choice.
+ */
+export type ReportReason =
+  | 'inappropriate'
+  | 'harassment'
+  | 'unsafe'
+  | 'spam'
+  | 'other';
+
 export interface DB {
   profiles: Profile[];
   pairings: Pairing[];
@@ -428,5 +485,6 @@ export interface DB {
   blog_posts: BlogPost[];
   blog_audience: BlogAudienceEntry[];
   blog_views: BlogView[];
+  reports: Report[];
   church_name: string;
 }

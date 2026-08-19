@@ -34,7 +34,7 @@ export default function Admin() {
   );
 }
 
-type Tab = 'approvals' | 'pairing' | 'materials' | 'outbox' | 'analytics';
+type Tab = 'approvals' | 'pairing' | 'materials' | 'outbox' | 'reports' | 'analytics';
 
 function AdminBody() {
   const { db } = useDemo();
@@ -45,12 +45,16 @@ function AdminBody() {
   const unopened = db.emails.filter(
     (e) => !e.opened_at && e.to_user_id === undefined,
   ).length;
+  const openReports = db.reports.filter((r) => r.status === 'open').length;
 
   const tabs: { key: Tab; label: string; badge?: number }[] = [
     { key: 'approvals', label: t('approvals'), badge: pending + recs },
     { key: 'pairing', label: t('peoplePairing') },
     { key: 'materials', label: t('materials') },
     { key: 'outbox', label: 'Mail', badge: unopened },
+    // Its own tab rather than a card inside Approvals. A safeguarding report
+    // that shares a screen with routine admin gets treated as routine admin.
+    { key: 'reports', label: 'Safeguarding', badge: openReports },
     { key: 'analytics', label: t('analytics') },
   ];
 
@@ -97,12 +101,15 @@ function AdminBody() {
       {tab === 'pairing' && <Pairing />}
       {tab === 'materials' && <Materials />}
       {tab === 'outbox' && <Mailbox />}
+      {tab === 'reports' && <Reports />}
       {tab === 'analytics' && <Analytics />}
     </div>
   );
 }
 
 const EVENT_LABEL: Record<AnalyticsEvent['type'], string> = {
+  report_raised: 'Raised a safeguarding report',
+  report_resolved: 'Closed a safeguarding report',
   signin: 'Signed in',
   message: 'Sent a message',
   material_share: 'Shared a resource',
@@ -133,6 +140,171 @@ const EVENT_LABEL: Record<AnalyticsEvent['type'], string> = {
 //     the church's own data to analyze; it names people.
 //   • GLOBAL — an anonymous rollup (totals + trends, no identities) that is safe
 //     to sync to a shared backend for wider analysis.
+/**
+ * Safeguarding reports, and what a Director does about them.
+ *
+ * WHAT THIS SCREEN IS FOR. Somebody in this church told the leadership that
+ * another member did something wrong, and did it through an app rather than in
+ * person — usually because saying it in person felt impossible. The screen owes
+ * them two things: that a Director sees it, and that a Director can act without
+ * having to leave and go hunting for context.
+ *
+ * Three decisions worth defending:
+ *
+ *   * OPEN ONES CANNOT BE HIDDEN. No "mark as read", no collapse. A report
+ *     stays at the top of this tab, with a red count on the tab itself, until
+ *     somebody decides something. The failure mode for safeguarding is not
+ *     wrong decisions, it is no decision.
+ *   * CLOSING IT IS TWO EQUAL CHOICES. "Nothing to answer" is a real and
+ *     common outcome, and making it harder to record than "removed" pushes
+ *     Directors towards punishing someone to clear a queue.
+ *   * NOTHING IS EVER DELETED. Closed reports stay, visible, with who decided
+ *     and what they decided. A record that can be made to disappear is not a
+ *     record, and the person who raised it deserves to know it still exists.
+ */
+function Reports() {
+  const { db, userId, resolveReport, kickMember } = useDemo();
+  const [outcome, setOutcome] = useState<Record<string, string>>({});
+  const me = db.profiles.find((p) => p.id === userId);
+
+  const nameOf = (id: string) =>
+    db.profiles.find((p) => p.id === id)?.full_name ?? 'Someone who has left';
+
+  const open = db.reports.filter((r) => r.status === 'open');
+  const closed = db.reports.filter((r) => r.status !== 'open');
+
+  const REASON_LABEL: Record<string, string> = {
+    inappropriate: 'Something inappropriate was sent',
+    harassment: 'Abuse, threats or pressure',
+    unsafe: 'Worried someone is unsafe',
+    spam: 'Selling, begging or recruiting',
+    other: 'Something else',
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-5">
+        <h2 className="text-xl font-bold text-navy">
+          Needs a decision {open.length > 0 && <span className="text-red-600">· {open.length}</span>}
+        </h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Someone in your church raised these. The person reported has not been
+          told and will not be — that is what makes reporting possible.
+        </p>
+
+        {open.length === 0 ? (
+          <EmptyState
+            title="🛡️ Nothing to decide"
+            hint="Reports from Guides and Explorers arrive here. Everyone can read how this works on the How we treat each other page."
+          />
+        ) : (
+          <ul className="mt-4 space-y-3">
+            {open.map((r) => {
+              const subject = db.profiles.find((p) => p.id === r.subject_id);
+              const removable = Boolean(me && subject && canKick(me.role, subject.role));
+              return (
+                <li key={r.id} className="rounded-xl bg-red-50 p-4 ring-1 ring-red-200">
+                  <p className="font-bold text-navy">
+                    {nameOf(r.reporter_id)} reported {nameOf(r.subject_id)}
+                  </p>
+                  <p className="mt-0.5 text-sm font-semibold text-red-800">
+                    {REASON_LABEL[r.reason] ?? r.reason}
+                  </p>
+                  {r.detail && (
+                    <p className="mt-2 whitespace-pre-wrap rounded-lg bg-white p-3 text-gray-700">
+                      {r.detail}
+                    </p>
+                  )}
+                  <p className="mt-2 text-xs text-gray-500">
+                    {new Date(r.created_at).toLocaleString()}
+                  </p>
+
+                  <label className="mt-3 block">
+                    <span className="text-sm font-semibold text-navy">
+                      What did you decide, and why?
+                    </span>
+                    <input
+                      value={outcome[r.id] ?? ''}
+                      onChange={(e) => setOutcome((o) => ({ ...o, [r.id]: e.target.value }))}
+                      placeholder="Spoke to them / removed them / nothing to answer"
+                      className="tap mt-1 w-full rounded-xl bg-white px-3 text-base outline-none ring-1 ring-red-200 focus:ring-2 focus:ring-gold"
+                    />
+                  </label>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      variant="ghost"
+                      onClick={() => resolveReport(r.id, 'actioned', outcome[r.id])}
+                    >
+                      I have dealt with it
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => resolveReport(r.id, 'dismissed', outcome[r.id])}
+                    >
+                      Nothing to answer
+                    </Button>
+                    {removable && (
+                      // Removing and closing in one press, because doing them
+                      // separately leaves a live report against somebody who is
+                      // already gone — and a Director who has just removed a
+                      // member does not come back to tidy the queue.
+                      <Button
+                        variant="gold"
+                        onClick={() => {
+                          resolveReport(
+                            r.id,
+                            'actioned',
+                            outcome[r.id] || `Removed ${nameOf(r.subject_id)} from the church.`,
+                          );
+                          kickMember(r.subject_id);
+                        }}
+                      >
+                        Remove {nameOf(r.subject_id)} from the church
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Card>
+
+      <Card className="p-5">
+        <h2 className="text-xl font-bold text-navy">Decided</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          Kept permanently. Reports are never deleted.
+        </p>
+        {closed.length === 0 ? (
+          <p className="mt-4 text-gray-500">Nothing decided yet.</p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {closed.map((r) => (
+              <li key={r.id} className="rounded-xl bg-gray-50 p-4">
+                <p className="font-semibold text-navy">
+                  {nameOf(r.reporter_id)} reported {nameOf(r.subject_id)}
+                </p>
+                <p className="mt-0.5 text-sm text-gray-600">
+                  {REASON_LABEL[r.reason] ?? r.reason} ·{' '}
+                  <span className={r.status === 'actioned' ? 'text-green-700' : 'text-gray-500'}>
+                    {r.status === 'actioned' ? 'Dealt with' : 'Nothing to answer'}
+                  </span>
+                </p>
+                {r.outcome && <p className="mt-1 text-gray-700">{r.outcome}</p>}
+                <p className="mt-1 text-xs text-gray-500">
+                  Decided by {r.decided_by ? nameOf(r.decided_by) : 'a Director'}
+                  {r.decided_at ? ` · ${new Date(r.decided_at).toLocaleDateString()}` : ''}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </div>
+  );
+}
+
 function Analytics() {
   const { db } = useDemo();
   const { t } = useLocale();

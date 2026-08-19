@@ -620,6 +620,10 @@ export function makeSeed(): DB {
       { id: 'view-1', post_id: 'blog-sabbath', viewer_id: 'ds-john', created_at: iso(60 * 20) },
       { id: 'view-2', post_id: 'blog-sabbath', viewer_id: 'ds-grace', created_at: iso(60 * 9) },
     ],
+    // Empty on purpose. A safeguarding report is somebody's real complaint
+    // about a real person, and a fake one sitting in the Directors' queue on
+    // first run teaches a church to scroll past that queue.
+    reports: [],
     church_name: 'Grace SDA Church',
   };
 }
