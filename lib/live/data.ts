@@ -1248,3 +1248,92 @@ export async function markAllNotificationsRead(): Promise<void> {
     .update({ read_at: new Date().toISOString() }).is('read_at', null);
   if (error) throw new Error(error.message);
 }
+
+// ---------------------------------------------------------------------------
+// Safeguarding
+// ---------------------------------------------------------------------------
+
+/** The five reasons offered. Kept in step with the database's CHECK constraint. */
+export type ReportReason = 'inappropriate' | 'harassment' | 'unsafe' | 'spam' | 'other';
+
+export interface LiveReport {
+  id: string;
+  reporter_id: string;
+  subject_id: string;
+  pairing_id: string | null;
+  reason: ReportReason;
+  detail: string | null;
+  status: 'open' | 'actioned' | 'dismissed';
+  created_at: string;
+  decided_by: string | null;
+  decided_at: string | null;
+  outcome: string | null;
+}
+
+/**
+ * Raise a report about another member.
+ *
+ * Through a definer function rather than an insert, and the reason is worth
+ * stating: the church is taken from the caller's own profile, not from an
+ * argument. A browser that could name its own church_id could file a report
+ * into a church it does not belong to. The function also refuses a subject
+ * outside your church — which, done as an error rather than a silent success,
+ * would otherwise be a way to discover that a stranger exists.
+ *
+ * The person reported is NOT notified. Every Director of the church is.
+ */
+export async function reportPerson(args: {
+  subjectId: string;
+  reason: ReportReason;
+  detail?: string;
+  pairingId?: string;
+}): Promise<void> {
+  const { error } = await db().rpc('report_person', {
+    p_subject: args.subjectId,
+    p_reason: args.reason,
+    p_detail: args.detail ?? null,
+    p_pairing: args.pairingId ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * The church's reports. Directors and Executive Directors only.
+ *
+ * There is no "my reports" view for the person who raised one, deliberately.
+ * They are told it went through at the time; every extra read path is another
+ * way for the wrong person to end up holding this.
+ */
+export async function listReports(): Promise<LiveReport[]> {
+  const { data, error } = await db()
+    .from('reports')
+    .select('id, reporter_id, subject_id, pairing_id, reason, detail, status, created_at, decided_by, decided_at, outcome')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as LiveReport[];
+}
+
+/**
+ * Close a report.
+ *
+ * `dismissed` — a Director looked and judged there was nothing to answer — is
+ * a real outcome and deliberately as easy to record as the other. Making the
+ * innocent finding harder to file pushes Directors towards punishing somebody
+ * to clear a queue.
+ *
+ * There is no delete. The table has no delete policy at all, so this is not a
+ * convention that a future change could quietly drop.
+ */
+export async function resolveReport(
+  id: string,
+  status: 'actioned' | 'dismissed',
+  outcome?: string,
+): Promise<void> {
+  const { data, error } = await db().rpc('resolve_report', {
+    p_id: id,
+    p_status: status,
+    p_outcome: outcome ?? null,
+  });
+  if (error) throw new Error(error.message);
+  if (data !== true) throw new Error('That report could not be updated.');
+}

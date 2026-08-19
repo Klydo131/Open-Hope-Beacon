@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { NAVY, roleNoun, stageInfo } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
+import { LiveReportControl, LiveReportsForDirector } from '@/components/LiveSafeguarding';
 import { clearBrowserSession, saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
 import type { Message, Profile, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
@@ -1086,6 +1087,23 @@ export function LiveAdminPage() {
         {error && <Notice tone="error">{error}</Notice>}
         {notice && <Notice tone="success">{notice}</Notice>}
 
+        {/* ABOVE THE ADMIN WORK, NOT BELOW IT. A safeguarding report that sits
+            under invitations and pairings gets read at the pace of invitations
+            and pairings. It renders nothing at all when there is nothing open,
+            so it costs a Director no attention on an ordinary day. */}
+        <LiveReportsForDirector
+          onRemove={async (id, who) => {
+            if (!confirm(`Remove ${who} from the church? They lose access immediately.`)) return;
+            try {
+              await live.removeMember(id);
+              setNotice(`${who} was removed from the church.`);
+              await load();
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : 'Could not remove them.');
+            }
+          }}
+        />
+
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">Send an invitation e-mail</h2>
           <p className="mt-1 text-sm text-gray-500">The chosen role comes from the server-side invitation record.</p>
@@ -1422,6 +1440,14 @@ export function LiveConversationPage() {
           </Card>
           {error && <Notice tone="error">{error}</Notice>}
           <Conversation messages={messages} myId={profile?.id ?? ''} body={body} setBody={setBody} send={send} busy={busy} />
+          {/* Reporting runs BOTH ways. A Guide receiving something they should
+              not have received needs this as much as an Explorer does, and a
+              route only the junior party can use is one nobody uses. */}
+          <LiveReportControl
+            subjectId={pairing.ds_id}
+            subjectName={pairing.ds_name}
+            pairingId={pairing.id}
+          />
         </div>
       )}
     </LiveAppShell>
@@ -1494,6 +1520,15 @@ export function LiveExplorerPage() {
               <p className="mt-2 text-sm text-gray-500">Only you and your Guide can read this conversation.</p>
             </Card>
             <Conversation messages={messages} myId={profile?.id ?? ''} body={body} setBody={setBody} send={send} busy={busy} />
+            {/* THE ONE THAT MATTERS MOST. The Explorer is the person with the
+                least standing in this relationship and the most reason to stay
+                silent, so their route out has to be on the same screen as the
+                conversation itself — not in a menu, not in settings. */}
+            <LiveReportControl
+              subjectId={pairing.dm_id}
+              subjectName={pairing.dm_name}
+              pairingId={pairing.id}
+            />
           </>
         )}
 
