@@ -16,10 +16,19 @@ export const APP_NAME = 'Open Hope Beacon';
 /** The short name. Used where space is tight: the header, a home-screen label. */
 export const APP_SHORT_NAME = 'Hope Beacon';
 
-/** One sentence. Shown by link previews and by an installer. */
+/**
+ * One sentence. Shown by link previews and by an installer.
+ *
+ * WHAT THIS APP IS ABOUT, said in the order that matters. It used to open
+ * "A disciple-making journey app for local churches" — which describes the
+ * customer rather than the point. A church is who runs it; walking with Christ
+ * is what it is for, and that is what somebody sent a link should read first.
+ * The vocabulary inside the app is untouched: "your church invited you" is
+ * still a church, because there it means an actual congregation.
+ */
 export const APP_DESCRIPTION =
-  'A disciple-making journey app for local churches. Sample data only — ' +
-  'not a real church record.';
+  'Walking with Christ, one step at a time — and never on your own. ' +
+  'A church pairs you with someone who walks it with you.';
 
 /** The two ends of the logo gradient, left to right. */
 export const BRAND_FROM = '#2F80ED';

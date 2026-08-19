@@ -59,7 +59,16 @@ export function LiveHomePage() {
       <main className="mx-auto flex min-h-[100svh] max-w-lg flex-col items-center justify-center px-4 py-10 text-center">
         <HopeBeaconMark size={92} />
         <h1 className="mt-6 text-5xl font-extrabold tracking-tight">Hope Beacon</h1>
-        <p className="mt-3 text-lg text-white/75">One person, walking with one person.</p>
+        {/* THE THEME FIRST, THE MECHANISM SECOND. This door used to lead with
+            "One person, walking with one person" — true, and a description of
+            how the app works rather than what it is for. Somebody arriving from
+            an invitation reads the top line and nothing else. */}
+        <p className="mt-3 text-xl font-semibold text-white/90">
+          Walking with Christ, one step at a time.
+        </p>
+        <p className="mt-1 text-base text-white/60">
+          And never on your own — one person, walking with one person.
+        </p>
 
         <Button
           variant="gold"

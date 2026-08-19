@@ -116,7 +116,7 @@ export function WhichApp() {
               className="py-2 text-sm"
               payload={{
                 title: 'Beacon',
-                text: 'A church that walks with you, one step at a time.',
+                text: 'Walking with Christ, one step at a time.',
                 url: canonicalUrl('/'),
               }}
             />
