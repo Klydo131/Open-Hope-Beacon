@@ -292,11 +292,16 @@ Deno.serve(async (req) => {
     sendError = String(inviteMailErr.message ?? '');
   }
 
-  // TWO DIFFERENT REFUSALS WEAR THE SAME 429, and telling them apart is the
-  // difference between "wait a minute" and "you are out of email for the hour".
+  // WHY THE SEND FAILED, IN WORDS A DIRECTOR CAN ACT ON.
+  //
+  // Four different refusals arrive here, and three of them used to be shown as
+  // raw provider text — which reads as "the app is broken" for causes that are
+  // nothing of the sort.
   //
   //   "after N seconds"            one message per ADDRESS per minute.
   //   "email rate limit exceeded"  the whole PROJECT's hourly quota is spent.
+  //   "525 Unauthorized IP"        the provider's IP blocking is switched on.
+  //   anything else SMTP-shaped    the provider refused; pass on what it said.
   //
   // The second one is the wall this church kept hitting. Supabase's built-in
   // mailer allows two messages an hour for the entire project — measured, not
@@ -311,13 +316,39 @@ Deno.serve(async (req) => {
       sendError =
         'Nearly — one message per address per minute, and one has just gone out. '
         + `Wait ${cooldown[1]} seconds and press Send once. The link below works meanwhile.`;
+    } else if (/525|unauthorized ip/i.test(sendError)) {
+      // The one failure a church cannot diagnose from inside this app, because
+      // the cause is a toggle in somebody else's dashboard. Brevo answers an
+      // SMTP connection from an address it does not recognise with
+      // `525 5.7.1 Unauthorized IP address`, and it applies that list to SMTP
+      // as well as to API keys — the fact that cost a day here.
+      //
+      // Adding an address does not fix it. The connection is made by the mail
+      // service, not by the Director's computer, and its address changes. The
+      // list has to be switched off, not added to.
+      sendError =
+        'Your email provider refused the connection because it does not '
+        + 'recognise the address it came from. That is IP blocking, and it has '
+        + 'to be turned OFF rather than added to — the connection is made by '
+        + 'your mail service, not by this computer, and its address changes. '
+        + 'In Brevo: Settings → Security → Authorized IPs → Deactivate '
+        + 'blocking. The link below works meanwhile.';
     } else if (/email rate limit|over_email_send_rate/i.test(sendError)) {
       sendError =
         'This project has used up its email for the hour. Supabase\u2019s built-in '
         + 'mailer sends two messages an hour, for the whole church, and both have '
         + 'gone. Nothing is broken and nothing was lost — send the link below to '
-        + 'this person now, and the next hour starts fresh. To invite more people '
-        + 'at once, connect an email provider: see docs/EMAIL.md.';
+        + 'this person now, and the next hour starts fresh. To lift that limit, '
+        + 'connect your own email provider: see docs/EMAIL.md.';
+    } else if (/smtp|relay|starttls|authentication failed/i.test(sendError)) {
+      // Custom SMTP is configured and the provider said no. Which provider and
+      // why is theirs to say, so their words are kept — but the two things a
+      // Director can actually go and check are named.
+      sendError =
+        `Your email provider refused to send this: ${sendError} `
+        + 'The usual causes are an SMTP key that has been regenerated, or a '
+        + 'sender address the provider has not verified. The link below works '
+        + 'meanwhile.';
     }
   }
 

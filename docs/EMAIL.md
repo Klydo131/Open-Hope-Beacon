@@ -75,8 +75,14 @@ address to add to it. Two consecutive attempts were rejected from two different
 servers. Invitations silently stopped because of a setting in a third party's
 dashboard that could not be seen from inside the app.
 
-None of that can happen with Supabase's mailer. It is sent by Supabase, from
+None of that can happen with Supabase's own mailer. It is sent by Supabase, from
 inside Supabase.
+
+**But note what the lesson actually was.** It was not "Brevo is bad" — it was
+that a security toggle in a third party's dashboard could stop every invitation
+with no sign of it inside this app. Brevo is a perfectly good way to send this
+church's email, over SMTP, once that toggle is off. What changed is that the
+app now *names* the cause when it happens, instead of showing the raw refusal.
 
 ## Adding a provider — sooner than "eventually", if you invite in batches
 
@@ -90,18 +96,54 @@ this section, and the good news is that it is a dashboard form rather than code.
 Supabase's own Auth service will use your provider's SMTP server if you give it
 one, under **Project Settings → Authentication → SMTP Settings**. Everything in
 this app keeps working exactly as it does now — same function, same templates,
-same links — and the default quota rises from two an hour to **thirty new users
-an hour**, which is itself configurable under **Authentication → Rate Limits**.
+same links, no key stored anywhere in this project — and the default quota rises
+from two an hour to **thirty new users an hour**, itself configurable under
+**Authentication → Rate Limits**.
 
-You need four things from your provider: host, port, username, and password.
-Every provider's dashboard calls these "SMTP credentials".
+You need four things from your provider, which every dashboard calls "SMTP
+credentials": host, port, username, password. Plus a **sender address the
+provider has verified as yours** — most refuse to send from one they have not,
+and the error rarely says so plainly.
 
-> **If you use Brevo:** SMTP credentials are a *different* credential from the
-> REST API key that failed here before. The IP allow-list that blocked this app
-> was on the API-key path. Whether Brevo also applies it to SMTP is not
-> something this project has tested — check it in their dashboard before
-> relying on it, and if invitations stop again, that setting is the first place
-> to look.
+#### Brevo, specifically — and the correction that matters
+
+An earlier version of this page said the IP allow-list "was on the API-key path"
+and that whether it also covered SMTP was untested. **It covers SMTP.** Brevo's
+own documentation says the authorized-IP list is shared across API keys and SMTP
+keys, and an unrecognised address gets `525 5.7.1 Unauthorized IP address`.
+
+So the thing that broke invitations here breaks the SMTP route too, and there is
+one way out of it:
+
+> **Switch the blocking off. Do not add an address to the list.**
+>
+> The connection is made by your mail service's servers, not by the computer
+> the Director is sitting at, and those addresses change between sends. Adding
+> your own IP authorises the one machine that never connects.
+>
+> **Settings → Security → Authorized IPs → Deactivate blocking.**
+
+Then, still in Brevo: **Transactional → Settings → SMTP relay → Generate a new
+SMTP key**. Copy the login (it looks like `something@smtp-brevo.com`) and the
+key. **An SMTP key is not an API key** — the API key will not authenticate here.
+
+Into Supabase:
+
+| Field | Value |
+|---|---|
+| Host | `smtp-relay.brevo.com` |
+| Port | `587` |
+| Username | the SMTP login, `…@smtp-brevo.com` |
+| Password | the SMTP **key** |
+| Sender email | an address verified in Brevo |
+| Sender name | your church's name |
+
+Last, raise the quota that was the whole problem: **Authentication → Rate
+Limits → emails sent per hour**, up from 2.
+
+If invitations stop again after this, the Director now sees which of the four
+causes it was in plain words rather than the provider's raw text — including
+"that is IP blocking, and it has to be turned off".
 
 ### The other way: post to a provider's API from the function
 
