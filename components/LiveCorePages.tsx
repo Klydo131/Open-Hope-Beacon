@@ -1113,6 +1113,15 @@ export function LiveAdminPage() {
           }}
         />
 
+        {/* THE LIBRARY BELONGS TO DIRECTORS TOO.
+            The tutorial's Director walk ends on "Stock the library", and live
+            it existed only on the Guide's page — so somebody who learned the
+            job in the demo signed in and found the last thing they were taught
+            was missing. Passing no pairings gives add-and-publish without the
+            per-Explorer share buttons, which is right: stocking the shelf is a
+            Director's job, handing a book to one person is a Guide's. */}
+        <LiveLibraryForGuide pairings={[]} />
+
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">Send an invitation e-mail</h2>
           <p className="mt-1 text-sm text-gray-500">The chosen role comes from the server-side invitation record.</p>
