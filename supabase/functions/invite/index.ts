@@ -26,10 +26,10 @@
 //
 // That is enough for a church adding people one at a time and nowhere near
 // enough for a launch weekend, and it CANNOT be raised while the built-in
-// mailer is in use. A church inviting more than two people an hour has to
-// connect an email provider: see docs/EMAIL.md. Until it does, every response
-// from this function carries a join link the Director can send by hand, which
-// is the reason that link exists.
+// mailer is in use. A church inviting more than two people an hour connects its
+// own provider over SMTP, which needs no change here at all: see docs/EMAIL.md.
+// Until it does, every response from this function carries a join link the
+// Director can send by hand, which is the reason that link exists.
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -271,6 +271,10 @@ Deno.serve(async (req) => {
   // A resend almost always lands on the second: the first invitation created
   // the account, so inviting again is refused as already registered. Both mails
   // land on /join, which is the screen that finishes the sign-up either way.
+  //
+  // Neither call changes when a church connects its own provider. Supabase Auth
+  // uses the SMTP server configured in the dashboard, so this code is the same
+  // whether the message leaves through Supabase's mailer or the church's.
   let via = '';
   let sendError = '';
   let waitSeconds = 0;
