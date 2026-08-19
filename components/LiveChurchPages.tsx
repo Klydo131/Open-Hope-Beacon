@@ -145,8 +145,16 @@ export function LiveMailPage() {
     );
   }
 
-  const waiting = (invites ?? []).filter((i) => !i.redeemed_at);
-  const joined = (invites ?? []).filter((i) => i.redeemed_at);
+  // Split on whether they FINISHED SIGNING UP — chose a password of their own.
+  //
+  // Two earlier answers were wrong here, in the same direction. redeemed_at is
+  // stamped when the account row is created, which is the moment Send is
+  // pressed. last_sign_in_at is stamped when the link is opened, which the
+  // Director does on their own device to check it works. Both filed people
+  // under Accepted who had never touched anything — and left them with no
+  // Re-send button, because the screen believed there was nothing left to do.
+  const waiting = (invites ?? []).filter((i) => !i.joined_at);
+  const joined = (invites ?? []).filter((i) => i.joined_at);
 
   return (
     <div className="space-y-6">
@@ -192,6 +200,14 @@ export function LiveMailPage() {
           <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
             This link works, and can be used once.
           </p>
+          {/* Said plainly because the obvious thing to do with a link you have
+              been handed is to click it, and clicking this one uses up somebody
+              else's invitation and signs you out of your own account. */}
+          <p className="mt-1 text-sm font-semibold text-amber-900">
+            Do not open it yourself. Send it to {handLink.to} — it only works
+            once, and opening it here would sign you out and start their
+            sign-up on your device.
+          </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <input
               readOnly
@@ -214,8 +230,9 @@ export function LiveMailPage() {
           Waiting to accept {invites && <span className="text-gray-400">· {waiting.length}</span>}
         </h2>
         <p className="mt-1 text-sm text-gray-500">
-          An invitation that failed to send looks exactly like one somebody has
-          not opened yet. If a person says they never got theirs, press
+          Everybody here still needs to set a password of their own. An
+          invitation that failed to send looks exactly like one somebody has not
+          got round to, so if a person says they never got theirs, press
           <strong> Re-send</strong> — it mints a fresh link and posts it again,
           with nothing to retype.
         </p>
@@ -236,7 +253,23 @@ export function LiveMailPage() {
                       <p className="truncate text-sm text-gray-600">{i.email}</p>
                       <p className="mt-0.5 text-xs text-gray-500">
                         {roleNoun(i.role)} · invited {ago(i.created_at)}
-                        {expired && <span className="ml-1 font-semibold text-red-600">· expired</span>}
+                        {expired && <span className="ml-1 font-semibold text-red-600">· link expired</span>}
+                        {/* Sending an invitation creates the person's account
+                            before the message goes, so ALMOST every row here
+                            has one — which is why "has an account" is not shown
+                            as a badge. Its absence is the useful half: no
+                            account means the send never got that far, so no
+                            message can have arrived, however it looked. */}
+                        {!i.has_account && (
+                          <span className="ml-1 font-semibold text-amber-700">· never sent</span>
+                        )}
+                        {/* The link was used, and the sign-up was not finished.
+                            Most often that is the Director opening it to check
+                            it works — which uses the link up, so this row needs
+                            a fresh one rather than a reminder. */}
+                        {i.opened_at && (
+                          <span className="ml-1 text-gray-500">· link opened, no password set yet</span>
+                        )}
                       </p>
                     </div>
                     <span className="flex shrink-0 flex-wrap gap-2">
@@ -294,7 +327,7 @@ export function LiveMailPage() {
                   <span className="block font-semibold text-navy">{i.full_name || i.email}</span>
                   <span className="block truncate text-sm text-gray-600">{i.email}</span>
                 </span>
-                <span className="text-sm text-green-700">✓ joined {ago(i.redeemed_at!)}</span>
+                <span className="text-sm text-green-700">✓ joined {ago(i.joined_at!)}</span>
               </li>
             ))}
           </ul>

@@ -218,8 +218,32 @@ export interface OpenInvite {
   role: Role;
   full_name: string | null;
   created_at: string;
-  redeemed_at: string | null;
   expires_at: string;
+  /**
+   * An auth account exists for this address. NOT the same as having joined —
+   * sending an invitation creates the account, so this is true for nearly
+   * every row here. Its ABSENCE is the useful half: no account means the send
+   * never got far enough to make one, so no message can have arrived.
+   */
+  has_account: boolean;
+  /**
+   * When the invitation link was last opened — by somebody. Not proof it was
+   * the invited person: a Director who copies the link and opens it to check
+   * it works stamps this too.
+   */
+  opened_at: string | null;
+  /**
+   * When they finished the sign-up form and chose their own password.
+   *
+   * THIS IS WHAT "ACCEPTED" MEANS, and two earlier answers were wrong.
+   * invites.redeemed_at is stamped when the auth row is created, which is the
+   * moment the invitation is SENT — so it read "joined today" for people who
+   * had never opened their email. last_sign_in_at is stamped by opening the
+   * link, which a Director testing one does on their own device — so it read
+   * "joined" for people who had never touched anything. Submitting the form is
+   * the only step that cannot happen by accident.
+   */
+  joined_at: string | null;
 }
 
 /**
@@ -232,12 +256,31 @@ export interface OpenInvite {
  * last anybody heard of it.
  */
 export async function listInvites(): Promise<OpenInvite[]> {
-  const { data, error } = await db()
-    .from('invites')
-    .select('id, email, role, full_name, created_at, redeemed_at, expires_at')
-    .order('created_at', { ascending: false });
+  // Through a definer function rather than a plain select, because whether a
+  // link was ever opened lives in auth.users and no browser-side policy can
+  // read it. church_invitations() checks the caller leads this church before
+  // it returns a single row.
+  const { data, error } = await db().rpc('church_invitations');
   if (error) throw new Error(error.message);
   return (data ?? []) as OpenInvite[];
+}
+
+/**
+ * Mark this person's sign-up finished.
+ *
+ * Called once, by the join form, after the password has actually been set.
+ * Nothing else may stand in for it: the account row is created when the
+ * invitation is sent, and the sign-in stamp is set by opening the link, so
+ * both of those are true for somebody who has done nothing at all. Choosing a
+ * password is the first step that requires the invited person to be present.
+ *
+ * A definer that writes one column of the caller's own row, rather than an
+ * ordinary update: the way profiles' no-self-promotion rule dies is somebody
+ * widening the set of columns a browser may write and taking `role` along.
+ */
+export async function finishMySignup(): Promise<void> {
+  const { error } = await db().rpc('finish_my_signup');
+  if (error) throw new Error(error.message);
 }
 
 /**
@@ -249,13 +292,23 @@ export async function listInvites(): Promise<OpenInvite[]> {
  * a single slip made that person un-invitable until somebody went into the
  * database.
  *
- * Only unredeemed invitations, and only for a church you manage: the
- * invites_revoke policy in migration 0002 enforces both, so this cannot delete
- * somebody's accepted membership or reach another church's list.
+ * THE FIRST VERSION OF THIS NEVER DELETED ANYTHING. It was a plain delete
+ * filtered on `redeemed_at is null`, matching the invites_revoke policy — and
+ * that column is stamped when the account row is created, which is the moment
+ * the invitation is SENT. The condition was false for every row that has ever
+ * existed. A delete that matches nothing is not an error, so the button said
+ * "withdrawn" and the invitation stayed exactly where it was.
+ *
+ * Now a definer that checks the caller leads that church, refuses to touch
+ * anybody who has finished signing up, and returns whether it deleted a row —
+ * so a refusal can be shown rather than swallowed.
  */
 export async function cancelInvite(id: string): Promise<void> {
-  const { error } = await db().from('invites').delete().eq('id', id).is('redeemed_at', null);
+  const { data, error } = await db().rpc('cancel_invitation', { p_id: id });
   if (error) throw new Error(error.message);
+  if (data !== true) {
+    throw new Error('That invitation could not be withdrawn. It may already have been accepted.');
+  }
 }
 
 /** The address each member was invited at. Leadership of that church only. */
@@ -470,10 +523,8 @@ export interface InviteResult {
   waitSeconds?: number;
   /** Which route carried it: the church's provider, or Supabase's own mailer. */
   via?: 'provider' | 'supabase';
-  /** True when this refreshed an invitation that was already open. */
+  /** True when this refreshed an invitation that already existed. */
   resent?: boolean;
-  already?: boolean;
-  message?: string;
 }
 
 export async function inviteMember({

@@ -137,10 +137,12 @@ Deno.serve(async (req) => {
   // list — their account was untouched and still executive, but the screen
   // said otherwise, and there was no way to tell which was true.
   //
-  // Worse is what happens if such an invitation is ever accepted: the sign-up
-  // trigger reads the invite's role, so a Director could demote themselves by
-  // following a link. Refusing here closes that without relying on anybody
-  // noticing.
+  // The role-change worry that first justified this check turned out not to be
+  // real, and the note is kept rather than deleted because it explains why the
+  // check is allowed to be lenient below: handle_new_user fires only on INSERT
+  // into auth.users, so an invitation aimed at an address that already has an
+  // account can never re-apply a role to it. Checked against the deployed
+  // trigger body, not assumed.
   //
   // Addresses live in auth.users, which only the service role can read — which
   // is why this check belongs in this function and could not have been a policy.
@@ -151,7 +153,18 @@ Deno.serve(async (req) => {
     const { data: found } = await admin.rpc('member_by_email', { p_email: email });
     const existing = Array.isArray(found) ? found[0] : found;
 
-    if (existing) {
+    // AN ACCOUNT IS NOT THE SAME AS HAVING JOINED, and refusing on the first
+    // blocks exactly the person who most needs re-inviting.
+    //
+    // Every invitation creates the auth account up front, so an address whose
+    // first invitation never arrived HAS an account and cannot sign in with it.
+    // Refusing that as "already a member" strands them for good: the check
+    // blocks the new invitation, and they have no password. Having opened a
+    // link is no better a test — the Director opens it themselves to see that
+    // it works. completed_at is stamped by the sign-up form, once, after a
+    // password has been chosen, which is the first step that needs the invited
+    // person to be there.
+    if (existing && existing.completed_at) {
       const ROLE_NAME: Record<string, string> = {
         executive: 'an Executive Director',
         admin: 'a Director',
@@ -173,42 +186,67 @@ Deno.serve(async (req) => {
     }
   }
 
-  const { data: invite, error: inviteErr } = await admin
+  // ONE INVITATION PER ADDRESS, REFRESHED — NOT A SECOND ROW, NOT A REFUSAL.
+  //
+  // This was an insert that leaned on a unique index to detect a repeat, and
+  // both halves were broken by the same misunderstanding of redeemed_at.
+  //
+  //   * The index is `unique (church_id, lower(email)) where redeemed_at is
+  //     null`, and redeemed_at is stamped when the account row is created,
+  //     which is the moment the first invitation is SENT. So the index stopped
+  //     applying immediately and a second invitation to the same person quietly
+  //     inserted a SECOND ROW.
+  //   * The recovery path underneath it looked up the existing invitation with
+  //     the same `redeemed_at is null` filter, found nothing for the same
+  //     reason, and returned "that person already has an open invitation"
+  //     without sending anything at all. Pressing Re-send did nothing and
+  //     reported success.
+  //
+  // Looking the invitation up first is both simpler and correct: if there is
+  // one, refresh it and send again; if there is not, make one. The Director
+  // pressing Re-send now always causes a message, which is the entire point of
+  // the button. Migration 0020 makes the index unconditional so a duplicate
+  // cannot appear even if this logic is changed again.
+  const { data: priorRows } = await admin
     .from('invites')
-    .insert({
-      church_id: church,
-      email,
-      role,
-      full_name: fullName || null,
-      invited_by: me.id,
-      recommended_by: recommendedBy,
-    })
     .select('id')
-    .single();
+    .eq('church_id', church)
+    .eq('email', email)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  const prior = priorRows?.[0];
 
-  // AN OPEN INVITATION MEANS RESEND, NOT REFUSE. Returning early on 23505
-  // created nothing, sent nothing and reported success — so once somebody's
-  // first invitation had failed, their address was permanently un-invitable.
-  let inviteId = invite?.id;
-  let resent = false;
+  let inviteId = prior?.id as string | undefined;
+  const resent = Boolean(prior);
 
-  if (inviteErr) {
-    if (inviteErr.code !== '23505') return json({ error: inviteErr.message }, 400);
-
-    const { data: open } = await admin
+  if (prior) {
+    // The role and the name may have been corrected since. Push the expiry out
+    // as well, or a Re-send would hand over a link that is already dead.
+    await admin
       .from('invites')
-      .select('id, church_id')
-      .eq('email', email)
-      .is('redeemed_at', null)
-      .maybeSingle();
-
-    // Only a Director of the SAME church may resend, or the index becomes a way
-    // to discover which addresses another church has invited.
-    if (!open || open.church_id !== church) {
-      return json({ ok: true, already: true, message: 'That person already has an open invitation.' });
-    }
-    inviteId = open.id;
-    resent = true;
+      .update({
+        role,
+        full_name: fullName || null,
+        invited_by: me.id,
+        recommended_by: recommendedBy,
+        expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      })
+      .eq('id', prior.id);
+  } else {
+    const { data: invite, error: inviteErr } = await admin
+      .from('invites')
+      .insert({
+        church_id: church,
+        email,
+        role,
+        full_name: fullName || null,
+        invited_by: me.id,
+        recommended_by: recommendedBy,
+      })
+      .select('id')
+      .single();
+    if (inviteErr) return json({ error: inviteErr.message }, 400);
+    inviteId = invite.id;
   }
 
   const site = safeOrigin(await setting(admin, 'SITE_URL')) || safeOrigin(req.headers.get('Origin'));

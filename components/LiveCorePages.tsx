@@ -382,6 +382,20 @@ export function LiveJoinPage() {
   const [role, setRole] = useState<Role>('ds');
   const recovery = params.get('recovery') === '1' || params.get('type') === 'recovery';
 
+  // WHOSE DEVICE IS THIS?
+  //
+  // Redeeming an invitation link signs this browser in as the invited person.
+  // If somebody is already signed in here — a Director who copied the link to
+  // check it works, a family sharing a tablet — that person was signed out and
+  // replaced without a word. It read as the app logging people out at random,
+  // and it also marked the invited person as arrived when they had not touched
+  // anything.
+  //
+  // So nothing is redeemed until whoever is sitting here says the link is
+  // theirs. `handover` is that answer.
+  const [signedInAs, setSignedInAs] = useState('');
+  const [handover, setHandover] = useState(false);
+
   // The optional half of the form. Everything here is the person's to give or
   // withhold, so it starts collapsed and nothing in it blocks the button.
   const [consent, setConsent] = useState(false);
@@ -429,14 +443,28 @@ export function LiveJoinPage() {
 
         const redeeming = Boolean(tokenHash || code);
 
-        // START FROM NOBODY when a link is being redeemed.
+        // ASK BEFORE SIGNING ANYBODY OUT.
         //
-        // A browser that has already completed one invitation still holds that
-        // person's session. Without this, opening a second person's link on the
-        // same device shows the FIRST person's name and address on the form —
-        // which is how an Explorer's invitation came to display a Guide's
-        // account. Worse than confusing: whoever is sitting there could finish
-        // somebody else's sign-up, or change their password.
+        // A browser that already holds a session must not keep it while a link
+        // is redeemed — that is how an Explorer's invitation came to display a
+        // Guide's account, and whoever was sitting there could have finished
+        // somebody else's sign-up or changed their password.
+        //
+        // But clearing it silently is the other half of the same bug. The first
+        // version did exactly that, and the person it caught was the Director:
+        // they copy the join link the invitation screen hands them, open it to
+        // check it works, and are signed out of their own account and into the
+        // account of the person they just invited. Ask, name who is signed in,
+        // and let them back out.
+        if (redeeming && !handover) {
+          const { data: current } = await client.auth.getSession();
+          const who = current.session?.user?.email ?? '';
+          if (who) {
+            if (alive) { setSignedInAs(who); setReady(true); }
+            return;
+          }
+        }
+
         if (redeeming) {
           await client.auth.signOut({ scope: 'local' }).catch(() => {});
           clearBrowserSession();
@@ -525,7 +553,7 @@ export function LiveJoinPage() {
     return () => {
       alive = false;
     };
-  }, [params, refreshProfile]);
+  }, [params, refreshProfile, handover]);
 
   const isSeeker = role === 'ds';
 
@@ -582,6 +610,19 @@ export function LiveJoinPage() {
         await live.updateMyProfile({ full_name: name.trim() });
       }
 
+      // SIGN-UP IS FINISHED HERE, AND NOWHERE EARLIER. The account row exists
+      // from the moment the invitation was sent, and the sign-in stamp is set
+      // by opening the link, so both are true for somebody who has done
+      // nothing. This is the first step that needed the invited person to be
+      // present, so this is what the church's Invitations screen counts as
+      // arriving.
+      try {
+        await live.finishMySignup();
+      } catch {
+        /* A missed stamp shows them as still waiting, which is recoverable.
+           Failing the sign-up over it is not. */
+      }
+
       const mine = await refreshProfile();
       // THREE OUTCOMES, NOT TWO. The version of this line that read
       // `if (mine?.is_approved) … else waitingRoom` collapsed "we could not
@@ -600,6 +641,51 @@ export function LiveJoinPage() {
 
   if (!ready) {
     return <div className="grid min-h-screen place-items-center text-white" style={{ backgroundColor: NAVY }}>Checking your secure link…</div>;
+  }
+
+  // Somebody is already signed in on this device. Nothing has been redeemed
+  // and nobody has been signed out — that only happens if they choose it here.
+  if (signedInAs) {
+    return (
+      <div className="min-h-screen">
+        <PublicHeader
+          title="Whose invitation is this?"
+          subtitle="Someone is already signed in on this device."
+        />
+        <div className="mx-auto max-w-md px-4 pb-32 pt-8">
+          <Card className="p-5">
+            <p className="text-gray-700">
+              This device is signed in as <strong className="text-navy">{signedInAs}</strong>.
+            </p>
+            <p className="mt-3 text-gray-700">
+              An invitation link sets up the account it was sent to. Opening it
+              here signs <strong>{signedInAs}</strong> out and starts the invited
+              person&rsquo;s sign-up on this device.
+            </p>
+            <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
+              If you sent this invitation and only wanted to check the link
+              works, go back. Send the link to the person instead — it works on
+              their phone, and opening it yourself uses it up.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button variant="gold" onClick={() => router.replace('/')}>
+                Go back — this is not my link
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSignedInAs('');
+                  setReady(false);
+                  setHandover(true);
+                }}
+              >
+                It is mine — sign {signedInAs} out
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
   }
   if (donePending) {
     return (
