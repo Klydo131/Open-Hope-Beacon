@@ -1580,6 +1580,20 @@ export function LiveConversationPage() {
             </div>
           </Card>
           {error && <Notice tone="error">{error}</Notice>}
+          {/* THE PRAYER REQUESTS, HERE, not only on the dashboard.
+              Asking for prayer is the most exposed thing an Explorer does in
+              this app, and the answer to it was one screen away from where the
+              Guide actually sits. Somebody wrote what they needed prayer for,
+              their Guide replied to messages all evening on a phone, and never
+              saw it -- which came back as "the Guide cannot see prayer
+              requests". The row was always there and always readable; it was
+              just never in front of them. */}
+          <LivePrayerForGuide
+            onlyFor={pairing.ds_id}
+            nameFor={() => pairing.ds_name}
+            heading={`What ${pairing.ds_name.split(' ')[0]} has asked prayer for`}
+          />
+
           <Conversation
             messages={messages}
             files={files}

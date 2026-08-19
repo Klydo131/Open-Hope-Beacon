@@ -15,6 +15,19 @@ import { ModeSwitch } from '@/components/ModeSwitch';
 import { InstallChip } from '@/components/InstallChip';
 
 /** One header link. Icon on a phone, icon and word once there is room. */
+/**
+ * The sections, in one place because they are rendered twice — inline from `lg`
+ * up, and on their own scrolling row below it. Two hand-maintained copies of
+ * the same list is how one of them ends up missing a page.
+ */
+const SECTIONS = (_role: Role) => [
+  { href: '/church',   icon: '⛪', label: 'Church' },
+  { href: '/library',  icon: '📚', label: 'Library' },
+  { href: '/mail',     icon: '✉️', label: 'Mail' },
+  { href: '/profile',  icon: '🙂', label: 'Profile' },
+  { href: '/settings', icon: '⚙️', label: 'Settings' },
+];
+
 function ShellLink({ href, icon, label }: { href: string; icon: string; label: string }) {
   return (
     <Link
@@ -123,18 +136,19 @@ export function LiveAppShell({
           </Link>
 
           {/* THE REST OF THE APP.
-              These five pages existed and worked in live mode all along — the
-              live shell simply did not link to any of them, while the demo
-              shell linked to all five. So a signed-in member could reach their
-              dashboard and nothing else: no library, no church page, no mail,
-              no profile, no settings. The pages were never missing; the door
-              was. */}
-          <nav className="flex shrink-0 items-center gap-1" aria-label="Sections">
-            <ShellLink href="/church"   icon="⛪" label="Church" />
-            <ShellLink href="/library"  icon="📚" label="Library" />
-            <ShellLink href="/mail"     icon="✉️" label="Mail" />
-            <ShellLink href="/profile"  icon="🙂" label="Profile" />
-            <ShellLink href="/settings" icon="⚙️" label="Settings" />
+              These pages existed and worked in live mode all along — the live
+              shell simply did not link to any of them, while the demo shell
+              linked to them all. So a signed-in member could reach their
+              dashboard and nothing else. The pages were never missing; the door
+              was.
+
+              From `lg` up they sit inline. Below that they move to their own
+              row underneath, because they cannot fit beside everything else —
+              see the comment on that row. */}
+          <nav className="hidden shrink-0 items-center gap-1 lg:flex" aria-label="Sections">
+            {SECTIONS(profile.role).map((s) => (
+              <ShellLink key={s.href} href={s.href} icon={s.icon} label={s.label} />
+            ))}
           </nav>
 
           <ModeSwitch onDark />
@@ -147,15 +161,48 @@ export function LiveAppShell({
           </div>
           <Avatar name={profile.full_name || session.user.email || 'Member'} size={36} onDark />
           <button
-            className="tap-sm shrink-0 rounded-xl bg-white/10 px-3 text-sm font-semibold hover:bg-white/20"
+            className="tap-sm shrink-0 rounded-xl bg-white/10 px-3 hover:bg-white/20"
+            aria-label="Sign out"
+            title="Sign out"
             onClick={async () => {
               await signOut();
               router.replace('/login');
             }}
           >
-            Sign out
+            {/* The words cost about 85px, which is a fifth of a 390px phone and
+                the difference between a header that fits and one that does not.
+                Sign out lives nowhere else in the app, so it stays on every
+                size — as a symbol where there is no room for the sentence. */}
+            <span className="hidden text-sm font-semibold sm:inline">Sign out</span>
+            <span aria-hidden className="text-lg sm:hidden">⏻</span>
           </button>
         </div>
+
+        {/* THE SAME LINKS, ON THEIR OWN ROW, BELOW `lg`.
+            //
+            All of this used to be one row. On a 390px iPhone that row needed
+            about 600px — six 44px controls, an avatar, and a "Sign out" button,
+            almost all of them `shrink-0` — so it ran off the side and took the
+            whole page with it. What an iOS user saw was a tall empty strip down
+            the right of every screen: the page had become wider than the phone,
+            and that strip was the empty part of it.
+
+            It scrolls inside itself (`overflow-x-auto`) rather than pushing the
+            page, so even a longer list of sections can never do this again.
+
+            HOME IS FIRST, and it is new. The header logo has always linked
+            home, but a logo does not read as a button to somebody who has never
+            used the app — several people had no way back to where they started
+            and no reason to think the picture was one. */}
+        <nav
+          className="thin-scroll mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-3 pb-2 sm:px-4 lg:hidden"
+          aria-label="Sections"
+        >
+          <ShellLink href={homeFor(profile.role)} icon="🏠" label="Home" />
+          {SECTIONS(profile.role).map((s) => (
+            <ShellLink key={s.href} href={s.href} icon={s.icon} label={s.label} />
+          ))}
+        </nav>
       </header>
 
       {/* Three columns from xl up, one column below it — the same breakpoint

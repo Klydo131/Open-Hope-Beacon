@@ -9,6 +9,26 @@
 
 html {
   font-size: 18px; /* senior-friendly base */
+
+  /* THE SIDEWAYS SCROLL GUARD, AND WHY IT IS HERE AND NOT ONLY ON `body`.
+     `overflow-x: clip` was set on the body alone. On Chrome and on Android that
+     is enough. On iOS Safari it is not dependable — `clip` is a late addition
+     to WebKit and where it is not honoured the declaration is simply dropped,
+     leaving the page free to scroll sideways. That is exactly the shape of the
+     bug iOS users reported and Android users did not: a tall empty strip down
+     the right of every screen, which is the page being wider than the phone.
+
+     `clip` on the root is the right tool where it works, and the @supports
+     block below hands the job to `hidden` where it does not. `hidden` belongs
+     on `html` rather than `body`: putting it on the body makes the body the
+     scrolling box, and `position: sticky` headers stop sticking. */
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  html {
+    overflow-x: hidden;
+  }
 }
 
 body {

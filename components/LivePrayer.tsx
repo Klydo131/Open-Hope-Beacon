@@ -136,14 +136,37 @@ export function LiveAskForPrayer() {
 // ---------------------------------------------------------------------------
 // What the Guide sees: their own Explorers' requests, with the name.
 // ---------------------------------------------------------------------------
-export function LivePrayerForGuide({ nameFor }: { nameFor?: (dsId: string) => string }) {
+export function LivePrayerForGuide({
+  nameFor,
+  onlyFor,
+  heading,
+}: {
+  nameFor?: (dsId: string) => string;
+  /**
+   * Narrow the list to one Explorer.
+   *
+   * WHY THIS EXISTS. Prayer requests lived only on the Guide's dashboard. A
+   * Guide spends their time inside a conversation, and the request written by
+   * the very person they are talking to was on a different screen -- so an
+   * Explorer wrote "please pray for my mother", the Guide answered messages all
+   * evening, and never saw it. Reported as "the Guide cannot see prayer
+   * requests"; the row was always there and readable, just never in front of
+   * them.
+   */
+  onlyFor?: string;
+  heading?: string;
+}) {
   const [rows, setRows] = useState<live.PrayerRequestRow[] | null>(null);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
-    try { setRows(await live.listPrayerRequests()); setError(''); }
+    try {
+      const all = await live.listPrayerRequests();
+      setRows(onlyFor ? all.filter((r) => r.ds_id === onlyFor) : all);
+      setError('');
+    }
     catch (cause) { setRows([]); setError(message(cause)); }
-  }, []);
+  }, [onlyFor]);
   useEffect(() => { void load(); }, [load]);
 
   const move = async (id: string, status: live.PrayerStatus) => {
@@ -156,8 +179,10 @@ export function LivePrayerForGuide({ nameFor }: { nameFor?: (dsId: string) => st
 
   return (
     <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">🙏 Prayer requests</h2>
-      <p className="mt-1 text-sm text-gray-500">From the people you walk with.</p>
+      <h2 className="text-xl font-bold text-navy">🙏 {heading ?? 'Prayer requests'}</h2>
+      <p className="mt-1 text-sm text-gray-500">
+        {onlyFor ? 'What they have asked you to pray for.' : 'From the people you walk with.'}
+      </p>
       <Err msg={error} />
       <div className="mt-3 space-y-2">
         {rows === null && <p className="text-sm text-gray-400">Loading…</p>}
