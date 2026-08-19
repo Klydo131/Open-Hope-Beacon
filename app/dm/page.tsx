@@ -267,6 +267,22 @@ function Dashboard() {
               const openFollowUps = db.follow_ups.filter(
                 (f) => f.pairing_id === p.id && f.owner_id === me.id && !f.done_at,
               );
+              // A PRAYER REQUEST NOBODY SEES IS THE WORST THING THIS APP CAN DO.
+              //
+              // Asking for prayer is the most exposed thing an Explorer does
+              // here, and it was completely invisible from this screen: the
+              // request arrived, sat on the Care tab of that one person's page,
+              // and a Guide had to open each Explorer in turn and click through
+              // to a third tab to find out anybody had asked. Somebody wrote
+              // "please pray for my mother" and, as far as they could tell,
+              // nothing happened.
+              //
+              // `open` is the state nobody has responded to yet — once a Guide
+              // presses "I'm praying" it stops nagging, which is what makes the
+              // badge worth reading rather than permanent furniture.
+              const unprayed = db.prayer_requests.filter(
+                (r) => r.ds_id === ds!.id && r.status === 'open',
+              );
               return (
                 <Card key={p.id}>
                   <Link
@@ -309,6 +325,15 @@ function Dashboard() {
                               {openFollowUps.length === 1 ? '' : 's'}
                             </span>
                           )}
+                        {/* Ahead of the follow-up counts in visual weight,
+                            because it is a person asking for something rather
+                            than a task the Guide set themselves. */}
+                        {unprayed.length > 0 && (
+                          <span className="font-semibold" style={{ color: '#7C3AED' }}>
+                            🙏 asked for prayer
+                            {unprayed.length > 1 ? ` ×${unprayed.length}` : ''}
+                          </span>
+                        )}
                         <span
                           style={{ color: engagement.quiet ? '#B8860B' : '#9AA3B2' }}
                         >
