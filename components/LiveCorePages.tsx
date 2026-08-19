@@ -7,6 +7,8 @@ import { NAVY, roleNoun, stageInfo } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { LiveReportControl, LiveReportsForDirector } from '@/components/LiveSafeguarding';
+import { LiveTrialRoom, LiveCourt } from '@/components/LiveTrialRoom';
+import { LiveGuilds, LiveChurchPulse } from '@/components/LiveGuilds';
 import { clearBrowserSession, saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
 import type { Message, Profile, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
@@ -1113,6 +1115,29 @@ export function LiveAdminPage() {
           }}
         />
 
+        {/* SAFEGUARDING, IN THE ORDER A DIRECTOR MEETS IT: what has been
+            reported, then the cases arising from it, then the room where a
+            case is opened or somebody is stopped on the spot. Putting the
+            trial room first would offer the punishment before the hearing. */}
+        {profile && <LiveCourt me={profile} />}
+        {profile && (
+          <LiveTrialRoom
+            me={profile}
+            onCaseOpened={() => {
+              // A case opened below appears in Cases above, which loads its own
+              // list. Reloading the page data here keeps the member list and the
+              // pairing list honest after a suspension archived somebody.
+              void load();
+            }}
+          />
+        )}
+
+        {/* Guilds and the church-wide numbers. Both are a Director's job as
+            much as an Executive's -- a Director who cannot see their own
+            church's totals cannot run it. */}
+        {profile && <LiveGuilds me={profile} />}
+        <LiveChurchPulse />
+
         {/* THE LIBRARY BELONGS TO DIRECTORS TOO.
             The tutorial's Director walk ends on "Stock the library", and live
             it existed only on the Guide's page — so somebody who learned the
@@ -1299,6 +1324,35 @@ export function LiveAdminPage() {
                 <span className="text-gray-400">walking with</span>
                 <span className="font-semibold text-navy">{pairing.ds_name}</span>
                 <span className="ml-auto rounded-full bg-white px-3 py-1 font-semibold text-gray-600">{stageInfo(pairing.journey_stage).label}</span>
+                {/* UNPAIR. A pairing could be made and never unmade, so a wrong
+                    one could only be corrected in SQL. Archiving rather than
+                    deleting keeps the conversation history intact -- the two
+                    people simply stop being connected. */}
+                <Button
+                  variant="ghost"
+                  disabled={busy === `unpair-${pairing.id}`}
+                  onClick={() => {
+                    if (!confirm(
+                      `Disconnect ${pairing.dm_name} from ${pairing.ds_name}? `
+                      + 'Their conversation is kept, but they stop walking together.',
+                    )) return;
+                    void (async () => {
+                      setBusy(`unpair-${pairing.id}`);
+                      setError('');
+                      try {
+                        await live.endPairing(pairing.id);
+                        setNotice(`${pairing.dm_name} and ${pairing.ds_name} are no longer paired.`);
+                        await load();
+                      } catch (cause) {
+                        setError(errorText(cause));
+                      } finally {
+                        setBusy('');
+                      }
+                    })();
+                  }}
+                >
+                  Disconnect
+                </Button>
               </div>
             ))}
           </div>
@@ -1325,6 +1379,7 @@ export function LiveAdminPage() {
 }
 
 export function LiveGuidePage() {
+  const { profile } = useLiveSession();
   const [rows, setRows] = useState<live.PairingView[]>([]);
   const [error, setError] = useState('');
   // WHO HAS ASKED FOR PRAYER, on the card, before anything else.
@@ -1362,6 +1417,11 @@ export function LiveGuidePage() {
       <h1 className="text-3xl font-extrabold text-navy">My Explorers</h1>
       <p className="mt-1 text-gray-500">Only people paired with you appear here.</p>
       {error && <div className="mt-5"><Notice tone="error">{error}</Notice></div>}
+
+      {/* A Guide called into a case must be able to answer it. LiveCourt draws
+          nothing at all when there are no cases, so on an ordinary day this
+          costs the page nothing. */}
+      {profile && <div className="mt-6"><LiveCourt me={profile} /></div>}
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {rows.map((row) => {
           const stage = stageInfo(row.journey_stage);
@@ -1634,6 +1694,16 @@ export function LiveExplorerPage() {
           <p className="mt-3 text-white/80">Your journey is a relationship, not a score.</p>
         </div>
         {error && <Notice tone="error">{error}</Notice>}
+
+        {/* An Explorer called into a case is the person with the least standing
+            in it, so their answer has to be reachable on their own home screen
+            rather than somewhere they would have to be told about. It draws
+            nothing when there are no cases.
+
+            They can post here even while suspended, on purpose: suspending
+            somebody pending a hearing must not take away their side of it. */}
+        {profile && <LiveCourt me={profile} />}
+
         {!pairing ? (
           <Card className="p-6 text-center">
             <h2 className="text-xl font-bold text-navy">Your Guide is being arranged</h2>

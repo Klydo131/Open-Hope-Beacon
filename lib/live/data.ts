@@ -1455,3 +1455,351 @@ export async function removePairingFile(file: PairingFile): Promise<void> {
   // orphaned row is a broken attachment on somebody's screen.
   await client.storage.from(MEDIA_BUCKET).remove([file.path]).catch(() => {});
 }
+
+// ---------------------------------------------------------------------------
+// The trial room: suspending a member, and removing one
+// ---------------------------------------------------------------------------
+//
+// A church running this has no other lever. If somebody sends an Explorer
+// something they should not have, the leadership must be able to act tonight,
+// from a phone, without a developer. Reports gave them the evidence; this is
+// the response.
+//
+// JAIL and KICK are different acts and are kept different:
+//
+//   suspendMember   the account is switched OFF. They stay in the church and
+//                   keep their history, and cannot sign in at all -- migration
+//                   0026 bans the auth account and deletes their live sessions,
+//                   so somebody already signed in is out at once rather than at
+//                   token expiry. Reversible: restoreMember switches it back on.
+//                   This is both "we are looking into it" and "you are out
+//                   until we talk".
+//   removeMember    they are gone.
+//
+// WHO MAY DO WHAT IS DECIDED IN THE DATABASE (migration 0023), never here. An
+// Executive Director may act on anyone in a church they oversee; a Director on
+// Guides and Explorers only; nobody on themselves; and nobody at all on the
+// Head Executive Director, who is the root of authority and the one account
+// that can appoint executives again afterwards (migration 0025). Each call
+// returns 'ok' or the reason it was refused, because a leader trying to stop
+// something deserves a sentence, not a button that does nothing.
+
+/** Suspend ("jail"). Returns 'ok', or the reason it was refused. */
+export async function suspendMember(userId: string, reason?: string): Promise<string> {
+  const { data, error } = await db().rpc('suspend_member', {
+    p_target: userId,
+    p_reason: reason ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+/** Lift a suspension ("unjail"). Pairings are NOT restored — see 0023. */
+export async function restoreMember(userId: string): Promise<string> {
+  const { data, error } = await db().rpc('restore_member', { p_target: userId });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+/** Remove from the church entirely ("kick"), under the same authority rules. */
+export async function removeMemberByLeader(userId: string): Promise<string> {
+  const { data, error } = await db().rpc('remove_member_by_leader', { p_target: userId });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+/**
+ * Who this caller may act on, and how it would be refused if not.
+ *
+ * Asked per person so the screen can hide what would fail rather than offering
+ * a Director a button that refuses. The database still decides; this only
+ * spares somebody the experience of being told no.
+ */
+export async function disciplineCheck(userId: string): Promise<string> {
+  const { data, error } = await db().rpc('discipline_check', { p_target: userId });
+  if (error) return 'unavailable';
+  return String(data ?? 'unavailable');
+}
+
+// ---------------------------------------------------------------------------
+// The trial room, as a court
+// ---------------------------------------------------------------------------
+//
+// Reports say what one person believes happened. A trial is where both sides
+// say it in their own words, in one place, before anybody is suspended or
+// removed -- and where what was said survives the decision.
+//
+// THE JUDGE RULE, because it is the one that surprises people: the Director who
+// opens a case is head judge from the first moment. Calling for an Executive
+// Director does not vacate the seat; it only offers it. If no Executive ever
+// answers, the Director decides the case. There is no countdown anywhere.
+
+export interface Trial {
+  id: string;
+  summary: string;
+  subject_id: string;
+  subject_name: string;
+  opened_by: string;
+  opener_name: string;
+  head_judge_id: string;
+  judge_name: string;
+  escalation: 'none' | 'requested' | 'accepted';
+  status: 'open' | 'closed';
+  verdict: 'dismissed' | 'suspended' | 'removed' | null;
+  verdict_note: string | null;
+  opened_at: string;
+  closed_at: string | null;
+  my_part: 'accused' | 'reporter' | 'witness' | null;
+  am_judge: boolean;
+}
+
+export interface TrialStatement {
+  id: string;
+  trial_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+}
+
+/** Every case this person is party to or, as a leader, responsible for. */
+export async function listTrials(): Promise<Trial[]> {
+  const { data, error } = await db().rpc('my_trials');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Trial[];
+}
+
+/**
+ * Open a case against someone, and summon the other side with them.
+ *
+ * `otherId` names the other party directly; `reportId` takes them from the
+ * report that prompted it. Either way both sides end up able to read the case
+ * and answer it, which is the entire point of holding one.
+ */
+export async function openTrial(args: {
+  subjectId: string;
+  summary: string;
+  reportId?: string;
+  otherId?: string;
+}): Promise<string> {
+  const { data, error } = await db().rpc('open_trial', {
+    p_subject: args.subjectId,
+    p_summary: args.summary,
+    p_report: args.reportId ?? null,
+    p_other: args.otherId ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return String(data);
+}
+
+/** Ask an Executive Director to take the seat. The Director keeps it until one does. */
+export async function callHeadJudge(trialId: string): Promise<string> {
+  const { data, error } = await db().rpc('call_head_judge', { p_trial: trialId });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+/** An Executive Director answers the call. */
+export async function takeHeadJudge(trialId: string): Promise<string> {
+  const { data, error } = await db().rpc('take_head_judge', { p_trial: trialId });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+/**
+ * Decide the case. Only the head judge, and the verdict is carried out by the
+ * same functions the member list uses, so a court cannot reach past the
+ * authority its judge already has.
+ */
+export async function closeTrial(
+  trialId: string,
+  verdict: 'dismissed' | 'suspended' | 'removed',
+  note?: string,
+): Promise<string> {
+  const { data, error } = await db().rpc('close_trial', {
+    p_trial: trialId,
+    p_verdict: verdict,
+    p_note: note ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+/** What has been said in a case, oldest first. */
+export async function listStatements(trialId: string): Promise<TrialStatement[]> {
+  const { data, error } = await db()
+    .from('trial_statements')
+    .select('*')
+    .eq('trial_id', trialId)
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as TrialStatement[];
+}
+
+/**
+ * Say something in a case.
+ *
+ * A SUSPENDED PERSON MAY STILL DO THIS. Suspension stops them messaging, and
+ * if it also silenced them here then suspending somebody pending a hearing
+ * would take away their defence -- so every trial after a precautionary
+ * suspension would be one-sided by construction. The policy in 0024
+ * deliberately does not consult suspended_at.
+ */
+export async function speakInTrial(trialId: string, body: string): Promise<void> {
+  const me = await uid();
+  const { error } = await db()
+    .from('trial_statements')
+    .insert({ trial_id: trialId, author_id: me, body });
+  if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
+// Guilds
+// ---------------------------------------------------------------------------
+//
+// A pairing is one Guide and one Explorer. A guild is the group a Director
+// wants to name -- a campus, a cohort, a Sabbath team -- and naming it is the
+// part that matters to the people in it.
+//
+// An Explorer is never handed the roll. They can see the guild they are in and
+// how many are in it; the names come back as an empty list for them, because a
+// group feature that quietly published a roster of everybody being discipled
+// at this church would undo the privacy the one-to-one conversations exist for.
+
+export interface GuildMember {
+  id: string;
+  name: string;
+  role: Role;
+}
+
+export interface Guild {
+  id: string;
+  name: string;
+  description: string | null;
+  member_count: number;
+  guides: number;
+  explorers: number;
+  members: GuildMember[];
+  i_am_in_it: boolean;
+}
+
+export async function listGuilds(): Promise<Guild[]> {
+  const { data, error } = await db().rpc('list_guilds');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Guild[];
+}
+
+export async function createGuild(name: string, description?: string): Promise<string> {
+  const { data, error } = await db().rpc('create_guild', {
+    p_name: name,
+    p_description: description ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return String(data);
+}
+
+export async function renameGuild(guildId: string, name: string): Promise<string> {
+  const { data, error } = await db().rpc('rename_guild', { p_guild: guildId, p_name: name });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+export async function deleteGuild(guildId: string): Promise<string> {
+  const { data, error } = await db().rpc('delete_guild', { p_guild: guildId });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+export async function addToGuild(guildId: string, personId: string): Promise<string> {
+  const { data, error } = await db().rpc('add_to_guild', { p_guild: guildId, p_person: personId });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+export async function removeFromGuild(guildId: string, personId: string): Promise<string> {
+  const { data, error } = await db().rpc('remove_from_guild', {
+    p_guild: guildId,
+    p_person: personId,
+  });
+  if (error) throw new Error(error.message);
+  return String(data ?? 'Something went wrong.');
+}
+
+// ---------------------------------------------------------------------------
+// Metrics
+// ---------------------------------------------------------------------------
+//
+// Every word in `health` is defined in guild_metrics() (migration 0029), not
+// here and not in the component, so the badge and the rule that produced it
+// cannot drift apart.
+
+export interface GuildMetric {
+  id: string;
+  name: string;
+  members: number;
+  guides: number;
+  explorers: number;
+  unpaired_explorers: number;
+  suspended: number;
+  removed_ever: number;
+  messages_30d: number;
+  last_activity_at: string | null;
+  state: 'empty' | 'active' | 'quiet' | 'stagnant';
+  health: 'thriving' | 'steady' | 'watch' | 'stagnant';
+}
+
+export interface ChurchPulse {
+  church_id: string;
+  church_name: string;
+  directors: number;
+  guides: number;
+  explorers: number;
+  awaiting_approval: number;
+  active_pairings: number;
+  unpaired_explorers: number;
+  guilds_total: number;
+  guilds_active: number;
+  guilds_stagnant: number;
+  suspended_now: number;
+  removed_ever: number;
+  open_reports: number;
+  open_trials: number;
+  messages_7d: number;
+  messages_30d: number;
+}
+
+export interface DisciplineEntry {
+  id: string;
+  person_name: string;
+  person_role: string;
+  action: 'suspended' | 'released' | 'removed';
+  reason: string | null;
+  by_name: string;
+  guild_names: string[];
+  at: string;
+}
+
+export async function guildMetrics(): Promise<GuildMetric[]> {
+  const { data, error } = await db().rpc('guild_metrics');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as GuildMetric[];
+}
+
+/** One row per church this leader is responsible for. */
+export async function churchPulse(): Promise<ChurchPulse[]> {
+  const { data, error } = await db().rpc('church_pulse');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ChurchPulse[];
+}
+
+/**
+ * The discipline record, which outlives the people in it.
+ *
+ * Names and roles are copied onto the log at the time of the act (migration
+ * 0028), because removing somebody deletes their profile — and the first
+ * version of this lost the record of the removal along with the person.
+ */
+export async function disciplineHistory(): Promise<DisciplineEntry[]> {
+  const { data, error } = await db().rpc('discipline_history');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as DisciplineEntry[];
+}

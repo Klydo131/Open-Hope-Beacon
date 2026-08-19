@@ -38,6 +38,16 @@ export interface Profile {
   city_of_residence?: string;
   work_industry?: string;
   preferred_language: string;
+  /**
+   * Set while this member is suspended — "jailed" in the trial room. They stay
+   * in the church and keep their history; they cannot sign in, message or be
+   * paired. NULL means active. Only leadership may set or lift it, and which
+   * leadership may act on whom is decided in the database (migration 0023),
+   * never on a screen.
+   */
+  suspended_at?: string | null;
+  suspended_by?: string | null;
+  suspended_reason?: string | null;
   avatar?: string; // chosen preset (emoji)
   photo?: string; // uploaded picture as a data URL (on-device in the demo)
   is_approved: boolean;
