@@ -13,6 +13,8 @@ import { useLocale, LANGUAGES } from '@/lib/i18n';
 import { useDemo } from '@/lib/demo/store';
 import { useNotificationPrefs } from '@/lib/notification-prefs';
 import { useUpdateState, checkForUpdate, versionLabel, hardRefresh, BUILD_TIME, BUILD_ID } from '@/lib/app-update';
+import { onCanonicalHost } from '@/lib/canonical';
+import { isStandalone } from '@/components/InstallPrompt';
 import { attemptsFor, MAX_ATTEMPTS, ATTEMPTS_KEY } from '@/lib/auto-update';
 import { QuestPicker } from '@/components/QuestPicker';
 import { TRACK_LABELS } from '@/lib/quest';
@@ -349,6 +351,13 @@ function VersionCard() {
         <p className="mt-1 text-sm text-gray-500">
           Version <span className="font-mono">{versionLabel()}</span>
         </p>
+        {/* ONE LINE SOMEBODY CAN READ DOWN A PHONE.
+            "A person has an old version and we cannot work out why" cost a lot
+            of guessing, and the answer was knowable all along — it is which
+            ADDRESS their copy is running from. A copy installed from a
+            temporary deployment address can never update, and from the inside
+            it looks identical to one that can. This says which. */}
+        <InstallSource /> 
         {checkedAt && (
           <p className="text-sm text-gray-400">
             Last checked {new Date(checkedAt).toLocaleTimeString([], {
@@ -400,6 +409,37 @@ function VersionCard() {
         </p>
       </div>
     </Card>
+  );
+}
+
+/**
+ * Where this copy came from, in words that can be read aloud.
+ *
+ * Deliberately plain rather than clever: when somebody rings to say the app
+ * looks wrong, "Settings, read me the two grey lines" has to work for a person
+ * in their sixties on a phone, with no screenshot and no patience.
+ */
+function InstallSource() {
+  const [host, setHost] = useState('');
+  const [canUpdate, setCanUpdate] = useState(true);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    setHost(window.location.host);
+    setCanUpdate(onCanonicalHost());
+    setInstalled(isStandalone());
+  }, []);
+
+  if (!host) return null;
+
+  return (
+    <p className={`text-sm ${canUpdate ? 'text-gray-400' : 'font-semibold text-amber-700'}`}>
+      {installed ? 'Installed from' : 'Running from'}{' '}
+      <span className="font-mono">{host}</span>
+      {canUpdate
+        ? ' · updates reach this copy'
+        : ' · THIS ADDRESS CANNOT UPDATE — install from the church’s main address instead'}
+    </p>
   );
 }
 

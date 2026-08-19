@@ -7,6 +7,7 @@ import { InstallPrompt } from '@/components/InstallPrompt';
 
 import { AutoUpdate } from '@/components/AutoUpdate';
 import { VersionWatch } from '@/components/VersionWatch';
+import { FrozenCopy } from '@/components/FrozenCopy';
 import { OnlineStatus } from '@/components/OnlineStatus';
 import { LocaleProvider } from '@/lib/i18n';
 import { BUILD_ID } from '@/lib/build-info';
@@ -84,6 +85,10 @@ export default function RootLayout({
 
           <AutoUpdate />
           <VersionWatch />
+          {/* Renders nothing at all unless this is an INSTALLED copy running on
+              an address that can never receive an update — the one state the
+              update system cannot fix by itself. */}
+          <FrozenCopy />
           <OnlineStatus />
         </LocaleProvider>
         <ServiceWorker />
