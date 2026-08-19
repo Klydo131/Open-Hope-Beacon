@@ -17,11 +17,19 @@
 // to verify and no allow-list to fall foul of. A fresh clone of this project
 // sends working invitations with nothing configured at all.
 //
-// WHAT IT COSTS, said plainly. The message uses the project's own Auth email
-// template rather than the church's words, and the built-in service is rate
-// limited — a handful of messages an hour, one per address per minute. That is
-// right for a church inviting people a few at a time and wrong for a bulk
-// send. A church that outgrows it adds a provider: see docs/EMAIL.md.
+// WHAT IT COSTS, said plainly, and the number is measured rather than guessed.
+// TWO MESSAGES AN HOUR, for the whole project — the auth log for this church
+// shows at most two successes in any hour and `over_email_send_rate_limit` on
+// everything after, including invitations the Director believed had gone. There
+// is also a separate one-per-address-per-minute limit. The template is the
+// project's own Auth template rather than the church's words.
+//
+// That is enough for a church adding people one at a time and nowhere near
+// enough for a launch weekend, and it CANNOT be raised while the built-in
+// mailer is in use. A church inviting more than two people an hour has to
+// connect an email provider: see docs/EMAIL.md. Until it does, every response
+// from this function carries a join link the Director can send by hand, which
+// is the reason that link exists.
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
@@ -284,10 +292,18 @@ Deno.serve(async (req) => {
     sendError = String(inviteMailErr.message ?? '');
   }
 
-  // A COOLDOWN IS NOT A FAILURE. The service allows one message per address per
-  // minute, and pressing Send twice in quick succession — which is what anybody
-  // does when unsure the first press worked — hits it. Reported as a fault, a
-  // sixty-second timer reads as the whole email system being broken again.
+  // TWO DIFFERENT REFUSALS WEAR THE SAME 429, and telling them apart is the
+  // difference between "wait a minute" and "you are out of email for the hour".
+  //
+  //   "after N seconds"            one message per ADDRESS per minute.
+  //   "email rate limit exceeded"  the whole PROJECT's hourly quota is spent.
+  //
+  // The second one is the wall this church kept hitting. Supabase's built-in
+  // mailer allows two messages an hour for the entire project — measured, not
+  // guessed: the auth log shows at most two successes in any hour and a 429 on
+  // everything after. So a Director inviting a third person gets a refusal that
+  // has nothing to do with the address they typed, and the old message showed
+  // them the raw provider text and left them to work that out.
   if (sendError) {
     const cooldown = /after (\d+) seconds/i.exec(sendError);
     if (cooldown) {
@@ -295,6 +311,13 @@ Deno.serve(async (req) => {
       sendError =
         'Nearly — one message per address per minute, and one has just gone out. '
         + `Wait ${cooldown[1]} seconds and press Send once. The link below works meanwhile.`;
+    } else if (/email rate limit|over_email_send_rate/i.test(sendError)) {
+      sendError =
+        'This project has used up its email for the hour. Supabase\u2019s built-in '
+        + 'mailer sends two messages an hour, for the whole church, and both have '
+        + 'gone. Nothing is broken and nothing was lost — send the link below to '
+        + 'this person now, and the next hour starts fresh. To invite more people '
+        + 'at once, connect an email provider: see docs/EMAIL.md.';
     }
   }
 

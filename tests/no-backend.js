@@ -302,6 +302,13 @@ const GUARDRAILS = new Set([
   // is not one. Still subject to the credential-shape scan, so naming the role
   // is allowed and committing a key is caught.
   'supabase/migrations/0016_member_by_email_lookup.sql',
+  // 0017 and 0018 each rewrite member_by_email — Postgres will not change a
+  // function's OUT parameters in place, so the grant has to be restated in
+  // full every time the shape changes. Each restatement is the same single
+  // grant, to the same single role, guarding the same enumeration oracle, so
+  // they are listed for the same reason 0016 is and under the same limits.
+  'supabase/migrations/0017_invitations_with_real_status.sql',
+  'supabase/migrations/0018_signing_up_is_not_opening_a_link.sql',
   // .env.example's whole job is to say "never put the service_role key in
   // here". A warning that cannot name the thing it warns about is not a
   // warning, and the alternative — vaguer wording — is worse than the risk.

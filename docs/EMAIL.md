@@ -5,6 +5,13 @@ email service, which every Supabase project has. No account with a third party,
 no API key to store, no sender address to verify. Clone this project, run the
 migrations, and invitations work.
 
+> **Read this before your first busy day.** The built-in service sends **two
+> messages an hour for the entire project**. That is fine for a church inviting
+> one person at a time and will quietly strand you if you sit down to invite
+> ten. [Connecting an SMTP provider](#adding-a-provider--sooner-than-eventually-if-you-invite-in-batches)
+> is a dashboard form, takes about five minutes, and raises it to thirty an
+> hour.
+
 ---
 
 ## How an invitation is actually sent
@@ -29,12 +36,31 @@ Being honest about the trade, because it matters at a certain size:
   project's Auth email template. You can rewrite that template in the Supabase
   dashboard under **Authentication → Email Templates** and it will say whatever
   you like.
-- **It is rate limited.** A handful of messages an hour, and one per address per
-  minute. Inviting people a few at a time is fine. Inviting two hundred in one
-  afternoon is not.
+- **It sends two messages an hour. For the whole church.** Not per person —
+  two, in total, per project, per hour. This number is measured, not estimated:
+  the auth log of a real church shows at most two successes in any hour and
+  `over_email_send_rate_limit` on everything after.
+- **And one message per address per minute**, separately from the above.
 
-If you press Send twice quickly you will see *"wait N seconds"*. That is the
-per-address limit, not a failure — the first message was accepted.
+### What that means on the day you actually invite people
+
+If your Director invites four people in one sitting, **two of those invitations
+are never sent.** The screen used to show the provider's raw refusal, which
+reads like a fault; it now says plainly that the hour's email is spent and hands
+over the join link for the person in front of you.
+
+**This limit cannot be raised while the built-in mailer is in use.** It is not a
+setting in your dashboard. The only way to send more is to connect an email
+provider, below — which is why the section under it exists.
+
+### Telling the two refusals apart
+
+Both come back as HTTP 429 and they mean different things:
+
+| What you see | What it is | What to do |
+|---|---|---|
+| *"wait N seconds"* | One per address per minute. The first message **was** accepted. | Wait, press Send once. |
+| *"used up its email for the hour"* | The project's two-an-hour quota is spent. **Nothing was sent.** | Send the link on screen by hand, or connect a provider. |
 
 ## Why not a third-party provider by default
 
@@ -52,12 +78,37 @@ dashboard that could not be seen from inside the app.
 None of that can happen with Supabase's mailer. It is sent by Supabase, from
 inside Supabase.
 
-## Adding a provider, when you outgrow the built-in service
+## Adding a provider — sooner than "eventually", if you invite in batches
 
-You will want one eventually: your own wording, your own domain, and no rate
-limit. The send lives in **one place** — the block marked `SEND IT` in
-`supabase/functions/invite/index.ts`. Replace those two calls with a POST to
-your provider and nothing else in the app changes.
+Two an hour is enough for a church adding one person after a Sabbath
+conversation. It is not enough for a launch, a training weekend, or a
+demonstration. If you have more than two people to invite in an hour, you need
+this section, and the good news is that it is a dashboard form rather than code.
+
+### The easy way: custom SMTP (no code at all)
+
+Supabase's own Auth service will use your provider's SMTP server if you give it
+one, under **Project Settings → Authentication → SMTP Settings**. Everything in
+this app keeps working exactly as it does now — same function, same templates,
+same links — and the default quota rises from two an hour to **thirty new users
+an hour**, which is itself configurable under **Authentication → Rate Limits**.
+
+You need four things from your provider: host, port, username, and password.
+Every provider's dashboard calls these "SMTP credentials".
+
+> **If you use Brevo:** SMTP credentials are a *different* credential from the
+> REST API key that failed here before. The IP allow-list that blocked this app
+> was on the API-key path. Whether Brevo also applies it to SMTP is not
+> something this project has tested — check it in their dashboard before
+> relying on it, and if invitations stop again, that setting is the first place
+> to look.
+
+### The other way: post to a provider's API from the function
+
+Only if you want your church's own wording in the message body rather than
+Supabase's template. The send lives in **one place** — the block marked
+`SEND IT` in `supabase/functions/invite/index.ts`. Replace those two calls with
+a POST to your provider and nothing else in the app changes.
 
 Whichever provider you choose:
 
