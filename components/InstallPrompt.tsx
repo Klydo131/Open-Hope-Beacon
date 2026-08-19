@@ -97,6 +97,58 @@ export function isMacSafari(): boolean {
   );
 }
 
+/**
+ * Is this an app's own built-in browser rather than a real one?
+ *
+ * THE BUG THIS EXISTS FOR, reported with screenshots. A church shared the link
+ * in Messenger. Tapping it opens Messenger's OWN web view — which reports
+ * itself as an iPhone or iPad, is not standalone, and is on the right host, so
+ * every check here said "offer the install" and the card printed "Tap Share at
+ * the bottom of Safari, choose Add to Home Screen".
+ *
+ * There is no Safari. Messenger's share sheet has no Add to Home Screen, and on
+ * iOS no in-app browser can install anything at all — only Safari can. So Apple
+ * users were handed a set of steps that cannot be carried out, with no hint
+ * that the problem was the browser they were in. They concluded the app was
+ * broken, which from where they were sitting it was.
+ *
+ * Returns the app's name so the instructions can say which one to leave, since
+ * "open this in your real browser" means nothing to somebody who does not know
+ * they are not in one.
+ */
+export function inAppBrowser(): string {
+  if (typeof navigator === 'undefined') return '';
+  const ua = navigator.userAgent;
+  // FBAN/FBAV are Facebook's own markers; Messenger adds FB_IAB and
+  // Messenger/. Checked before Facebook so the name is the accurate one.
+  if (/FB_IAB\/MESSENGER|Messenger[/ ]/i.test(ua)) return 'Messenger';
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return 'Facebook';
+  if (/Instagram/i.test(ua)) return 'Instagram';
+  if (/\bLine\//i.test(ua)) return 'LINE';
+  if (/Twitter/i.test(ua)) return 'X';
+  if (/BytedanceWebview|musical_ly|TikTok/i.test(ua)) return 'TikTok';
+  if (/WhatsApp/i.test(ua)) return 'WhatsApp';
+  if (/\bWeChat|MicroMessenger/i.test(ua)) return 'WeChat';
+  if (/LinkedInApp/i.test(ua)) return 'LinkedIn';
+  return '';
+}
+
+/**
+ * Where iOS keeps the Share button, which is not the same place on both.
+ *
+ * The old copy said "at the bottom of Safari" everywhere. On an iPad it is at
+ * the TOP, in the toolbar — and a non-technical person told to look at the
+ * bottom looks at the bottom, does not find it, and stops.
+ */
+export function iosShareLocation(): string {
+  if (typeof navigator === 'undefined') return 'in Safari';
+  const bigScreen =
+    /ipad/i.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ||
+    Math.min(window.screen.width, window.screen.height) >= 768;
+  return bigScreen ? 'at the top of Safari' : 'at the bottom of Safari';
+}
+
 function isDesktop(): boolean {
   if (typeof window === 'undefined') return false;
   return window.matchMedia('(min-width: 768px)').matches;
@@ -120,6 +172,10 @@ export function InstallPrompt() {
   const [show, setShow] = useState(false);
   const [manual, setManual] = useState<'ios' | 'mac' | null>(null);
   const [desktop, setDesktop] = useState(false);
+  // Which app's built-in browser we are trapped in, if any. Empty means a real
+  // browser and the ordinary instructions apply.
+  const [inApp, setInApp] = useState('');
+  const [shareWhere, setShareWhere] = useState('in Safari');
 
   useEffect(() => {
     if (isStandalone()) return;
@@ -127,6 +183,8 @@ export function InstallPrompt() {
     if (snoozed()) return;
 
     setDesktop(isDesktop());
+    setInApp(inAppBrowser());
+    setShareWhere(iosShareLocation());
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
@@ -200,10 +258,20 @@ export function InstallPrompt() {
 
   if (!show || tutorialActive) return null;
 
-  const steps =
-    manual === 'mac'
+  // IN AN APP'S OWN BROWSER, THE ONLY HONEST FIRST STEP IS TO LEAVE IT.
+  //
+  // On iOS nothing but Safari can add an app to the home screen. Printing the
+  // Safari steps to somebody sitting in Messenger sends them looking for a
+  // button that is not there — which is exactly what was reported.
+  const steps = inApp
+    ? [
+        `Tap the ••• menu at the top of ${inApp}`,
+        'Choose “Open in Safari” — or “Open in browser”',
+        'Then tap Share, and “Add to Home Screen”',
+      ]
+    : manual === 'mac'
       ? ['Open the Share menu in Safari’s toolbar', 'Choose “Add to Dock”']
-      : ['Tap Share at the bottom of Safari', 'Choose “Add to Home Screen”'];
+      : [`Tap Share ${shareWhere}`, 'Choose “Add to Home Screen”'];
 
   // Desktop: a proper card, bottom-right, impossible to read as a cookie bar.
   if (desktop) {
@@ -218,7 +286,9 @@ export function InstallPrompt() {
             <div className="min-w-0 flex-1">
               <p className="font-extrabold text-white">Install Hope Beacon</p>
               <p className="text-xs text-white/60">
-                {manual ? 'Two steps, no app store' : 'One click, no app store'}
+                {inApp
+                  ? `Open in Safari first — ${inApp} cannot install apps`
+                  : manual ? 'Two steps, no app store' : 'One click, no app store'}
               </p>
             </div>
             <button
@@ -272,10 +342,15 @@ export function InstallPrompt() {
             >
               I already have Beacon installed
             </button>
+            {/* This used to open "Seeing this when you already have the icon
+                usually means…", which tells a first-time visitor they have
+                already installed something they have not. Said the other way
+                round it is a note for the person it applies to and invisible
+                noise to everybody else. */}
             <p className="text-xs leading-snug text-gray-400">
-              Seeing this when you already have the icon usually means that icon
-              came from a preview link, which is a separate app. Settings shows
-              which one you are in.
+              Already have the icon and still seeing this? It probably came from
+              a preview address, which the browser treats as a separate app.
+              Settings shows which one you are in.
             </p>
           </div>
         </div>
@@ -290,9 +365,23 @@ export function InstallPrompt() {
         <HopeBeaconMark size={40} />
         <div className="min-w-0 flex-1">
           <p className="font-bold text-navy">Install Hope Beacon</p>
-          {manual ? (
+          {/* THE REPORTED BUG WAS THIS LINE. Opened from a Messenger link it
+              said "Tap Share, then Add to Home Screen" — inside a browser that
+              has neither. The person looks for a button that does not exist
+              and concludes the app is broken. */}
+          {inApp ? (
             <p className="text-sm text-gray-500">
-              Tap Share, then “{manual === 'mac' ? 'Add to Dock' : 'Add to Home Screen'}”.
+              You are in {inApp}&rsquo;s browser, which cannot install apps. Tap{' '}
+              <strong>•••</strong> → <strong>Open in Safari</strong> first.
+            </p>
+          ) : manual === 'mac' ? (
+            <p className="text-sm text-gray-500">
+              Open Share in Safari&rsquo;s toolbar, then &ldquo;Add to Dock&rdquo;.
+            </p>
+          ) : manual ? (
+            <p className="text-sm text-gray-500">
+              Tap Share {shareWhere.replace(/^at /, '')}, then &ldquo;Add to Home
+              Screen&rdquo;.
             </p>
           ) : (
             <p className="text-sm text-gray-500">
@@ -300,7 +389,7 @@ export function InstallPrompt() {
             </p>
           )}
         </div>
-        {!manual && (
+        {!manual && !inApp && (
           <button
             onClick={install}
             className="tap shrink-0 rounded-xl px-4 text-base font-bold text-white"

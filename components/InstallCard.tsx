@@ -22,7 +22,14 @@
 
 import { useEffect, useState } from 'react';
 import { Button, Card } from '@/components/ui';
-import { isInstallable, isIos, isMacSafari, isStandalone } from '@/components/InstallPrompt';
+import {
+  inAppBrowser,
+  iosShareLocation,
+  isInstallable,
+  isIos,
+  isMacSafari,
+  isStandalone,
+} from '@/components/InstallPrompt';
 
 interface BIPEvent extends Event {
   prompt: () => Promise<void>;
@@ -37,12 +44,16 @@ export function InstallCard() {
   const [installed, setInstalled] = useState(false);
   const [wrongHost, setWrongHost] = useState(false);
   const [steps, setSteps] = useState(false);
+  const [inApp, setInApp] = useState('');
+  const [shareWhere, setShareWhere] = useState('at the bottom of Safari');
 
   useEffect(() => {
     if (isStandalone()) { setInstalled(true); return; }
     if (!isInstallable()) { setWrongHost(true); return; }
 
     setPlatform(isIos() ? 'ios' : isMacSafari() ? 'mac' : 'other');
+    setInApp(inAppBrowser());
+    setShareWhere(iosShareLocation());
 
     // If the browser offers a real install, take it — a one-tap install beats
     // any set of written instructions. This listener stays for the life of the
@@ -95,7 +106,26 @@ export function InstallCard() {
         icon, no address bar, and it keeps working without a signal.
       </p>
 
-      {deferred ? (
+      {inApp ? (
+        // NOTHING ELSE ON THIS CARD IS TRUE INSIDE AN APP'S OWN BROWSER. On
+        // iOS only Safari can add to the home screen, so every other set of
+        // steps here sends the reader looking for a control that is not there
+        // — the reported bug, from a link shared in Messenger.
+        <div className="mt-4 rounded-xl bg-amber-50 p-4 ring-1 ring-amber-200">
+          <p className="font-semibold text-amber-900">
+            You are in {inApp}&rsquo;s built-in browser
+          </p>
+          <p className="mt-1 text-sm text-amber-900">
+            It cannot install apps — only Safari can. Open this page in Safari
+            first and the option appears.
+          </p>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-amber-900">
+            <li>Tap the <strong>•••</strong> menu, usually top right.</li>
+            <li>Choose <strong>Open in Safari</strong>, or <strong>Open in browser</strong>.</li>
+            <li>In Safari, tap <strong>Share</strong> {shareWhere.replace(/^at /, '')}, then <strong>Add to Home Screen</strong>.</li>
+          </ol>
+        </div>
+      ) : deferred ? (
         <Button
           variant="gold"
           className="mt-4"
@@ -132,7 +162,7 @@ function Steps({ platform }: { platform: Platform }) {
   if (platform === 'ios') {
     return (
       <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-gray-700">
-        <li>Tap the <strong>Share</strong> button — the square with an arrow coming out of it, at the bottom of Safari.</li>
+        <li>Tap the <strong>Share</strong> button — the square with an arrow coming out of it, {iosShareLocation()}.</li>
         <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
         <li>Tap <strong>Add</strong>, top right.</li>
         <li className="text-gray-500">It must be Safari. Chrome on an iPhone cannot install apps.</li>
