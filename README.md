@@ -130,8 +130,10 @@ same code syncs between devices, because the transport is a seam you swap
 
 ## Why it might suit your church
 
-- **Nothing to buy and nothing to sign up for.** It is MIT licensed. Fork it,
-  rename it, run it on whatever you already use.
+- **Nothing to buy and nothing to sign up for.** It is licensed under the
+  AGPL-3.0. Run it, study it, change it, run it for your church — free, for
+  good. The one condition is that improvements stay open: see
+  [Licence](#licence--agpl-30) below.
 - **It works without signal.** Installs on a phone from the browser, and every
   screen keeps working offline. Church halls and rural areas were the assumption,
   not an afterthought.
@@ -304,4 +306,65 @@ own, on whatever platform suits them. Everything specific to that church's
 deployment — its database, its keys, its hosting — was removed, and a test keeps
 it that way.
 
-MIT licensed. See [LICENSE](LICENSE).
+## Licence — AGPL-3.0
+
+Open Hope Beacon is free software under the
+**[GNU Affero General Public License, version 3](LICENSE)**.
+
+It was MIT until August 2026. The owner changed it deliberately, and the reason
+is the one AGPL exists for: this app is run as a service, over a network, for
+congregations. Under MIT a company could take it, host it for churches as a paid
+product, improve it, and never give any of that back. AGPL closes that door
+while leaving every door a church needs wide open.
+
+### What you may do — which is nearly everything
+
+- **Run it.** For your church, for a hundred churches, commercially or not. No
+  fee, no permission, no notification.
+- **Read it and learn from it.** Every line.
+- **Change it.** Rename it, restyle it, rip out what you do not need, add what
+  you do.
+- **Give it to anyone**, modified or not.
+
+### What you must do in return
+
+Two things, and only two.
+
+**1. Keep it AGPL.** If you distribute the app or a work derived from it, it
+goes out under AGPL-3.0 as well, with the source. You cannot fold this code into
+a closed-source product.
+
+**2. If you MODIFY it and let people use it over a network, offer those people
+your source.** This is section 13, and it is the only clause that makes AGPL
+different from ordinary GPL. Running a website counts as "over a network" —
+"I never shipped them a copy" is exactly the loophole this closes.
+
+Read those together and the practical rule is short:
+
+| What you are doing | What you owe |
+|---|---|
+| Running this repo unmodified for your church | **Nothing.** Section 13 speaks to modified versions. |
+| Changing it, running it for your congregation | Offer your congregation your source |
+| Changing it, hosting it for other churches | Offer those churches your source |
+| Selling hosting, support or setup | Nothing extra — charging money is fine, AGPL is not "non-commercial" |
+| Keeping changes on your own laptop, never deployed | **Nothing.** No use is triggered until other people use it |
+
+### How this repo satisfies section 13 — copy it
+
+The app carries a **"view and contribute on GitHub"** link on its front door and
+in **Settings → About**. If you deploy a modified version, change that link to
+point at *your* source, not this one. That one edit is the whole obligation for
+most deployments, and leaving it pointing here while your version differs is the
+one way an honest church accidentally breaches the licence.
+
+### Contributing under AGPL
+
+Contributions ship under AGPL-3.0. You keep your copyright; you are granting
+everyone the licence's rights, not signing your work away.
+
+### If you already have it under MIT
+
+You keep those rights, permanently, for the versions you received. A licence
+cannot be revoked retroactively. This change binds new releases from here on.
+
+Full text: [LICENSE](LICENSE). Third-party code and its terms: [NOTICES.md](NOTICES.md).

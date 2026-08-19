@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Avatar, Button, Card } from '@/components/ui';
 import { InstallCard } from '@/components/InstallCard';
+import { SourceCard } from '@/components/SourceCard';
 import { NAVY, roleNoun } from '@/lib/brand';
 import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
@@ -228,6 +229,7 @@ export function LiveSettingsPage() {
           and because device alerts below are far more useful once the app is
           installed. */}
       <InstallCard />
+      <SourceCard />
       <NotificationCard />
       {leads && <ChurchNameCard />}
       <TutorialCard />

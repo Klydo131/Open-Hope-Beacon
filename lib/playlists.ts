@@ -3,13 +3,14 @@
 // Playlists for the library player.
 //
 // PORTED FROM OPEN MORBITAL, the owner's local-first music player
-// (github.com/Klydo131/open_morbital_official), and used here under an MIT
-// grant from its copyright holder rather than its published AGPL-3.0 terms —
-// Hope Beacon is MIT and promises forks "no strings", and AGPL would have
-// obliged every church that modified a deployment to publish its source. See
-// NOTICES.md. The data model below is Morbital's `StoredPlaylist`; the code is
-// written against this app's own storage rather than copied, because Morbital
-// is Vite/zustand/dexie and this is Next.js.
+// (github.com/Klydo131/open_morbital_official). It is AGPL-3.0 upstream, and
+// was taken here under an MIT grant from its copyright holder because Hope
+// Beacon was MIT at the time and promised forks "no strings". Hope Beacon is
+// now AGPL-3.0 itself, so the grant is no longer what makes this lawful —
+// Morbital's own terms would do. It still stands; it is just not load-bearing.
+// See NOTICES.md. The data model below is Morbital's `StoredPlaylist`; the code
+// is written against this app's own storage rather than copied, because
+// Morbital is Vite/zustand/dexie and this is Next.js.
 //
 // WHY A PLAYLIST IS ONLY NAMES AND IDS. The media itself is already in
 // IndexedDB (lib/localMedia.ts) and can be hundreds of megabytes a file. A

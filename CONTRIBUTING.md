@@ -159,4 +159,6 @@ expect.
 
 ## Licence
 
-MIT. By contributing you agree your work ships under it.
+AGPL-3.0-only. By contributing you agree your work ships under it. You keep your
+copyright — you are granting everyone the licence's rights, not signing your
+work over to anybody.

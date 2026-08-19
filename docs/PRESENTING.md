@@ -39,7 +39,7 @@ Everything here is checked against the code. Nothing is aspirational.
 | | |
 |---|---|
 | **What it is** | A web app that helps a church walk with one person at a time, from first contact to the point where they start walking with somebody else. |
-| **Licence** | MIT. Free. Fork it, rename it, sell services around it. |
+| **Licence** | AGPL-3.0. Free. Fork it, rename it, sell services around it — improvements to a hosted version stay open. |
 | **Runs on** | Any modern phone or computer. Installs from the browser — no app store. Developed and CI-tested on Linux, Windows and macOS. |
 | **Needs to run** | Nothing. No sign-up, no database, no keys, no configuration. |
 | **Works offline** | Yes, fully, after the first load. |
@@ -435,7 +435,9 @@ becomes a rule you enforce there — it is easy to lose by accident and hard to
 explain afterwards.
 
 **"What does it cost?"**
-Nothing. MIT licence. Hosting for a church fits comfortably in most free tiers.
+Nothing. AGPL-3.0 licence. Hosting for a church fits comfortably in most free
+tiers. Running it unmodified obliges you to nothing; if you change it and host
+it for people, you offer them your changed source.
 Your costs are a domain if you want one, and whoever maintains it.
 
 **"What if the developer disappears?"**

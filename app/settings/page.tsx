@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import { InstallCard } from '@/components/InstallCard';
+import { SourceCard } from '@/components/SourceCard';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveSettingsPage } from '@/components/LiveAccountPages';
 import { useIsLive } from '@/lib/tutorial';
@@ -420,6 +421,7 @@ function Body() {
           tutorial on a tablet is exactly the person who wants it on their home
           screen. */}
       <InstallCard />
+      <SourceCard />
 
       {canRename && <ChurchNameCard />}
 

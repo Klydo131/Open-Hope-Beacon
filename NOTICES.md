@@ -1,7 +1,8 @@
 # Notices
 
 Third-party code and content in Open Hope Beacon, and the terms it is used
-under. Open Hope Beacon itself is MIT licensed — see [LICENSE](LICENSE).
+under. Open Hope Beacon itself is licensed under the AGPL-3.0 — see
+[LICENSE](LICENSE).
 
 ---
 
@@ -14,17 +15,21 @@ under. Open Hope Beacon itself is MIT licensed — see [LICENSE](LICENSE).
 `lib/playlists.ts` and `components/Playlists.tsx` are derived from Open
 Morbital, a local-first music player by the same author as this project.
 
-**Why this needed saying out loud.** Open Morbital is published under the
-AGPL-3.0, which is strongly copyleft: taking AGPL code into this repository
-under its published terms would have made the whole of Open Hope Beacon AGPL,
-and every church that modified a deployment would have been legally obliged to
-publish its source. This project's README promises the opposite — "fork it, no
-permission required and no strings" — and quietly breaking that promise would
-have been worse than not having playlists.
+**The reason this section exists has changed, and the record should say so.**
 
-Klydo131 holds the copyright in both projects and has granted this use under
-MIT terms. That grant is what keeps Hope Beacon MIT; it is not something a
-third-party fork of Open Morbital could rely on.
+When the playlists were ported, Open Hope Beacon was MIT. Open Morbital is
+AGPL-3.0, and taking AGPL code into an MIT project under its published terms
+would have made the whole of Open Hope Beacon AGPL — contradicting a README
+that promised forks "no strings". Klydo131 holds the copyright in both projects
+and granted this use under MIT terms instead, which is what kept the promise.
+
+**Open Hope Beacon became AGPL-3.0 itself in August 2026**, so that conflict no
+longer exists: Open Morbital's own terms would have been fine. The MIT grant
+still stands and is not withdrawn — it simply is not load-bearing any more.
+Either way, this material is redistributed as part of an AGPL-3.0 work.
+
+Note for anyone forking Open Morbital rather than this app: that grant was
+specific to this project. It is not something a third-party fork can rely on.
 
 **What was actually taken.** The data model — a named, ordered list of track
 ids, with shuffle and repeat over a queue — and the behaviour. The code is
@@ -43,5 +48,6 @@ Inter and JetBrains Mono are used under the SIL Open Font License 1.1.
 ## Everything else
 
 The remaining dependencies are listed in `package.json` with their own licences,
-all permissive (MIT, ISC, Apache-2.0, BSD). `npm run build` does not bundle any
-copyleft dependency.
+all permissive (MIT, ISC, Apache-2.0, BSD). Permissive terms are compatible with
+the AGPL-3.0 in this direction: a permissively licensed library can be included
+in a copyleft work, and each keeps its own notice.
