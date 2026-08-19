@@ -1309,9 +1309,33 @@ export function LiveAdminPage() {
 export function LiveGuidePage() {
   const [rows, setRows] = useState<live.PairingView[]>([]);
   const [error, setError] = useState('');
+  // WHO HAS ASKED FOR PRAYER, on the card, before anything else.
+  //
+  // The requests were already on this page — but below Recommend, Follow-ups,
+  // Lesson series and the Library, which is a long way down on a phone. Asking
+  // for prayer is the most exposed thing an Explorer does here, and the list a
+  // Guide actually looks at said nothing about it. Somebody writes "please pray
+  // for my mother" and, as far as they can tell, nothing happens.
+  //
+  // `open` only: the badge clears once the Guide presses "I'm praying", which
+  // is what keeps it worth reading rather than permanent furniture.
+  const [unprayed, setUnprayed] = useState<Record<string, number>>({});
   useEffect(() => {
     let alive = true;
     live.listPairings().then((data) => { if (alive) setRows(data.filter((row) => row.status === 'active')); }).catch((cause) => { if (alive) setError(errorText(cause)); });
+    live.listPrayerRequests().then((requests) => {
+      if (!alive) return;
+      const counts: Record<string, number> = {};
+      for (const r of requests) {
+        if (r.status !== 'open') continue;
+        counts[r.ds_id] = (counts[r.ds_id] ?? 0) + 1;
+      }
+      setUnprayed(counts);
+    }).catch(() => {
+      /* The badge is an aid, not the feature. A Guide who cannot load it still
+         has the full list further down the page, so this must not take the
+         whole screen down with it. */
+    });
     return () => { alive = false; };
   }, []);
 
@@ -1330,7 +1354,14 @@ export function LiveGuidePage() {
                   <Avatar name={row.ds_name} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-lg font-bold text-navy">{row.ds_name}</p>
-                    <p className="text-sm text-gray-500">{row.track} path</p>
+                    {unprayed[row.ds_id] ? (
+                      <p className="text-sm font-semibold" style={{ color: '#7C3AED' }}>
+                        🙏 asked for prayer
+                        {unprayed[row.ds_id] > 1 ? ` ×${unprayed[row.ds_id]}` : ''}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500">{row.track} path</p>
+                    )}
                   </div>
                   <span className="rounded-full px-3 py-1 text-xs font-bold" style={{ backgroundColor: `${stage.color}20`, color: stage.color }}>{stage.label}</span>
                 </div>
