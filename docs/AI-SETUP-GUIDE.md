@@ -119,15 +119,81 @@ thing an assistant can do for you here.
 
 **5. Email**
 
-> Set up the invitation email through Brevo, following `docs/EMAIL.md`. I will
-> paste the secrets into Supabase myself — give me the names and tell me where
-> they go. Do not ask me for the key.
+> Read `docs/EMAIL.md`. Supabase's built-in mailer sends two messages an hour
+> for the whole project and that cannot be raised. Tell me whether my church
+> needs an SMTP provider, and if so give me the exact dashboard steps for
+> Brevo — including the IP-blocking setting, which applies to SMTP as well as
+> to API keys. I will paste every credential myself. Do not ask me for a key
+> and do not put one in a file.
 
 **6. Deploy**
 
 > Walk me through deploying to Vercel and tell me exactly which environment
 > variables to set. Then tell me how to verify the deployment actually works,
 > as a test I run rather than a thing you assert.
+
+**7. Make it prove the deployment, not describe it**
+
+> Give me a numbered list of things I click, on my phone, on mobile data with
+> wifi off, that would show this deployment is genuinely working — including at
+> least one that should FAIL, so I know the checks mean something. Do not tell
+> me it works; tell me how I would find out that it does not.
+
+---
+
+## Prompts worth keeping
+
+Not a session — individual jobs, for when something is already running. Each one
+is written the way that actually gets a useful answer: it names the files, says
+what "done" looks like, and asks for evidence rather than assurance.
+
+### Diagnosing a failure
+
+> Invitations stopped arriving. Do not guess. Query the Supabase auth logs,
+> group the last 24 hours by hour and by status, and tell me the actual reason
+> with the log lines that show it. If the answer is a rate limit, tell me the
+> measured number rather than the documented one.
+
+> This error appeared: `<paste the exact text>`. Before proposing a fix, tell me
+> what state the system must be in for that message to be produced. Then tell me
+> how to check whether it is in that state.
+
+### Changing the app safely
+
+> I want `<change>`. Before writing any code, tell me which files it touches,
+> what could break that I would not notice, and which existing test would catch
+> a mistake. Then wait for me.
+
+> Read `tests/` and tell me which of my behaviours are actually covered and
+> which only look covered. I want the list of things that would pass while
+> broken.
+
+### Making it your church's own
+
+> Change every place the app says "Guide" and "Explorer" to `<our words>`.
+> Find them all — including the tutorial, the emails and the policy page — and
+> show me the list before you change anything.
+
+> Rewrite `app/policy/page.tsx` to match our church's safeguarding policy,
+> which is: `<paste yours>`. Keep the reading level and the structure. Do not
+> add clause numbers or legal phrasing. Keep the emergency-services line first.
+
+### Reviewing what the assistant just did
+
+> Read back the diff you just made and argue against it. What did you assume
+> that I did not tell you? What would a reviewer object to? What did you not
+> test?
+
+> You said this is fixed. Show me the command I run and the output I should
+> see. If you have not run it, say so plainly instead of describing what would
+> happen.
+
+### The prompt to use when you are stuck and frustrated
+
+> Stop proposing fixes. Write down, in order, what you actually know to be
+> true from evidence you have seen this session, and separately what you are
+> assuming. Then tell me which single assumption, if wrong, would explain
+> everything.
 
 ---
 

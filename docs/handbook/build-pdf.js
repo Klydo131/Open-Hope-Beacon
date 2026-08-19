@@ -14,6 +14,7 @@
 //
 //   node docs/handbook/build-pdf.js                  # START-HERE.md
 //   node docs/handbook/build-pdf.js SETUP.md SECURITY.md
+//   node docs/handbook/build-pdf.js --combine "IT and AI Guide" A.md B.md
 //
 // Output lands in docs/handbook/pdf/.
 
@@ -294,10 +295,70 @@ const page = (title, body) => `<!doctype html>
                font-style: italic; }
 </style></head><body>${body}</body></html>`;
 
-const targets = process.argv.slice(2);
-const files = targets.length ? targets : ['START-HERE.md'];
+// COMBINE MODE. `--combine <Output Name>` renders every remaining file into ONE
+// pdf instead of one each.
+//
+// Why this rather than a new combined Markdown file: the IT guide and the AI
+// guide are already written, already correct, and already read on GitHub. A
+// third document that repeated them would be a third document to keep in step,
+// and the one that fell behind would be the one printed and handed to a church.
+// Concatenating at render time means there is nothing to drift.
+const argv = process.argv.slice(2);
+let combineName = '';
+const combineAt = argv.indexOf('--combine');
+if (combineAt !== -1) {
+  combineName = argv[combineAt + 1] || 'Combined';
+  argv.splice(combineAt, 2);
+}
+const files = argv.length ? argv : ['START-HERE.md'];
 fs.mkdirSync(OUT, { recursive: true });
 const chrome = findChrome();
+
+if (combineName) {
+  const parts = [];
+  const contents = [];
+  for (const name of files) {
+    const source = path.join(DOCS, name);
+    if (!fs.existsSync(source)) {
+      console.error(`skipped ${name} — not found in docs/`);
+      process.exitCode = 1;
+      continue;
+    }
+    const markdown = fs.readFileSync(source, 'utf8');
+    const title = (markdown.match(/^#\s+(.*)$/m) || [, name])[1];
+    contents.push(title);
+    // page-break-before on every part after the first, so a reader can find
+    // where one guide ends and the next begins without hunting.
+    parts.push(
+      `<section class="doc"${parts.length ? ' style="page-break-before: always"' : ''}>`
+      + render(markdown)
+      + '</section>',
+    );
+  }
+
+  const toc =
+    '<section class="doc"><h1>' + combineName + '</h1>'
+    + '<p><em>Open Hope Beacon — one document, both halves: setting it up, and '
+    + 'using an AI assistant to do the work. Generated from the Markdown in '
+    + '<code>docs/</code>, so it cannot disagree with the repository.</em></p>'
+    + '<h2>What is in here</h2><ol>'
+    + contents.map((t) => `<li>${t}</li>`).join('')
+    + '</ol></section>';
+
+  const pdfPath = path.join(OUT, `Open-Hope-Beacon-${combineName.replace(/[^\w-]+/g, '-')}.pdf`);
+  const htmlPath = pdfPath.replace(/\.pdf$/, '.html');
+  fs.writeFileSync(htmlPath, page(combineName, toc + parts.join('')));
+  execFileSync(chrome, [
+    '--headless', '--disable-gpu', '--no-sandbox',
+    '--no-pdf-header-footer',
+    `--print-to-pdf=${pdfPath}`,
+    htmlPath,
+  ], { stdio: 'pipe' });
+  fs.unlinkSync(htmlPath);
+  const kb = Math.round(fs.statSync(pdfPath).size / 1024);
+  console.log(`${path.relative(process.cwd(), pdfPath)}  (${kb} KB, ${contents.length} documents)`);
+  process.exit(process.exitCode || 0);
+}
 
 for (const name of files) {
   const source = path.join(DOCS, name);

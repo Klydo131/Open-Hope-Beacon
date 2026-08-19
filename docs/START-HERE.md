@@ -62,7 +62,7 @@ explains how to swap any of them.
 | **GitHub** | Holds the code, and how you get updates | Free for public repositories |
 | **Supabase** | The database, and who is allowed to sign in | Has a free tier |
 | **Vercel** | Turns the code into a website people can visit | Has a free tier |
-| **Brevo** | Sends the invitation emails | Has a free tier |
+| **Brevo** *(or any SMTP provider)* | Sends more than two invitation emails an hour | Has a free tier |
 
 **Check each provider's current free-tier limits yourself before committing to
 one.** All four are generous enough for a single church today, and all four are
@@ -134,9 +134,18 @@ Open Hope Beacon is a free, open-source app for churches walking alongside
 people who want to know more about faith. One Guide, one Explorer, one
 conversation, and a record of it that only the right people can see.
 
-**It is licensed for you to take, change, run and keep.** Fork it, rename it,
-strip out what you do not need, sell support for it if you like. No permission
-required and no strings.
+**It is licensed for you to take, change, run and keep — under the AGPL-3.0.**
+Fork it, rename it, strip out what you do not need, charge for hosting or
+support. No permission required and no fee.
+
+The one condition, in a sentence: **if you change it and run it for people over
+a network, you offer those people your changed source.** Running this repository
+unmodified for your own church obliges you to nothing at all. Keeping your
+changes on your laptop obliges you to nothing. The clause only bites when other
+people are using your modified version. The app already carries a *view the
+source* link in **Settings** — if you deploy a modified version, repoint that
+link at your own repository and you have done everything the licence asks. Full
+detail is in the project's README.
 
 **Your data is yours and it never comes to us.** When you set up your own
 Supabase project, the database is yours, in your account, under your billing.
@@ -388,8 +397,22 @@ Getting it onto the internet, where your congregation can reach it.
 5. **Deploy.** About a minute.
 6. Copy your new address and set it as `SITE_URL` in Supabase's Edge Function
    secrets (Part 3, Step 5), then redeploy the invite function.
-7. In Supabase, **Authentication → URL Configuration**, set **Site URL** to your
-   address and add `https://your-address/join` to **Redirect URLs**.
+7. In Supabase, **Authentication → URL Configuration**:
+
+   | Setting | Value | The mistake to avoid |
+   |---|---|---|
+   | **Site URL** | `https://your-address` | **Not** `.../join`. This is the base for password resets too, and pointing it at one page breaks the others. |
+   | **Redirect URLs** | `https://your-address/**` | Leaving this empty is the failure below. |
+
+   > **This is the setting that silently ruins invitations.** If your address is
+   > not in the Redirect URLs list, Supabase ignores the redirect the app asks
+   > for and mails whatever Site URL says — and a project still on its defaults
+   > mails everybody a link to `http://localhost:3000`, a machine they do not
+   > have. The send reports success. Nobody can tell from inside the app.
+   >
+   > Hope Beacon works around this by also showing the Director a working link
+   > on screen after every invitation, built from `SITE_URL` rather than from
+   > the dashboard. Set these two anyway.
 
 **From now on, every push to your `main` branch updates the live site
 automatically.** There is no second step and no "publish" button.
@@ -475,14 +498,80 @@ Ordered by how often they actually happen.
 
 ### "The invitation email never arrives"
 
-Almost always the three Edge Function secrets. Check `BREVO_API_KEY`,
-`MAIL_FROM` and `SITE_URL` are all set (Part 3, Step 5).
+**Start here, because it is the answer four times out of five: Supabase's
+built-in mailer sends TWO messages an hour. For the whole project. Not per
+person.**
 
-**Tell the two failures apart:** if the app says the invitation was created and
-offers you a link to copy by hand, the function ran fine and the *sending*
-failed. It always tells you why in the same message. If it is Brevo's IP
-allow-list, switch the restriction off — Supabase's servers have no fixed
-address.
+That number is measured, not estimated — a real church's auth log shows at most
+two successes in any hour and `over_email_send_rate_limit` on everything after,
+including invitations the Director believed had gone out. A Director inviting
+four people in one sitting has two of them silently refused.
+
+It **cannot be raised** while the built-in mailer is in use. It is not a setting
+in your dashboard. Your options are:
+
+1. **Send the link by hand.** Every invitation shows the Director a working
+   one-time link on screen, whether the email went or not. WhatsApp it. This
+   works today, with no setup, and has no limit.
+2. **Connect your own SMTP provider** — the section below. Thirty an hour by
+   default, and configurable upwards.
+
+**The app now tells you which failure it was**, in words, instead of showing the
+provider's raw text. Four different refusals arrive looking similar:
+
+| What you see | What it means | What to do |
+|---|---|---|
+| *"wait N seconds"* | One message per address per minute. The first one **did** send. | Wait, press Send once. |
+| *"used up its email for the hour"* | The project's two-an-hour quota. **Nothing sent.** | Send the link by hand, or connect SMTP. |
+| *"That is IP blocking"* | Your provider is refusing the connection's address. | Turn the blocking off — see below. |
+| Anything else | Your provider refused and said why. | Usually a regenerated key or an unverified sender. |
+
+### Connecting Brevo (or any provider) over SMTP
+
+This is a dashboard form, not code. Nothing in the app changes — same function,
+same links, and no API key stored in your project.
+
+**In Brevo, first:** Settings → Security → Authorized IPs → **Deactivate
+blocking**.
+
+> **Do not add an IP address instead.** This is the single most expensive
+> mistake in this project's history, and it was made twice. The connection is
+> made by your *mail service's* servers, not by the computer you are sitting at,
+> and those addresses change between sends. Adding your own IP authorises the
+> one machine that will never connect. Brevo applies this list to SMTP keys as
+> well as API keys — an unrecognised address gets
+> `525 5.7.1 Unauthorized IP address`.
+
+**Then:** Transactional → Settings → SMTP relay → **Generate a new SMTP key**.
+Copy the login (it looks like `something@smtp-brevo.com`) and the key. **An SMTP
+key is not an API key** — the API key will not authenticate here.
+
+**Then in Supabase**, Project Settings → Authentication → SMTP Settings:
+
+| Field | Value |
+|---|---|
+| Host | `smtp-relay.brevo.com` |
+| Port | `587` |
+| Username | the SMTP login |
+| Password | the SMTP **key** |
+| Sender email | an address you have verified in Brevo |
+
+**Last:** Authentication → Rate Limits → raise **emails sent per hour** from 2.
+
+### "Someone I invited shows as joined, but they never signed up"
+
+Fixed, and worth knowing why, because the same confusion bites other apps.
+
+Sending an invitation **creates the person's account before the message goes**.
+So neither "an account exists" nor "the link was opened" means anybody arrived —
+and opening the link is something *you* do when you test it. Hope Beacon now
+counts somebody as joined only when they have finished the form and chosen their
+own password. Everyone else stays under **Waiting**, with a **Re-send** button.
+
+> **Do not open an invitation link yourself to check it works.** Opening it
+> signs you out and starts that person's sign-up on your device — the link is
+> single-use, so you also consume it. The app now stops and asks before doing
+> that, but the habit is the fix.
 
 Read the actual error rather than guessing: Supabase → **Edge Functions →
 invite → Logs**.
