@@ -380,7 +380,38 @@ if (fs.existsSync(wfDir)) {
       !/issues:\s*write|contents:\s*write/.test(wf) || /permissions/.test(wf),
       `${f}: any write permission is declared explicitly`,
     );
-    ok(!/secrets\./.test(wf), `${f}: needs no repository secrets to run`);
+    // SECRETS: the rule used to be "no workflow may mention secrets at all",
+    // which was a proxy for the property actually wanted — that somebody who
+    // forks this repository gets a working, green Actions tab without
+    // configuring anything.
+    //
+    // That proxy broke as soon as the project needed OPERATIONAL workflows
+    // rather than only CI ones. Keeping a free Supabase project awake, and
+    // backing it up, cannot be done without credentials for the database being
+    // kept awake; there is no version of those jobs that needs no secrets. The
+    // old rule would have forced the choice between having backups and having
+    // an honest test, which is how a good invariant turns into a deleted one.
+    //
+    // So the rule is now the property itself, and it is stricter than the
+    // proxy was: a workflow may read secrets, but it must DEGRADE GRACEFULLY
+    // when they are absent — check for the empty value and `exit 0`, never
+    // `exit 1`. A fork then sees a skipped job with an explanation instead of a
+    // red cross for not owning somebody else's database.
+    //
+    // What this still forbids, via FORBIDDEN_TERMS above: naming the private
+    // deployment. A secret NAME is fine; a project ref or URL written into the
+    // file is not.
+    if (/secrets\./.test(wf)) {
+      const guarded = /if \[ -z "\$\{[A-Z_]+:-\}" \]/.test(wf) && /exit 0/.test(wf);
+      ok(
+        guarded,
+        guarded
+          ? `${f}: reads secrets, and skips cleanly when a fork has none`
+          : `${f}: reads secrets but has no "if unset → exit 0" path — a fork would go red`,
+      );
+    } else {
+      ok(true, `${f}: needs no repository secrets to run`);
+    }
   }
 }
 
