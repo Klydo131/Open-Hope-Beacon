@@ -9,6 +9,7 @@ import { Attachment } from './Attachment';
 import { ReportDialog } from './ReportDialog';
 import { Button } from './ui';
 import { MessageBox } from '@/components/MessageBox';
+import { useDraft, clearDraft } from '@/lib/drafts';
 
 /**
  * One thing in the conversation, whichever kind it is.
@@ -34,7 +35,9 @@ type Entry =
 export function Chat({ pairingId }: { pairingId: string }) {
   const { db, userId, sendMessage, markMessagesRead, attachMedia, removeMedia, mediaFor,
     reportPerson } = useDemo();
-  const [text, setText] = useState('');
+  // Unsent text survives leaving the room, keyed to this pairing so a draft
+  // for one person can never appear in the box open to another.
+  const [text, setText] = useDraft(pairingId);
   const [reporting, setReporting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -213,6 +216,8 @@ export function Chat({ pairingId }: { pairingId: string }) {
           if (!text.trim()) return;
           sendMessage(pairingId, text);
           emitQuest('beacon:message');
+          // Now, not on the debounce — see the note in the live conversation.
+          clearDraft(pairingId);
           setText('');
         }}
       >

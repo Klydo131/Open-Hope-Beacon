@@ -17,6 +17,7 @@ import { useTutorialMode } from '@/lib/tutorial';
 import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer, LivePrayerForGuide, LivePrayerWall } from '@/components/LivePrayer';
 import { MessageBox } from '@/components/MessageBox';
+import { useDraft, clearDraft } from '@/lib/drafts';
 import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
 import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveLessonSeries } from '@/components/LiveMinistry';
@@ -1484,7 +1485,9 @@ export function LiveConversationPage() {
   const [pairing, setPairing] = useState<live.PairingView | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [files, setFiles] = useState<live.PairingFile[]>([]);
-  const [body, setBody] = useState('');
+  // Unsent text survives leaving this screen, and is never sent anywhere until
+  // the person presses Send. See lib/drafts.ts.
+  const [body, setBody] = useDraft(pairingId);
   const [error, setError] = useState('');
   const [attachError, setAttachError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1542,6 +1545,11 @@ export function LiveConversationPage() {
     setError('');
     try {
       await live.sendMessage(pairingId, body);
+      // Clear the stored draft NOW rather than leaving it to the debounce. A
+      // Guide who sends and immediately taps back unmounts the composer inside
+      // the debounce window, which cancels the pending write — and the draft of
+      // the message they just sent would still be sitting there next time.
+      clearDraft(pairingId);
       setBody('');
       await load();
     } catch (cause) {
@@ -1631,7 +1639,10 @@ export function LiveExplorerPage() {
   // current value at the moment the file is chosen.
   const pairingRef = useRef<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [body, setBody] = useState('');
+  // `pairing` is null until it loads, so the draft has nothing to key on for the
+  // first render or two. useDraft handles that: the box is simply unsaved until
+  // the id arrives, and the draft appears the moment it does.
+  const [body, setBody] = useDraft(pairing?.id ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -1691,6 +1702,7 @@ export function LiveExplorerPage() {
     setError('');
     try {
       await live.sendMessage(pairing.id, body);
+      clearDraft(pairing.id);
       setBody('');
       await load();
     } catch (cause) {
