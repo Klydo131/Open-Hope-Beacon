@@ -60,14 +60,32 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        env:
+          # Which repository this is running in, so the job can tell a fork
+          # (nothing to keep awake) from the real one (misconfigured).
+          UPSTREAM: Klydo131/Open-Hope-Beacon
+          HERE: ${{ github.repository }}
         run: |
           set -euo pipefail
 
-          # A fork has no secrets. Say so and stop, rather than failing and
-          # training everybody to ignore a red tick.
           if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            # ON THE REAL REPOSITORY, missing secrets are a fault and must be
+            # loud. This job ran green for a whole day doing nothing at all,
+            # because "skip quietly" and "worked" look identical from the
+            # Actions tab — and the whole point of the job is that nobody is
+            # watching the thing it protects. A silent success on the one
+            # repository that owns a database is the failure it was built to
+            # prevent, wearing a tick.
+            if [ "${HERE}" = "${UPSTREAM}" ]; then
+              echo "::error::SUPABASE_URL / SUPABASE_ANON_KEY are not set on the live repository."
+              echo "::error::Nothing is keeping the database awake. Add them under Settings → Secrets and variables → Actions."
+              exit 1
+            fi
+
+            # A fork has no database of its own. Skip cleanly — a fork must
+            # never inherit a red tick for not owning somebody else's project.
             echo "SUPABASE_URL or SUPABASE_ANON_KEY is not set — nothing to keep awake."
-            echo "If this is the live repository, add them under Settings → Secrets."
+            echo "This looks like a fork (${HERE}), so there is nothing to do."
             exit 0
           fi
 
