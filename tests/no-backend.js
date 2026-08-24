@@ -309,6 +309,17 @@ const GUARDRAILS = new Set([
   // they are listed for the same reason 0016 is and under the same limits.
   'supabase/migrations/0017_invitations_with_real_status.sql',
   'supabase/migrations/0018_signing_up_is_not_opening_a_link.sql',
+  // 0031 and 0032 are the anon lockdown and its correction. Both loop over
+  // every function in `public` deciding which roles may execute it, so both
+  // have to name the roles they grant and revoke — the same reason 0010 is on
+  // this list, and the same limits: naming the role is allowed, committing a
+  // key is still caught by the credential-shape scan below.
+  //
+  // 0032 in particular exists because 0031's blanket grant re-opened
+  // member_by_email — the enumeration oracle 0016 above describes — to every
+  // signed-in user. It has to name both the role and the function to say so.
+  'supabase/migrations/0031_nothing_new_is_open_to_anon.sql',
+  'supabase/migrations/0032_a_lockdown_must_never_widen_a_grant.sql',
   // .env.example's whole job is to say "never put the service_role key in
   // here". A warning that cannot name the thing it warns about is not a
   // warning, and the alternative — vaguer wording — is worse than the risk.
