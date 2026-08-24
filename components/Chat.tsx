@@ -10,6 +10,7 @@ import { ReportDialog } from './ReportDialog';
 import { Button } from './ui';
 import { MessageBox } from '@/components/MessageBox';
 import { useDraft, clearDraft } from '@/lib/drafts';
+import { Linked } from '@/components/Linked';
 
 /**
  * One thing in the conversation, whichever kind it is.
@@ -126,7 +127,7 @@ export function Chat({ pairingId }: { pairingId: string }) {
                       : { backgroundColor: '#EEF1F7', color: '#1a2233' }
                   }
                 >
-                  {entry.message.body}
+                  <Linked text={entry.message.body} />
                 </div>
               ) : (
                 <Attachment

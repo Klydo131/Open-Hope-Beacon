@@ -18,6 +18,7 @@ import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer, LivePrayerForGuide, LivePrayerWall } from '@/components/LivePrayer';
 import { MessageBox } from '@/components/MessageBox';
 import { useDraft, clearDraft } from '@/lib/drafts';
+import { Linked } from '@/components/Linked';
 import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
 import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveLessonSeries } from '@/components/LiveMinistry';
@@ -1842,7 +1843,9 @@ function Conversation({
             <div key={`${entry.kind}-${entry.id}`} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${mine ? 'bg-navy text-white' : 'bg-gray-100 text-gray-800'}`}>
                 {entry.kind === 'message' ? (
-                  <p className="whitespace-pre-wrap break-words">{entry.message.body}</p>
+                  <p className="whitespace-pre-wrap break-words">
+                    <Linked text={entry.message.body} />
+                  </p>
                 ) : (
                   <LiveAttachment
                     file={entry.file}
