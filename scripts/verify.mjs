@@ -108,6 +108,10 @@ const staticChecks = [
   ['auto-update policy', 'tests/auto-update-policy.mjs'],
   ['analytics over time', 'tests/analytics-trend.mjs'],
   ['security invariants', 'tests/security-invariants.mjs'],
+  // What may become a clickable link. Linkifying user text is how an app like
+  // this grows an XSS hole, so the protocol allowlist and the anti-phishing
+  // rules are checked as rules, not as rendered output.
+  ['linkify safety', 'tests/linkify.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:
   // it exists only behind a session, and the sandbox these run in cannot reach
   // the backend. It shipped needing ~600px on a 390px phone, which made the
