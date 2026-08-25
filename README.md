@@ -291,6 +291,14 @@ The bar is not "does it work" but "will the next person understand why it is lik
 that". Comments here explain *why* rather than *what*, and that is deliberate:
 this project is meant to be inherited.
 
+One thing worth knowing before you write code rather than after: pull requests
+carry a short
+**[Contributor Licence Agreement](CONTRIBUTING.md#contributor-licence-agreement)**.
+You keep your copyright. You also allow the maintainer to license the project —
+your part included — under terms other than AGPL-3.0, so that a church whose
+organisation bans AGPL outright can still be handed a private licence. This
+repository stays AGPL-3.0 either way, and so does everything you receive from it.
+
 ```bash
 npm test          # every check that does not need a browser
 npm run test:all  # the above, plus real-browser suites

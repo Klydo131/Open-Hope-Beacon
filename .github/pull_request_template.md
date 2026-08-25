@@ -15,6 +15,20 @@ phone".
 - [ ] A new test fails when the fix is reverted
 - [ ] No real people's details anywhere in the diff
 
+## Licence
+
+- [ ] I have read the [Contributor Licence Agreement](../CONTRIBUTING.md#contributor-licence-agreement)
+      and I agree to it for this contribution
+
+<!--
+You keep your copyright. The box says you also allow the maintainer to license
+the project — your part included — under terms other than AGPL-3.0, so that a
+church whose organisation bans AGPL can still be given a private licence. The
+public repository stays AGPL either way. The reasoning is written out in full in
+CONTRIBUTING.md; if you disagree with it, say so in the PR rather than ticking
+the box.
+-->
+
 <!--
 If a guardrail (tests/no-backend.js, tests/no-secrets.js,
 tests/security-invariants.mjs, tests/brand-consistency.mjs) now fails and you
