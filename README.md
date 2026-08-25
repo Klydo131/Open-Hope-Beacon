@@ -74,15 +74,16 @@ Needs [Node 22 or newer](https://nodejs.org). Nothing else.
 
 ## Then make it real, in four steps
 
-That demo keeps everything in your browser. To run this for an actual church —
-real accounts, real sign-in, two people on two phones seeing the same thing:
+That demo keeps everything in your browser. To run this for an actual church,
+with real accounts, real sign-in, and two people on two phones seeing the same
+thing:
 
 ```bash
 npm run setup      # asks two questions, writes your settings
 ```
 
 Then run the migrations in `supabase/migrations/`, restart, and make yourself an
-administrator. **There is no code to write** — the schema, the security rules
+administrator. **There is no code to write.** The schema, the security rules
 and the sign-in gateway all ship in this repository.
 
 Start the app and open **[/setup](http://localhost:3000/setup)**: it checks the
@@ -103,16 +104,16 @@ Four kinds of people, each seeing a different app built from the same data.
 | **Director** | Who gets in, who walks with whom, and what is on the library shelf. |
 | **Executive Director** | The church in numbers, and how those numbers are changing. Never anybody's conversations. |
 
-Underneath is a six-stage journey — **Create, Connect, Care, Call, Cultivate,
-Commission** — which ends by turning around: the last stage is the point where
+Underneath is a six-stage journey, **Create, Connect, Care, Call, Cultivate,
+Commission**, which ends by turning around: the last stage is the point where
 somebody being walked with starts walking with somebody else.
 
 **An Explorer never sees their own stage.** A stage is a note the church keeps to
 organise its work, not a label to show a person about themselves. A test enforces
 this, and it should survive anything you build on top.
 
-Conversations carry **attachments** — a photo, a voice note, a video, a document
-— and an attachment is visible to exactly the two people in that conversation,
+Conversations carry **attachments**: a photo, a voice note, a video, a document.
+An attachment is visible to exactly the two people in that conversation,
 with no Director exception. The files stay on the device, in IndexedDB, and never
 go into the saved database.
 
@@ -131,9 +132,9 @@ same code syncs between devices, because the transport is a seam you swap
 ## Why it might suit your church
 
 - **Nothing to buy and nothing to sign up for.** It is licensed under the
-  AGPL-3.0. Run it, study it, change it, run it for your church — free, for
+  AGPL-3.0. Run it, study it, change it, run it for your church, free and for
   good. The one condition is that improvements stay open: see
-  [Licence](#licence--agpl-30) below.
+  [Licence](#licence-agpl-30) below.
 - **It works without signal.** Installs on a phone from the browser, and every
   screen keeps working offline. Church halls and rural areas were the assumption,
   not an afterthought.
@@ -149,7 +150,7 @@ same code syncs between devices, because the transport is a seam you swap
 
 ## Making it yours
 
-**Change the words.** Roles, stages and sample data are ordinary files —
+**Change the words.** Roles, stages and sample data are ordinary files:
 `lib/types.ts`, `lib/demo/seed.ts`. Nothing is hard-coded into the framework.
 
 **Deploy it anywhere.** It is a standard Next.js app. Vercel, Netlify, Cloudflare
@@ -163,11 +164,12 @@ Fair question, and it is the one everybody asks. Here is the short answer.
 
 When Supabase variables are present, the front door becomes a live
 e-mail/password gateway. Invitations, password setup, approval, role routing,
-pairing and the private Guide–Explorer conversation use that church's database.
+pairing and the private conversation between a Guide and an Explorer all use
+that church's database.
 The sample tutorial and sample personas remain available only in the separate
 unconfigured build.
 
-**Nothing is missing from the app.** Every screen works — messages send, lessons
+**Nothing is missing from the app.** Every screen works: messages send, lessons
 assign, stages advance. They just read and write a store that lives in your
 browser, so the data never leaves your device and two people cannot share it.
 
@@ -189,12 +191,12 @@ Your screens  →  the store  →  your database      ← after
 Two lines of concept: the demo writes to memory, yours writes to a database.
 
 ```ts
-// Today — lib/demo/store.tsx
+// Today: lib/demo/store.tsx
 sendMessage: (pairingId, body) => {
   setDb((d) => ({ ...d, messages: [...d.messages, { pairing_id: pairingId, body }] }));
 },
 
-// With a backend — the screen calling it does not change at all
+// With a backend: the screen calling it does not change at all
 sendMessage: async (pairingId, body) => {
   await db.from('messages').insert({
     pairing_id: pairingId,
@@ -208,7 +210,7 @@ sendMessage: async (pairingId, body) => {
 ### Swapping the store in
 
 ```tsx
-// app/layout.tsx — one line changes
+// app/layout.tsx, one line changes
 import { DemoContext, type Ctx } from '@/lib/demo/store';
 
 function RealProvider({ children }: { children: React.ReactNode }) {
@@ -243,7 +245,7 @@ setFeedbackSink({
 ### The one rule that matters most
 
 Your screens decide what to **show**. Your database decides what somebody is
-**allowed to have** — because anybody can send a request without using your
+**allowed to have**, because anybody can send a request without using your
 screens at all. Put the permission rules with the data, not in the interface.
 
 ### Then read the full instructions
@@ -274,7 +276,7 @@ instead of the database, and putting a key somewhere the browser can read it.
 | **[docs/BUILD-YOUR-OWN.md](docs/BUILD-YOUR-OWN.md)** | Build your own Beacon with a real backend, end to end: tables, accounts, permission rules, wiring, deploying, and the checklist before real people. No backend experience assumed. |
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | How it is built, and where everything lives. Start here if you are about to change something. |
 | **[docs/BACKENDS.md](docs/BACKENDS.md)** | The two seams in detail, and the fifteen-minute feedback warm-up. |
-| **[docs/EMAIL.md](docs/EMAIL.md)** | Sending invitations by mail. Any provider, or none — the app works without it. |
+| **[docs/EMAIL.md](docs/EMAIL.md)** | Sending invitations by mail. Any provider, or none, since the app works without it. |
 | **[docs/ONBOARDING.md](docs/ONBOARDING.md)** | How a church actually uses it: who does what, in what order. |
 | **[docs/SECURITY.md](docs/SECURITY.md)** | Read before you put real people in it. |
 | **[docs/UPDATES.md](docs/UPDATES.md)** | How an installed copy updates itself. |
@@ -294,8 +296,8 @@ this project is meant to be inherited.
 One thing worth knowing before you write code rather than after: pull requests
 carry a short
 **[Contributor Licence Agreement](CONTRIBUTING.md#contributor-licence-agreement)**.
-You keep your copyright. You also allow the maintainer to license the project —
-your part included — under terms other than AGPL-3.0, so that a church whose
+You keep your copyright. You also allow the maintainer to license the project,
+your part included, under terms other than AGPL-3.0, so that a church whose
 organisation bans AGPL outright can still be handed a private licence. This
 repository stays AGPL-3.0 either way, and so does everything you receive from it.
 
@@ -311,10 +313,10 @@ npm run test:all  # the above, plus real-browser suites
 Open Hope Beacon is the open-source release of Hope Beacon, an app built for a
 local church. Their request was that other churches should be able to make their
 own, on whatever platform suits them. Everything specific to that church's
-deployment — its database, its keys, its hosting — was removed, and a test keeps
-it that way.
+deployment was removed: its database, its keys, its hosting. A test keeps it
+that way.
 
-## Licence — AGPL-3.0
+## Licence: AGPL-3.0
 
 Open Hope Beacon is free software under the
 **[GNU Affero General Public License, version 3](LICENSE)**.
@@ -325,7 +327,7 @@ congregations. Under MIT a company could take it, host it for churches as a paid
 product, improve it, and never give any of that back. AGPL closes that door
 while leaving every door a church needs wide open.
 
-### What you may do — which is nearly everything
+### What you may do, which is nearly everything
 
 - **Run it.** For your church, for a hundred churches, commercially or not. No
   fee, no permission, no notification.
@@ -344,7 +346,7 @@ a closed-source product.
 
 **2. If you MODIFY it and let people use it over a network, offer those people
 your source.** This is section 13, and it is the only clause that makes AGPL
-different from ordinary GPL. Running a website counts as "over a network" —
+different from ordinary GPL. Running a website counts as "over a network", and
 "I never shipped them a copy" is exactly the loophole this closes.
 
 Read those together and the practical rule is short:
@@ -354,10 +356,10 @@ Read those together and the practical rule is short:
 | Running this repo unmodified for your church | **Nothing.** Section 13 speaks to modified versions. |
 | Changing it, running it for your congregation | Offer your congregation your source |
 | Changing it, hosting it for other churches | Offer those churches your source |
-| Selling hosting, support or setup | Nothing extra — charging money is fine, AGPL is not "non-commercial" |
+| Selling hosting, support or setup | Nothing extra. Charging money is fine, AGPL is not "non-commercial" |
 | Keeping changes on your own laptop, never deployed | **Nothing.** No use is triggered until other people use it |
 
-### How this repo satisfies section 13 — copy it
+### How this repo satisfies section 13, and how to copy it
 
 The app carries a **"view and contribute on GitHub"** link on its front door and
 in **Settings → About**. If you deploy a modified version, change that link to
