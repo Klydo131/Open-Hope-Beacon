@@ -134,12 +134,19 @@ $$;
 revoke all on function public.in_trial(uuid) from public, anon;
 grant execute on function public.in_trial(uuid) to authenticated;
 
+-- `drop policy if exists` before each one, so a migration run that failed
+-- halfway can simply be run again. Without it the retry dies on "policy
+-- already exists" and a half-applied schema is the worst place to be
+-- standing during a setup. Every other migration here already does this.
+drop policy if exists trials_read on public.trials;
 create policy trials_read on public.trials
   for select using (public.in_trial(id));
 
+drop policy if exists trial_parties_read on public.trial_parties;
 create policy trial_parties_read on public.trial_parties
   for select using (public.in_trial(trial_id));
 
+drop policy if exists trial_statements_read on public.trial_statements;
 create policy trial_statements_read on public.trial_statements
   for select using (public.in_trial(trial_id));
 
@@ -148,6 +155,7 @@ create policy trial_statements_read on public.trial_statements
 -- those has an authority rule attached and a policy cannot express them.
 --
 -- Note what is NOT here: no check on suspended_at. See the header.
+drop policy if exists trial_statements_speak on public.trial_statements;
 create policy trial_statements_speak on public.trial_statements
   for insert with check (
     author_id = (select auth.uid())

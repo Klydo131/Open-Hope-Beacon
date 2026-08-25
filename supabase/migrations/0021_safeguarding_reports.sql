@@ -42,6 +42,11 @@ create index if not exists reports_church_open_idx
 alter table public.reports enable row level security;
 
 -- Directors of THIS church, and only them.
+-- `drop policy if exists` before each one, so a migration run that failed
+-- halfway can simply be run again. Without it the retry dies on "policy
+-- already exists" and a half-applied schema is the worst place to be
+-- standing during a setup. Every other migration here already does this.
+drop policy if exists reports_read on public.reports;
 create policy reports_read on public.reports
   for select using (
     exists (
@@ -53,6 +58,7 @@ create policy reports_read on public.reports
     )
   );
 
+drop policy if exists reports_decide on public.reports;
 create policy reports_decide on public.reports
   for update using (
     exists (

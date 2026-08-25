@@ -113,6 +113,7 @@ const staticChecks = [
   // rules are checked as rules, not as rendered output.
   ['linkify safety', 'tests/linkify.mjs'],
   ['minor badge', 'tests/minor-badge.mjs'],
+  ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:
   // it exists only behind a session, and the sandbox these run in cannot reach
   // the backend. It shipped needing ~600px on a 390px phone, which made the
