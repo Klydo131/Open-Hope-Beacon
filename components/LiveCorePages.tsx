@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { MinorBadge } from '@/components/MinorBadge';
 import { copyText } from '@/lib/share';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -987,6 +988,28 @@ export function LiveAdminPage() {
   );
   const pending = manageable.filter((member) => !member.is_approved);
   const approved = manageable.filter((member) => member.is_approved);
+  // Directors are their own room, and only an Executive has one. A Director
+  // does not manage other Directors, so showing them the tab would be a room
+  // with nothing they can do in it.
+  const directors = members.filter((member) => member.role === 'admin' && member.is_approved);
+  const isExec = profile?.role === 'executive';
+
+  // ROOMS, IN THE ORDER A DIRECTOR ACTUALLY WORKS. See docs/DESIGN.md rule 1:
+  // the room needed most often is the first one. Pairing and approving happen
+  // weekly; the board report is read once a month. Pairing used to be the ninth
+  // section down one long page.
+  const rooms: Room[] = [
+    { id: 'pairings', label: 'Pairings', badge: pairings.filter((x) => x.status === 'active').length },
+    { id: 'approvals', label: 'Approvals', badge: pending.length, urgent: pending.length > 0 },
+    { id: 'guides', label: 'Guides', badge: guides.length },
+    { id: 'explorers', label: 'Explorers', badge: explorers.length },
+    ...(isExec ? [{ id: 'directors', label: 'Directors', badge: directors.length }] : []),
+    { id: 'lessons', label: 'Lessons' },
+    { id: 'safeguarding', label: 'Safeguarding' },
+    { id: 'church', label: 'Church' },
+  ];
+  // Stored per role, so a Director and an Executive keep their own places.
+  const [room, chooseRoom] = useRoom(rooms, `beacon-admin-room:${profile?.role ?? 'admin'}`);
 
   useEffect(() => {
     if (!roleOptions.includes(role)) setRole(roleOptions[0]);
@@ -1099,11 +1122,23 @@ export function LiveAdminPage() {
 
   return (
     <LiveAppShell allow={['admin', 'executive']}>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-extrabold text-navy">{church?.name || 'Church administration'}</h1>
-          <p className="mt-1 text-gray-500">Invite, approve, disapprove and pair people. Conversations stay private.</p>
-        </div>
+      <div className="space-y-4">
+        {/* SMALLER THAN IT WAS, and the sentence under it is gone. It read
+            "Invite, approve, disapprove and pair people", which is exactly what
+            the room names below now say, and it said it again on every visit.
+            On a 664px phone that block plus the header spent 300px before a
+            Director could reach anything they came to do. */}
+        <h1 className="text-2xl font-extrabold text-navy sm:text-3xl">
+          {church?.name || 'Church administration'}
+        </h1>
+
+        {/* THE ROOMS COME FIRST, above even a safeguarding alert, and that
+            ordering is deliberate. docs/DESIGN.md rule 1: the second visit
+            should be faster than the first, which only works if the way around
+            the building is in the same place every time. Put an alert above
+            them and the tabs move down on the days something is wrong -- which
+            are the days a Director can least afford to go looking. */}
+        <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
 
         {error && <Notice tone="error">{error}</Notice>}
         {notice && <Notice tone="success">{notice}</Notice>}
@@ -1125,12 +1160,26 @@ export function LiveAdminPage() {
           }}
         />
 
+        {/* GUIDES AND EXPLORERS ARE SEPARATE ROOMS, not one roll to scroll.
+            They are different jobs: a Guide has a load and a cap, an Explorer
+            has a Guide and a stage. Reading one long list and sorting people
+            in your head is work the app should have done. Directors get their
+            own room too, and only an Executive sees it, because a Director does
+            not manage other Directors. */}
+        {(room === 'guides' || room === 'explorers' || room === 'directors') && (
+          <PeopleRoom
+            people={room === 'guides' ? guides : room === 'explorers' ? explorers : directors}
+            kind={room}
+            pairings={pairings}
+          />
+        )}
+
         {/* SAFEGUARDING, IN THE ORDER A DIRECTOR MEETS IT: what has been
             reported, then the cases arising from it, then the room where a
             case is opened or somebody is stopped on the spot. Putting the
             trial room first would offer the punishment before the hearing. */}
-        {profile && <LiveCourt me={profile} />}
-        {profile && (
+        {room === 'safeguarding' && profile && <LiveCourt me={profile} />}
+        {room === 'safeguarding' && profile && (
           <LiveTrialRoom
             me={profile}
             onCaseOpened={() => {
@@ -1145,8 +1194,8 @@ export function LiveAdminPage() {
         {/* Guilds and the church-wide numbers. Both are a Director's job as
             much as an Executive's -- a Director who cannot see their own
             church's totals cannot run it. */}
-        {profile && <LiveGuilds me={profile} />}
-        <LiveChurchPulse />
+        {room === 'church' && profile && <LiveGuilds me={profile} />}
+        {room === 'church' && <LiveChurchPulse />}
 
         {/* THE LIBRARY BELONGS TO DIRECTORS TOO.
             The tutorial's Director walk ends on "Stock the library", and live
@@ -1155,8 +1204,9 @@ export function LiveAdminPage() {
             was missing. Passing no pairings gives add-and-publish without the
             per-Explorer share buttons, which is right: stocking the shelf is a
             Director's job, handing a book to one person is a Guide's. */}
-        <LiveLibraryForGuide pairings={[]} />
+        {room === 'lessons' && <LiveLibraryForGuide pairings={[]} />}
 
+        {room === 'approvals' && (
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">Send an invitation e-mail</h2>
           <p className="mt-1 text-sm text-gray-500">The chosen role comes from the server-side invitation record.</p>
@@ -1264,6 +1314,9 @@ export function LiveAdminPage() {
           </form>
         </Card>
 
+        )}
+
+        {room === 'approvals' && (
         <Card className="p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -1295,6 +1348,9 @@ export function LiveAdminPage() {
           </div>
         </Card>
 
+        )}
+
+        {room === 'approvals' && (
         <Card className="p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -1319,6 +1375,9 @@ export function LiveAdminPage() {
           </div>
         </Card>
 
+        )}
+
+        {room === 'pairings' && (
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">Pair a Guide and Explorer</h2>
           <form onSubmit={pair} className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -1375,10 +1434,11 @@ export function LiveAdminPage() {
             ))}
           </div>
         </Card>
+        )}
 
         {/* The numbers first: a leader opens this to find out how the ministry
             is going, not to administer one more person. */}
-        <LiveChurchOverview />
+        {room === 'church' && <LiveChurchOverview />}
 
         {/* The WALL, not the named requests. A Director is shown totals and
             never an identity; one who needs to know how a particular person is
@@ -1387,10 +1447,10 @@ export function LiveAdminPage() {
 
             Worth stating because it was once reported as a bug — "the admin
             cannot see the prayer" — when it was the design working. */}
-        <LiveRecommendationsForDirector />
-        <LiveLessonSeries manage />
-        <LivePrayerWall />
-        <LiveBoardReport churchName={church?.name} />
+        {room === 'approvals' && <LiveRecommendationsForDirector />}
+        {room === 'lessons' && <LiveLessonSeries manage />}
+        {room === 'church' && <LivePrayerWall />}
+        {room === 'church' && <LiveBoardReport churchName={church?.name} />}
       </div>
     </LiveAppShell>
   );
@@ -2055,3 +2115,87 @@ function Notice({ tone, children }: { tone: 'error' | 'success'; children: React
 }
 
 // Build-time assertion: this module belongs only to configured deployments.
+
+/**
+ * One kind of person, on their own.
+ *
+ * See docs/DESIGN.md rule 1. Guides and Explorers were a single list a Director
+ * scrolled and sorted in their head. They are different jobs and they answer
+ * different questions: a Guide has a load and a cap of five, an Explorer has a
+ * Guide and a stage. The list that answers neither is the one nobody reads.
+ */
+function PeopleRoom({
+  people,
+  kind,
+  pairings,
+}: {
+  people: Profile[];
+  kind: 'guides' | 'explorers' | 'directors';
+  pairings: live.PairingView[];
+}) {
+  const active = pairings.filter((p) => p.status === 'active');
+  const loadOf = (guideId: string) => active.filter((p) => p.dm_id === guideId).length;
+  const guideOf = (explorerId: string) =>
+    active.find((p) => p.ds_id === explorerId)?.dm_name ?? null;
+
+  const title = kind === 'guides' ? 'Guides' : kind === 'explorers' ? 'Explorers' : 'Directors';
+  const empty =
+    kind === 'guides' ? 'No Guides yet. Invite one from Approvals.'
+      : kind === 'explorers' ? 'No Explorers yet. Invite one from Approvals.'
+        : 'No other Directors in this church.';
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-xl font-bold text-navy">{title}</h2>
+        <span className="rounded-full bg-navy/10 px-3 py-1 text-sm font-bold text-navy">{people.length}</span>
+      </div>
+
+      {people.length === 0 ? (
+        <p className="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-500">{empty}</p>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {people.map((person) => {
+            const load = kind === 'guides' ? loadOf(person.id) : 0;
+            const walking = kind === 'explorers' ? guideOf(person.id) : null;
+            return (
+              <div key={person.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 px-4 py-3 text-sm">
+                <Avatar name={person.full_name || 'Member'} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="truncate font-semibold text-navy">{person.full_name}</span>
+                    <MinorBadge person={person} />
+                  </div>
+                  {kind === 'explorers' && (
+                    // The one thing a Director looks for on this screen. An
+                    // Explorer with no Guide has no app, so it is said plainly
+                    // and coloured as something to fix rather than a blank.
+                    walking
+                      ? <p className="text-xs text-gray-500">walking with {walking}</p>
+                      : <p className="text-xs font-semibold text-red-700">not yet paired</p>
+                  )}
+                  {kind === 'directors' && (
+                    <p className="text-xs text-gray-500">Director</p>
+                  )}
+                </div>
+                {kind === 'guides' && (
+                  // Five is the cap, enforced in the database (migration 0030).
+                  // Showing the load against it means a Director can see who
+                  // has room without opening anything.
+                  <span
+                    className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
+                      load >= 5 ? 'bg-red-100 text-red-800' : 'bg-white text-navy ring-1 ring-black/5'
+                    }`}
+                    title={load >= 5 ? 'At the cap of five' : `${5 - load} place${5 - load === 1 ? '' : 's'} free`}
+                  >
+                    {load}/5
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}

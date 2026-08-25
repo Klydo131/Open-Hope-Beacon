@@ -127,6 +127,20 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
   const open = (reports ?? []).filter((r) => r.status === 'open');
   const closed = (reports ?? []).filter((r) => r.status !== 'open');
 
+  // NOTHING OPEN MEANS NOTHING ON SCREEN, and until now that was only true in
+  // a comment. The card rendered anyway, headed "Safeguarding" and reading
+  // "Nothing to decide", and on a phone it filled most of the screen above the
+  // work a Director had actually come to do.
+  //
+  // A panel that announces its own emptiness is the most expensive kind of
+  // decoration: it costs attention every single day to say that today is like
+  // every other day. See docs/DESIGN.md rule 1 -- a daily control must not sit
+  // below a card reporting that there is nothing to report.
+  //
+  // While the list is still loading, also nothing. A "Loading..." card that
+  // resolves to an empty one is two layout shifts to say the same thing.
+  if (reports === null || (open.length === 0 && closed.length === 0)) return null;
+
   return (
     <div className="space-y-5">
       <Card className="p-5">
