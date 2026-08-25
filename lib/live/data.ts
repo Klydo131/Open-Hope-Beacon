@@ -1799,6 +1799,65 @@ export async function churchPulse(): Promise<ChurchPulse[]> {
 }
 
 /**
+ * Every member under 18, for the Director who is responsible for them.
+ *
+ * WHY THIS EXISTS SEPARATELY FROM THE BADGE. The badge (components/MinorBadge)
+ * marks a minor wherever somebody already happens to be looking at them, which
+ * is right when you are looking and useless for the question a Director has to
+ * answer: who are all of them, and is anybody missing a consent letter? A
+ * safeguard you can only see by visiting every profile in turn is a safeguard
+ * nobody performs.
+ *
+ * The guardian comes back as a real account when the guardian is also a member,
+ * which is most often a Guide. It is NEVER inferred from a shared surname: a
+ * Director records the link once from the signed letter in front of them, and
+ * a wrong guess here links a child to a stranger.
+ *
+ * Rows with no consent recorded sort first, because those are the ones that
+ * need doing.
+ */
+export interface MinorRow {
+  member_id: string;
+  full_name: string;
+  role: Role;
+  birthday: string | null;
+  consent_recorded: boolean;
+  guardian_name: string | null;
+  guardian_member_id: string | null;
+  guardian_full_name: string | null;
+  guardian_role: Role | null;
+  guardian_is_member: boolean;
+}
+
+export async function minorsInChurch(churchId?: string): Promise<MinorRow[]> {
+  const { data, error } = await db().rpc('minors_in_church', {
+    p_church: churchId ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as MinorRow[];
+}
+
+/** A Director records the signed letter, and who signed it. */
+export async function recordGuardianConsent(
+  memberId: string,
+  guardianName: string,
+  guardianMemberId?: string,
+): Promise<void> {
+  const { error } = await db().rpc('record_guardian_consent', {
+    p_member: memberId,
+    p_guardian_name: guardianName,
+    p_guardian_member: guardianMemberId ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** A parent can change their mind, so this has to exist. */
+export async function withdrawGuardianConsent(memberId: string): Promise<void> {
+  const { error } = await db().rpc('withdraw_guardian_consent', { p_member: memberId });
+  if (error) throw new Error(error.message);
+}
+
+/**
  * The discipline record, which outlives the people in it.
  *
  * Names and roles are copied onto the log at the time of the act (migration

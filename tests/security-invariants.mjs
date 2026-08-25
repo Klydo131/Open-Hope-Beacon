@@ -735,5 +735,61 @@ if (exists('app/api/auth/sign-in/route.ts')) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 19. The safeguarding columns stay privileged, and the roster stays closed.
+//
+// A minor's guardian record is the one thing in this schema a person must not
+// be able to write about themselves. A fifteen year old who can set their own
+// guardian_consent_at has a consent box, not a safeguard, and the whole value
+// of the record is that somebody ELSE checked the letter.
+//
+// The roster is the other half: it lists, by name and birthday, every child in
+// a congregation. That is the most sensitive query in the app, and it must be
+// reachable only by somebody who runs that church.
+// ---------------------------------------------------------------------------
+{
+  const guardianMig = ['supabase/migrations/0033_a_minor_is_walked_with_differently.sql',
+                       'supabase/migrations/0034_the_directors_roster_of_minors.sql']
+    .filter(exists).map(read).join('\n');
+
+  ok(guardianMig.length > 0, 'the guardian-consent migrations are present');
+
+  if (guardianMig) {
+    // Every guardian column named in the self-edit refusal.
+    for (const col of ['guardian_name', 'guardian_consent_at', 'guardian_consent_by',
+                       'guardian_member_id']) {
+      ok(new RegExp(`new\\.${col} is distinct from old\\.${col}`).test(guardianMig),
+         `${col} is refused as a self-edit`);
+      ok(new RegExp(`new\\.${col}\\s*:=\\s*old\\.${col}`).test(guardianMig),
+         `${col} is pinned for callers who are not leadership`);
+    }
+
+    // Recording is leadership-only and cannot target yourself.
+    ok(/record_guardian_consent[\s\S]*?is_admin\(\) or public\.is_executive\(\)/.test(guardianMig),
+       'recording guardian consent is leadership-only');
+    ok(/Somebody else has to record consent for you/.test(guardianMig),
+       'and a person cannot record their own');
+
+    // A child cannot be recorded as another child's responsible adult.
+    ok(/is_minor\(guardian_birthday\)/.test(guardianMig),
+       'a minor cannot be recorded as a guardian');
+    ok(/cannot be their own guardian/.test(guardianMig),
+       'and nobody is their own guardian');
+
+    // The roster is scoped to a church the caller actually runs.
+    ok(/minors_in_church[\s\S]*?manages_church/.test(guardianMig),
+       'the minors roster is limited to a church the caller runs');
+    ok(/revoke all on function public\.minors_in_church\(uuid\) from anon/.test(guardianMig),
+       'the minors roster is closed to anonymous callers');
+
+    // Derived, never stored. A stored flag is wrong from the morning of the
+    // eighteenth birthday and nothing announces it.
+    ok(!/add column if not exists is_minor|add column if not exists minor\b/.test(guardianMig),
+       'minor status is computed, never stored as a column that can go stale');
+    ok(/create or replace function public\.is_minor\(p_birthday date\)[\s\S]*?stable/.test(guardianMig),
+       'is_minor is STABLE, because the answer changes with the date');
+  }
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

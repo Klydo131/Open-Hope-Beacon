@@ -324,6 +324,10 @@ const GUARDRAILS = new Set([
   // new functions from anonymous callers explicitly rather than leaving it to
   // the event trigger 0031 installed, so the intent is on the page.
   'supabase/migrations/0033_a_minor_is_walked_with_differently.sql',
+  // 0034 names the roles for the same reason as 0033: it revokes the minors
+  // roster from anonymous callers by name rather than relying on the event
+  // trigger, because this is the most sensitive query in the schema.
+  'supabase/migrations/0034_the_directors_roster_of_minors.sql',
   // .env.example's whole job is to say "never put the service_role key in
   // here". A warning that cannot name the thing it warns about is not a
   // warning, and the alternative — vaguer wording — is worse than the risk.
