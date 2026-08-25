@@ -172,9 +172,14 @@ export async function putMedia(meta: MediaMeta, blob?: Blob): Promise<void> {
     const transaction = db.transaction(blob ? [META, BLOBS] : [META], 'readwrite');
     transaction.objectStore(META).put(meta);
     if (blob) transaction.objectStore(BLOBS).put(blob, meta.id);
+    // WebKit sets `transaction.error` to null when it aborts, so rejecting with
+    // it alone produced the useless "could not be saved: null" that cost a CI
+    // run to interpret. Always reject with something readable.
+    const why = (stage: string) =>
+      transaction.error ?? new Error(`IndexedDB ${stage} while saving ${meta.id}`);
     transaction.oncomplete = () => { db.close(); resolve(); };
-    transaction.onerror = () => { db.close(); reject(transaction.error); };
-    transaction.onabort = () => { db.close(); reject(transaction.error); };
+    transaction.onerror = () => { db.close(); reject(why('errored')); };
+    transaction.onabort = () => { db.close(); reject(why('aborted')); };
   });
 }
 
