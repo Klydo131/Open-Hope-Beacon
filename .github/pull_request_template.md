@@ -17,7 +17,7 @@ phone".
 
 ## Licence
 
-- [ ] I have read the [Contributor Licence Agreement](../CONTRIBUTING.md#contributor-licence-agreement)
+- [ ] I have read the [Contributor Licence Agreement](https://github.com/Klydo131/Open-Hope-Beacon/blob/main/CONTRIBUTING.md#contributor-licence-agreement)
       and I agree to it for this contribution
 
 <!--
