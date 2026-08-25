@@ -791,5 +791,51 @@ if (exists('app/api/auth/sign-in/route.ts')) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 20. The MINOR badge is on the screens where somebody is responsible.
+//
+// A safeguarding mark that a person has to go looking for is one nobody sees.
+// The badge has to be next to the name on all three surfaces where an adult is
+// responsible for that child:
+//
+//   the Guide's list of their Explorers
+//   the conversation itself, which is where a Guide actually spends their time
+//   the Director's list of pairings
+//
+// Both the Guide and the Director see it, including the "consent missing"
+// state: the Guide is the adult in the room, and a warning only a Director can
+// see is a warning that arrives after the conversation, not before it.
+//
+// This is a placement check, and placement is exactly the thing a refactor
+// removes without noticing.
+// ---------------------------------------------------------------------------
+if (exists('components/LiveCorePages.tsx')) {
+  const live = read('components/LiveCorePages.tsx');
+  const badges = (live.match(/<MinorBadge\b/g) || []).length;
+  ok(badges >= 3,
+     `the MINOR badge is on all three responsible surfaces (found ${badges})`);
+  ok(/import \{ MinorBadge \}/.test(live), 'and it is really the badge component');
+
+  // It needs the data to draw, and the pairing query has to carry it.
+  if (exists('lib/live/data.ts')) {
+    const data = read('lib/live/data.ts');
+    ok(/select\('id, full_name, birthday, guardian_consent_at'\)/.test(data),
+       'the pairing query asks for the birthday and consent the badge needs');
+    ok(/ds_birthday/.test(data) && /ds_guardian_consent_at/.test(data),
+       'and carries them through to the screen');
+  }
+}
+
+// The badge itself must keep both states distinct. One state means a minor with
+// consent on file, which is a fact; the other means nobody has recorded a
+// letter, which is a job. Collapsing them hides the job.
+if (exists('lib/minor.ts')) {
+  const minor = read('lib/minor.ts');
+  ok(/'missing'/.test(minor) && /'ok'/.test(minor) && /'none'/.test(minor),
+     'minor state keeps "consent missing" separate from "consent on file"');
+  ok(!/add column .*is_minor|isMinorStored/.test(minor),
+     'and minor status is still derived rather than stored');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

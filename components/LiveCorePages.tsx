@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { MinorBadge } from '@/components/MinorBadge';
 import { copyText } from '@/lib/share';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -1339,6 +1340,7 @@ export function LiveAdminPage() {
                 <span className="font-semibold text-navy">{pairing.dm_name}</span>
                 <span className="text-gray-400">walking with</span>
                 <span className="font-semibold text-navy">{pairing.ds_name}</span>
+                <MinorBadge person={{ birthday: pairing.ds_birthday, guardian_consent_at: pairing.ds_guardian_consent_at }} />
                 <span className="ml-auto rounded-full bg-white px-3 py-1 font-semibold text-gray-600">{stageInfo(pairing.journey_stage).label}</span>
                 {/* UNPAIR. A pairing could be made and never unmade, so a wrong
                     one could only be corrected in SQL. Archiving rather than
@@ -1447,7 +1449,14 @@ export function LiveGuidePage() {
                 <div className="flex items-center gap-3">
                   <Avatar name={row.ds_name} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-lg font-bold text-navy">{row.ds_name}</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="truncate text-lg font-bold text-navy">{row.ds_name}</p>
+                      {/* The Guide is the adult in the room, so they see this
+                          and not only a Director. Drawn next to the name rather
+                          than tucked into the profile, because a safeguarding
+                          mark you have to go looking for is one nobody sees. */}
+                      <MinorBadge person={{ birthday: row.ds_birthday, guardian_consent_at: row.ds_guardian_consent_at }} />
+                    </div>
                     {unprayed[row.ds_id] ? (
                       <p className="text-sm font-semibold" style={{ color: '#7C3AED' }}>
                         🙏 asked for prayer
@@ -1595,7 +1604,14 @@ export function LiveConversationPage() {
             <div className="flex flex-wrap items-center gap-3">
               <Avatar name={pairing.ds_name} size={52} />
               <div className="min-w-0 flex-1">
-                <h1 className="truncate text-2xl font-extrabold text-navy">{pairing.ds_name}</h1>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-2xl font-extrabold text-navy">{pairing.ds_name}</h1>
+                  {/* The screen a Guide spends their time on. If the badge is
+                      anywhere, it is here: this is where the conversation
+                      happens and where knowing you are talking to a child
+                      changes how you write. */}
+                  <MinorBadge person={{ birthday: pairing.ds_birthday, guardian_consent_at: pairing.ds_guardian_consent_at }} />
+                </div>
                 <p className="text-sm text-gray-500">Private conversation</p>
               </div>
               <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-navy">{stageInfo(pairing.journey_stage).label}</span>

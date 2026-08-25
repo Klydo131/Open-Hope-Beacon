@@ -412,6 +412,12 @@ export async function removeMember(userId: string): Promise<void> {
 export interface PairingView extends Pairing {
   dm_name: string;
   ds_name: string;
+  // Carried so the MINOR badge can be drawn wherever a Guide or Director sees
+  // this Explorer. Both are already readable here: RLS is row-level, and a
+  // Guide may read the whole row of the person they are paired with, as may
+  // leadership for their own church. Nothing new is exposed by asking for them.
+  ds_birthday: string | null;
+  ds_guardian_consent_at: string | null;
 }
 
 /** What an Explorer is allowed to know about their own pairing. */
@@ -427,14 +433,17 @@ export async function listPairings(): Promise<PairingView[]> {
   const client = db();
   const [{ data: pairs, error }, { data: people }] = await Promise.all([
     client.from('pairings').select('*').order('created_at', { ascending: false }),
-    client.from('profiles').select('id, full_name'),
+    client.from('profiles').select('id, full_name, birthday, guardian_consent_at'),
   ]);
   if (error) throw new Error(error.message);
-  const name = new Map((people ?? []).map((p: { id: string; full_name: string | null }) => [p.id, p.full_name ?? '']));
+  type Row = { id: string; full_name: string | null; birthday: string | null; guardian_consent_at: string | null };
+  const by = new Map((people ?? []).map((p: Row) => [p.id, p]));
   return (pairs ?? []).map((p: Pairing) => ({
     ...p,
-    dm_name: name.get(p.dm_id) ?? 'Someone',
-    ds_name: name.get(p.ds_id) ?? 'Someone',
+    dm_name: by.get(p.dm_id)?.full_name ?? 'Someone',
+    ds_name: by.get(p.ds_id)?.full_name ?? 'Someone',
+    ds_birthday: by.get(p.ds_id)?.birthday ?? null,
+    ds_guardian_consent_at: by.get(p.ds_id)?.guardian_consent_at ?? null,
   }));
 }
 
