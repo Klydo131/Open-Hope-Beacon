@@ -320,6 +320,10 @@ const GUARDRAILS = new Set([
   // signed-in user. It has to name both the role and the function to say so.
   'supabase/migrations/0031_nothing_new_is_open_to_anon.sql',
   'supabase/migrations/0032_a_lockdown_must_never_widen_a_grant.sql',
+  // 0033 names anon and authenticated for the same reason: it revokes its three
+  // new functions from anonymous callers explicitly rather than leaving it to
+  // the event trigger 0031 installed, so the intent is on the page.
+  'supabase/migrations/0033_a_minor_is_walked_with_differently.sql',
   // .env.example's whole job is to say "never put the service_role key in
   // here". A warning that cannot name the thing it warns about is not a
   // warning, and the alternative — vaguer wording — is worse than the risk.
