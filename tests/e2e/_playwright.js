@@ -56,18 +56,45 @@ function loadPlaywright() {
   process.exit(2);
 }
 
-// Chromium is the only browser these suites use. An explicit executablePath is
-// honoured when the environment provides one (this sandbox pre-installs the
-// browser separately from the library), and otherwise Playwright's own
-// discovery is left alone.
 const playwright = loadPlaywright();
 
+// WHICH ENGINE, AND WHY IT IS A CHOICE NOW.
+//
+// These suites ran on Chromium only, and that is a real blind spot rather than
+// a detail. Every iOS bug reported so far came from WebKit behaving differently
+// from Blink: `overflow-x: clip` handled differently, `dvh` against `vh`,
+// Safari's rubber-band scrolling and its keyboard avoidance. Chromium at iPhone
+// size proves the layout is not broken everywhere. It cannot prove it works on
+// an iPhone, and twice it said everything was fine when it was not.
+//
+// E2E_BROWSER=webkit runs the same suites on WebKit, which is the engine behind
+// Safari. That is what .github/workflows/safari.yml does on a macOS runner.
+// Unset, nothing changes and Chromium is used exactly as before.
+const ENGINE = (process.env.E2E_BROWSER || 'chromium').toLowerCase();
+if (!['chromium', 'webkit', 'firefox'].includes(ENGINE)) {
+  console.error(`E2E_BROWSER=${ENGINE} is not a Playwright engine. Use chromium, webkit or firefox.`);
+  process.exit(2);
+}
+const engine = playwright[ENGINE];
+
+// The pinned executable is a CHROMIUM path, provided by the sandbox that
+// pre-installs the browser separately from the library. Applying it to WebKit
+// would hand Playwright a Chromium binary and fail in a way that reads like
+// WebKit being broken, so it is scoped to the engine it describes.
 const EXECUTABLE =
-  process.env.PLAYWRIGHT_CHROMIUM_PATH ||
-  (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
+  ENGINE === 'chromium'
+    ? process.env.PLAYWRIGHT_CHROMIUM_PATH ||
+      (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined)
+    : undefined;
 
 module.exports = {
-  chromium: playwright.chromium,
+  // The selected engine. Named `chromium` because twenty-five suites already
+  // destructure that name, and renaming them all to prove a point would be a
+  // large diff for no behaviour. `browser` is the honest name; prefer it in
+  // anything new.
+  chromium: engine,
+  browser: engine,
+  engineName: ENGINE,
   playwright,
   // Playwright's device descriptors (viewport, pixel ratio, touch, user agent),
   // so a suite can say "iPhone SE" instead of hand-copying numbers that then

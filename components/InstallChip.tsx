@@ -68,8 +68,13 @@ export function InstallChip({ onDark = false }: { onDark?: boolean }) {
     );
   }
 
+  // Straight to the card, not to the top of Settings. This is the Apple path:
+  // Safari never fires beforeinstallprompt, so `deferred` is always null there
+  // and every iPhone and Mac user takes this branch. Sending them to the page
+  // and letting them hunt is how "the Install button does nothing" gets
+  // reported — from their side it opened Settings and nothing happened.
   return (
-    <Link href="/settings" className={className} title="Install Hope Beacon on this device">
+    <Link href="/settings#install" className={className} title="Install Hope Beacon on this device">
       <span aria-hidden>⬇️</span> <span className="hidden sm:inline">Install</span>
     </Link>
   );

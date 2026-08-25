@@ -55,6 +55,14 @@ export function InstallCard() {
     setInApp(inAppBrowser());
     setShareWhere(iosShareLocation());
 
+    // Arrived from the header's Install chip, which on Apple is the only thing
+    // it can do. Somebody who has just pressed a button labelled Install has
+    // asked the question already; making them press "Show me how" to get an
+    // answer is one refusal too many. Open the steps for them.
+    try {
+      if (window.location.hash === '#install') setSteps(true);
+    } catch {}
+
     // If the browser offers a real install, take it — a one-tap install beats
     // any set of written instructions. This listener stays for the life of the
     // screen because Chrome can fire it at any point, not just on load.

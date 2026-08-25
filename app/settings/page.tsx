@@ -460,7 +460,14 @@ function Body() {
           database thing, so it belongs in both modes — and somebody trying the
           tutorial on a tablet is exactly the person who wants it on their home
           screen. */}
-      <InstallCard />
+      {/* Anchored so the header's Install chip can land ON it. Apple users are
+          the ones who need this: Safari never fires beforeinstallprompt, so the
+          chip cannot install for them and sends them here instead. Without an
+          id that meant arriving at the top of a long page with the card they
+          were sent for somewhere below the fold. */}
+      <div id="install" className="scroll-mt-24">
+        <InstallCard />
+      </div>
       <SourceCard />
 
       {canRename && <ChurchNameCard />}
