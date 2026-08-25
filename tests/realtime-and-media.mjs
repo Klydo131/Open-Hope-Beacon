@@ -85,9 +85,24 @@ ok(
 );
 
 // A row whose blob failed to write is worse than no row at all.
+//
+// Matched loosely on purpose. This used to pin the exact text `.catch(() => {`
+// followed immediately by the rollback, so it failed the moment the handler
+// took a parameter in order to REPORT the failure -- an improvement the test
+// read as a regression. What matters is that a rejected write rolls the row
+// back, not the shape of the handler that does it.
+const rollback = /\.catch\(\s*\(?\w*\)?\s*=>\s*\{[\s\S]{0,900}?pairing_media:\s*prev\.pairing_media\.filter/;
 ok(
-  /\.catch\(\(\) => \{\s*persistUpdate\(\(prev\) => \(\{[\s\S]{0,200}pairing_media: prev\.pairing_media\.filter/.test(store),
+  rollback.test(store),
   'a failed byte write removes the row again, leaving no broken attachment',
+);
+// And it must not fail silently. An attachment that vanishes with nothing
+// logged is what made the WebKit failure take a CI run and a log dig to
+// identify, when one line would have named it.
+ok(
+  /console\.(error|warn)\(/.test(store.slice(store.search(rollback))) ||
+    /console\.(error|warn)\([^)]*attachment/i.test(store),
+  'and it leaves a trace, rather than removing the attachment in silence',
 );
 
 // The permission rule, in one place.

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { copyText } from '@/lib/share';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NAVY, roleNoun, stageInfo } from '@/lib/brand';
@@ -948,6 +949,11 @@ export function LiveAdminPage() {
   const [busy, setBusy] = useState('');
   // Set when the invitation could not be emailed and must be passed on by hand.
   const [handLink, setHandLink] = useState<{ to: string; url: string; why: string; wait?: number } | null>(null);
+  // '' not tried, 'yes' copied, 'failed' the clipboard refused. Safari rejects
+  // the write when the document is not focused, and navigator.clipboard does
+  // not exist at all over plain http. The link is in a selectable box right
+  // above, so a failure has somewhere useful to point.
+  const [linkCopied, setLinkCopied] = useState<'' | 'yes' | 'failed'>('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1203,9 +1209,16 @@ export function LiveAdminPage() {
                 />
                 <Button
                   variant="ghost"
-                  onClick={() => { void navigator.clipboard?.writeText(handLink.url); }}
+                  onClick={async () => {
+                    const done = await copyText(handLink.url);
+                    setLinkCopied(done ? 'yes' : 'failed');
+                  }}
                 >
-                  Copy link
+                  {linkCopied === 'yes'
+                    ? '✓ Copied'
+                    : linkCopied === 'failed'
+                      ? 'Select the box above'
+                      : 'Copy link'}
                 </Button>
                 <Button variant="ghost" onClick={() => setHandLink(null)}>Done</Button>
               </div>

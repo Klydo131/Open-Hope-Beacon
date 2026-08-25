@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { NAVY, GOLD } from '@/lib/brand';
-import { shareItem, blobToFile, canShareFiles } from '@/lib/share';
+import { shareItem, blobToFile, canShareFiles, copyText } from '@/lib/share';
 
 // Sharing outward: to Messenger, WhatsApp, Telegram, email, or anywhere else
 // the person already talks to people.
@@ -120,11 +120,13 @@ function ShareFallback({
   const text = payload.text ? `${payload.title}: ${payload.text}` : payload.title;
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url ? `${text}\n${url}` : text);
+    // copyText, not navigator.clipboard directly: the latter is undefined over
+    // plain http on a LAN, so the property access itself threw, and it has no
+    // fallback for the browsers that refuse the modern API.
+    if (await copyText(url ? `${text}\n${url}` : text)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
+    } else {
       setCopied(false);
     }
   };

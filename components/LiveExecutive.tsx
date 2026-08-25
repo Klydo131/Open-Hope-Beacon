@@ -16,6 +16,7 @@
 // something it could have.
 
 import { useCallback, useEffect, useState } from 'react';
+import { copyText } from '@/lib/share';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { Pdf, downloadBlob } from '@/lib/pdf';
@@ -135,6 +136,9 @@ export function LiveChurchOverview() {
 export function LiveBoardReport({ churchName }: { churchName?: string }) {
   const [lines, setLines] = useState<string[] | null>(null);
   const [error, setError] = useState('');
+  // '' not tried, 'yes' copied, 'failed' the clipboard refused. Safari rejects
+  // when the document is not focused; saying nothing reads as a dead button.
+  const [copied, setCopied] = useState<'' | 'yes' | 'failed'>('');
 
   useEffect(() => {
     let alive = true;
@@ -190,7 +194,12 @@ export function LiveBoardReport({ churchName }: { churchName?: string }) {
             a text format — because adding a rendering dependency to a project
             that runs on free tiers, to lay out fifteen lines, is a bad trade. */}
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
-          <Button variant="ghost" onClick={() => { void navigator.clipboard?.writeText(text); }}>Copy</Button>
+          <Button
+            variant="ghost"
+            onClick={async () => setCopied(await copyText(text) ? 'yes' : 'failed')}
+          >
+            {copied === 'yes' ? '✓ Copied' : copied === 'failed' ? 'Copy failed' : 'Copy'}
+          </Button>
           <Button variant="ghost" onClick={() => downloadPdf(lines, churchName)}>PDF</Button>
           <Button variant="ghost" onClick={() => downloadCsv(lines, churchName)}>CSV</Button>
         </div>

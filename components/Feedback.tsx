@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { copyText } from '@/lib/share';
 import { NAVY, GOLD } from '@/lib/brand';
 import { versionLabel } from '@/lib/app-update';
 import { getFeedbackSink, type FeedbackMessage } from '@/lib/backend/feedback';
@@ -201,11 +202,12 @@ function FeedbackPanel({
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(
+      const ok = await copyText(
         `Beacon feedback (${category})\n${versionLabel()}\n\n${message}${
           contact ? `\n\nReply to: ${contact}` : ''
         }`,
       );
+      if (!ok) throw new Error('clipboard refused');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {

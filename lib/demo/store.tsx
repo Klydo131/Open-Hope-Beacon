@@ -1177,7 +1177,17 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
           created_at: row.created_at,
         },
         file,
-      ).catch(() => {
+      ).catch((cause) => {
+        // SAY SOMETHING. This catch used to be empty apart from the rollback,
+        // so a failed write removed the attachment and told nobody: not the
+        // person, who watched their photo appear and vanish, and not a
+        // developer, who had no error to search for. WebKit fails here where
+        // Chromium does not, and the whole investigation started from a test
+        // saying only that the file "did not appear".
+        //
+        // The rollback is still right -- an attachment whose bytes are missing
+        // is a permanent broken thumbnail -- but it must leave a trace.
+        console.error('[beacon] attachment could not be saved to this device:', cause);
         persistUpdate((prev) => ({
           ...prev,
           pairing_media: prev.pairing_media.filter((m) => m.id !== id),

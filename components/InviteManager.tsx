@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { copyText } from '@/lib/share';
 import { useDemo } from '@/lib/demo/store';
 import { Card, Button } from '@/components/ui';
 import type { Invite, Role } from '@/lib/types';
@@ -66,11 +67,10 @@ export function InviteManager() {
   const revoke = (id: string) => revokeInvite(id);
 
   const copy = async (text: string, id: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      /* clipboard blocked — the link is still shown to copy by hand */
-    }
+    // Only claim it copied if it copied. This said "Copied" unconditionally,
+    // including on the browsers where the clipboard is blocked — the link is
+    // still on screen to copy by hand, but the label said the job was done.
+    if (!(await copyText(text))) return;
     setCopied(id);
     setTimeout(() => setCopied(''), 1500);
   };

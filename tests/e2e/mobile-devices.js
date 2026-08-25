@@ -60,6 +60,17 @@ async function run(browser, label, device) {
   const context = await browser.newContext(rest);
   const page = await context.newPage();
 
+  // WHY THE CONSOLE IS CAPTURED. The first WebKit run said only that the
+  // attachment "did not appear", which is the least useful thing a test can
+  // say about a failure it is the sole witness to. The app now logs why a file
+  // could not be saved; printing that here is what turns a red tick into a
+  // diagnosis without anybody having to reproduce it on a Mac by hand.
+  const problems = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') problems.push(m.text().slice(0, 300));
+  });
+  page.on('pageerror', (e) => problems.push(`pageerror: ${String(e).slice(0, 300)}`));
+
   await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1100);
   const maria = page.getByText(/Maria Santos/i).first();
@@ -170,6 +181,11 @@ async function run(browser, label, device) {
       );
     } else {
       console.log(`     (bytes check skipped for ${label}: nothing rendered to check)`);
+      if (problems.length) {
+        console.log(`     the browser said: ${problems[problems.length - 1]}`);
+      } else {
+        console.log('     the browser reported no error, so the write did not throw');
+      }
     }
     const afterOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

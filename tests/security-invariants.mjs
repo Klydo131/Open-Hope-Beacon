@@ -693,5 +693,47 @@ if (exists('app/api/auth/sign-in/route.ts')) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// 18. The clipboard is touched in one place.
+//
+// `navigator.clipboard` is UNDEFINED in a non-secure context, so over plain
+// http on an office LAN the property access itself throws. Safari additionally
+// rejects the write when the document is not focused.
+//
+// Four call sites did `void navigator.clipboard?.writeText(x)`. The `void`
+// discards the promise, so a rejection became an unhandled rejection nobody
+// saw, and the person who pressed Copy got no clipboard and no message. Two
+// others said "Copied" whether or not it had worked, which is worse than
+// silence: it is the app telling somebody their link is on the clipboard when
+// it is not.
+//
+// lib/share.ts's copyText() guards the API, falls back to execCommand where the
+// modern one is unavailable, and returns a boolean the caller must look at.
+// ---------------------------------------------------------------------------
+{
+  const strip = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
+
+  const offenders = sources.filter(
+    (f) => f !== path.join('lib', 'share.ts') && /navigator\.clipboard/.test(strip(read(f))),
+  );
+  ok(
+    offenders.length === 0,
+    offenders.length === 0
+      ? 'navigator.clipboard is used only inside lib/share.ts, which guards it'
+      : `navigator.clipboard used directly in ${offenders.join(', ')} — throws over plain http and fails silently on Safari`,
+  );
+  if (exists('lib/share.ts')) {
+    const sh = read('lib/share.ts');
+    ok(/export async function copyText/.test(sh), 'lib/share.ts exports copyText');
+    ok(/execCommand\('copy'\)/.test(sh), 'copyText falls back where the modern API is missing');
+    // The fallback builds a textarea. It must set .value, never innerHTML, or
+    // the text being copied becomes a way to inject markup. Checked against the
+    // stripped source: the comment that EXPLAINS the rule contains the word,
+    // and tripped this on its first run.
+    ok(!/innerHTML/.test(strip(sh)), 'the copy fallback never assigns innerHTML');
+  }
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

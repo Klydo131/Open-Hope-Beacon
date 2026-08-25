@@ -14,6 +14,7 @@
 // link to hand over when the email did not make it.
 
 import { useCallback, useEffect, useState } from 'react';
+import { copyText } from '@/lib/share';
 import { Button, Card } from '@/components/ui';
 import { roleNoun } from '@/lib/brand';
 import * as live from '@/lib/live/data';
@@ -65,6 +66,10 @@ export function LiveMailPage() {
   const [invites, setInvites] = useState<live.OpenInvite[] | null>(null);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState('');
+  // Copying can genuinely fail: Safari rejects when the document is not
+  // focused, and navigator.clipboard is undefined over plain http. Silence
+  // reads as a broken button, so say so and point at the box they can select.
+  const [copyFailed, setCopyFailed] = useState(false);
   const [busy, setBusy] = useState('');
   // Set when a resend could not be emailed and must be passed on by hand.
   const [handLink, setHandLink] = useState<{ to: string; url: string; why: string; wait?: number } | null>(null);
@@ -217,11 +222,30 @@ export function LiveMailPage() {
                 handLink.wait ? 'ring-blue-300' : 'ring-amber-300'
               }`}
             />
-            <Button variant="ghost" onClick={() => { void navigator.clipboard?.writeText(handLink.url); }}>
-              Copy link
+            {/* Only says Copied when it copied. The old version discarded the
+                promise, so a Safari rejection was an unhandled rejection nobody
+                saw and the person got no clipboard and no message. */}
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                const done = await copyText(handLink.url);
+                setCopied(done ? 'hand' : '');
+                if (!done) setCopyFailed(true);
+              }}
+            >
+              {copied === 'hand' ? '✓ Copied' : 'Copy link'}
             </Button>
             <Button variant="ghost" onClick={() => setHandLink(null)}>Done</Button>
           </div>
+          {copyFailed && (
+            // A dead-end message would be worse than the silence it replaces,
+            // so it names the way out: the link is already in a box that
+            // selects itself when tapped.
+            <p className="mt-2 text-sm text-amber-800">
+              This browser would not let the app copy for you. Tap the box above
+              to select the link, then copy it yourself.
+            </p>
+          )}
         </div>
       )}
 
@@ -295,9 +319,12 @@ export function LiveMailPage() {
                       )}
                       <Button
                         variant="ghost"
-                        onClick={() => {
-                          void navigator.clipboard?.writeText(i.email);
-                          setCopied(i.id);
+                        onClick={async () => {
+                          // Was setCopied() unconditionally, so it said Copied
+                          // even when the write had failed.
+                          const done = await copyText(i.email);
+                          if (done) setCopied(i.id);
+                          else setCopyFailed(true);
                         }}
                       >
                         {copied === i.id ? 'Copied' : 'Copy address'}
