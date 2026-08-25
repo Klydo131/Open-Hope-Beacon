@@ -295,7 +295,7 @@ export function InstallPrompt() {
   // Desktop: a proper card, bottom-right, impossible to read as a cookie bar.
   if (desktop) {
     return (
-      <div className="no-print fixed bottom-4 right-4 z-[70] w-[22rem] max-w-[calc(100vw-2rem)]">
+      <div className="no-print fixed bottom-4 right-4 z-[66] w-[22rem] max-w-[calc(100vw-2rem)]">
         <div className="animate-drop overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10">
           <div
             className="flex items-center gap-3 px-4 py-3"
@@ -416,11 +416,18 @@ export function InstallPrompt() {
   // API does not exist there -- so what it does is show the two controls to
   // press, in order, right where the person is already looking.
   //
-  // z-70 puts this above the demo/preview ribbon at z-65. The ribbon is
-  // pointer-events-none so it never stole a tap, but it drew straight over the
-  // "I already have it installed" line underneath.
+  // z-66, AND THE EXACT NUMBER MATTERS. The layers here are: the demo and
+  // preview ribbon at 65, blocking notices and the consent dialog at 70,
+  // sheets at 80. This has to clear the ribbon, which is pointer-events-none
+  // and never stole a tap but drew straight over "I already have it
+  // installed", while staying under everything that is asking a question.
+  //
+  // It sat at 70 for one commit and broke the blog walk: level with the
+  // consent dialog, it covered the "I understand" button, so consent was never
+  // dismissed and every later click was swallowed by the overlay. An install
+  // prompt must never be able to block a dialog the person has to answer.
   return (
-    <div className="no-print fixed inset-x-0 bottom-0 z-[70] flex justify-center p-3">
+    <div className="no-print fixed inset-x-0 bottom-0 z-[66] flex justify-center p-3">
       <div className="animate-drop w-full max-w-md rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
         <div className="flex items-center gap-3">
           <HopeBeaconMark size={40} />
