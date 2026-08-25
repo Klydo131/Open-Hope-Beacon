@@ -166,12 +166,75 @@ export function inspectPlayableMedia(
 }
 
 // Metadata and bytes commit together, so a quota failure cannot leave a ghost.
+/**
+ * What actually goes into the blobs store.
+ *
+ * NOT A BLOB, AND THIS IS THE WHOLE FIX. WebKit will not put a Blob or a File
+ * into IndexedDB at all. Not one backed by a file on disk, not one built in
+ * memory, not a plain `new Blob([bytes])`. The transaction errors, and it
+ * errors with `transaction.error === null`, so the only thing the app could
+ * report was "could not be saved: null".
+ *
+ * That is what broke attachments on Safari and iOS completely: chat-order,
+ * media-and-realtime and mobile-devices were the only three suites that failed
+ * on WebKit and passed on Chromium, and every one of them was this.
+ *
+ * It took an instrument to find, because the obvious fix is wrong. Converting
+ * the File to a Blob first looks like the answer and changes nothing, since
+ * WebKit refuses that too. tests/e2e/webkit-idb-probe.js asks the engine
+ * directly which shapes survive: ArrayBuffer and Uint8Array do, everything
+ * Blob-shaped does not.
+ *
+ * So the bytes are stored raw with their type beside them, and getBlob() puts
+ * the Blob back together on the way out. Every caller still receives a Blob and
+ * none of them changed.
+ *
+ * HONEST SCOPE. This was proven against Playwright's WebKit, which is the
+ * engine behind Safari but not Safari itself; a current Safari may well store
+ * Blobs happily. It does not matter. An ArrayBuffer is stored correctly by
+ * every engine there is, so this is the portable shape either way, and it also
+ * covers the older Safari versions that had their own Blob-in-IndexedDB bugs.
+ */
+interface StoredBytes {
+  bytes: ArrayBuffer;
+  mime: string;
+}
+
+/** Bytes handed to putMedia that are not in the store yet. See putMedia. */
+const pending = new Map<string, Blob>();
+
 export async function putMedia(meta: MediaMeta, blob?: Blob): Promise<void> {
+  // FIRST STATEMENT, BEFORE ANY await, AND THAT ORDERING IS THE POINT.
+  //
+  // attachMedia adds the row optimistically and THEN calls this. <Attachment>
+  // mounts on that row and asks for the bytes straight away, so the read races
+  // the write -- and it is a race the reader can only lose, because the effect
+  // runs once per id and latches "file not on this device" for ever when it
+  // comes back empty.
+  //
+  // The race was always there and was won by luck, because the write used to be
+  // quick. Reading the bytes out first added an await and the reader started
+  // winning, which is what turned a WebKit-only bug into a Chromium one as well.
+  //
+  // Registering here, synchronously, means the entry exists before React can
+  // run a single effect. An earlier attempt at this registered AFTER the
+  // arrayBuffer await, which left the exact window it was meant to close.
+  if (blob) pending.set(meta.id, blob);
+
+  try {
+  // Read the bytes out before opening the transaction. An IndexedDB
+  // transaction closes itself the moment it goes idle, and awaiting anything
+  // inside one is how it ends up aborting for reasons that have nothing to do
+  // with the data.
+  const stored: StoredBytes | undefined = blob
+    ? { bytes: await blob.arrayBuffer(), mime: blob.type || 'application/octet-stream' }
+    : undefined;
+
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
-    const transaction = db.transaction(blob ? [META, BLOBS] : [META], 'readwrite');
+    const transaction = db.transaction(stored ? [META, BLOBS] : [META], 'readwrite');
     transaction.objectStore(META).put(meta);
-    if (blob) transaction.objectStore(BLOBS).put(blob, meta.id);
+    if (stored) transaction.objectStore(BLOBS).put(stored, meta.id);
     // WebKit sets `transaction.error` to null when it aborts, so rejecting with
     // it alone produced the useless "could not be saved: null" that cost a CI
     // run to interpret. Always reject with something readable.
@@ -181,6 +244,11 @@ export async function putMedia(meta: MediaMeta, blob?: Blob): Promise<void> {
     transaction.onerror = () => { db.close(); reject(why('errored')); };
     transaction.onabort = () => { db.close(); reject(why('aborted')); };
   });
+  } finally {
+    // Written: the store is authoritative. Failed: the caller rolls the row
+    // back. Either way nothing should go on holding these bytes in memory.
+    pending.delete(meta.id);
+  }
 }
 
 export async function listMedia(): Promise<MediaMeta[]> {
@@ -189,7 +257,24 @@ export async function listMedia(): Promise<MediaMeta[]> {
 }
 
 export async function getBlob(id: string): Promise<Blob | undefined> {
-  return tx<Blob | undefined>(BLOBS, 'readonly', (store) => store.get(id));
+  // Still on its way to the store? Answer from memory. Without this the
+  // optimistic row that attachMedia just added reads back empty and latches.
+  const inflight = pending.get(id);
+  if (inflight) return inflight;
+
+  const stored = await tx<StoredBytes | Blob | undefined>(
+    BLOBS, 'readonly', (store) => store.get(id),
+  );
+  if (!stored) return undefined;
+
+  // Written by a version that stored Blobs directly. Anyone who already has
+  // attachments on their device has these, and they must keep working: a fix
+  // that silently emptied the media library would be worse than the bug.
+  // File extends Blob, so this covers both.
+  if (stored instanceof Blob) return stored;
+
+  if (stored.bytes) return new Blob([stored.bytes], { type: stored.mime || '' });
+  return undefined;
 }
 
 export async function deleteMedia(id: string): Promise<void> {

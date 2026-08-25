@@ -26,8 +26,25 @@ check(
   !/\bfetch\s*\(/.test(localMedia),
   'on-device media storage makes no network request',
 );
+// THE PROPERTY, NOT THE SPELLING. This used to match the literal text
+// `db.transaction(blob ? [META, BLOBS] : [META]`, so renaming a local variable
+// read as losing atomicity. What matters is that one transaction covers both
+// stores, so a row can never exist without its bytes.
+const putBody = (() => {
+  const at = localMedia.indexOf('export async function putMedia');
+  return at === -1 ? '' : localMedia.slice(at, localMedia.indexOf('\nexport ', at + 10));
+})();
+check(putBody.length > 0, 'putMedia is where this check can see it');
 check(
-  localMedia.includes('db.transaction(blob ? [META, BLOBS] : [META]'),
+  (putBody.match(/db\.transaction\(/g) || []).length === 1,
+  'putMedia opens exactly one transaction',
+);
+check(
+  /db\.transaction\([^)]*META[^)]*BLOBS[^)]*\]/.test(putBody.replace(/\s+/g, ' ')),
+  'that transaction spans both the metadata and the bytes',
+);
+check(
+  /objectStore\(META\)\.put/.test(putBody) && /objectStore\(BLOBS\)\.put/.test(putBody),
   'media metadata and bytes use one atomic transaction',
 );
 check(

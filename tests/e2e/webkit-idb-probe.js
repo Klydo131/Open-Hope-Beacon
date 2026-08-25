@@ -106,7 +106,12 @@ const PNG = Buffer.from(
       await attempt('Blob from bytes', async () => new Blob([bytes.slice(0)], { type: 'image/png' })),
       await attempt('File built in memory', async () =>
         new File([bytes.slice(0)], 'memory.png', { type: 'image/png' })),
-      // The one the app actually stores.
+      // THE SHAPE THE APP NOW STORES: raw bytes with their type beside them.
+      // If this ever joins the failing list, lib/localMedia.ts is out of options
+      // and the media library needs a different home entirely.
+      await attempt('{ bytes, mime } — what we store', async () =>
+        ({ bytes: bytes.slice(0), mime: 'image/png' })),
+      // The one the app USED to store, kept so the reason is visible.
       await attempt('File from <input>, disk-backed', async () => picked),
       // And the same File after its input has been cleared.
       await attempt('File from <input> after reset', async () => { input.value = ''; return picked; }),
