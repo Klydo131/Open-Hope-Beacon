@@ -121,7 +121,11 @@ export function LiveAppShell({
 
   return (
     <div className="min-h-screen bg-[#f5f6f8]">
-      <header className="sticky top-0 z-20 text-white shadow-md" style={{ backgroundColor: NAVY }}>
+      <header
+        className="sticky z-20 text-white shadow-md"
+        /* Sticks BELOW the tutorial bar when there is one. See AppShell. */
+        style={{ backgroundColor: NAVY, top: 'var(--beacon-chrome-top, 0px)' }}
+      >
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-3 py-3 sm:px-4">
           <Link
             href={homeFor(profile.role)}

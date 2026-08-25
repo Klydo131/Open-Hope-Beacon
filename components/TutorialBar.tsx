@@ -40,11 +40,30 @@ export function TutorialBar() {
 
   return (
     <>
-      {/* Everything on the page moves down by exactly the bar's height. Doing
-          it here keeps the whole concern in one file: no other screen has to
+      {/* Everything on the page moves down by exactly the bar's height, and
+          the app's own sticky header is told where the top of the page now is.
+          Doing both here keeps the concern in one file: no other screen has to
           know this bar exists, and when the visitor leaves the tutorial the
-          rule leaves with it. */}
-      <style>{`body { padding-top: ${TUTORIAL_BAR_HEIGHT}px; }`}</style>
+          rule leaves with it.
+
+          THE PADDING ALONE WAS NOT ENOUGH, and this is the bug the tutorial
+          suite had been reporting for weeks. `body { padding-top }` moves the
+          document, but the app header is `position: sticky; top: 0`, and a
+          sticky element pins itself to the VIEWPORT, not to the padded body.
+          So the moment anybody scrolled, the header slid up underneath this
+          bar — which is z-60 against the header's z-20, and takes pointer
+          events — and the top 46px of the header stopped being clickable.
+
+          What lived in that strip: the profile button. The tutorial's last
+          step asks the visitor to tap it, the tap landed on this bar instead,
+          and the walk could never finish. It read as "the spotlight points at
+          nothing", which is why it looked like a tutorial bug rather than a
+          layout one. Every user on a phone had the same dead button; only the
+          tutorial was arranged to notice. */}
+      <style>{`
+        :root { --beacon-chrome-top: ${TUTORIAL_BAR_HEIGHT}px; }
+        body { padding-top: ${TUTORIAL_BAR_HEIGHT}px; }
+      `}</style>
 
       <div
         className="fixed inset-x-0 top-0 z-[60] flex items-center justify-between gap-3 px-3 text-white shadow-lg sm:px-4"

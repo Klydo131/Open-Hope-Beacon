@@ -130,8 +130,11 @@ function DemoAppShell({
   return (
     <div className="room-surface min-h-screen" style={{ background: theme.bg }}>
       <header
-        className="no-print sticky top-0 z-20 text-white shadow-md"
-        style={{ backgroundColor: NAVY }}
+        className="no-print sticky z-20 text-white shadow-md"
+        // Sticks BELOW the tutorial bar when there is one. `top-0` pinned it
+        // to the viewport, which put it under that bar and made the top of
+        // the header unclickable. TutorialBar sets the variable; 0 otherwise.
+        style={{ backgroundColor: NAVY, top: 'var(--beacon-chrome-top, 0px)' }}
       >
         {/* The header carries a lot for a 360px phone: brand, four controls,
             an identity and a way out. Everything below that is not essential
