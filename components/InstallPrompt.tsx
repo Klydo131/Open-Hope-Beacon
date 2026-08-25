@@ -29,12 +29,18 @@ interface BIPEvent extends Event {
 }
 
 const SNOOZE_KEY = 'beacon-install-snoozed-until';
-// Two days, not seven. "Not right now" is a reasonable thing for somebody to
-// mean, and a week of silence afterwards is how a person who genuinely wanted
-// the app never gets asked again — the whole point of an install prompt is that
-// it comes back. Anyone who truly does not want it presses "No thanks", which
-// is a separate, permanent choice.
-const SNOOZE_DAYS = 2;
+// AN HOUR. It was seven days, then two, and both were too long.
+//
+// An uninstalled app is a person who loses their place every time they close
+// the tab, misses every notification, and has nothing on their home screen to
+// come back to. The prompt is the only thing standing between them and that,
+// so "not right now" should mean this hour, not this fortnight.
+//
+// An hour is short enough that somebody who wanted the app gets asked again the
+// same day, and long enough that it is not arguing with them. Anyone who truly
+// does not want it presses "I already have it installed", which is one tap,
+// permanent, and deliberately sits right under the button.
+const SNOOZE_MINUTES = 60;
 
 /**
  * Already installed?
@@ -52,6 +58,57 @@ export function isStandalone(): boolean {
     window.matchMedia('(display-mode: window-controls-overlay)').matches ||
     (window.navigator as unknown as { standalone?: boolean }).standalone === true
   );
+}
+
+/**
+ * Is the app installed, checked continuously rather than once.
+ *
+ * WHY A HOOK AND NOT JUST isStandalone(). The old code asked once, on mount,
+ * and never again. Two things go wrong with that:
+ *
+ *   * Somebody installs while the tab is open. On Android that happens inside
+ *     the page, and the prompt they just obeyed carried on sitting there
+ *     telling them to install.
+ *   * Somebody leaves for the installed copy and comes back to the tab. The
+ *     answer may have changed while the page was hidden, and nothing rechecked.
+ *
+ * So this listens to the three signals that can change it: the display-mode
+ * media query flipping, the browser's own `appinstalled` event, and the page
+ * becoming visible again.
+ *
+ * NOT COVERED, and it cannot be: on iOS there is no way for a Safari TAB to
+ * know that a copy exists on the home screen. The two contexts are sealed off
+ * from each other, `getInstalledRelatedApps` is Chromium-only, and Apple
+ * exposes nothing equivalent. That is exactly why "I already have it
+ * installed" exists and is one tap: on the one platform where the app cannot
+ * work this out, the person can say so.
+ */
+export function useIsInstalled(): boolean {
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    const check = () => setInstalled(isStandalone());
+    check();
+
+    const mq = window.matchMedia('(display-mode: standalone)');
+    // Safari only grew addEventListener on MediaQueryList in 14; addListener is
+    // deprecated everywhere else but is what older iOS has.
+    const onMq = () => check();
+    if (mq.addEventListener) mq.addEventListener('change', onMq);
+    else mq.addListener?.(onMq);
+
+    window.addEventListener('appinstalled', check);
+    document.addEventListener('visibilitychange', check);
+
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', onMq);
+      else mq.removeListener?.(onMq);
+      window.removeEventListener('appinstalled', check);
+      document.removeEventListener('visibilitychange', check);
+    };
+  }, []);
+
+  return installed;
 }
 
 // Only the app's home address may be installed.
@@ -156,8 +213,6 @@ function isDesktop(): boolean {
 
 function snoozed(): boolean {
   try {
-    // Dismissed during THIS visit. See snooze() for why Apple is different.
-    if (sessionStorage.getItem(SNOOZE_KEY)) return true;
     const until = Number(localStorage.getItem(SNOOZE_KEY) ?? 0);
     return Date.now() < until;
   } catch {
@@ -170,6 +225,9 @@ export function InstallPrompt() {
   // corner, so the card lands on top of the step panel at exactly the moment
   // someone is being asked to follow instructions.
   const { tutorialActive } = useDemo();
+  // Live, not once. Installing on Android happens inside this page, and the
+  // prompt used to carry on sitting there after the person had obeyed it.
+  const installed = useIsInstalled();
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
   const [show, setShow] = useState(false);
   const [manual, setManual] = useState<'ios' | 'mac' | null>(null);
@@ -243,23 +301,9 @@ export function InstallPrompt() {
   const snooze = () => {
     setShow(false);
     try {
-      // APPLE AND IN-APP BROWSERS GET THIS VISIT ONLY, and that difference is
-      // deliberate. On Chrome a dismissed prompt is no great loss: the browser
-      // offers its own install in the address bar and fires beforeinstallprompt
-      // again later. Safari offers nothing. A person on an iPhone who taps the
-      // × once and later decides they want the app has no route back except
-      // knowing to look in Settings, and most people do not.
-      //
-      // So on those devices it returns next time the app is opened. Anyone who
-      // genuinely does not want it presses "I already have it", which is
-      // permanent and one tap away.
-      if (manual || inApp) {
-        sessionStorage.setItem(SNOOZE_KEY, '1');
-        return;
-      }
       localStorage.setItem(
         SNOOZE_KEY,
-        String(Date.now() + SNOOZE_DAYS * 24 * 60 * 60 * 1000),
+        String(Date.now() + SNOOZE_MINUTES * 60 * 1000),
       );
     } catch {}
   };
@@ -275,7 +319,9 @@ export function InstallPrompt() {
     if (outcome === 'dismissed') snooze();
   };
 
-  if (!show || tutorialActive) return null;
+  // `installed` is checked here rather than only in the effect, so the card
+  // disappears the moment the app is installed instead of at the next reload.
+  if (!show || tutorialActive || installed) return null;
 
   // IN AN APP'S OWN BROWSER, THE ONLY HONEST FIRST STEP IS TO LEAVE IT.
   //

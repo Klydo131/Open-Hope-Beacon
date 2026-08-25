@@ -13,7 +13,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { isInstallable, isStandalone } from '@/components/InstallPrompt';
+import { isInstallable, isStandalone, useIsInstalled } from '@/components/InstallPrompt';
 
 interface BIPEvent extends Event {
   prompt: () => Promise<void>;
@@ -23,6 +23,10 @@ interface BIPEvent extends Event {
 export function InstallChip({ onDark = false }: { onDark?: boolean }) {
   const [show, setShow] = useState(false);
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
+  // The chip is the permanent affordance, so it is the one that most needs to
+  // vanish the moment the app is installed. A standing Install button inside an
+  // installed app is the clearest possible sign nobody tried it.
+  const installed = useIsInstalled();
 
   useEffect(() => {
     if (isStandalone() || !isInstallable()) return;
@@ -41,7 +45,7 @@ export function InstallChip({ onDark = false }: { onDark?: boolean }) {
     };
   }, []);
 
-  if (!show) return null;
+  if (!show || installed) return null;
 
   const className = onDark
     ? 'tap-sm shrink-0 rounded-full bg-white/10 px-3 text-xs font-bold hover:bg-white/20'
