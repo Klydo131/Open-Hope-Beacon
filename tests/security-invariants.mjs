@@ -607,5 +607,45 @@ if (exists('app/api/auth/sign-in/route.ts')) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// 16. Nothing calls crypto.randomUUID() directly.
+//
+// It is a SECURE-CONTEXT api. It is undefined over plain http on a LAN address,
+// which is exactly how a church first tries the app on its own office network,
+// and absent in Safari before 15.4. Unguarded it does not degrade, it throws,
+// so whatever the caller was doing fails outright.
+//
+// lib/uuid.ts exists for this and falls back to crypto.getRandomValues, which
+// has no such restriction. lib/localMedia.ts used it. lib/live/data.ts did not,
+// and the call sat on the live media upload path, so sending a photo threw on
+// any device without it. A helper that some call sites skip is not a fix, which
+// is why this is a test rather than a comment.
+// ---------------------------------------------------------------------------
+{
+  const strip = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
+
+  const offenders = [];
+  for (const file of sources) {
+    if (file === path.join('lib', 'uuid.ts')) continue; // the one place it belongs
+    const src = strip(read(file));
+    const at = src.indexOf('crypto.randomUUID');
+    if (at !== -1) offenders.push(`${file}:${src.slice(0, at).split('\n').length}`);
+  }
+  ok(
+    offenders.length === 0,
+    offenders.length === 0
+      ? 'crypto.randomUUID is called only inside lib/uuid.ts, which guards it'
+      : `crypto.randomUUID called directly at ${offenders.join(', ')} — throws on plain http and on Safari before 15.4`,
+  );
+  // And the guard itself must still be there to be worth pointing at.
+  if (exists('lib/uuid.ts')) {
+    const u = read('lib/uuid.ts');
+    ok(/getRandomValues/.test(u), 'lib/uuid.ts falls back to crypto.getRandomValues');
+    ok(/typeof c\.randomUUID === 'function'/.test(u),
+       'lib/uuid.ts checks for randomUUID rather than assuming it');
+  }
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

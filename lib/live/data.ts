@@ -41,6 +41,7 @@ import {
   supabase,
   supabaseAuth,
 } from '@/lib/supabase/client';
+import { uuid } from '@/lib/uuid';
 import type { Session } from '@supabase/supabase-js';
 import type { Profile, Pairing, Message, Stage, Track, Role, JourneyEvent } from '@/lib/types';
 
@@ -1405,7 +1406,13 @@ export async function sendPairingFile(pairingId: string, file: File): Promise<Pa
     );
   }
 
-  const path = `${pairingId}/${crypto.randomUUID()}`;
+  // uuid(), not crypto.randomUUID(). The latter is a SECURE-CONTEXT api: it is
+  // undefined over plain http on a LAN address, and absent in Safari before
+  // 15.4. Unguarded it throws rather than degrading, so sending a photo failed
+  // outright with nothing the person could act on. lib/uuid.ts exists for this
+  // and lib/localMedia.ts already used it; this one call site did not, which is
+  // exactly the shape of bug a helper is supposed to prevent.
+  const path = `${pairingId}/${uuid()}`;
   const { error: upErr } = await client.storage
     .from(MEDIA_BUCKET)
     .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
