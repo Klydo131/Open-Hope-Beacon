@@ -174,10 +174,14 @@ export function Chat({ pairingId }: { pairingId: string }) {
           aria-hidden="true"
           tabIndex={-1}
           onChange={(e) => {
+            // NOT reset here. WebKit invalidates a File once its input is
+            // cleared, and the bytes are read asynchronously afterwards, so on
+            // Safari and iOS the write aborted: the row was added optimistically,
+            // the write failed, the row was taken back out, and the attachment
+            // appeared and then vanished. Chromium keeps the File alive, which
+            // is why this passed everywhere it was tested. The reset that lets
+            // the same file be chosen twice now happens when the picker opens.
             const file = e.target.files?.[0];
-            // Reset first: picking the same file twice in a row fires no change
-            // event otherwise, and the second attempt looks broken.
-            e.target.value = '';
             if (file) attachMedia(pairingId, file);
           }}
         />
@@ -187,7 +191,12 @@ export function Chat({ pairingId }: { pairingId: string }) {
           type="button"
           variant="ghost"
           className="px-3 text-base"
-          onClick={() => fileRef.current?.click()}
+          onClick={() => {
+            // Clear on the way IN, so picking the same file twice still fires a
+            // change event, without touching the File after it is chosen.
+            if (fileRef.current) fileRef.current.value = '';
+            fileRef.current?.click();
+          }}
         >
           Attach a file
         </Button>

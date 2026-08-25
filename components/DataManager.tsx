@@ -38,9 +38,14 @@ export function DataManager() {
     setError('');
     setRestored(false);
     const file = e.target.files?.[0];
-    e.target.value = ''; // allow re-picking the same file later
     if (!file) return;
+    // Read BEFORE clearing. WebKit invalidates a File once its input is reset,
+    // so clearing first made file.text() reject on Safari and iOS and restoring
+    // a backup failed there while working in Chromium.
+    const input = e.target;
     const text = await file.text();
+    input.value = ''; // and now the same file can be chosen again
+
     const res = parseBackup(text);
     if (!res.ok) {
       setPending(null);

@@ -1876,10 +1876,12 @@ function Conversation({
               aria-hidden="true"
               tabIndex={-1}
               onChange={(event) => {
+                // NOT reset here: WebKit invalidates a File once its input is
+                // cleared, and onAttach reads the bytes asynchronously. On
+                // Safari and iOS that aborted the upload. The reset moved to
+                // the click handler below. See components/Chat.tsx for the
+                // whole story; this is the live twin of the same bug.
                 const chosen = event.target.files?.[0];
-                // Reset first: choosing the same file twice in a row fires no
-                // change event otherwise, and the second attempt looks broken.
-                event.target.value = '';
                 if (chosen) onAttach(chosen);
               }}
             />
@@ -1888,7 +1890,12 @@ function Conversation({
               variant="ghost"
               className="shrink-0 px-3"
               disabled={busy}
-              onClick={() => fileRef.current?.click()}
+              onClick={() => {
+                // Clear on the way IN, so the same file can be chosen twice
+                // without the File being invalidated after it is chosen.
+                if (fileRef.current) fileRef.current.value = '';
+                fileRef.current?.click();
+              }}
               aria-label="Attach a file"
             >
               📎

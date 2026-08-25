@@ -647,5 +647,51 @@ if (exists('app/api/auth/sign-in/route.ts')) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// 17. A file input is never cleared before its File has been read.
+//
+// WebKit invalidates a File object once the input that produced it is reset.
+// Every one of these handlers reads the bytes asynchronously -- into IndexedDB,
+// into Supabase Storage, through file.text() -- so clearing `value` first
+// aborted the read on Safari and iOS while working perfectly in Chromium.
+//
+// It failed invisibly, which is why it survived. The attachment row is added
+// optimistically and removed when the write fails, so the file appeared in the
+// conversation and then vanished with no error. Four call sites had it: the
+// demo chat, the LIVE conversation, the media library and the backup restore.
+// The first WebKit CI run failed all six device profiles on it.
+//
+// The reset is legitimate -- without it, choosing the same file twice fires no
+// change event -- so the fix is to move it, not delete it: clear when the
+// picker OPENS, or in a finally after the bytes are read.
+// ---------------------------------------------------------------------------
+{
+  const strip = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
+
+  const offenders = [];
+  for (const file of sources) {
+    const src = strip(read(file));
+    // The shape of the bug: a File is taken out of the event, and the very
+    // next statement clears the input it came from.
+    const re = /\.files\s*(\?)?\.?\[0\]|\.files\s*\?\?\s*\[\]|Array\.from\(\s*\w+\.files/g;
+    let m;
+    while ((m = re.exec(src))) {
+      // Look at the next 200 characters only. A reset further away is the
+      // deliberate late one this rule is asking for.
+      const after = src.slice(m.index, m.index + 200);
+      if (/\.value\s*=\s*''|\.value\s*=\s*""/.test(after)) {
+        offenders.push(`${file}:${src.slice(0, m.index).split('\n').length}`);
+      }
+    }
+  }
+  ok(
+    offenders.length === 0,
+    offenders.length === 0
+      ? 'no file input is cleared before its File has been read'
+      : `a file input is cleared right after the File is taken at ${offenders.join(', ')} — the read aborts on WebKit`,
+  );
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

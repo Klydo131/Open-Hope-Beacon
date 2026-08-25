@@ -157,14 +157,20 @@ async function run(browser, label, device) {
       buffer: PNG,
     });
     await page.waitForTimeout(1900);
-    ok(
-      (await page.getByText(/from-phone\.png/i).count()) > 0,
-      `${label}: a file attached from a phone appears in the conversation`,
-    );
-    ok(
-      (await page.getByText(/file not on this device/i).count()) === 0,
-      `${label}: the attachment resolves to real bytes`,
-    );
+    const showed = (await page.getByText(/from-phone\.png/i).count()) > 0;
+    ok(showed, `${label}: a file attached from a phone appears in the conversation`);
+    // Only meaningful once the attachment actually rendered. As a bare check
+    // for the absence of an error string it passed vacuously -- nothing on
+    // screen means no error on screen -- and it reported OK through the whole
+    // WebKit failure it was supposed to describe.
+    if (showed) {
+      ok(
+        (await page.getByText(/file not on this device/i).count()) === 0,
+        `${label}: the attachment resolves to real bytes`,
+      );
+    } else {
+      console.log(`     (bytes check skipped for ${label}: nothing rendered to check)`);
+    }
     const afterOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );

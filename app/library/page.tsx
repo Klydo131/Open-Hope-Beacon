@@ -84,8 +84,12 @@ export default function LibraryPage() {
   };
 
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = '';
+    // The reset happens in the `finally` at the end, NOT here. WebKit
+    // invalidates a File once its input is cleared, and every byte below is
+    // read after an await, so clearing first aborted the whole upload on Safari
+    // and iOS while working perfectly in Chromium.
+    const input = e.target;
+    const files = Array.from(input.files ?? []);
     if (files.length === 0) return;
     setBusy(true);
     try {
@@ -126,6 +130,10 @@ export default function LibraryPage() {
       );
     } finally {
       setBusy(false);
+      // Now that every File has been read, clearing the input is safe. This is
+      // what lets the same file be chosen twice in a row; doing it up front
+      // aborted the read on WebKit.
+      input.value = '';
     }
   };
 
