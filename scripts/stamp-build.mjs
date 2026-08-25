@@ -72,11 +72,30 @@ const buildEnv = ['production', 'preview', 'development'].includes(rawEnv)
   ? rawEnv
   : 'development';
 
-const canonical =
+// A CHURCH CAN HAVE MORE THAN ONE REAL ADDRESS, and for a while it must.
+//
+// Moving to a custom domain is not an instant. There is a period -- weeks,
+// usually -- when the old address and the new one are both genuinely the app,
+// both serve the same deployment, and both keep updating. The app used to
+// permit exactly one, so the moment a custom domain became production the OLD
+// address stopped offering the install and Settings told everybody still on it
+// that they were looking at a preview which "can never receive an update".
+//
+// That is false, and it is aimed squarely at the people who installed earliest.
+//
+// So this is a LIST. Set CANONICAL_HOST to one host or several, comma
+// separated. What it must never contain is a per-deployment URL: those are
+// unique to one build and an app installed from one can genuinely never
+// update, which is the whole reason this check exists.
+const canonical = (
   env.CANONICAL_HOST ||
   env.VERCEL_PROJECT_PRODUCTION_URL ||
   env.NETLIFY_PRODUCTION_URL ||
-  '';
+  ''
+)
+  .split(',')
+  .map((h) => h.trim().replace(/^https?:\/\//, '').replace(/\/+$/, ''))
+  .filter(Boolean);
 
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'build-info.ts');
 
@@ -92,8 +111,10 @@ export const BUILD_TIME = ${JSON.stringify(time)};
 // rejects every comparison against the other two as "no overlap", which fails
 // the build on whichever environment is not the one last stamped locally.
 export const BUILD_ENV: 'production' | 'preview' | 'development' = ${JSON.stringify(buildEnv)};
-/** Host of the real deployment, e.g. "your-deployment.example". */
-export const CANONICAL_HOST: string = ${JSON.stringify(canonical)};
+/** Every host that is really this app. The first is the one to share. */
+export const CANONICAL_HOSTS: string[] = ${JSON.stringify(canonical)};
+/** The address to hand somebody. Empty when nothing was configured. */
+export const CANONICAL_HOST: string = ${JSON.stringify(canonical[0] ?? '')};
 `,
 );
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { CANONICAL_HOST, BUILD_ENV } from './build-info';
+import { CANONICAL_HOST, CANONICAL_HOSTS, BUILD_ENV } from './build-info';
 
 // The one address that is safe to give to another person.
 //
@@ -31,10 +31,23 @@ export function canonicalUrl(path = '/'): string {
   return clean;
 }
 
-/** True when the page is being served from somewhere that is not production. */
+/**
+ * True when this page is being served from an address that is really the app.
+ *
+ * A LIST, not one host. Moving to a custom domain is not an instant: for weeks
+ * the old address and the new one both serve the same deployment and both keep
+ * updating. When this permitted only one, the day a custom domain became
+ * production was the day everybody still on the old address lost the install
+ * button and was told by Settings that they were on a preview which "can never
+ * receive an update" -- false, and aimed at the people who installed earliest.
+ *
+ * What stays excluded is the per-deployment URL every host hands out. An app
+ * installed from one of those genuinely can never update, which is the whole
+ * reason this check exists.
+ */
 export function onCanonicalHost(): boolean {
   if (typeof window === 'undefined') return true;
   if (BUILD_ENV === 'preview') return false;
-  if (!CANONICAL_HOST) return true; // nothing to compare against; do not cry wolf
-  return window.location.host === CANONICAL_HOST;
+  if (CANONICAL_HOSTS.length === 0) return true; // nothing to compare against
+  return CANONICAL_HOSTS.includes(window.location.host);
 }

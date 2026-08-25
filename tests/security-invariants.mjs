@@ -878,5 +878,43 @@ if (exists('supabase/functions/invite/index.ts')) {
      'and still refuses anybody who is not leadership');
 }
 
+// ---------------------------------------------------------------------------
+// 22. A church may have more than one real address, but never a deployment URL.
+//
+// Two failures pull in opposite directions here and both are real.
+//
+// Permit only ONE canonical host and the day a custom domain becomes production
+// is the day everybody still on the old address loses the install button and is
+// told by Settings they are on a preview that "can never receive an update".
+// That is false -- both addresses serve the same deployment and both keep
+// updating -- and it is aimed at whoever installed earliest.
+//
+// Permit ANY host and the protection is gone: every deployment gets its own
+// permanent URL, an app installed from one can genuinely never update, and
+// somebody who shares that link hands a frozen copy to a congregation.
+//
+// So: a list, checked by exact host match, and a preview build still refuses
+// outright whatever is in it.
+// ---------------------------------------------------------------------------
+if (exists('lib/canonical.ts')) {
+  const c = read('lib/canonical.ts');
+  ok(/CANONICAL_HOSTS/.test(c), 'canonical host is a list, so a domain move does not orphan the old address');
+  ok(/CANONICAL_HOSTS\.includes\(window\.location\.host\)/.test(c),
+     'and membership is an exact host match, not a substring or a suffix');
+  ok(/BUILD_ENV === 'preview'/.test(c),
+     'a preview build is still refused outright, whatever the list says');
+  // A suffix test would make evil-hopeklyde.online canonical.
+  ok(!/endsWith\(|includes\(CANONICAL|indexOf\(CANONICAL/.test(c),
+     'no suffix or substring matching, which would make a lookalike domain canonical');
+}
+if (exists('scripts/stamp-build.mjs')) {
+  const st = read('scripts/stamp-build.mjs');
+  ok(/split\(','\)/.test(st), 'the build stamp accepts several hosts');
+  // VERCEL_URL is the PER-DEPLOYMENT url. If it ever reaches the list, every
+  // deployment becomes installable and the frozen-copy bug is back.
+  ok(!/env\.VERCEL_URL/.test(st),
+     'the per-deployment URL is never treated as canonical');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);
