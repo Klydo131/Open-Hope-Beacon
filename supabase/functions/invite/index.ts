@@ -33,16 +33,51 @@
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+// WHO MAY CALL THIS FROM A BROWSER.
+//
+// This is the one function in the project that holds the service_role key, so
+// it is the one place a wildcard costs something. It was
+// `Access-Control-Allow-Origin: *`, which let any site on the internet call it
+// from a visitor's browser and READ THE REPLY. That reply contains a working
+// join link and, on some paths, whether an address is already a member.
+//
+// Authorisation was never the wildcard's job and still is not: the function
+// verifies the caller's token and refuses anybody who is not leadership, and
+// the token lives in localStorage rather than a cookie, so a browser never
+// attaches it to a cross-site request on its own. This is defence in depth, not
+// the only lock. But an origin allowlist costs one environment variable, and
+// "any site may read our replies" is not a sentence to leave in a project that
+// holds a congregation's data.
+//
+// BEACON_ALLOWED_ORIGINS is a comma-separated list. Unset, it falls back to the
+// wildcard so an existing deployment does not break the day this ships -- a
+// security change that takes invitations down is a security change that gets
+// reverted. Set it, and only those origins are answered.
+const ALLOWED = (Deno.env.get('BEACON_ALLOWED_ORIGINS') || '')
+  .split(',').map((o) => o.trim()).filter(Boolean);
 
+function corsFor(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allow = ALLOWED.length === 0
+    ? '*'
+    : ALLOWED.includes(origin) ? origin : ALLOWED[0];
+  return {
+    'Access-Control-Allow-Origin': allow,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    // Caches and proxies must not hand one origin's response to another.
+    'Vary': 'Origin',
+  };
+}
+
+// No CORS headers here on purpose. The wrapper at the bottom of this file puts
+// them on every response on the way out, so there is exactly one place that
+// decides who may read a reply. A helper that set them too would be a second
+// answer to the same question, and the two would drift.
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' },
   });
 
 /**
@@ -72,8 +107,11 @@ const safeOrigin = (value: string | null) => {
   }
 };
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+// The handler answers; the wrapper below decides who is allowed to read the
+// answer. Applying the headers in ONE place is the point: there are nineteen
+// `return json(...)` paths in here, and a per-call-site rule is a rule that one
+// of them eventually forgets.
+async function handle(req: Request): Promise<Response> {
   if (req.method !== 'POST') return json({ error: 'POST only' }, 405);
 
   const url = Deno.env.get('SUPABASE_URL');
@@ -426,4 +464,16 @@ Deno.serve(async (req) => {
     // wrong because Site URL is unset, this one still works.
     link: joinUrl,
   });
+}
+
+Deno.serve(async (req) => {
+  const cors = corsFor(req);
+  // The preflight is the one the browser actually consults before it will let
+  // a page read the reply, so it has to carry the real decision -- not the
+  // fallback the old static constant handed back to everybody.
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+
+  const res = await handle(req);
+  for (const [key, value] of Object.entries(cors)) res.headers.set(key, value);
+  return res;
 });

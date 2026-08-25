@@ -837,5 +837,46 @@ if (exists('lib/minor.ts')) {
      'and minor status is still derived rather than stored');
 }
 
+// ---------------------------------------------------------------------------
+// 21. The one function holding service_role decides who may read its replies.
+//
+// supabase/functions/invite holds the service_role key -- the single credential
+// that bypasses every row level security policy in the project. Its replies
+// contain a working join link, so "any website may read this" is not a sentence
+// to leave lying around.
+//
+// The wildcard was never the authorisation: the function verifies the caller's
+// token and refuses anybody who is not leadership, and the token lives in
+// localStorage rather than a cookie, so a browser never attaches it to a
+// cross-site request by itself. This is depth, not the only lock. It still
+// costs one environment variable.
+//
+// The rule is that the decision is made ONCE. Nineteen `return json(...)` paths
+// with a per-call-site header is a rule one of them eventually forgets.
+// ---------------------------------------------------------------------------
+if (exists('supabase/functions/invite/index.ts')) {
+  const fn = read('supabase/functions/invite/index.ts');
+
+  ok(/BEACON_ALLOWED_ORIGINS/.test(fn),
+     'the invite function reads an origin allowlist');
+  ok(/'Vary': 'Origin'/.test(fn),
+     'and sets Vary: Origin, so no cache hands one origin the other’s reply');
+
+  // Exactly one place may name the header.
+  const headerSites = (fn.match(/'Access-Control-Allow-Origin'/g) || []).length;
+  ok(headerSites === 1,
+     `Access-Control-Allow-Origin is set in exactly one place (found ${headerSites})`);
+
+  // And a bare wildcard must only ever appear as the documented fallback,
+  // never as the literal value of that header.
+  ok(!/'Access-Control-Allow-Origin':\s*'\*'/.test(fn),
+     'the wildcard is not hardcoded as the header value');
+
+  // The caller is still checked. If this ever goes, the allowlist is decoration.
+  ok(/auth\.getUser\(/.test(fn), 'the invite function still verifies the caller');
+  ok(/role !== 'admin' && me\.role !== 'executive'|!== 'admin'[\s\S]{0,80}!== 'executive'/.test(fn),
+     'and still refuses anybody who is not leadership');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);
