@@ -98,10 +98,86 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
        `the card is in view after following the link (top ${view.top}, viewport ${view.h})`);
   }
 
-  // ---- 3. It must not claim a one-tap install it cannot deliver ------------
-  const fakeButton = await page.locator('#install button', { hasText: /^Install now$/i }).count();
-  ok(fakeButton === 0,
-     'no "Install now" button on iOS, where nothing can install programmatically');
+  // ---- 3. THE BANNER MUST HAVE A BUTTON -----------------------------------
+  //
+  // Reported as "the banner is there but there is no install button". It was
+  // written as `{!manual && !inApp && <button>Install</button>}`, so it
+  // rendered for Chrome and for nobody else: every Apple user, the one family
+  // that cannot install by itself, got a banner made entirely of text.
+  //
+  // The button cannot install on iOS, because that API does not exist there.
+  // What it must do is SHOW THE STEPS. So this checks both halves: the button
+  // is on screen, and pressing it puts the instructions in front of the person.
+  // Checking only that a button exists would pass on the dead button that
+  // caused this in the first place.
+  await page.goto(`${BASE}/dm`, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1600);
+
+  const banner = page.locator('text=Install Hope Beacon').first();
+  ok(await banner.count() > 0, 'the install banner appears on an iPhone by itself');
+
+  const cta = page.getByRole('button', { name: /^Install now$/i }).first();
+  ok(await cta.count() > 0, 'the banner has an "Install now" button');
+
+  // The steps are NOT hidden behind the button, and must not be: somebody who
+  // arrived from a Messenger link has to be told to leave Messenger without
+  // pressing anything. in-app-browser.js enforces that, and this checks the
+  // same thing from the other side.
+  ok(await page.getByText(/Add to Home Screen/i).count() > 0,
+     'the Add to Home Screen steps are visible without pressing anything');
+  ok(await page.getByText(/Tap Share/i).count() > 0,
+     'and they name the Share button, which is the control people could not find');
+
+  if (await cta.count()) {
+    // Nothing on Apple can install programmatically, so the button must not
+    // pretend to. What it does is point at the control, which lives in the
+    // browser's own chrome rather than on the page.
+    await cta.click();
+    await page.waitForTimeout(400);
+    ok(await page.getByText(/Now look for the Share button/i).count() > 0,
+       'pressing it points at the Share button rather than doing nothing');
+  }
+
+  // ---- 4. macOS Safari gets the same treatment, with its own wording -------
+  //
+  // Safari on a Mac fires beforeinstallprompt no more than Safari on a phone,
+  // and the control is in a different place with a different name: File, then
+  // Add to Dock. A Mac user told to "tap Share at the bottom" is being given
+  // an iPhone's instructions.
+  //
+  // Chromium reports itself as Chrome, so isMacSafari() needs the user agent
+  // overridden to exercise this branch at all.
+  const macCtx = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block',
+    userAgent:
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 '
+      + '(KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+  });
+  const mac = await macCtx.newPage();
+  await mac.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
+  await mac.waitForTimeout(1500);
+  const macWho = mac.getByText(/Maria Santos/i).first();
+  if (await macWho.count()) await macWho.click();
+  await mac.waitForTimeout(1800);
+  const macConsent = mac.getByRole('button', { name: /I understand|Continue|Got it/i });
+  if (await macConsent.count()) await macConsent.first().click().catch(() => {});
+  await mac.waitForTimeout(1600);
+
+  ok(await mac.getByText(/Install Hope Beacon/i).count() > 0,
+     'macOS Safari sees the install card by itself');
+  const macCta = mac.getByRole('button', { name: /^Install now$/i }).first();
+  ok(await macCta.count() > 0, 'macOS Safari gets an "Install now" button too');
+  ok(await mac.getByText(/Add to Dock/i).count() > 0,
+     'and it gives the Mac steps, Add to Dock, not the iPhone ones');
+  ok(await mac.getByText(/Add to Home Screen/i).count() === 0,
+     'a Mac is never told to tap Share at the bottom of a phone');
+  if (await macCta.count()) {
+    await macCta.click();
+    await mac.waitForTimeout(400);
+    ok(await mac.getByText(/Safari’s toolbar|Safari's toolbar/i).count() > 0,
+       'and pressing it points at the Mac toolbar, not a phone’s Share button');
+  }
 
   await browser.close();
   console.log(`\n${bad === 0 ? 'RESULT: ALL OK' : `RESULT: ${bad} FAILED`}`);

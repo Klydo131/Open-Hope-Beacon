@@ -156,6 +156,8 @@ function isDesktop(): boolean {
 
 function snoozed(): boolean {
   try {
+    // Dismissed during THIS visit. See snooze() for why Apple is different.
+    if (sessionStorage.getItem(SNOOZE_KEY)) return true;
     const until = Number(localStorage.getItem(SNOOZE_KEY) ?? 0);
     return Date.now() < until;
   } catch {
@@ -176,6 +178,10 @@ export function InstallPrompt() {
   // browser and the ordinary instructions apply.
   const [inApp, setInApp] = useState('');
   const [shareWhere, setShareWhere] = useState('in Safari');
+  // Apple has no programmatic install, so "Install now" cannot install. What it
+  // CAN do is show exactly which control to press, which is the thing people
+  // were failing to find. The button is real and doing this is its job.
+  const [opened, setOpened] = useState(false);
 
   useEffect(() => {
     if (isStandalone()) return;
@@ -202,17 +208,16 @@ export function InstallPrompt() {
     // Safari — desktop or mobile — never fires beforeinstallprompt, so the
     // only honest thing to do is show the steps. A short delay keeps it from
     // landing on top of the page before it has finished painting.
+    // Short, and it used to be 1200ms. The only job of the delay is to let the
+    // page finish painting so the card does not land on top of a half-drawn
+    // screen; anything longer is the app hiding the one thing an Apple user
+    // needs from it. There is no native prompt coming to replace it.
     let t: ReturnType<typeof setTimeout>;
+    const APPEAR_MS = 350;
     if (isIos()) {
-      t = setTimeout(() => {
-        setManual('ios');
-        setShow(true);
-      }, 1200);
+      t = setTimeout(() => { setManual('ios'); setShow(true); }, APPEAR_MS);
     } else if (isMacSafari()) {
-      t = setTimeout(() => {
-        setManual('mac');
-        setShow(true);
-      }, 1200);
+      t = setTimeout(() => { setManual('mac'); setShow(true); }, APPEAR_MS);
     }
 
     return () => {
@@ -238,6 +243,20 @@ export function InstallPrompt() {
   const snooze = () => {
     setShow(false);
     try {
+      // APPLE AND IN-APP BROWSERS GET THIS VISIT ONLY, and that difference is
+      // deliberate. On Chrome a dismissed prompt is no great loss: the browser
+      // offers its own install in the address bar and fires beforeinstallprompt
+      // again later. Safari offers nothing. A person on an iPhone who taps the
+      // × once and later decides they want the app has no route back except
+      // knowing to look in Settings, and most people do not.
+      //
+      // So on those devices it returns next time the app is opened. Anyone who
+      // genuinely does not want it presses "I already have it", which is
+      // permanent and one tap away.
+      if (manual || inApp) {
+        sessionStorage.setItem(SNOOZE_KEY, '1');
+        return;
+      }
       localStorage.setItem(
         SNOOZE_KEY,
         String(Date.now() + SNOOZE_DAYS * 24 * 60 * 60 * 1000),
@@ -276,7 +295,7 @@ export function InstallPrompt() {
   // Desktop: a proper card, bottom-right, impossible to read as a cookie bar.
   if (desktop) {
     return (
-      <div className="no-print fixed bottom-4 right-4 z-[55] w-[22rem] max-w-[calc(100vw-2rem)]">
+      <div className="no-print fixed bottom-4 right-4 z-[70] w-[22rem] max-w-[calc(100vw-2rem)]">
         <div className="animate-drop overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10">
           <div
             className="flex items-center gap-3 px-4 py-3"
@@ -313,20 +332,45 @@ export function InstallPrompt() {
               </li>
             </ul>
 
-            {manual ? (
-              <ol className="space-y-1.5 rounded-xl bg-gray-50 p-3 text-sm text-navy">
-                {steps.map((s, i) => (
-                  <li key={s} className="flex gap-2">
-                    <span
-                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs font-bold text-white"
-                      style={{ backgroundColor: '#1E2A4A' }}
-                    >
-                      {i + 1}
-                    </span>
-                    {s}
-                  </li>
-                ))}
-              </ol>
+            {manual || inApp ? (
+              <>
+                {/* A REAL BUTTON ON APPLE. Safari has never fired
+                    beforeinstallprompt, so nothing here can install for the
+                    person. Pressing this shows the two controls to press, in
+                    order, which is what they were failing to find. It is
+                    labelled for what it starts, not for what it cannot do. */}
+                <button
+                  onClick={() => setOpened(true)}
+                  className="tap w-full rounded-xl text-base font-bold text-white"
+                  style={{ backgroundColor: '#1E2A4A' }}
+                >
+                  Install now
+                </button>
+                {/* Never hidden behind the button. See the phone layout below
+                    for why: in-app-browser.js enforces it. */}
+                <ol className="space-y-1.5 rounded-xl bg-gray-50 p-3 text-sm text-navy">
+                  {steps.map((step, i) => (
+                    <li key={step} className="flex gap-2">
+                      <span
+                        className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs font-bold text-white"
+                        style={{ backgroundColor: '#1E2A4A' }}
+                      >
+                        {i + 1}
+                      </span>
+                      {step}
+                    </li>
+                  ))}
+                </ol>
+                {opened && (
+                  <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
+                    {inApp
+                      ? `Open the ••• menu in ${inApp} now, and choose Open in Safari.`
+                      : manual === 'mac'
+                        ? 'Now open Share in Safari’s toolbar, at the top of the window.'
+                        : `Now look for the Share button ${shareWhere.replace(/^at /, 'at ')}.`}
+                  </p>
+                )}
+              </>
             ) : (
               <button
                 onClick={install}
@@ -359,52 +403,115 @@ export function InstallPrompt() {
   }
 
   // Phone / tablet: the compact bar, which is right for a small screen.
+  //
+  // THE BUG THIS LAYOUT HAD, reported plainly as "the banner is there but there
+  // is no install button". The button was written as
+  // `{!manual && !inApp && <button>Install</button>}`, so it rendered for
+  // Chrome and Android and for nobody else. Every iPhone, iPad and Mac Safari
+  // user got a banner made entirely of text, telling them to go and find a
+  // control somewhere else on their screen. The one device family that cannot
+  // install by itself was the one family given nothing to press.
+  //
+  // Now there is always a button. On Apple it cannot install -- nothing can, the
+  // API does not exist there -- so what it does is show the two controls to
+  // press, in order, right where the person is already looking.
+  //
+  // z-70 puts this above the demo/preview ribbon at z-65. The ribbon is
+  // pointer-events-none so it never stole a tap, but it drew straight over the
+  // "I already have it installed" line underneath.
   return (
-    <div className="no-print fixed inset-x-0 bottom-0 z-[55] flex justify-center p-3">
-      <div className="animate-drop flex w-full max-w-md items-center gap-3 rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
-        <HopeBeaconMark size={40} />
-        <div className="min-w-0 flex-1">
-          <p className="font-bold text-navy">Install Hope Beacon</p>
-          {/* THE REPORTED BUG WAS THIS LINE. Opened from a Messenger link it
-              said "Tap Share, then Add to Home Screen" — inside a browser that
-              has neither. The person looks for a button that does not exist
-              and concludes the app is broken. */}
-          {inApp ? (
-            <p className="text-sm text-gray-500">
-              You are in {inApp}&rsquo;s browser, which cannot install apps. Tap{' '}
-              <strong>•••</strong> → <strong>Open in Safari</strong> first.
-            </p>
-          ) : manual === 'mac' ? (
-            <p className="text-sm text-gray-500">
-              Open Share in Safari&rsquo;s toolbar, then &ldquo;Add to Dock&rdquo;.
-            </p>
-          ) : manual ? (
-            <p className="text-sm text-gray-500">
-              Tap Share {shareWhere.replace(/^at /, '')}, then &ldquo;Add to Home
-              Screen&rdquo;.
-            </p>
-          ) : (
-            <p className="text-sm text-gray-500">
-              Add it to your device. No app store needed.
-            </p>
-          )}
+    <div className="no-print fixed inset-x-0 bottom-0 z-[70] flex justify-center p-3">
+      <div className="animate-drop w-full max-w-md rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
+        <div className="flex items-center gap-3">
+          <HopeBeaconMark size={40} />
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-navy">Install Hope Beacon</p>
+            {/* THE OTHER REPORTED BUG WAS THIS LINE. Opened from a Messenger
+                link it said "Tap Share, then Add to Home Screen" — inside a
+                browser that has neither. */}
+            {inApp ? (
+              <p className="text-sm text-gray-500">
+                {inApp} cannot install apps. Open it in Safari first.
+              </p>
+            ) : manual === 'mac' ? (
+              <p className="text-sm text-gray-500">Two steps, no app store.</p>
+            ) : manual ? (
+              <p className="text-sm text-gray-500">Two taps, no app store.</p>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Add it to your device. No app store needed.
+              </p>
+            )}
+          </div>
+          <button
+            onClick={snooze}
+            aria-label="Not now"
+            className="tap shrink-0 rounded-xl bg-gray-100 px-3 text-lg text-gray-500"
+          >
+            ×
+          </button>
         </div>
-        {!manual && !inApp && (
+
+        {/* Full width and under the text, because a button squeezed beside two
+            lines of copy on a 320px screen is a button people miss. */}
+        {manual || inApp ? (
+          <>
+            <button
+              onClick={() => setOpened(true)}
+              className="tap mt-2 w-full rounded-xl text-base font-bold text-white"
+              style={{ backgroundColor: '#1E2A4A' }}
+            >
+              Install now
+            </button>
+            {/* THE STEPS ARE NEVER HIDDEN BEHIND THE BUTTON, and that is a
+                safety property rather than a preference. Somebody who opened
+                this from a Messenger link has to be told to leave Messenger
+                whether or not they press anything; a version that hid that
+                behind a tap sent them looking for a Share button that does not
+                exist in the browser they are in. tests/e2e/in-app-browser.js
+                fails the build if this is ever gated again. */}
+            <ol className="mt-2 space-y-1.5 rounded-xl bg-gray-50 p-3 text-sm text-navy">
+              {steps.map((step, i) => (
+                <li key={step} className="flex gap-2">
+                  <span
+                    className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-xs font-bold text-white"
+                    style={{ backgroundColor: '#1E2A4A' }}
+                  >
+                    {i + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+            {opened && (
+              // What "Install now" actually does, since nothing on Apple can
+              // install programmatically: it points at the control, which is
+              // in the browser's own chrome and not on the page at all. That
+              // is the thing people were failing to find.
+              <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
+                {inApp
+                  ? `Open the ••• menu in ${inApp} now, and choose Open in Safari.`
+                  : manual === 'mac'
+                    ? 'Now open Share in Safari’s toolbar, at the top of the window.'
+                    : `Now look for the Share button ${shareWhere.replace(/^at /, 'at ')} — the square with an arrow coming out of it.`}
+              </p>
+            )}
+            <button
+              onClick={alreadyHave}
+              className="mt-1 w-full rounded-xl py-2 text-xs font-semibold text-gray-400"
+            >
+              I already have it installed
+            </button>
+          </>
+        ) : (
           <button
             onClick={install}
-            className="tap shrink-0 rounded-xl px-4 text-base font-bold text-white"
+            className="tap mt-2 w-full rounded-xl text-base font-bold text-white"
             style={{ backgroundColor: '#1E2A4A' }}
           >
             Install
           </button>
         )}
-        <button
-          onClick={snooze}
-          aria-label="Not now"
-          className="tap shrink-0 rounded-xl bg-gray-100 px-3 text-lg text-gray-500"
-        >
-          ×
-        </button>
       </div>
     </div>
   );

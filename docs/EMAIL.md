@@ -145,6 +145,47 @@ If invitations stop again after this, the Director now sees which of the four
 causes it was in plain words rather than the provider's raw text — including
 "that is IP blocking, and it has to be turned off".
 
+#### Resend, if you prefer it
+
+Resend works the same way and is written down here because it keeps being asked
+about. It is SMTP into the same Supabase box, so nothing in the app changes.
+
+| Field | Value |
+|---|---|
+| Host | `smtp.resend.com` |
+| Port | `587` |
+| Username | `resend` — the literal word, not your email |
+| Password | an API key created in Resend, beginning `re_` |
+| Sender email | an address on a domain you have verified in Resend |
+
+Two differences from Brevo worth knowing before you choose:
+
+- **Resend has no authorized-IP feature**, so the trap that cost a day with
+  Brevo does not exist here.
+- **Resend will not send from a shared address at all.** Brevo lets you verify
+  a single sender like `you@gmail.com` and start immediately; Resend requires a
+  domain you control, verified with DNS records, before it sends anything to
+  anybody but yourself. If you do not own a domain yet, that decides it.
+
+#### The DNS records, whichever provider you pick
+
+Both want the same three things on the domain, and all three are TXT records
+added at your registrar:
+
+| Record | What it does | What happens without it |
+|---|---|---|
+| **SPF** | Says which servers may send as your domain | Gmail marks the mail as suspicious or bins it |
+| **DKIM** | Signs each message so it cannot be tampered with | Same, and some providers refuse to send at all |
+| **DMARC** | Tells other mail servers what to do when the first two fail | Nothing breaks, but delivery is weaker and you get no reports |
+
+A reasonable first DMARC record is `v=DMARC1; p=none; rua=mailto:you@example`,
+on the host `_dmarc`. `p=none` means "watch, do not reject", which is where you
+want to start.
+
+Give DNS an hour before deciding it has not worked. Most changes are live in
+minutes; some registrars are slower, and re-adding a record you already added
+is how people end up with two conflicting SPF lines, which is worse than none.
+
 ### The other way: post to a provider's API from the function
 
 Only if you want your church's own wording in the message body rather than
