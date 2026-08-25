@@ -365,6 +365,26 @@ point at *your* source, not this one. That one edit is the whole obligation for
 most deployments, and leaving it pointing here while your version differs is the
 one way an honest church accidentally breaches the licence.
 
+### If your organisation cannot accept AGPL
+
+Some institutions hold a standing policy against AGPL software. Where that
+policy exists it is usually applied before anyone looks at what the software
+does, and explaining the licence rarely changes the outcome.
+
+If that describes the organisation your church belongs to, a separate licence
+for this code is available from the copyright holder. It covers the same
+software under different terms, without the obligations of section 13, so a
+deployment may keep its modifications private. Terms are settled case by case.
+
+Two things are worth saying plainly. This repository stays AGPL-3.0, so a
+private arrangement between two parties changes nothing about what you or
+anyone else receives here. And the purpose is not to hold the software back.
+It is to stop a procurement policy from becoming the reason a congregation
+cannot use something built for congregations.
+
+To ask, open an issue titled "Licensing enquiry", or contact the maintainer
+through GitHub.
+
 ### Contributing under AGPL
 
 Contributions ship under AGPL-3.0. You keep your copyright; you are granting
