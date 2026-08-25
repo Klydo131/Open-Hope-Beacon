@@ -10,6 +10,11 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    // Lets a .ts file import another with its extension, which bare Node needs
+    // to run these modules directly in tests/. Safe only because noEmit is
+    // true: nothing here is compiled to JavaScript, so no emitted import can
+    // point at a .ts file that will not exist at runtime.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",

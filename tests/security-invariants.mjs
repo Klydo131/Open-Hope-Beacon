@@ -119,31 +119,43 @@ if (nextConfig) {
 // that gets "simplified" later.
 // ---------------------------------------------------------------------------
 if (exists('lib/url.ts')) {
-  const url = read('lib/url.ts');
-  ok(/\^https\?:\\\/\\\//.test(url), 'safeExternalUrl anchors on ^https?:// rather than searching');
-  // Assert the behaviour, not just the shape, by running the regex the file
-  // actually contains against the payloads that matter.
-  const m = url.match(/return (\/[^\n]+\/i)\.test\(trimmed\)/);
-  ok(!!m, 'safeExternalUrl still tests the trimmed value against one anchored pattern');
-  if (m) {
-    // eslint-disable-next-line no-eval
-    const re = eval(m[1]);
-    for (const payload of [
-      'javascript:alert(1)',
-      'JaVaScRiPt:alert(1)',
-      ' javascript:alert(1)',
-      'data:text/html,<script>alert(1)</script>',
-      'vbscript:msgbox(1)',
-      'file:///etc/passwd',
-      '//evil.example.com',
-      'jAvAsCrIpT\n:alert(1)',
-    ]) {
-      ok(!re.test(payload.trim()), `blocked: ${JSON.stringify(payload)}`);
-    }
-    for (const good of ['https://example.com/a', 'http://example.com']) {
-      ok(re.test(good), `allowed: ${good}`);
-    }
+  // BEHAVIOUR, NOT SHAPE. This used to scrape the regex out of the file with a
+  // match and an eval, then run payloads against the extracted pattern. That
+  // tested the mechanism rather than the property, so it failed the moment the
+  // mechanism improved — the guard is now a URL parse rather than a regex, and
+  // is stricter than what it replaced.
+  //
+  // Calling the real function is better in every way: no eval, no assumption
+  // about how it is written, and it keeps working through the next rewrite.
+  const { safeExternalUrl, safeLinkHref } = await import('../lib/url.ts');
+
+  for (const payload of [
+    'javascript:alert(1)',
+    'JaVaScRiPt:alert(1)',
+    ' javascript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+    'file:///etc/passwd',
+    '//evil.example.com',
+    'jAvAsCrIpT\n:alert(1)',
+    // The @ deception: a valid https URL whose host is what follows the @,
+    // while a reader sees the trustworthy name before it. The regex this
+    // replaced matched these, and they reach an Explorer through a lesson link.
+    'https://adventist.org@evil.example/give',
+    'https://www.paypal.com@192.168.1.1/login',
+  ]) {
+    ok(safeExternalUrl(payload) === null, `blocked: ${JSON.stringify(payload)}`);
   }
+  for (const good of ['https://example.com/a', 'http://example.com']) {
+    ok(safeExternalUrl(good) === good, `allowed: ${good}`);
+  }
+
+  // safeLinkHref allows an in-app path as well, and must refuse the one that
+  // looks like a path and is not.
+  ok(safeLinkHref('/join?token=abc') === '/join?token=abc', 'an in-app path is allowed');
+  ok(safeLinkHref('//evil.example/x') === null, 'a protocol-relative URL is refused');
+  ok(safeLinkHref('https://adventist.org@evil.example') === null,
+     'safeLinkHref inherits the user-info refusal');
 }
 
 // ---------------------------------------------------------------------------
@@ -361,52 +373,38 @@ ok(
 // true, and the failure mode is a hostile link inside a message the reader
 // believes came from their church.
 //
-// Behaviour, not shape — the payloads are run through the real function.
+// BEHAVIOUR, NOT SHAPE. This block used to scrape the regex out of lib/url.ts,
+// eval it, and rebuild a copy of `safeLinkHref` around it — then check that the
+// copy matched the source line by line. Every one of those checks pinned the
+// mechanism: the guard is now a URL parse rather than a regex, and the suite
+// failed for the guard getting stricter. The payloads below run through the
+// real function, so the next rewrite is judged on what it refuses.
 // ---------------------------------------------------------------------------
 if (exists('lib/url.ts')) {
-  const url = read('lib/url.ts');
-  ok(/export function safeLinkHref/.test(url), 'lib/url.ts exports safeLinkHref');
-  if (/export function safeLinkHref/.test(url)) {
-    // This runner cannot import TypeScript, so the guard is reproduced below
-    // and then checked, line by line, against the source it was copied from.
-    // Reproducing without that check is how a suite ends up proving a stale
-    // copy correct while the shipped function does something else.
-    const ext = url.match(/return (\/[^\n]+\/i)\.test\(trimmed\)/);
-    ok(!!ext, 'safeExternalUrl still tests one anchored pattern');
-    if (ext) {
-      // eslint-disable-next-line no-eval
-      const re = eval(ext[1]);
-      const safeExternalUrl = (u) => (u && re.test(u.trim()) ? u.trim() : null);
-      const safeLinkHref = (u) => {
-        if (!u) return null;
-        const t = u.trim();
-        if (t.startsWith('//')) return null;
-        if (t.startsWith('/')) return t;
-        return safeExternalUrl(t);
-      };
-      // Confirm the reproduction above matches the file, so a change to the
-      // real function cannot pass by being tested against a stale copy.
-      const body = url.slice(url.indexOf('export function safeLinkHref'));
-      ok(/startsWith\('\/\/'\)\) return null/.test(body), 'safeLinkHref refuses protocol-relative');
-      ok(/startsWith\('\/'\)\) return trimmed/.test(body), 'safeLinkHref allows a rooted path');
-      ok(/return safeExternalUrl\(trimmed\)/.test(body), 'safeLinkHref delegates absolute URLs');
+  ok(/export function safeLinkHref/.test(read('lib/url.ts')), 'lib/url.ts exports safeLinkHref');
+  const { safeLinkHref } = await import('../lib/url.ts');
 
-      for (const bad of [
-        'javascript:alert(1)',
-        ' javascript:alert(1)',
-        'JaVaScRiPt:alert(1)',
-        'data:text/html,<script>alert(1)</script>',
-        'vbscript:msgbox(1)',
-        '//evil.example/x',
-        'evil.example/x',
-        'file:///etc/passwd',
-      ]) {
-        ok(safeLinkHref(bad) === null, `mailbox href refuses ${JSON.stringify(bad)}`);
-      }
-      for (const good of ['/join?token=abc', '/login', 'https://example.com/a']) {
-        ok(safeLinkHref(good) === good, `mailbox href allows ${good}`);
-      }
-    }
+  for (const bad of [
+    'javascript:alert(1)',
+    ' javascript:alert(1)',
+    'JaVaScRiPt:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+    '//evil.example/x',
+    'evil.example/x',
+    'file:///etc/passwd',
+    // A relative path is not a rooted one. `join?token=abc` resolves against
+    // whatever page the reader happens to be on, which is not a link the app
+    // chose — it is a link the reader's history chose.
+    'join?token=abc',
+    // And the deception, because the mailbox reaches people who were sent the
+    // message rather than people who went looking for it.
+    'https://adventist.org@evil.example/give',
+  ]) {
+    ok(safeLinkHref(bad) === null, `mailbox href refuses ${JSON.stringify(bad)}`);
+  }
+  for (const good of ['/join?token=abc', '/login', 'https://example.com/a']) {
+    ok(safeLinkHref(good) === good, `mailbox href allows ${good}`);
   }
 }
 
@@ -563,6 +561,50 @@ if (exists('app/api/auth/sign-in/route.ts')) {
   ok(/accessToken:\s*async\s*\(\)\s*=>\s*readBrowserSession/.test(browserClient) &&
       !/auth\.getUser\(\)/.test(liveData),
     'live data uses the verified first-party session without a second Auth round trip');
+}
+
+// ---------------------------------------------------------------------------
+// 15. A link never renders inside a button.
+//
+// <Linked> turns text somebody typed into anchors. Drop it into a surface that
+// is itself a control and the result is an <a> inside a <button>: invalid HTML,
+// and a tap that either navigates away or is swallowed depending on the
+// browser. It happened once already, in the lesson picker — the row is a toggle
+// for building a series, so a link in it would have thrown away a half-built
+// series on a mistap.
+//
+// This is not stored XSS; it is the failure mode that comes free with the fix
+// for stored XSS, which is why it is written down next to it. The check counts
+// unclosed <button> tags before each <Linked>, which is crude but catches the
+// only shape this mistake takes.
+// ---------------------------------------------------------------------------
+{
+  // Blank out comments before counting, keeping every character position — a
+  // comment that MENTIONS <Linked> or <button> must not be mistaken for one.
+  // Replacing with equal-length spaces means the line numbers reported below
+  // still point at the real source. (The first version of this check flagged
+  // the comment explaining why the lesson picker does not use <Linked>.)
+  const decomment = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
+
+  const offenders = [];
+  for (const file of sources) {
+    const src = decomment(read(file));
+    let at = src.indexOf('<Linked');
+    while (at !== -1) {
+      const before = src.slice(0, at);
+      const opens = (before.match(/<button\b/g) || []).length;
+      const closes = (before.match(/<\/button>/g) || []).length;
+      if (opens > closes) offenders.push(`${file}:${before.split('\n').length}`);
+      at = src.indexOf('<Linked', at + 1);
+    }
+  }
+  ok(
+    offenders.length === 0,
+    offenders.length === 0
+      ? 'no <Linked> renders inside a <button>, so no anchor is nested in a control'
+      : `<Linked> is inside a <button> at ${offenders.join(', ')} — the link cannot be tapped and the control breaks`,
+  );
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

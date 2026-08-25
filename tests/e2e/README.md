@@ -81,6 +81,14 @@ npm i -D playwright && npx playwright install chromium
 - **update-speed**, **update-flow** — the rest of the update path: how fast a
   running app notices a build that lands underneath it, and that Settings tells
   the truth about which build it is on while offering nothing to tap.
+- **links**, **lesson-links** — a link somebody typed becomes a tappable anchor,
+  and a hostile one does not. `links` does it in a conversation; `lesson-links`
+  does it in a series description, which matters more because that text is
+  written once and shown to everyone offered the series. Both send
+  `https://adventist.org@evil.example/give` — a valid address that goes to
+  evil.example while a skimming reader sees their own denomination on the left
+  of the `@` — and assert it is displayed in full and linked nowhere. Both were
+  run against a deliberately weakened validator first and went red.
 
 The rest cover individual screens and are named after them.
 

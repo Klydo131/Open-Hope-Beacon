@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { Button, Card } from '@/components/ui';
+import { Linked } from '@/components/Linked';
 import { LESSONS, lessonById, offerableSeries } from '@/lib/lessons';
 
 // The library's series shelf.
@@ -124,6 +125,12 @@ export function LessonSeriesLibrary() {
                   <span
                     className={`block truncate text-xs ${on ? 'text-white/70' : 'text-gray-400'}`}
                   >
+                    {/* Deliberately NOT <Linked>. This row is a toggle button,
+                        and an anchor inside a button is invalid HTML whose tap
+                        either navigates away from a half-built series or is
+                        swallowed by the button — neither is what anyone meant.
+                        The description is linked where it is READ, in MySeries
+                        and the ministry list, not here where it is picked. */}
                     {l.description}
                   </span>
                 </span>
@@ -172,7 +179,7 @@ export function LessonSeriesLibrary() {
                       {s.topic} · {s.lesson_ids.length} lessons
                     </p>
                     {s.description && (
-                      <p className="mt-1 text-sm text-gray-500">{s.description}</p>
+                      <p className="mt-1 text-sm text-gray-500"><Linked text={s.description} /></p>
                     )}
                   </div>
                   <button

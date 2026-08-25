@@ -19,6 +19,7 @@
 //   node tests/linkify.mjs
 
 import { linkifyParts, safeHref } from '../lib/linkify.ts';
+import { safeExternalUrl, safeLinkHref } from '../lib/url.ts';
 
 let bad = 0;
 const ok = (cond, msg) => { if (!cond) bad++; console.log(`${cond ? 'OK ' : 'BAD'} ${msg}`); };
@@ -131,6 +132,35 @@ for (const sample of [
 const repeated = 'https://example.org/one';
 ok(hrefs(repeated).length === 1 && hrefs(repeated).length === 1,
    'calling it twice gives the same answer both times');
+
+// ------------------------------------------------ the typed-in link fields --
+// safeExternalUrl guards a DIFFERENT path from the prose above: a lesson's
+// link and a material's external_url, which a Guide or Director types into a
+// form. Thirteen call sites, every one of them tapped by an Explorer.
+//
+// It used to be the regex /^https?:\/\/\S+$/i, which matched
+// `https://adventist.org@evil.example/give` happily. Both now share one
+// validator, so prose links and typed link fields cannot disagree about what
+// counts as safe.
+for (const trap of DECEPTIVE) {
+  ok(safeExternalUrl(trap) === null, `link field refuses user info: ${trap.slice(0, 40)}`);
+}
+for (const attack of ['javascript:alert(1)', 'data:text/html,<script>', 'vbscript:x', '//evil.example/x']) {
+  ok(safeExternalUrl(attack) === null, `link field refuses: ${attack.slice(0, 34)}`);
+}
+ok(safeExternalUrl('https://adventist.org/study') === 'https://adventist.org/study',
+   'a genuine link field still works');
+ok(safeExternalUrl('  https://adventist.org/study  ') === 'https://adventist.org/study',
+   'surrounding whitespace is trimmed');
+ok(safeExternalUrl('https://adventist.org/a?b=1&c=2') === 'https://adventist.org/a?b=1&c=2',
+   'the original string is returned, not a rewritten one');
+
+// safeLinkHref additionally allows an in-app path, and must still refuse a
+// protocol-relative URL, which looks like a path and is another origin.
+ok(safeLinkHref('/join?token=abc') === '/join?token=abc', 'an in-app path is allowed');
+ok(safeLinkHref('//evil.example/x') === null, 'a protocol-relative URL is refused');
+ok(safeLinkHref('https://adventist.org@evil.example') === null,
+   'and it inherits the user-info refusal');
 
 console.log(`\n${bad === 0 ? 'RESULT: ALL OK' : `RESULT: ${bad} FAILED`}`);
 process.exit(bad === 0 ? 0 : 1);

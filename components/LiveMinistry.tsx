@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
+import { Linked } from '@/components/Linked';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Something went wrong.';
@@ -283,7 +284,7 @@ export function LiveLessonSeries({ manage = false }: { manage?: boolean }) {
               {list.map((s) => (
                 <div key={s.id} className="rounded-xl bg-gray-50 p-3">
                   <p className="font-semibold text-navy">{s.title}</p>
-                  {s.description && <p className="text-sm text-gray-600">{s.description}</p>}
+                  {s.description && <p className="text-sm text-gray-600"><Linked text={s.description} /></p>}
                 </div>
               ))}
             </div>

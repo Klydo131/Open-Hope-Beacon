@@ -2,6 +2,7 @@
 
 import { useDemo } from '@/lib/demo/store';
 import { Card } from '@/components/ui';
+import { Linked } from '@/components/Linked';
 import { seriesProgress } from '@/lib/lessons';
 import { safeExternalUrl } from '@/lib/url';
 
@@ -56,7 +57,7 @@ export function MySeries() {
               </p>
               <h2 className="text-xl font-bold text-navy">{series.title}</h2>
               {series.description && (
-                <p className="mt-1 text-sm text-gray-500">{series.description}</p>
+                <p className="mt-1 text-sm text-gray-500"><Linked text={series.description} /></p>
               )}
             </div>
             <span
@@ -128,7 +129,7 @@ export function MySeries() {
                         {lesson.title}
                       </p>
                       <p className={`text-sm ${locked ? 'text-gray-300' : 'text-gray-500'}`}>
-                        {lesson.description}
+                        <Linked text={lesson.description} />
                       </p>
                       {isNext && (
                         <div className="mt-2 flex flex-wrap gap-2">

@@ -28,8 +28,7 @@
 // Both halves matter. The escaping stops markup; the allowlist stops schemes.
 // ---------------------------------------------------------------------------
 
-/** The only two schemes that ever become a link. */
-const SAFE_PROTOCOLS = new Set(['http:', 'https:']);
+import { parseSafeHttpUrl } from './url.ts';
 
 // Bare `www.` is included because that is how people actually write a link when
 // they are not thinking about it. `<` is excluded from the run so a URL can
@@ -79,24 +78,12 @@ function trimTrailing(raw: string): { url: string; tail: string } {
  * two protocols are allowed through.
  */
 export function safeHref(candidate: string): string | null {
+  // `www.example.org` is how people write a link when they are not thinking
+  // about schemes. Everything after that is the shared decision in lib/url.ts,
+  // so prose links and typed-in link fields cannot drift apart on what counts
+  // as safe.
   const withScheme = /^www\./i.test(candidate) ? `https://${candidate}` : candidate;
-  try {
-    const parsed = new URL(withScheme);
-    if (!SAFE_PROTOCOLS.has(parsed.protocol)) return null;
-    if (!parsed.hostname) return null;
-
-    // NO USER INFO, EVER. `https://adventist.org@evil.example/give` is a valid
-    // URL that goes to evil.example, and everything before the @ is decoration
-    // the browser ignores. Rendered as a link it reads to a human as the
-    // trustworthy name on the left, which is exactly the deception. Nothing
-    // legitimate in this app needs credentials in a URL, so a URL carrying them
-    // stays plain text and the reader sees the whole thing.
-    if (parsed.username || parsed.password) return null;
-
-    return parsed.href;
-  } catch {
-    return null;
-  }
+  return parseSafeHttpUrl(withScheme)?.href ?? null;
 }
 
 /**

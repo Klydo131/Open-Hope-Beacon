@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
+import { Linked } from '@/components/Linked';
 
 function when(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -37,7 +38,7 @@ function Body({ text }: { text: string }) {
     <>
       {text.split(/\n{2,}/).map((para, i) => (
         <p key={i} className="mt-2 whitespace-pre-wrap text-[15px] leading-relaxed text-gray-700">
-          {para}
+          <Linked text={para} />
         </p>
       ))}
     </>
