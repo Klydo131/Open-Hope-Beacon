@@ -833,8 +833,13 @@ if (exists('components/LiveCorePages.tsx')) {
   // It needs the data to draw, and the pairing query has to carry it.
   if (exists('lib/live/data.ts')) {
     const data = read('lib/live/data.ts');
-    ok(/select\('id, full_name, birthday, guardian_consent_at'\)/.test(data),
-       'the pairing query asks for the birthday and consent the badge needs');
+    // THE PROPERTY IS THE TWO COLUMNS, NOT THE EXACT LIST. Pinned to the
+    // literal string, this failed the first time a column was ADDED to the
+    // same select, which is a change that cannot break the badge. What breaks
+    // it is either column going missing, so that is what is checked.
+    const pairingSelect = /\.select\('([^']*full_name[^']*)'\)/.exec(data)?.[1] ?? '';
+    ok(/\bbirthday\b/.test(pairingSelect) && /\bguardian_consent_at\b/.test(pairingSelect),
+       `the pairing query asks for the birthday and consent the badge needs (${pairingSelect || 'no select found'})`);
     ok(/ds_birthday/.test(data) && /ds_guardian_consent_at/.test(data),
        'and carries them through to the screen');
   }

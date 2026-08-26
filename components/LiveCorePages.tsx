@@ -30,6 +30,7 @@ import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveNotes
 import { LiveStudies } from '@/components/LiveStudies';
 import { LiveBulkInvite } from '@/components/LiveBulkInvite';
 import { LiveExport } from '@/components/LiveExport';
+import { NewBadge } from '@/components/NewBadge';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -1664,7 +1665,10 @@ export function LiveAdminPage() {
                   />
                   <Avatar name={member.full_name || 'Member'} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-navy">{member.full_name || 'Member'}</p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="truncate font-semibold text-navy">{member.full_name || 'Member'}</p>
+                      <NewBadge person={member} />
+                    </div>
                     <p className="text-sm text-gray-500">{roleNoun(member.role)} · access approved</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -1893,6 +1897,7 @@ export function LiveGuidePage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <p className="truncate text-lg font-bold text-navy">{row.ds_name}</p>
+                      <NewBadge person={{ signup_completed_at: row.ds_signup_completed_at }} />
                       {/* The Guide is the adult in the room, so they see this
                           and not only a Director. Drawn next to the name rather
                           than tucked into the profile, because a safeguarding
@@ -2656,6 +2661,9 @@ function PeopleRoom({
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="truncate font-semibold text-navy">{person.full_name}</span>
+                    {/* The Guides and Explorers rooms: a Director scanning a
+                        roster needs to know who arrived this week. */}
+                    <NewBadge person={person} />
                     <MinorBadge person={person} />
                   </div>
                   {kind === 'explorers' && (

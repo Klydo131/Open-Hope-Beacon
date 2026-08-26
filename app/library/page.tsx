@@ -207,7 +207,7 @@ export default function LibraryPage() {
             this one is very often the page you arrived from — which, if you
             opened the app from a link or a bookmark, is outside the app
             entirely. Pressing Back inside a product should never leave it. */}
-        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4 md:max-w-5xl lg:max-w-6xl xl:max-w-7xl xl:px-8">
           <button
             onClick={() => router.push(backHome)}
             aria-label="Back to the app"
@@ -226,7 +226,13 @@ export default function LibraryPage() {
           fixed band at top-[4.5rem], and this page has its own header rather
           than the app shell's. Without the clearance the notice lands exactly on
           the first heading. */}
-      <main className="mx-auto max-w-3xl space-y-6 px-4 pb-6 pt-16">
+      {/* WIDTH BY DEVICE, not one width squeezed onto all of them.
+          max-w-3xl is 768px: right for a phone, and on a 1900px desktop it is
+          a phone layout marooned in the middle of the screen with eleven
+          hundred pixels of nothing either side. Reading prose wants a narrow
+          column; a SHELF wants the room it has. This grows in steps, so a
+          tablet gets a tablet's width and a desktop gets a desktop's. */}
+      <main className="mx-auto max-w-3xl space-y-6 px-4 pb-6 pt-16 md:max-w-5xl lg:max-w-6xl xl:max-w-7xl xl:px-8">
         {/* The starter toolkit — the same shelf for every account, Executive to
             anyone exploring. Real published resources, linked to the official free
             source. Beacon hosts none of them. */}
@@ -260,7 +266,11 @@ export default function LibraryPage() {
             })}
           </div>
 
-          <div className="space-y-2">
+          {/* TWO COLUMNS ONCE THERE IS ROOM FOR TWO. A list of forty short
+              cards down a single column is forty screens of scrolling on a
+              monitor that could show eight at a time. `items-start` so a card
+              with a longer description does not stretch its neighbour. */}
+          <div className="grid gap-2 lg:grid-cols-2 lg:items-start xl:gap-3">
             {STARTER_KIT.filter(
               (m) => topic === 'All' || m.topics.includes(topic),
             ).map((m) => {
@@ -379,7 +389,8 @@ export default function LibraryPage() {
             hint="Upload a file or add a link to get started."
           />
         ) : (
-          <div className="space-y-2">
+          // The person's own saved media, same rule as the shelf above.
+          <div className="grid gap-2 lg:grid-cols-2 lg:items-start xl:gap-3">
             {items.map((m) => {
               const url = safeExternalUrl(m.external_url);
               const playable =

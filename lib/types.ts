@@ -66,6 +66,12 @@ export interface Profile {
   recommended_by?: string;
   recommended_at?: string;
   consent_at?: string; // when the seeker accepted the privacy notice
+  /**
+   * When they chose a password and actually arrived, which is what "new" means
+   * to the people meeting them. `created_at` is when a Director typed their
+   * address, and can be weeks earlier.
+   */
+  signup_completed_at?: string | null;
   created_at: string;
 }
 

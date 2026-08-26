@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Role } from '@/lib/types';
 import { roleLabel } from '@/lib/brand';
 import { useRoom, type RoomTheme, type RoomPrefs, inkOn } from '@/lib/room-theme';
+import { PlayerStrip } from '@/components/PlayerBar';
 
 // -------------------------------------------------------------------------
 // The room rails — the workspace either side of the page on a wide screen.
@@ -230,6 +231,12 @@ export function RightRail({
       />
 
       {seeker ? <FocusTimer theme={theme} /> : <TodayCard theme={theme} today={today} />}
+
+      {/* THE PLAYER LIVES IN THE RAIL, on every room, because that is the
+          point of it: something quiet in the background while you work. The
+          audio element is above both this and the library's full player, so
+          moving between rooms never cuts it off. */}
+      <PlayerStrip theme={theme} />
 
     </aside>
   );

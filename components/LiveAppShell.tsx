@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { roleLabel, NAVY } from '@/lib/brand';
 import type { Role } from '@/lib/types';
 import { homeFor, useLiveSession } from '@/lib/live/session';
+import { PlayerProvider } from '@/lib/player';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { Avatar, Button, Card } from '@/components/ui';
 import { LeftRail, RightRail, railGroupsFor } from '@/components/RoomRails';
@@ -145,6 +146,7 @@ export function LiveAppShell({
     //
     // `room-surface` is the same class the tutorial's shell uses, so both now
     // agree on what a theme is: the page, the rails and the panels together.
+    <PlayerProvider>
     <div
       className="room-surface min-h-screen"
       style={{
@@ -277,6 +279,7 @@ export function LiveAppShell({
         Invitation-only. Access is enforced by the church database.
       </footer>
     </div>
+    </PlayerProvider>
   );
 }
 

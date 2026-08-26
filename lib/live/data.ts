@@ -461,6 +461,8 @@ export async function setMemberRole(userId: string, role: Role): Promise<void> {
 export interface PairingView extends Pairing {
   dm_name: string;
   ds_name: string;
+  /** When the Explorer finished signing up, for the "New" badge. */
+  ds_signup_completed_at?: string | null;
   // Carried so the MINOR badge can be drawn wherever a Guide or Director sees
   // this Explorer. Both are already readable here: RLS is row-level, and a
   // Guide may read the whole row of the person they are paired with, as may
@@ -482,10 +484,11 @@ export async function listPairings(): Promise<PairingView[]> {
   const client = db();
   const [{ data: pairs, error }, { data: people }] = await Promise.all([
     client.from('pairings').select('*').order('created_at', { ascending: false }),
-    client.from('profiles').select('id, full_name, birthday, guardian_consent_at'),
+    // signup_completed_at rides along for the "New" badge on a Guide's cards.
+    client.from('profiles').select('id, full_name, birthday, guardian_consent_at, signup_completed_at'),
   ]);
   if (error) throw new Error(error.message);
-  type Row = { id: string; full_name: string | null; birthday: string | null; guardian_consent_at: string | null };
+  type Row = { id: string; full_name: string | null; birthday: string | null; guardian_consent_at: string | null; signup_completed_at: string | null };
   const by = new Map((people ?? []).map((p: Row) => [p.id, p]));
   return (pairs ?? []).map((p: Pairing) => ({
     ...p,
@@ -493,6 +496,7 @@ export async function listPairings(): Promise<PairingView[]> {
     ds_name: by.get(p.ds_id)?.full_name ?? 'Someone',
     ds_birthday: by.get(p.ds_id)?.birthday ?? null,
     ds_guardian_consent_at: by.get(p.ds_id)?.guardian_consent_at ?? null,
+    ds_signup_completed_at: by.get(p.ds_id)?.signup_completed_at ?? null,
   }));
 }
 
