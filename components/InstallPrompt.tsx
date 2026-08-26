@@ -143,6 +143,36 @@ export function isIos(): boolean {
   );
 }
 
+/**
+ * Which browser this is, when it is an iPhone or iPad and NOT Safari.
+ *
+ * THE REPORT THIS EXISTS FOR: "even in Chrome the install button is not
+ * working, and even if they switch to Safari it is not working."
+ *
+ * On iOS, only Safari can add a real app to the home screen. Chrome, Firefox,
+ * Edge and Opera on iPhone are all WebKit underneath, but Apple gives none of
+ * them the Add to Home Screen that produces a standalone app -- at best they
+ * make a bookmark that reopens in that browser. So the steps printed to a
+ * Chrome user said "Tap Share at the bottom of Safari", naming a browser they
+ * were not in, about a control that would not have worked there anyway.
+ *
+ * Empty string means Safari, or not iOS at all, and the ordinary steps apply.
+ *
+ * Checked in this order because each of these browsers keeps "Safari" and
+ * "Version/" in its user agent for compatibility -- testing for Safari first
+ * would match all of them.
+ */
+export function iosBrowser(): string {
+  if (typeof navigator === 'undefined') return '';
+  if (!isIos()) return '';
+  const ua = navigator.userAgent;
+  if (/CriOS/i.test(ua)) return 'Chrome';
+  if (/FxiOS/i.test(ua)) return 'Firefox';
+  if (/EdgiOS/i.test(ua)) return 'Edge';
+  if (/OPiOS|OPT\//i.test(ua)) return 'Opera';
+  return '';
+}
+
 export function isMacSafari(): boolean {
   if (typeof navigator === 'undefined') return false;
   const ua = navigator.userAgent;
@@ -236,6 +266,8 @@ export function InstallPrompt() {
   // browser and the ordinary instructions apply.
   const [inApp, setInApp] = useState('');
   const [shareWhere, setShareWhere] = useState('in Safari');
+  // An iPhone browser that is not Safari, and therefore cannot install at all.
+  const [wrongBrowser, setWrongBrowser] = useState('');
   // Apple has no programmatic install, so "Install now" cannot install. What it
   // CAN do is show exactly which control to press, which is the thing people
   // were failing to find. The button is real and doing this is its job.
@@ -249,6 +281,7 @@ export function InstallPrompt() {
     setDesktop(isDesktop());
     setInApp(inAppBrowser());
     setShareWhere(iosShareLocation());
+    setWrongBrowser(iosBrowser());
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
@@ -328,15 +361,27 @@ export function InstallPrompt() {
   // On iOS nothing but Safari can add an app to the home screen. Printing the
   // Safari steps to somebody sitting in Messenger sends them looking for a
   // button that is not there — which is exactly what was reported.
+  //
+  // A REAL BROWSER THAT IS STILL THE WRONG ONE gets the same shape of answer.
+  // Chrome, Firefox, Edge and Opera on iOS cannot install an app either -- Apple
+  // allows only Safari to -- so naming Safari's Share button to somebody sitting
+  // in Chrome is the same failure as naming it to somebody sitting in Messenger.
+  // The first step has to be leaving.
   const steps = inApp
     ? [
         `Tap the ••• menu at the top of ${inApp}`,
         'Choose “Open in Safari” — or “Open in browser”',
         'Then tap Share, and “Add to Home Screen”',
       ]
-    : manual === 'mac'
-      ? ['Open the Share menu in Safari’s toolbar', 'Choose “Add to Dock”']
-      : [`Tap Share ${shareWhere}`, 'Choose “Add to Home Screen”'];
+    : wrongBrowser
+      ? [
+          `Tap the ••• menu in ${wrongBrowser}`,
+          'Choose “Open in Safari”',
+          'Then tap Share, and “Add to Home Screen”',
+        ]
+      : manual === 'mac'
+        ? ['Open the Share menu in Safari’s toolbar', 'Choose “Add to Dock”']
+        : [`Tap Share ${shareWhere}`, 'Choose “Add to Home Screen”'];
 
   // Desktop: a proper card, bottom-right, impossible to read as a cookie bar.
   if (desktop) {
@@ -353,6 +398,8 @@ export function InstallPrompt() {
               <p className="text-xs text-white/60">
                 {inApp
                   ? `Open in Safari first — ${inApp} cannot install apps`
+                  : wrongBrowser
+                  ? `Open in Safari first — ${wrongBrowser} on iPhone cannot install apps`
                   : manual ? 'Two steps, no app store' : 'One click, no app store'}
               </p>
             </div>

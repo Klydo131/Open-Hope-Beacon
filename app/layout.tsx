@@ -27,6 +27,24 @@ export const metadata: Metadata = {
   applicationName: APP_NAME,
   manifest: '/manifest.webmanifest',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: APP_SHORT_NAME },
+  // THE ONE TAG THAT DECIDES WHETHER AN IPHONE INSTALL IS AN APP OR A BOOKMARK.
+  //
+  // `appleWebApp.capable: true` above no longer emits what its name says. Next
+  // emits the STANDARDISED `mobile-web-app-capable` instead, and Safari has
+  // never read that name -- it reads `apple-mobile-web-app-capable` and nothing
+  // else. Verified against the built HTML rather than the docs: the head
+  // carried `mobile-web-app-capable` and not one Apple-prefixed capable tag.
+  //
+  // WHAT THAT COSTS, and why it reads as "install is broken" rather than as a
+  // missing tag. Without it, Add to Home Screen on an iPhone produces a
+  // BOOKMARK: tapping the icon opens Safari, address bar and all. Nothing
+  // errors. The person did everything right, got an icon, tapped it, and landed
+  // in a browser -- so they report that the install does not work, and they are
+  // describing it accurately.
+  //
+  // Safari 17.4+ reads `display: standalone` from the manifest and behaves
+  // without this. Every iPhone below that -- which on a congregation's phones is
+  // a great many of them -- needs the tag. Emitting both costs nothing.
   // NOINDEX BY DEFAULT, AND THIS IS DELIBERATE.
   //
   // A church deployment holds real people's names and conversations, and a
@@ -51,7 +69,10 @@ export const metadata: Metadata = {
   // When someone reports "it did not update", the first question is which build
   // they are actually running, and asking a person to read a version string off
   // a settings screen is a slow way to find out.
-  other: { 'beacon-build': BUILD_ID },
+  other: {
+    'beacon-build': BUILD_ID,
+    'apple-mobile-web-app-capable': 'yes',
+  },
 };
 
 export const viewport: Viewport = {

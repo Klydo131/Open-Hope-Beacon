@@ -32,7 +32,11 @@ new Function('module', 'exports', js)(mod, mod.exports);
 const { inviteHtml, subjectFor, roleWord } = mod.exports;
 
 const ROLES = ['ds', 'dm', 'admin'];
-const URL_ = 'https://open-hope-beacon.vercel.app/join?token_hash=abc123&type=invite';
+// A NEUTRAL HOST, deliberately. tests/no-backend.js forbids this deployment's
+// hostname anywhere in the tree, because a fork that inherits it inherits a
+// wrong address in a place nobody thinks to look. Any absolute URL proves the
+// same property here.
+const URL_ = 'https://church.example.org/join?token_hash=abc123&type=invite';
 const CHURCH = 'Open Hope Beacon Demo Church';
 
 // ---------------------------------------------------------------------------
@@ -45,7 +49,7 @@ for (const role of ROLES) {
   ok(typeof html === 'string' && html.length > 800, `${role}: renders a real message`);
 
   // The link twice: a button that will not render is a dead end, a URL is not.
-  const hrefs = (html.match(/href="https:\/\/open-hope-beacon[^"]*"/g) || []).length;
+  const hrefs = (html.match(/href="https:\/\/church\.example\.org[^"]*"/g) || []).length;
   ok(hrefs >= 2, `${role}: the join link appears as both a button and copyable text`);
 
   ok(html.includes(CHURCH), `${role}: names the church`);
