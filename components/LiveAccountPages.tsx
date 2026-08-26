@@ -116,6 +116,11 @@ export function LiveProfilePage() {
         </div>
       </div>
 
+      {/* A FACE. The live app had no picture and no icon at all: every member
+          in a real church was a pair of initials, including on the card their
+          Guide opens every week. The tutorial has had both from the start. */}
+      <LiveFacePicker />
+
       <Card className="p-5">
         <h2 className="mb-1 text-xl font-bold text-navy">Profile details</h2>
         <p className="mb-4 text-sm text-gray-500">
@@ -399,5 +404,128 @@ function Field({
       />
       {hint && <span className="mt-1 block text-sm text-gray-400">{hint}</span>}
     </label>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Your picture, or an icon instead of one.
+// ---------------------------------------------------------------------------
+//
+// BOTH, BECAUSE PEOPLE DIFFER. Somebody exploring faith quietly may not want a
+// photograph of themselves in an app their church can see, and initials on a
+// coloured circle is not a choice, it is the absence of one. An icon is a way
+// to be recognisable without being photographed.
+//
+// A photo wins when both are set. Removing the photo falls back to the icon
+// rather than to nothing, so choosing an icon first is never wasted.
+const FACES = ['🙂', '😊', '🧑', '👩', '👨', '🧕', '👵', '👴', '🌱', '✝️', '📖', '🕊️', '🙏', '⭐'];
+
+export function LiveFacePicker() {
+  const { profile, refreshProfile } = useLiveSession();
+  const [url, setUrl] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  // Signed at render time, never stored: a stored signed URL expires and
+  // becomes a broken picture with nothing to explain it.
+  useEffect(() => {
+    let alive = true;
+    void live.avatarUrl(profile?.photo_path).then((u) => { if (alive) setUrl(u); });
+    return () => { alive = false; };
+  }, [profile?.photo_path]);
+
+  if (!profile) return null;
+
+  const act = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    setError('');
+    try { await fn(); await refreshProfile(); }
+    catch (cause) { setError(message(cause)); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <Card className="p-5">
+      <h2 className="mb-1 text-xl font-bold text-navy">Your picture</h2>
+      <p className="mb-4 text-sm text-gray-500">
+        Your Guide and your church&rsquo;s leadership see this. A picture is
+        optional, and an icon is a fine answer.
+      </p>
+
+      {error && <p className="mb-3 rounded-xl bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">{error}</p>}
+
+      <div className="flex flex-wrap items-center gap-4">
+        <Avatar
+          name={profile.full_name || 'Member'}
+          size={72}
+          photo={url || undefined}
+          avatar={profile.avatar}
+        />
+        <div className="flex flex-wrap gap-2">
+          <label className={`tap-sm cursor-pointer rounded-xl bg-gray-100 px-4 py-2 text-sm font-bold text-navy ${busy ? 'opacity-50' : 'hover:bg-gray-200'}`}>
+            📷 Upload photo
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={busy}
+              onChange={(event) => {
+                const input = event.target;
+                const file = input.files?.[0];
+                if (!file) return;
+                // THE RESET COMES AFTER THE UPLOAD, NOT BEFORE IT.
+                //
+                // Clearing the input is what lets somebody pick the same file
+                // twice, and doing it on the line after taking the File aborts
+                // the read on WebKit: Safari and every iPhone browser tie the
+                // File's readable lifetime to the input it came from. It fails
+                // silently, so it looks like the upload button does nothing on
+                // an iPhone and works everywhere else. tests/security-
+                // invariants.mjs fails the build if this order is reversed.
+                void act(async () => {
+                  try {
+                    const path = await live.uploadAvatar(file);
+                    await live.updateMyProfile({ photo_path: path });
+                  } finally {
+                    input.value = '';
+                  }
+                });
+              }}
+            />
+          </label>
+          {profile.photo_path && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void act(() => live.updateMyProfile({ photo_path: null }))}
+              className="tap-sm rounded-xl px-3 py-2 text-sm font-semibold text-gray-500 underline"
+            >
+              Remove photo
+            </button>
+          )}
+        </div>
+      </div>
+
+      <p className="mt-4 text-sm text-gray-500">…or choose an icon</p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {FACES.map((face) => (
+          <button
+            key={face}
+            type="button"
+            disabled={busy}
+            aria-label={`Use ${face} as your icon`}
+            aria-pressed={profile.avatar === face}
+            onClick={() => void act(() => live.updateMyProfile({ avatar: face }))}
+            className={`grid h-11 w-11 place-items-center rounded-full text-xl ring-1 transition ${
+              profile.avatar === face
+                ? 'bg-navy/10 ring-navy'
+                : 'bg-gray-50 ring-black/10 hover:bg-gray-100'
+            }`}
+          >
+            {face}
+          </button>
+        ))}
+      </div>
+    </Card>
   );
 }

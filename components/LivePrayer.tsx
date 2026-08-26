@@ -53,7 +53,6 @@ function Err({ msg }: { msg: string }) {
 export function LiveAskForPrayer() {
   const [mine, setMine] = useState<live.PrayerRequestRow[] | null>(null);
   const [body, setBody] = useState('');
-  const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -67,8 +66,8 @@ export function LiveAskForPrayer() {
     if (!body.trim() || busy) return;
     setBusy(true); setError('');
     try {
-      await live.addPrayerRequest(body, share);
-      setBody(''); setShare(false);
+      await live.addPrayerRequest(body, false);
+      setBody('');
       await load();
     } catch (cause) { setError(message(cause)); }
     finally { setBusy(false); }
@@ -78,7 +77,7 @@ export function LiveAskForPrayer() {
     <Card className="p-5">
       <h2 className="text-xl font-bold text-navy">🙏 Ask for prayer</h2>
       <p className="mt-1 text-sm text-gray-500">
-        Your Guide sees this. The church only sees it if you say so, and never your name.
+        This goes to the Guide walking with you, and to nobody else.
       </p>
       <Err msg={error} />
 
@@ -89,12 +88,14 @@ export function LiveAskForPrayer() {
         placeholder="What would you like prayer for?"
         className="mt-3 w-full rounded-xl border border-gray-300 px-3 py-2"
       />
-      {/* Off by default. Sharing something private with a congregation is a
-          choice somebody makes, never a default they failed to notice. */}
-      <label className="mt-2 flex items-start gap-2 text-sm text-gray-700">
-        <input type="checkbox" checked={share} onChange={(e) => setShare(e.target.checked)} className="mt-1" />
-        Also share this with the church, without my name
-      </label>
+      {/* THE CHOICE TO BROADCAST IS GONE, and the request now goes to one
+          person: the Guide walking with them.
+
+          Anonymous is not the same as private. A congregation of forty reading
+          "please pray for my marriage" can usually work out who wrote it, and
+          the person who ticked the box was told only that their name would not
+          be shown. Somebody exploring faith should be able to ask for prayer
+          without weighing that up first. */}
       <div className="mt-3">
         <Button onClick={submit} disabled={!body.trim() || busy}>Ask</Button>
       </div>
@@ -111,9 +112,6 @@ export function LiveAskForPrayer() {
               <Chip status={r.status} />
             </div>
             <div className="mt-2 flex items-center gap-3">
-              {r.share_with_church && (
-                <span className="text-[11px] font-semibold text-gray-400">ON THE CHURCH WALL</span>
-              )}
               <span className="flex-1" />
               <button
                 onClick={async () => {
@@ -169,12 +167,6 @@ export function LivePrayerForGuide({
   }, [onlyFor]);
   useEffect(() => { void load(); }, [load]);
 
-  const move = async (id: string, status: live.PrayerStatus) => {
-    setError('');
-    try { await live.setPrayerStatus(id, status); await load(); }
-    catch (cause) { setError(message(cause)); }
-  };
-
   if (rows !== null && rows.length === 0 && !error) return null;
 
   return (
@@ -193,21 +185,14 @@ export function LivePrayerForGuide({
                 <p className="text-sm font-semibold text-navy">{nameFor?.(r.ds_id) ?? 'An Explorer'}</p>
                 <p className="mt-0.5 text-sm text-gray-700">{r.body}</p>
               </div>
-              <Chip status={r.status} />
             </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {(['open', 'praying', 'answered'] as live.PrayerStatus[])
-                .filter((s) => s !== r.status)
-                .map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => move(r.id, s)}
-                    className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy ring-1 ring-black/10"
-                  >
-                    Mark {STATUS[s].label.toLowerCase()}
-                  </button>
-                ))}
-            </div>
+            {/* THE STATUS BUTTONS ARE GONE, AND THAT IS THE POINT.
+                "Mark praying" and "Mark answered" asked a Guide to file
+                somebody's mother's illness under a workflow state. Prayer is
+                not a ticket queue, and a request sitting on "open" made it look
+                like one that had been ignored. What a Guide does with this is
+                pray, and then talk to the person in the conversation directly
+                above. */}
           </div>
         ))}
       </div>

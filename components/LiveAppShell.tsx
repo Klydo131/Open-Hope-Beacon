@@ -12,7 +12,6 @@ import { LeftRail, RightRail, railGroupsFor } from '@/components/RoomRails';
 import { useRoom } from '@/lib/room-theme';
 import { LiveBell } from '@/components/LiveBell';
 import { ModeSwitch } from '@/components/ModeSwitch';
-import { InstallChip } from '@/components/InstallChip';
 
 /** One header link. Icon on a phone, icon and word once there is room. */
 /**
@@ -157,7 +156,6 @@ export function LiveAppShell({
 
           <ModeSwitch onDark />
           <LiveBell />
-          <InstallChip onDark />
 
           <div className="hidden min-w-0 text-right sm:block">
             <p className="max-w-48 truncate text-sm font-semibold">{profile.full_name}</p>

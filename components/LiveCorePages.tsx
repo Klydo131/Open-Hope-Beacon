@@ -18,13 +18,15 @@ import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { useTutorialMode } from '@/lib/tutorial';
 import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
-import { LiveAskForPrayer, LivePrayerForGuide, LivePrayerWall } from '@/components/LivePrayer';
+import { LiveAskForPrayer, LivePrayerForGuide } from '@/components/LivePrayer';
+import { LiveMeetings } from '@/components/LiveMeetings';
+import { InstallHomeButton } from '@/components/InstallHomeButton';
 import { MessageBox } from '@/components/MessageBox';
 import { useDraft, clearDraft } from '@/lib/drafts';
 import { Linked } from '@/components/Linked';
 import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
-import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveLessonSeries } from '@/components/LiveMinistry';
+import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveLessonSeries, LiveNotes } from '@/components/LiveMinistry';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -129,6 +131,15 @@ export function LiveHomePage() {
             Runs entirely in this browser. No account, no database, nothing sent
             anywhere, and nothing you do there can touch a church's real data.
           </p>
+        </div>
+
+        {/* INSTALL, AT THE BOTTOM OF THE FRONT DOOR.
+            It used to be a chip in the signed-in header, which meant the one
+            group who most need it -- somebody who has just opened the link
+            their church sent and has not signed in yet -- never saw it at all.
+            It is also in Settings, for people already inside. */}
+        <div className="mt-10 w-full max-w-sm">
+          <InstallHomeButton />
         </div>
 
         <a
@@ -1800,7 +1811,6 @@ export function LiveAdminPage() {
             cannot see the prayer" — when it was the design working. */}
         {room === 'approvals' && <LiveRecommendationsForDirector />}
         {room === 'lessons' && <LiveLessonSeries manage />}
-        {room === 'church' && <LivePrayerWall />}
         {room === 'church' && <LiveBoardReport churchName={church?.name} />}
       </div>
     </LiveAppShell>
@@ -1902,7 +1912,6 @@ export function LiveGuidePage() {
           rest of the church sees. Both, because a Guide is also a member. */}
       <div className="mt-6 space-y-6">
         <LivePrayerForGuide nameFor={(id) => rows.find((r) => r.ds_id === id)?.ds_name ?? 'An Explorer'} />
-        <LivePrayerWall />
       </div>
 
       {/* Last on the page on purpose: the people waiting on this Guide come
@@ -2135,6 +2144,10 @@ export function LiveConversationPage() {
             subjectName={pairing.ds_name}
             pairingId={pairing.id}
           />
+          {/* The same card the Explorer sees, showing the same meetings. One
+              diary between two people, not two lists that can disagree. */}
+          <LiveMeetings pairingId={pairing.id} withName={pairing.ds_name} />
+          <LiveNotes pairingId={pairing.id} />
         </div>
       )}
     </LiveAppShell>
@@ -2282,11 +2295,15 @@ export function LiveExplorerPage() {
         {/* Below the conversation, because a message addressed to you matters
             more than one addressed to everybody. Renders nothing at all when
             there is nothing to read, rather than an empty card. */}
+        {/* ARRANGING A TIME IS PART OF THE RELATIONSHIP, so it sits with the
+            conversation rather than in a menu. Both people see the same card
+            and either may propose; migration 0009's policies were written for
+            exactly that and nothing had ever called them. */}
+        {pairing && <LiveMeetings pairingId={pairing.id} withName={pairing.dm_name} />}
         <LiveSharedWithMe />
         <LiveLessonSeries />
         <LiveBlogFeed selfId={profile?.id} />
         <LiveAskForPrayer />
-        <LivePrayerWall />
       </div>
     </LiveAppShell>
   );

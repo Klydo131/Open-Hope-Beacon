@@ -50,6 +50,13 @@ export interface Profile {
   suspended_reason?: string | null;
   avatar?: string; // chosen preset (emoji)
   photo?: string; // uploaded picture as a data URL (on-device in the demo)
+  /**
+   * LIVE ONLY: the object path of an uploaded picture, inside the shared
+   * bucket under avatars/<user id>/. The demo keeps its picture in `photo` as
+   * a data URL because it has no server; live stores a path and signs it at
+   * render time, since a stored signed URL expires and becomes a broken face.
+   */
+  photo_path?: string | null;
   is_approved: boolean;
   // A missionary who vouched for this sign-up to the admin. It is a note on the
   // approval card, not a gate: the admin decides alone. (This used to be

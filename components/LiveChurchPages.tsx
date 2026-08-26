@@ -20,7 +20,6 @@ import { roleNoun } from '@/lib/brand';
 import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
-import { LivePrayerWall } from '@/components/LivePrayer';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Something went wrong. Please try again.';
@@ -52,7 +51,6 @@ export function LiveChurchPage() {
         <p className="text-gray-500">Where everyone is, and what the church is praying for.</p>
       </div>
       <LiveChurchOverview />
-      <LivePrayerWall />
       {/* The board report is numbers only, and it names nobody — so it is safe
           for every role to see, not just leadership. A Guide who can see what
           their church reports upward is a Guide who trusts the reporting. */}

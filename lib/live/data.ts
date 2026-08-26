@@ -183,6 +183,10 @@ export async function updateMyProfile(patch: Partial<Profile>): Promise<void> {
     city_of_residence: patch.city_of_residence,
     work_industry: patch.work_industry,
     consent_at: patch.consent_at,
+    // A face. Not privileged: unlike role or guardian consent these are yours
+    // to change, and a member editing their own picture is the whole point.
+    avatar: patch.avatar,
+    photo_path: patch.photo_path,
   };
   for (const k of Object.keys(safe) as (keyof typeof safe)[]) {
     if (safe[k] === undefined) delete safe[k];
@@ -1083,6 +1087,134 @@ export async function shareMaterial(materialId: string, pairingId: string, note?
 /** Unshare. Only whoever shared it may take it back. */
 export async function unshareMaterial(shareId: string): Promise<void> {
   const { error } = await db().from('material_shares').delete().eq('id', shareId);
+  if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
+// A face to put to the name.
+// ---------------------------------------------------------------------------
+//
+// The bucket is the one conversation attachments already use, under an
+// avatars/ prefix with its own policies: anybody signed in may READ a face
+// (a Director reading a roster needs to), and you may only ever WRITE inside
+// your own folder.
+//
+// THE PATH IS STORED, NEVER A URL. A signed URL expires, so a stored one is a
+// picture that stops working after an hour with nothing to say why.
+
+const AVATAR_BUCKET = 'pairing-media';
+
+/** Upload a picture and return the path to store on the profile. */
+export async function uploadAvatar(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('That is not a picture.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('That picture is over 5 MB. Try a smaller one.');
+  const me = await uid();
+  // The extension is taken from the MIME type, never from the filename, which
+  // is attacker-controlled text that happens to be shown to people.
+  const ext = file.type.split('/')[1]?.replace(/[^a-z0-9]/gi, '').slice(0, 5) || 'jpg';
+  const path = `avatars/${me}/${Date.now()}.${ext}`;
+  const { error } = await db().storage.from(AVATAR_BUCKET)
+    .upload(path, file, { upsert: true, contentType: file.type });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+/**
+ * A URL that will load for the next hour, or '' when there is no picture.
+ * Called at render time rather than stored, for the reason above.
+ */
+export async function avatarUrl(path: string | null | undefined): Promise<string> {
+  if (!path) return '';
+  const { data } = await db().storage.from(AVATAR_BUCKET).createSignedUrl(path, 60 * 60);
+  return data?.signedUrl ?? '';
+}
+
+// ---------------------------------------------------------------------------
+// Meetings, for the two people in a pairing.
+// ---------------------------------------------------------------------------
+//
+// THE TABLE HAS BEEN IN THE LIVE DATABASE SINCE MIGRATION 0009 AND NOTHING EVER
+// CALLED IT. The tutorial has had a booking card the whole time; the live app
+// shipped with a private checklist instead, which is a different thing
+// answering a different need. A Guide could remind themselves to call somebody
+// and could not agree a time with them.
+//
+// Nothing new is needed in the database. The policies were already written for
+// exactly this: both people in the pairing may read, create, edit and cancel,
+// and nobody else can see any of it. `in_pairing` is what enforces that, so
+// the Explorer is a full participant here rather than a spectator.
+
+export type MeetingMode = 'online' | 'in_person';
+export type MeetingStatus = 'proposed' | 'confirmed' | 'cancelled' | 'done';
+
+export interface Meeting {
+  id: string;
+  pairing_id: string;
+  title: string;
+  starts_at: string;
+  mode: MeetingMode;
+  location: string | null;
+  notes: string | null;
+  status: MeetingStatus;
+  created_by: string;
+}
+
+/** Everything arranged for this pairing, soonest first. */
+export async function listMeetings(pairingId: string): Promise<Meeting[]> {
+  const { data, error } = await db()
+    .from('meetings')
+    .select('id, pairing_id, title, starts_at, mode, location, notes, status, created_by')
+    .eq('pairing_id', pairingId)
+    .order('starts_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Meeting[];
+}
+
+/**
+ * Propose a time. Either person may, which is the point: an Explorer who can
+ * only ever be summoned is not walking alongside anybody.
+ *
+ * church_id is read from the caller's own profile rather than passed in, because
+ * the insert policy checks it against my_church_id() and a value from the
+ * browser would only ever be a way to get it wrong.
+ */
+export async function scheduleMeeting(
+  pairingId: string,
+  meeting: { title: string; startsAt: string; mode: MeetingMode; location?: string; notes?: string },
+): Promise<void> {
+  const me = await uid();
+  const { data: profile } = await db()
+    .from('profiles').select('church_id').eq('id', me).maybeSingle();
+  const church = (profile as { church_id?: string } | null)?.church_id;
+  if (!church) throw new Error('You are not in a church yet.');
+
+  const { error } = await db().from('meetings').insert({
+    pairing_id: pairingId,
+    church_id: church,
+    title: meeting.title.trim() || 'Study time',
+    starts_at: meeting.startsAt,
+    mode: meeting.mode,
+    // An empty string is not a place. Stored as null so the map link and the
+    // "where" line can both simply test for absence.
+    location: meeting.mode === 'in_person' ? (meeting.location || '').trim() || null : null,
+    notes: (meeting.notes || '').trim() || null,
+    created_by: me,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** Confirm a proposed time. The other person agreeing is what makes it real. */
+export async function confirmMeeting(id: string): Promise<void> {
+  const { error } = await db().from('meetings').update({ status: 'confirmed' }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Cancel rather than delete. Somebody who arranged their afternoon around this
+ * should see that it was called off, not find that it silently never existed.
+ */
+export async function cancelMeeting(id: string): Promise<void> {
+  const { error } = await db().from('meetings').update({ status: 'cancelled' }).eq('id', id);
   if (error) throw new Error(error.message);
 }
 
