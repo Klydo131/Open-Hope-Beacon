@@ -81,38 +81,53 @@ export function LiveBell() {
               </button>
             )}
           </div>
-          {/* THE ON AND OFF, RIGHT HERE. */}
-          <label className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-2.5">
-            <span className="text-sm font-semibold text-navy">Alerts in the app</span>
-            <input
-              type="checkbox"
-              role="switch"
-              checked={alerts}
-              onChange={(e) => flip(e.target.checked)}
-              aria-label="Show alerts in the app"
-              className="h-5 w-5 shrink-0"
-            />
+          {/* THE ON AND OFF, RIGHT HERE, AS A SWITCH.
+              A bare checkbox reads as a form field somebody has to submit. A
+              switch reads as a thing that is already on or already off, which
+              is what this is: it takes effect the moment it moves. */}
+          <label className="mt-2 flex cursor-pointer items-center justify-between gap-3 border-t border-black/5 pt-3">
+            <span className="text-sm font-semibold text-navy">In-app notifications</span>
+            <span className="relative inline-flex shrink-0">
+              <input
+                type="checkbox"
+                role="switch"
+                checked={alerts}
+                onChange={(e) => flip(e.target.checked)}
+                aria-label="In-app notifications"
+                className="peer sr-only"
+              />
+              {/* The track. Green when on, because that is the one colour
+                  everybody already reads as "this is running". */}
+              <span
+                aria-hidden
+                className="block h-6 w-11 rounded-full bg-gray-300 transition-colors peer-checked:bg-green-500 peer-focus-visible:ring-2 peer-focus-visible:ring-navy peer-focus-visible:ring-offset-2"
+              />
+              {/* The knob. */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"
+              />
+            </span>
           </label>
 
           {/* Device alerts are the browser's to grant, not ours. Asking is the
               only thing a page may do, and once refused it may not ask again,
               so that state says where to go instead of offering a dead button. */}
           {typeof Notification !== 'undefined' && perm !== 'granted' && (
-            <div className="mt-1.5 rounded-xl bg-gray-50 p-2.5">
-              {perm === 'denied' ? (
-                <p className="text-xs text-gray-600">
-                  Alerts on this device are blocked by your browser. Open the padlock
-                  beside the address to allow them.
-                </p>
-              ) : (
-                <button
-                  onClick={askDevice}
-                  className="text-sm font-semibold text-navy underline underline-offset-2"
-                >
-                  Also alert me on this device
-                </button>
-              )}
-            </div>
+            perm === 'denied' ? (
+              <p className="mt-2 rounded-xl bg-gray-50 p-2.5 text-xs text-gray-600">
+                Alerts on this device are blocked by your browser. Open the padlock
+                beside the address to allow them.
+              </p>
+            ) : (
+              <button
+                onClick={askDevice}
+                className="tap mt-2 w-full rounded-xl px-4 text-sm font-bold text-white"
+                style={{ backgroundColor: '#1E2A4A' }}
+              >
+                Turn on device alerts
+              </button>
+            )
           )}
 
           <div className="mt-2 max-h-80 space-y-1 overflow-y-auto">

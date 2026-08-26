@@ -19,10 +19,21 @@ import { ModeSwitch } from '@/components/ModeSwitch';
  * up, and on their own scrolling row below it. Two hand-maintained copies of
  * the same list is how one of them ends up missing a page.
  */
-const SECTIONS = (_role: Role) => [
+// MAIL IS FOR LEADERSHIP ONLY, and it used to be for everybody.
+//
+// /mail is the Invitations screen: who has been invited, who is still on the
+// doorstep, and the button to send their link again. A Guide or an Explorer
+// has none of that, so the page rendered a card telling them there was nothing
+// for them to read. That is a navigation item whose entire content is an
+// apology for existing, on every screen, for most of the church.
+//
+// The route still refuses them on its own; this only stops advertising it.
+const SECTIONS = (role: Role) => [
   { href: '/church',   icon: '⛪', label: 'Church' },
   { href: '/library',  icon: '📚', label: 'Library' },
-  { href: '/mail',     icon: '✉️', label: 'Mail' },
+  ...(role === 'admin' || role === 'executive'
+    ? [{ href: '/mail', icon: '✉️', label: 'Mail' }]
+    : []),
   { href: '/profile',  icon: '🙂', label: 'Profile' },
   { href: '/settings', icon: '⚙️', label: 'Settings' },
 ];
@@ -115,7 +126,12 @@ export function LiveAppShell({
 
   if (!allow.includes(profile.role)) return null;
 
-  const groups = railGroupsFor(profile.role, {});
+  // `{}` meant mail: undefined, which the rail reads as "not true" only by
+  // accident of the default. Said explicitly, and for the same reason as
+  // SECTIONS above: /mail is the Invitations screen, and a Guide or an
+  // Explorer opening it got a card explaining there was nothing there.
+  const leadsChurch = profile.role === 'admin' || profile.role === 'executive';
+  const groups = railGroupsFor(profile.role, {}, { mail: leadsChurch });
   const today: { label: string; value: string }[] = [];
 
   return (

@@ -14,6 +14,7 @@
 // link to hand over when the email did not make it.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { copyText } from '@/lib/share';
 import { Button, Card } from '@/components/ui';
 import { roleNoun } from '@/lib/brand';
@@ -136,14 +137,15 @@ export function LiveMailPage() {
 
   const leads = profile.role === 'admin' || profile.role === 'executive';
   if (!leads) {
+    // NOT AN EMPTY CARD. This screen is the Invitations list, which a Guide or
+    // an Explorer has no part in, and what stood here was a card whose entire
+    // content explained why it was empty. The navigation no longer offers it
+    // to them; anybody who arrives by an old link or a bookmark goes home
+    // rather than reading an apology.
     return (
-      <Card className="p-6">
-        <h1 className="text-2xl font-extrabold text-navy">Mail</h1>
-        <p className="mt-2 text-gray-600">
-          Hope Beacon sends real email. Invitations and password resets go to
-          your own inbox, not to a page inside the app. There is nothing for you
-          to read here.
-        </p>
+      <Card className="p-6 text-center">
+        <p className="text-gray-600">Taking you back to your church.</p>
+        <RedirectHome />
       </Card>
     );
   }
@@ -373,4 +375,18 @@ export function LiveMailPage() {
       </Card>
     </div>
   );
+}
+
+/**
+ * Send somebody away from a screen that is not theirs.
+ *
+ * A component rather than an effect in the page, because the redirect has to
+ * happen after the role is known and React will not let a hook run
+ * conditionally. `replace` rather than `push`: Back should return them to where
+ * they came from, not to the screen that just turned them away.
+ */
+function RedirectHome() {
+  const router = useRouter();
+  useEffect(() => { router.replace('/church'); }, [router]);
+  return null;
 }
