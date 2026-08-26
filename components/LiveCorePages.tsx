@@ -6,14 +6,14 @@ import { MinorBadge } from '@/components/MinorBadge';
 import { copyText } from '@/lib/share';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NAVY, roleNoun, stageInfo, previousStage, STAGES } from '@/lib/brand';
+import { NAVY, roleNoun, stageInfo, previousStage, STAGES, nextStage } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { LiveReportControl, LiveReportsForDirector } from '@/components/LiveSafeguarding';
 import { LiveTrialRoom, LiveCourt } from '@/components/LiveTrialRoom';
 import { LiveGuilds, LiveChurchPulse } from '@/components/LiveGuilds';
 import { clearBrowserSession, saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
-import type { Message, Profile, Role } from '@/lib/types';
+import type { Message, Profile, Role, Stage } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { useTutorialMode } from '@/lib/tutorial';
@@ -33,7 +33,8 @@ import { LiveExport } from '@/components/LiveExport';
 import { LiveAnalytics } from '@/components/LiveAnalytics';
 import { NewBadge } from '@/components/NewBadge';
 import { BeaconSpinner } from '@/components/BeaconLoader';
-import { Avatar, Button, Card } from '@/components/ui';
+import { Avatar, Button, Card, Tabs } from '@/components/ui';
+import { JourneyPath } from '@/components/JourneyPath';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 const errorText = (cause: unknown) =>
@@ -1876,6 +1877,20 @@ export function LiveAdminPage() {
   );
 }
 
+/**
+ * Morning, afternoon or evening, by the reader's own clock.
+ *
+ * Local time deliberately: a Guide in Manila opening this at eight in the
+ * evening should not be told good morning because a server in another
+ * hemisphere thinks it is.
+ */
+function greeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export function LiveGuidePage() {
   const { profile } = useLiveSession();
   const [rows, setRows] = useState<live.PairingView[]>([]);
@@ -1912,8 +1927,21 @@ export function LiveGuidePage() {
 
   return (
     <LiveAppShell allow={['dm']}>
-      <h1 className="text-3xl font-extrabold text-room">My Explorers</h1>
-      <p className="mt-1 text-room-soft">Only people paired with you appear here.</p>
+      {/* GREETED BY NAME, AND TOLD THE ONE NUMBER THAT MATTERS.
+          The heading was "My Explorers" over "Only people paired with you
+          appear here", which is a label and a disclaimer: it says what the page
+          is called and what it is not. The tutorial has opened on a greeting
+          and a count since it was written, and a Guide trained there signed in
+          to something colder and less informative. The count is the number the
+          whole design turns on. */}
+      <h1 className="text-3xl font-extrabold text-room">
+        {greeting()}{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}
+      </h1>
+      <p className="mt-1 text-room-soft">
+        {rows.length === 0
+          ? 'Nobody is paired with you yet. Your Director arranges that.'
+          : `You are walking with ${rows.length} ${rows.length === 1 ? 'person' : 'people'}.`}
+      </p>
       {error && <div className="mt-5"><Notice tone="error">{error}</Notice></div>}
 
       {/* HOW MANY, AT WHAT LEVEL, AND HOW MANY HAVE FINISHED.
@@ -2080,7 +2108,18 @@ function DetailChanges({ personId, firstName }: { personId: string; firstName: s
   );
 }
 
+/**
+ * The five rooms of one relationship.
+ *
+ * Talk is first because it is what a Guide opens this screen to do. Care
+ * carries a count, because a prayer request waiting is the one thing here that
+ * is asking something of them and a silent tab is how it got missed before.
+ */
+type GuideTab = 'talk' | 'journey' | 'care' | 'lessons' | 'resources';
+
 export function LiveConversationPage() {
+  const [tab, setTab] = useState<GuideTab>('talk');
+  const [prayerWaiting, setPrayerWaiting] = useState(0);
   const params = useParams();
   const pairingId = String(params.id);
   const { profile } = useLiveSession();
@@ -2103,10 +2142,27 @@ export function LiveConversationPage() {
         // storage is misconfigured must still be able to talk.
         live.listPairingFiles(pairingId).catch(() => [] as live.PairingFile[]),
       ]);
-      setPairing(pairs.find((pair) => pair.id === pairingId) ?? null);
+      const mine = pairs.find((pair) => pair.id === pairingId) ?? null;
+      setPairing(mine);
       setMessages(nextMessages);
       setFiles(nextFiles);
       await live.markRead(pairingId);
+
+      // THE COUNT ON THE CARE TAB. Without it the tab is silent about a
+      // request waiting, and a silent tab is exactly how prayer requests went
+      // unanswered when they were merely further down the page. Failing to
+      // load it must never take the conversation down, so it is caught and the
+      // badge simply does not draw.
+      if (mine) {
+        try {
+          const requests = await live.listPrayerRequests();
+          setPrayerWaiting(
+            requests.filter((r) => r.status === 'open' && r.ds_id === mine.ds_id).length,
+          );
+        } catch {
+          setPrayerWaiting(0);
+        }
+      }
     } catch (cause) {
       setError(errorText(cause));
     }
@@ -2217,62 +2273,150 @@ export function LiveConversationPage() {
                 </div>
                 <p className="text-sm text-gray-500">Private conversation</p>
               </div>
-              <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-navy">{stageInfo(pairing.journey_stage).label}</span>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => void advance()} disabled={busy || pairing.journey_stage === 'commission'}>Advance stage</Button>
-                {/* Only where there is somewhere to go back to. */}
-                {previousStage(pairing.journey_stage) && (
-                  <Button variant="ghost" onClick={() => void stepBack()} disabled={busy}>
-                    Undo, step back
-                  </Button>
-                )}
+              {/* THE STAGE, READ ONLY, HERE. The buttons that change it moved
+                  to the Journey tab, where the six steps are drawn and the
+                  change is in front of the thing it changes. Two Advance
+                  buttons on one screen is one too many, and the one at the top
+                  changed a stage the Guide could not see. */}
+              <div className="shrink-0 text-right">
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-navy">
+                  Step {stageInfo(pairing.journey_stage).label}
+                </span>
+                <p className="mt-1 text-sm font-semibold capitalize text-blue-700">
+                  {pairing.track} track
+                </p>
               </div>
             </div>
           </Card>
           {error && <Notice tone="error">{error}</Notice>}
-          {/* THE PRAYER REQUESTS, HERE, not only on the dashboard.
-              Asking for prayer is the most exposed thing an Explorer does in
-              this app, and the answer to it was one screen away from where the
-              Guide actually sits. Somebody wrote what they needed prayer for,
-              their Guide replied to messages all evening on a phone, and never
-              saw it -- which came back as "the Guide cannot see prayer
-              requests". The row was always there and always readable; it was
-              just never in front of them. */}
-          <LivePrayerForGuide
-            onlyFor={pairing.ds_id}
-            nameFor={() => pairing.ds_name}
-            heading={`What ${pairing.ds_name.split(' ')[0]} has asked prayer for`}
+
+          {/* TABS, THE SAME FIVE THE TUTORIAL HAS TAUGHT ALL ALONG.
+              The tutorial's version of this screen has had Talk, Journey, Care
+              and Resources since it was written; live it was one long scroll,
+              so a Guide who learned the job in the demo signed in and found the
+              screen they were trained on did not exist. Everything below was
+              already here. Nothing is added and nothing is hidden that was not
+              already several screens down. */}
+          <Tabs<GuideTab>
+            tabs={[
+              { key: 'talk', label: 'Talk', icon: '💬' },
+              { key: 'journey', label: 'Journey', icon: '🎯' },
+              { key: 'care', label: 'Care', icon: '🙌', badge: prayerWaiting || undefined },
+              { key: 'lessons', label: 'Lessons', icon: '📖' },
+              { key: 'resources', label: 'Resources', icon: '📚' },
+            ]}
+            active={tab}
+            onChange={setTab}
           />
 
-          <DetailChanges
-            personId={pairing.ds_id}
-            firstName={pairing.ds_name.split(' ')[0]}
-          />
+          {tab === 'talk' && (
+            <>
+              <Conversation
+                messages={messages}
+                files={files}
+                myId={profile?.id ?? ''}
+                body={body}
+                setBody={setBody}
+                send={send}
+                busy={busy}
+                onAttach={(chosen) => void attach(chosen)}
+                onRemoveFile={(file) => void dropFile(file)}
+                attachError={attachError}
+              />
+              {/* Reporting runs BOTH ways. A Guide receiving something they
+                  should not have received needs this as much as an Explorer
+                  does, and a route only the junior party can use is one nobody
+                  uses. It stays with the conversation it is about. */}
+              <LiveReportControl
+                subjectId={pairing.ds_id}
+                subjectName={pairing.ds_name}
+                pairingId={pairing.id}
+              />
+            </>
+          )}
 
-          <Conversation
-            messages={messages}
-            files={files}
-            myId={profile?.id ?? ''}
-            body={body}
-            setBody={setBody}
-            send={send}
-            busy={busy}
-            onAttach={(chosen) => void attach(chosen)}
-            onRemoveFile={(file) => void dropFile(file)}
-            attachError={attachError}
-          />
-          {/* Reporting runs BOTH ways. A Guide receiving something they should
-              not have received needs this as much as an Explorer does, and a
-              route only the junior party can use is one nobody uses. */}
-          <LiveReportControl
-            subjectId={pairing.ds_id}
-            subjectName={pairing.ds_name}
-            pairingId={pairing.id}
-          />
-          {/* The same card the Explorer sees, showing the same meetings. One
-              diary between two people, not two lists that can disagree. */}
-          <LiveMeetings pairingId={pairing.id} withName={pairing.ds_name} />
-          <LiveNotes pairingId={pairing.id} />
+          {tab === 'journey' && (
+            <>
+              {/* THE SIX STEPS, DRAWN, and the move to the next one under them.
+                  The stage was a word in a pill at the top of the page and the
+                  button that changes it sat beside it, which tells a Guide what
+                  the stage is called and nothing about where it sits in a
+                  journey. The tutorial has drawn the path since it was written.
+                  Same component, so the demo and the live app cannot drift.
+
+                  THE EXPLORER NEVER SEES THIS. Their own screen says nothing
+                  about their stage, on purpose: the journey is a relationship,
+                  not a score, and a person who can watch their own progress bar
+                  starts performing for it. */}
+              <Card className="p-5">
+                <h2 className="text-xl font-bold text-navy">Journey</h2>
+                <div className="mt-4">
+                  <JourneyPath current={pairing.journey_stage as Stage} />
+                </div>
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <Button
+                    variant="gold"
+                    onClick={() => void advance()}
+                    disabled={busy || pairing.journey_stage === 'commission'}
+                  >
+                    {pairing.journey_stage === 'commission'
+                      ? 'Journey complete'
+                      : `Advance to ${stageInfo(nextStage(pairing.journey_stage) ?? 'commission').label} →`}
+                  </Button>
+                  {/* Only where there is somewhere to go back to. Advancing is
+                      one tap and taps go wrong; the correction is recorded
+                      rather than erased, so the history stays honest. */}
+                  {previousStage(pairing.journey_stage) && (
+                    <Button variant="ghost" onClick={() => void stepBack()} disabled={busy}>
+                      Undo, step back
+                    </Button>
+                  )}
+                  <p className="text-sm text-gray-500">
+                    {pairing.journey_stage === 'commission'
+                      ? `${pairing.ds_name.split(' ')[0]} has walked the whole journey.`
+                      : `This is recorded in ${pairing.ds_name.split(' ')[0]}'s journey history.`}
+                  </p>
+                </div>
+              </Card>
+
+              {/* The same card the Explorer sees, showing the same meetings.
+                  One diary between two people, not two lists that can
+                  disagree. */}
+              <LiveMeetings pairingId={pairing.id} withName={pairing.ds_name} />
+              <DetailChanges
+                personId={pairing.ds_id}
+                firstName={pairing.ds_name.split(' ')[0]}
+              />
+            </>
+          )}
+
+          {tab === 'care' && (
+            <>
+              {/* THE PRAYER REQUESTS. Asking for prayer is the most exposed
+                  thing an Explorer does in this app, and the answer to it used
+                  to be one screen away from where the Guide actually sits.
+                  Somebody wrote what they needed prayer for, their Guide
+                  replied to messages all evening on a phone, and never saw it,
+                  which came back as "the Guide cannot see prayer requests". The
+                  row was always there and always readable; it was just never in
+                  front of them. The tab carries a count so it is never silent
+                  about one waiting. */}
+              <LivePrayerForGuide
+                onlyFor={pairing.ds_id}
+                nameFor={() => pairing.ds_name}
+                heading={`What ${pairing.ds_name.split(' ')[0]} has asked prayer for`}
+              />
+              <LiveNotes pairingId={pairing.id} />
+            </>
+          )}
+
+          {tab === 'lessons' && <LiveStudies />}
+
+          {tab === 'resources' && (
+            <LiveLibraryForGuide
+              pairings={[{ id: pairing.id, ds_name: pairing.ds_name }]}
+            />
+          )}
         </div>
       )}
     </LiveAppShell>
