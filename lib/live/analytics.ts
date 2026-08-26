@@ -1,145 +1,295 @@
 'use client';
 
-// What a church can actually measure about itself.
+// What a church can actually measure about itself, for a Director on a Tuesday.
 //
-// FOUR SERIES, AND NOT MORE. A pastor opening this on a Tuesday morning is
-// asking a small number of questions: are people joining, are they being
-// paired, are they moving, are we meeting. Every extra line is one more thing
-// to interpret and one more chance to read the wrong one.
+// TWO QUESTIONS, AND THIS FILE ANSWERS BOTH LITERALLY.
 //
-// EVERY SOURCE IS A TABLE THE READER CAN ALREADY SEE. Nothing here is privileged:
-// it reads pairings, profiles, journey events and meetings under the caller's own
-// policies. A Director sees their church because the policies say so, and this
-// file could not widen that if it tried. Messages are deliberately NOT counted:
-// a Director cannot read a conversation, and counting one is a step toward
-// measuring something they were promised was private.
+//   1. Who is using it? Guides and Explorers, active and inactive, over a day,
+//      a week and a month.
+//   2. Who is arriving, and who is leaving? New members by role over any grain
+//      from a day to a year, and the record of suspensions, refusals and
+//      removals beside it.
+//
+// It replaced a generic "everything week by week" chart, which answered neither
+// and made a Director derive both.
+//
+// EVERY SOURCE IS SOMETHING THE READER MAY ALREADY SEE, with one deliberate
+// exception. Arrivals and departures come from profiles and the discipline log
+// under the caller's own policies. Activity comes from church_activity(), which
+// is SECURITY DEFINER because it counts message senders — a Director may not
+// read a message and never will, and this returns four integers per role, never
+// a name and never a word of one. A count is not a conversation.
 
 import * as live from '@/lib/live/data';
+import type { Role } from '@/lib/types';
 
-export type SeriesKey = 'joined' | 'paired' | 'steps' | 'meetings';
+// ---------------------------------------------------------------------------
+// Colour
+// ---------------------------------------------------------------------------
+//
+// VALIDATED WITH THE PALETTE CHECKER, NOT CHOSEN BY EYE, and re-validated when
+// the charts changed shape. The old three-line chart passed only because the
+// checker compares ADJACENT pairs by default; run across ALL pairs, its blue
+// and purple sat at ΔE 5.7 under deuteranopia, below the floor at which any
+// secondary encoding can rescue them. Two people in a congregation of forty
+// cannot reliably tell those two lines apart.
+//
+// So the new charts need no four-colour ramp at all:
+//
+//   * Active against inactive is TWO categories. #2F80ED against #B45309 is
+//     ΔE 30.3 deutan, 29.0 tritan, 32.2 normal — all pairs, all pass.
+//   * Arrivals by role is FOUR series, so it is drawn as four small multiples
+//     instead of four lines on one axis. Each panel holds one series, which
+//     needs one hue and no legend, and it also fixes a scale problem: one
+//     Executive Director and thirteen Explorers do not share a y-axis usefully.
 
-export interface Series {
-  key: SeriesKey;
-  label: string;
-  /** What this line is actually counting, in a sentence a pastor can use. */
-  meaning: string;
-  colour: string;
-  points: number[];
-}
-
-export interface Analytics {
-  /** Bucket labels, oldest first. */
-  labels: string[];
-  series: Series[];
-  /** Totals that do not move with the window. */
-  now: {
-    explorers: number;
-    guides: number;
-    graduated: number;
-    unpaired: number;
-  };
-}
-
-/**
- * The palette.
- *
- * Validated with the dataviz palette checker rather than chosen by eye: all
- * three pass the lightness band, the chroma floor, colour-vision separation
- * (worst adjacent pair ΔE 30.3 under deuteranopia) and 3:1 against the chart
- * surface. An earlier set using the brand's gold failed twice, on lightness and
- * on green-against-gold for protanopia, which is not something anybody catches
- * by looking.
- */
-const COLOURS: Record<SeriesKey, string> = {
-  joined: '#2F80ED',
-  paired: '#B45309',
-  steps: '#7C3AED',
-  // A fourth line is drawn only when a church uses meetings, and it borrows
-  // the first hue at a different mark. Cycling a palette is how two unrelated
-  // series end up the same colour.
-  meetings: '#2F80ED',
-};
+export const ACTIVE_COLOUR = '#2F80ED';
+export const INACTIVE_COLOUR = '#B45309';
+export const ARRIVAL_COLOUR = '#2F80ED';
 
 const DAY = 24 * 60 * 60 * 1000;
 
-function startOfWeek(t: number): number {
+// ---------------------------------------------------------------------------
+// 1. Who is using it
+// ---------------------------------------------------------------------------
+
+/** One window's answer, for one role. */
+export interface ActivitySlice {
+  windowLabel: string;
+  days: number;
+  role: Role;
+  approved: number;
+  active: number;
+  inactive: number;
+  suspended: number;
+}
+
+export const ACTIVITY_WINDOWS: { days: number; label: string }[] = [
+  { days: 1, label: 'Today' },
+  { days: 7, label: 'This week' },
+  { days: 30, label: 'This month' },
+];
+
+/** The roles this chart is about. Leaders are counted too, in the table. */
+export const ACTIVITY_ROLES: Role[] = ['dm', 'ds'];
+
+export async function activityByWindow(): Promise<ActivitySlice[]> {
+  const results = await Promise.all(
+    ACTIVITY_WINDOWS.map(async (w) => {
+      const rows = await live.churchActivity(w.days);
+      return rows.map<ActivitySlice>((r) => ({
+        windowLabel: w.label,
+        days: w.days,
+        role: r.role,
+        approved: Number(r.approved) || 0,
+        active: Number(r.active) || 0,
+        inactive: Number(r.inactive) || 0,
+        suspended: Number(r.suspended) || 0,
+      }));
+    }),
+  );
+  return results.flat();
+}
+
+// ---------------------------------------------------------------------------
+// 2. Who is arriving
+// ---------------------------------------------------------------------------
+
+export type Grain = 'day' | 'week' | 'month' | 'quarter' | 'year';
+
+export const GRAINS: { key: Grain; label: string; buckets: number }[] = [
+  { key: 'day', label: 'Daily', buckets: 14 },
+  { key: 'week', label: 'Weekly', buckets: 12 },
+  { key: 'month', label: 'Monthly', buckets: 12 },
+  { key: 'quarter', label: 'Quarterly', buckets: 8 },
+  { key: 'year', label: 'Yearly', buckets: 5 },
+];
+
+/**
+ * The start of the bucket a moment falls in.
+ *
+ * Local time throughout, deliberately. A church reads "today" as their own
+ * Tuesday, not as UTC's, and a congregation in Manila reading a UTC day
+ * boundary sees arrivals land on the wrong side of midnight for eight hours
+ * every day.
+ */
+function bucketStart(t: number, grain: Grain): number {
   const d = new Date(t);
   d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday
+  if (grain === 'day') return d.getTime();
+  if (grain === 'week') {
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday
+    return d.getTime();
+  }
+  if (grain === 'month') { d.setDate(1); return d.getTime(); }
+  if (grain === 'quarter') {
+    d.setDate(1);
+    d.setMonth(Math.floor(d.getMonth() / 3) * 3);
+    return d.getTime();
+  }
+  d.setDate(1); d.setMonth(0);
   return d.getTime();
 }
 
-/** Bucket ISO timestamps into the last `weeks` Monday-start weeks. */
-function weekly(times: (string | null | undefined)[], weeks: number, now = Date.now()): number[] {
-  const first = startOfWeek(now) - (weeks - 1) * 7 * DAY;
-  const out = new Array(weeks).fill(0);
-  for (const raw of times) {
-    if (!raw) continue;
-    const t = new Date(raw).getTime();
-    if (Number.isNaN(t) || t < first) continue;
-    const i = Math.floor((startOfWeek(t) - first) / (7 * DAY));
-    if (i >= 0 && i < weeks) out[i] += 1;
+/** Walk back `count` buckets from the one containing `now`, oldest first. */
+function bucketEdges(grain: Grain, count: number, now = Date.now()): number[] {
+  const out: number[] = [];
+  let cursor = bucketStart(now, grain);
+  for (let i = 0; i < count; i += 1) {
+    out.unshift(cursor);
+    const d = new Date(cursor);
+    if (grain === 'day') d.setDate(d.getDate() - 1);
+    else if (grain === 'week') d.setDate(d.getDate() - 7);
+    else if (grain === 'month') d.setMonth(d.getMonth() - 1);
+    else if (grain === 'quarter') d.setMonth(d.getMonth() - 3);
+    else d.setFullYear(d.getFullYear() - 1);
+    cursor = d.getTime();
   }
   return out;
 }
 
-function weekLabels(weeks: number, now = Date.now()): string[] {
-  const first = startOfWeek(now) - (weeks - 1) * 7 * DAY;
-  return Array.from({ length: weeks }, (_, i) =>
-    new Date(first + i * 7 * DAY).toLocaleDateString([], { day: 'numeric', month: 'short' }));
+function bucketLabel(edge: number, grain: Grain): string {
+  const d = new Date(edge);
+  if (grain === 'day') return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  if (grain === 'week') return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+  if (grain === 'month') return d.toLocaleDateString([], { month: 'short', year: '2-digit' });
+  if (grain === 'quarter') return `Q${Math.floor(d.getMonth() / 3) + 1} ${String(d.getFullYear()).slice(2)}`;
+  return String(d.getFullYear());
 }
 
-export async function churchAnalytics(weeks = 12): Promise<Analytics> {
-  const [members, pairings, events] = await Promise.all([
-    live.listMembers(),
-    live.listPairings(),
-    // A church with no recorded steps should still see the rest of the page.
-    live.listJourneyEvents().catch(() => []),
-  ]);
+/** Count timestamps into the given bucket edges. Anything older is dropped. */
+function intoBuckets(times: (string | null | undefined)[], edges: number[], grain: Grain): number[] {
+  const out = new Array(edges.length).fill(0);
+  for (const raw of times) {
+    if (!raw) continue;
+    const t = new Date(raw).getTime();
+    if (Number.isNaN(t)) continue;
+    const start = bucketStart(t, grain);
+    // Exact match against a known edge rather than arithmetic: months and
+    // quarters are not a fixed number of milliseconds, and dividing by an
+    // average length puts a March arrival in February about once a year.
+    const i = edges.indexOf(start);
+    if (i >= 0) out[i] += 1;
+  }
+  return out;
+}
 
-  const active = pairings.filter((p) => p.status === 'active');
-  const explorers = members.filter((m) => m.role === 'ds' && m.is_approved);
-  const guides = members.filter((m) => m.role === 'dm' && m.is_approved);
+export interface ArrivalPanel {
+  role: Role;
+  label: string;
+  points: number[];
+  total: number;
+}
 
-  const series: Series[] = [
-    {
-      key: 'joined',
-      label: 'People joining',
-      meaning: 'Accounts that finished signing up that week.',
-      colour: COLOURS.joined,
-      points: weekly(members.map((m) => m.signup_completed_at ?? m.created_at), weeks),
-    },
-    {
-      key: 'paired',
-      label: 'New pairings',
-      meaning: 'An Explorer and a Guide connected that week.',
-      colour: COLOURS.paired,
-      points: weekly(pairings.map((p) => p.created_at), weeks),
-    },
-    {
-      key: 'steps',
-      label: 'Journeys moving',
-      meaning: 'Recorded steps forward, and corrections, that week.',
-      colour: COLOURS.steps,
-      points: weekly(events.map((e) => e.created_at), weeks),
-    },
-  ];
+export interface Arrivals {
+  grain: Grain;
+  labels: string[];
+  panels: ArrivalPanel[];
+  /** The tallest point across every panel, so all four share one scale. */
+  peak: number;
+}
+
+const ARRIVAL_ORDER: { role: Role; label: string }[] = [
+  { role: 'executive', label: 'Executive Directors' },
+  { role: 'admin', label: 'Directors' },
+  { role: 'dm', label: 'Guides' },
+  { role: 'ds', label: 'Explorers' },
+];
+
+export async function arrivals(grain: Grain, now = Date.now()): Promise<Arrivals> {
+  const spec = GRAINS.find((g) => g.key === grain) ?? GRAINS[1];
+  const edges = bucketEdges(grain, spec.buckets, now);
+  const members = await live.listMembers();
+
+  const panels = ARRIVAL_ORDER.map<ArrivalPanel>(({ role, label }) => {
+    // WHEN SOMEBODY ARRIVED IS WHEN THEY FINISHED SIGNING UP, not when the
+    // invitation record was created. An invitation that sat unopened for three
+    // weeks would otherwise be counted as an arrival on the day it was sent.
+    const points = intoBuckets(
+      members
+        .filter((m) => m.role === role)
+        .map((m) => m.signup_completed_at ?? m.created_at),
+      edges,
+      grain,
+    );
+    return { role, label, points, total: points.reduce((a, b) => a + b, 0) };
+  });
 
   return {
-    labels: weekLabels(weeks),
-    series,
-    now: {
-      explorers: explorers.length,
-      guides: guides.length,
-      graduated: active.filter((p) => p.journey_stage === 'commission').length,
-      unpaired: explorers.filter((e) => !active.some((p) => p.ds_id === e.id)).length,
-    },
+    grain,
+    labels: edges.map((e) => bucketLabel(e, grain)),
+    panels,
+    peak: Math.max(1, ...panels.flatMap((p) => p.points)),
   };
 }
 
 // ---------------------------------------------------------------------------
-// The arithmetic a spreadsheet would give you.
+// 3. Who left, and why
 // ---------------------------------------------------------------------------
+
+export interface Departures {
+  /** Within the window covered by the arrivals chart. */
+  suspended: number;
+  released: number;
+  removed: number;
+  approved: number;
+  disapproved: number;
+  since: string;
+}
+
+/**
+ * Counted from the discipline log, which outlives the people in it — that is
+ * the point of it, and why these numbers survive a deletion.
+ *
+ * REMOVED AND DELETED ARE ONE NUMBER, not two, and the screen says so rather
+ * than inventing a distinction. In this app removing somebody from the church
+ * deletes their account: `remove_member_by_leader` writes the log entry and
+ * then deletes the person, in that order, precisely so the record outlives
+ * them. There is no separate "kicked but still has a login" state to count.
+ */
+export async function departures(sinceMs: number): Promise<Departures> {
+  const log = await live.disciplineHistory().catch(() => []);
+  const since = new Date(sinceMs);
+  const inWindow = log.filter((e) => new Date(e.at).getTime() >= sinceMs);
+  const count = (a: string) => inWindow.filter((e) => e.action === a).length;
+  return {
+    suspended: count('suspended'),
+    released: count('released'),
+    removed: count('removed'),
+    approved: count('approved'),
+    disapproved: count('disapproved'),
+    since: since.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }),
+  };
+}
+
+/** The oldest moment the arrivals chart is showing, for the departures window. */
+export function windowStart(grain: Grain, now = Date.now()): number {
+  const spec = GRAINS.find((g) => g.key === grain) ?? GRAINS[1];
+  return bucketEdges(grain, spec.buckets, now)[0];
+}
+
+// ---------------------------------------------------------------------------
+// 4. The headline, and the arithmetic a spreadsheet would give you
+// ---------------------------------------------------------------------------
+
+export interface Headline {
+  explorers: number;
+  guides: number;
+  graduated: number;
+  unpaired: number;
+}
+
+export async function headline(): Promise<Headline> {
+  const [members, pairings] = await Promise.all([live.listMembers(), live.listPairings()]);
+  const active = pairings.filter((p) => p.status === 'active');
+  const explorers = members.filter((m) => m.role === 'ds' && m.is_approved);
+  return {
+    explorers: explorers.length,
+    guides: members.filter((m) => m.role === 'dm' && m.is_approved).length,
+    graduated: active.filter((p) => p.journey_stage === 'commission').length,
+    unpaired: explorers.filter((e) => !active.some((p) => p.ds_id === e.id)).length,
+  };
+}
 
 export function mean(points: number[]): number {
   if (points.length === 0) return 0;
@@ -163,13 +313,13 @@ export function total(points: number[]): number {
 }
 
 /**
- * Change from the previous complete week to the one before it.
+ * Change from the last COMPLETE bucket to the one before it.
  *
- * The CURRENT week is excluded on purpose. It is a Tuesday when somebody reads
- * this, so the week in progress is two days long, and comparing it to a
+ * The current bucket is excluded on purpose. It is a Tuesday when somebody
+ * reads this, so the week in progress is two days long, and comparing it to a
  * finished week reports a collapse that is only the calendar.
  */
-export function weekOnWeek(points: number[]): { latest: number; before: number; pct: number | null } {
+export function stepChange(points: number[]): { latest: number; before: number; pct: number | null } {
   const complete = points.slice(0, -1);
   const latest = complete[complete.length - 1] ?? 0;
   const before = complete[complete.length - 2] ?? 0;
@@ -178,3 +328,5 @@ export function weekOnWeek(points: number[]): { latest: number; before: number; 
   const pct = before === 0 ? null : Math.round(((latest - before) / before) * 100);
   return { latest, before, pct };
 }
+
+export { DAY };

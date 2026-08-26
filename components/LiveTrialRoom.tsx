@@ -35,6 +35,7 @@ import type { Profile } from '@/lib/types';
 import * as live from '@/lib/live/data';
 import { roleNoun } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
+import { BeaconSpinner } from '@/components/BeaconLoader';
 
 export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?: () => void }) {
   const [members, setMembers] = useState<Profile[] | null>(null);
@@ -164,7 +165,7 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
           Members you can act on {members && `· ${active.length}`}
         </h3>
         {!members ? (
-          <p className="mt-2 text-gray-400">Loading…</p>
+          <BeaconSpinner inline label="Loading" className="mt-2" />
         ) : active.length === 0 ? (
           <p className="mt-2 text-gray-500">Nobody.</p>
         ) : (
@@ -520,7 +521,7 @@ export function LiveCourt({ me }: { me: Profile }) {
       {notice && <p className="mt-3 rounded-xl bg-green-50 p-3 text-sm text-green-800 ring-1 ring-green-300">{notice}</p>}
 
       {!cases ? (
-        <p className="mt-3 text-gray-400">Loading…</p>
+        <BeaconSpinner inline label="Loading" className="mt-3" />
       ) : (
         <>
           <div className="mt-4">

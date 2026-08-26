@@ -106,9 +106,15 @@ Raising it is a decision, not a drift. Five is the number the design is built ar
 
 The approved list gets long. Once it passes five accounts a search box appears above it: type any part of a name and the list narrows as you type, showing "4 of 37" so a short list is never mistaken for a lost account.
 
+Past six accounts the list gets a scroll bar of its own rather than growing down the page. Forty accounts is roughly four thousand pixels, and every control above the list, the search box and the bulk buttons, used to scroll out of sight the moment somebody started reading names. Now the roll and the things you do to it stay on screen together.
+
 ### The "New" mark
 
 Anybody who finished signing up in the last seven days carries a green **New** badge on the rosters and on a Guide's cards. It works out the answer from the date every time it draws, so it can never be left on somebody by mistake, and it counts from when they chose a password rather than when a Director typed their address.
+
+The badge gives a soft ring twice when the screen draws, then stops. A mark that pulses forever is a mark people stop seeing, and then it is only noise on somebody's name. Every role gets the same badge, which is deliberate: a different mark for a new Explorer would tell everybody who can see the list which members are Explorers, and the app takes care elsewhere not to say that.
+
+A device set to reduce motion gets a still outline instead of the ring.
 
 ### Disapprove, or delete
 
@@ -147,6 +153,28 @@ A Guide writes their own. Create a series, add studies to it, attach the handout
 
 Directors keep the same control over everything, which is what running the church means. A Guide may edit and delete only what they wrote.
 
+### The church noticeboard
+
+**Anybody approved in the church can write a post.** Explorers, Guides, Directors and Executive Directors all have **Your blog** on their own screen. Before tonight only Guides and leaders could, and an Explorer who tried was shown an error from the database.
+
+Three audiences, and the choice is made before publishing.
+
+| Audience | Who reads it |
+| --- | --- |
+| **Everyone in the church** | Every approved member of your church. This is the noticeboard. |
+| **Only the people I walk with** | For a Guide, their Explorers. For an Explorer, their Guide. |
+| **Only the people I choose** | The people named on it, and nobody else. It only appears when there is somebody to choose. |
+
+A post stays private until it is published, and **Make private** takes it back off without losing it.
+
+> **CAUTION** · A church-wide post is signed
+>
+> Choosing **Everyone in the church** puts your name and your role on it, and the screen says so before you press publish. That is on purpose: a noticeboard where some posts are signed and others are anonymous is one nobody can hold to account. The narrower audiences follow the app's ordinary rule, which does not name an Explorer's role to people who have no reason to know it.
+
+The noticeboard is the **first thing on Home** for every role, newest first. It draws nothing at all when nobody has published, rather than leaving an empty card at the top of the screen.
+
+**Directors and Executive Directors can delete any post in their church.** That is not tidying up; it is the reason an audience open to every member is safe to have at all. A church-wide megaphone with no way to switch it off is a problem waiting for a Sabbath morning. Anybody can always delete their own.
+
 ### Undoing a step
 
 Advance stage is one tap, and taps go wrong. **Undo, step back** sits beside it and puts an Explorer back a level. It asks first, and it is recorded as a correction rather than erased, so the history stays honest. The Explorer is never shown their stage either way, so a correction is invisible to the person it is about.
@@ -169,17 +197,35 @@ Anybody can report a conversation. When they do:
 
 ### Reading the numbers
 
-The Church screen carries a chart of the last few weeks and four headline figures: Explorers, Guides, Graduated, and how many are waiting for a Guide. Three lines share one scale: people joining, new pairings, and journeys moving.
+The Church screen opens with four headline figures: Explorers, Guides, Graduated, and how many are waiting for a Guide. Under them sit two charts, each answering one question a Director actually asks.
 
-> **NOTE** · How to read it, in four sentences
->
-> **Each point is one week.** The point on the far right is the week you are in, so it is always partly finished and always looks low. Compare the two before it.
->
-> **Average and middle week are both shown** because they disagree in the case that matters. One busy week after a quiet month pulls the average up; the middle week is closer to an ordinary one.
->
-> **A flat line is not a failure.** A church of forty is not supposed to be busy every week. What is worth acting on is *Waiting for a Guide* above zero, and a month of nothing at all.
+**Who is using it.** One panel for Guides and one for Explorers, each showing everybody on the roll for today, this week and this month. The blue part of the bar is the people Beacon recorded doing something; the brown part is the rest.
 
-The same numbers download as a CSV that opens in Excel, Google Sheets, Numbers or LibreOffice, with one row per week and the totals underneath. For a board pack, use the browser's own print, which every phone and computer can already save as a PDF. Nobody's name is in either file.
+> **CAUTION** · What "active" does and does not mean
+>
+> **It is not a count of visits.** Beacon does not record when somebody opens the app, so a number claiming to be visits would be invented. Active means the app recorded them doing something: sending a message, a step on a journey, arranging a meeting, or writing a post or a study.
+>
+> An Explorer who met their Guide for coffee and wrote nothing down is in the brown part. That is not a failure and it should not be treated as one. What is worth acting on is a whole month of brown for one person, and *Waiting for a Guide* above zero.
+>
+> Today will almost always look low, and that is the day, not the church. Read the week and the month.
+
+**Who is arriving.** Four small charts, one for each role: Executive Directors, Directors, Guides and Explorers. Choose the period from Daily, Weekly, Monthly, Quarterly or Yearly. All four share one scale, so a tall bar means the same number of people wherever it appears.
+
+Somebody counts as arriving on the day they finished signing up, not the day their invitation was sent. An invitation that sat unopened for three weeks would otherwise land on the wrong week.
+
+Underneath, in the same period, is what the church decided about people: how many were let in, turned down, suspended, had a suspension lifted, and removed.
+
+> **NOTE** · Removed and deleted are one number
+>
+> In Hope Beacon, removing somebody from the church deletes their account. There is no separate state where a person has been put out but still has a login. The record of the removal survives them, which is the point of keeping it.
+
+> **NOTE** · Average and middle period
+>
+> Both are shown because they disagree in the case that matters. One busy week after a quiet month pulls the average up; the middle week is closer to an ordinary one.
+
+Both tables download as a CSV that opens in Excel, Google Sheets, Numbers or LibreOffice, one under the other. For a board pack, use the browser's own print, which every phone and computer can already save as a PDF. Nobody's name is in either file.
+
+Every one of these numbers is a count. No name, no message and no prayer appears on this screen or in the file, and the part that counts messages runs inside the database and hands back only a total, so a Director reading "eleven Guides were active" is not reading anybody's conversation.
 
 ### The board report
 
@@ -240,11 +286,27 @@ Nobody reinstalls. When a new version ships, every open copy notices within seco
 
 ### Something to listen to
 
-Every signed-in screen carries a small player in the right-hand column, and the library has the full version. Ambience is **made on the device as it plays**: rainfall, distant surf, plain hush. There is no file to download, it costs no data, and it works with no signal.
+There is one player, in two sizes, and they are two views of the same thing rather than two players.
 
-Three tabs. **Ambience** is the generated sound. **Playlists** are your own, saved on your device and never uploaded: name one, then add whatever is playing to it. A playlist can mix ambience and church audio, so rainfall behind a recorded sermon is one list. **Library** is anything your church added as audio.
+**The small one** sits in the right-hand column of every room. Shut, it shows what is playing and the volume. The **⋯** at its top right opens it, and it remembers which you chose on that device. Open, it has the same three tabs as the full one.
 
-What somebody listens to while they read is nobody else's business, which is why playlists stay on the device rather than in the church's database.
+**The full one** is the first thing on **My Library**, and it is the only place it appears. It used to sit on My Journey and on a Guide's workspace as well, where it was the largest card on a screen meant to be about somebody's next step.
+
+Three tabs, in the order most people want them.
+
+- **Vault** is your own music and video, saved on this device. There is a search box over it, because a vault worth having is a vault too long to scroll, and a **Save music or video** button that puts more in. Files stay on the device and are never uploaded.
+- **Playlists** are your own, saved on the device and never uploaded: name one, then add whatever is playing to it. A playlist can mix ambience and your own recordings, so rainfall behind a sermon is one list.
+- **Ambience** is **made on the device as it plays**: rainfall, distant surf, plain hush. There is no file to download, it costs no data, and it works with no signal.
+
+Both sizes drive the same sound, so starting a track in the Library and walking back to your room keeps it playing.
+
+What somebody listens to while they read is nobody else's business, which is why the vault and the playlists stay on the device rather than in the church's database.
+
+### Waiting
+
+Anywhere the app is fetching something, it shows the lighthouse mark turning with a word for what it is waiting on, rather than the word "Loading" on its own or nothing at all. A screen that is still fetching and a screen that has finished and found nothing used to look identical, so people pressed the button again.
+
+A device set to reduce motion gets the same message without the spin.
 
 ### Notifications
 
@@ -433,6 +495,19 @@ Every privacy promise this app makes is kept by the database, not by the screens
 | A removal is always recorded. | A log written before the deletion, which outlives the person it describes. |
 | A change to somebody's details is visible to their Guide. | An append-only table with no write policy at all, filled by a trigger. |
 | Nothing new is readable by a signed-out visitor. | A check that fails the build if any table grants anything to anonymous. |
+| Only an approved, unsuspended member can publish a post. | The write rule on the posts table, which also pins the author to whoever is signed in and the church to their own. |
+| A Director may take down any post in their church. | The delete rule, scoped to churches that Director actually leads. |
+| Counting messages never exposes one. | The counting runs inside the database and returns totals. No message, and no name, ever leaves it. |
+
+### The blog error, and what it actually was
+
+Worth writing down, because it was diagnosed wrongly twice and each wrong fix looked plausible.
+
+Publishing a post failed with `new row violates row-level security policy`, which reads exactly like a refusal to write. It was not. The app saves a post and asks for its id back in one statement, and the database applies the **read** rule to the row it is about to hand back. The read rule called a helper that looks the post up by its id, and that helper runs on a snapshot of the database taken before the row existed. So it looked for the post, could not find it, and refused to return to the author the very row it had just accepted from them.
+
+The fix is to answer the author's own case from the row itself rather than by looking it up: the post is yours if its author is you, which needs no lookup and is true for a row nothing can see yet.
+
+Two things made this hard to see. The message names the write, and the same insert works perfectly if you do not ask for the id back. It was proved by doing exactly that, and by widening the write rule to allow everything and watching it fail anyway.
 
 ### Deleting an account, and why it used to fail
 
@@ -529,6 +604,8 @@ Stated plainly, because a plan that hides its gaps is worse than no plan.
 | Creating a new church without a developer | Possible in the database, not yet possible from a screen. |
 | Bulk invitations by dropped spreadsheet | Pasting a list **is built**. Dragging a .csv or .xlsx onto the screen is not, and is the remaining stage. |
 | The one-tap Safari handoff on a real device | Tested against simulated iPhone browsers. Never run on a physical iPhone. |
+| Publishing a post, from a real sign-in | The rules were proved against the live database as a real Explorer, Guide, Director and Executive Director, including that a draft never reaches anybody else. It has not been done through the app by a person with a password. |
+| "Active" as a count of visits | Not built and deliberately so. Beacon does not record when somebody opens the app, and the screen says what the number does mean instead of implying otherwise. |
 
 ### Bulk invitations, as specified
 

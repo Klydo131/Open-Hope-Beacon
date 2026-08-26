@@ -14,6 +14,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
+import { BeaconSpinner } from '@/components/BeaconLoader';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Something went wrong.';
@@ -137,7 +138,7 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
       )}
 
       <div className="mt-4 space-y-2">
-        {items === null && <p className="text-sm text-gray-400">Loading…</p>}
+        {items === null && <BeaconSpinner inline label="Loading the shelf" className="mt-2" />}
         {items?.length === 0 && !error && (
           <p className="text-sm text-gray-400">Nothing in the library yet.</p>
         )}

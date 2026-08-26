@@ -32,6 +32,7 @@ import { LiveBulkInvite } from '@/components/LiveBulkInvite';
 import { LiveExport } from '@/components/LiveExport';
 import { LiveAnalytics } from '@/components/LiveAnalytics';
 import { NewBadge } from '@/components/NewBadge';
+import { BeaconSpinner } from '@/components/BeaconLoader';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -1659,8 +1660,28 @@ export function LiveAdminPage() {
             </div>
           )}
 
-          <div className="mt-4 space-y-2">
-            {loading ? <p className="text-gray-400">Loading…</p> : approved.length === 0 ? (
+          {/* A LIST OF ITS OWN, WITH ITS OWN SCROLL BAR.
+              Forty accounts is roughly four thousand pixels of page. Every
+              control above this — the search box, Select all, Disapprove
+              selected, Delete selected — scrolled away the moment somebody
+              started looking through the names, so choosing the eighth person
+              meant scrolling back up to find the button. Capping the height
+              keeps the roll and the things you do to it on the screen at the
+              same time.
+
+              `max-h` with `overflow-y-auto`, not a fixed height: a church with
+              four accounts gets a four-row box rather than an empty well.
+              `overscroll-contain` stops the page underneath from scrolling on
+              when this list reaches its end, which on a phone is what makes an
+              inner scroll area feel broken. */}
+          <div
+            className={`mt-4 space-y-2 ${
+              approvedShown.length > 6
+                ? 'beacon-scroll max-h-[28rem] overflow-y-auto overscroll-contain rounded-xl pr-1'
+                : ''
+            }`}
+          >
+            {loading ? <BeaconSpinner inline label="Loading accounts" /> : approved.length === 0 ? (
               <p className="text-gray-400">No approved accounts to manage.</p>
             ) : approvedShown.length === 0 ? (
               <p className="text-gray-400">Nobody here matches “{findApproved.trim()}”.</p>
@@ -1754,7 +1775,7 @@ export function LiveAdminPage() {
             <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-bold text-amber-800">{pending.length}</span>
           </div>
           <div className="mt-4 space-y-2">
-            {loading ? <p className="text-gray-400">Loading…</p> : pending.length === 0 ? (
+            {loading ? <BeaconSpinner inline label="Loading requests" /> : pending.length === 0 ? (
               <p className="text-gray-400">Nobody is waiting.</p>
             ) : pending.map((member) => (
               <div key={member.id} className="flex flex-col gap-3 rounded-xl bg-gray-50 px-4 py-3 sm:flex-row sm:items-center">

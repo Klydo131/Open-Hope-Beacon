@@ -23,6 +23,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
+import { BeaconSpinner } from '@/components/BeaconLoader';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Something went wrong.';
@@ -101,7 +102,7 @@ export function LiveAskForPrayer() {
       </div>
 
       <div className="mt-4 space-y-2">
-        {mine === null && <p className="text-sm text-gray-400">Loading…</p>}
+        {mine === null && <BeaconSpinner inline label="Loading" className="mt-2" />}
         {mine?.length === 0 && !error && (
           <p className="text-sm text-gray-400">Nothing yet. You can ask for anything.</p>
         )}
@@ -177,7 +178,7 @@ export function LivePrayerForGuide({
       </p>
       <Err msg={error} />
       <div className="mt-3 space-y-2">
-        {rows === null && <p className="text-sm text-gray-400">Loading…</p>}
+        {rows === null && <BeaconSpinner inline label="Loading" className="mt-2" />}
         {rows?.map((r) => (
           <div key={r.id} className="rounded-xl bg-gray-50 p-3">
             <div className="flex items-start gap-2">

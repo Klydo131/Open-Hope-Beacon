@@ -28,6 +28,7 @@ import type { Profile } from '@/lib/types';
 import * as live from '@/lib/live/data';
 import { roleNoun } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
+import { BeaconSpinner } from '@/components/BeaconLoader';
 
 const HEALTH: Record<string, { label: string; className: string }> = {
   thriving: { label: 'Thriving', className: 'bg-green-100 text-green-900' },
@@ -145,7 +146,7 @@ export function LiveGuilds({ me }: { me: Profile }) {
 
       <div className="mt-5 space-y-3">
         {!guilds ? (
-          <p className="text-gray-400">Loading…</p>
+          <BeaconSpinner inline label="Loading" />
         ) : guilds.length === 0 ? (
           <p className="text-gray-500">No guilds yet. Make the first one above.</p>
         ) : (
@@ -325,7 +326,7 @@ export function LiveChurchPulse() {
       </p>
       {error && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">{error}</p>}
       {!rows ? (
-        <p className="mt-3 text-gray-400">Loading…</p>
+        <BeaconSpinner inline label="Loading" className="mt-3" />
       ) : (
         rows.map((r) => (
           <div key={r.church_id} className="mt-4">

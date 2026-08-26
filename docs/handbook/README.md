@@ -7,6 +7,13 @@ read a repository:
 |---|---|---|
 | `build-handbook.js` | Installation & Contribution Handbook | The IT person standing up an instance |
 | `build-ai-guide.js` | Building It With an AI Assistant | Developers using Claude, Codex, Cursor or similar |
+| `build-guidelines-doc.js` | The Complete Handbook, editable | A church that wants to cut it down and add their own names |
+
+`build-guidelines-doc.js` renders `docs/HANDBOOK.md`, the same file `build-pdf.js`
+prints. That is deliberate: the guidelines are written in one place, and the
+editable copy and the printable copy cannot disagree with each other or with the
+repository. The other two scripts hold their own content and are about setting an
+instance up rather than running one.
 
 ## Why .docx and not more markdown
 

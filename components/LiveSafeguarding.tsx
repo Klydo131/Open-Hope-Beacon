@@ -16,6 +16,7 @@ import Link from 'next/link';
 import * as live from '@/lib/live/data';
 import { ReportDialog } from '@/components/ReportDialog';
 import { Button, Card } from '@/components/ui';
+import { BeaconSpinner } from '@/components/BeaconLoader';
 
 const REASON_LABEL: Record<string, string> = {
   inappropriate: 'Something inappropriate was sent',
@@ -161,7 +162,7 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
         )}
 
         {reports === null ? (
-          <p className="mt-4 text-gray-400">Loading…</p>
+          <BeaconSpinner inline label="Loading" className="mt-4" />
         ) : open.length === 0 ? (
           <p className="mt-4 text-gray-500">Nothing to decide.</p>
         ) : (

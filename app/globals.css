@@ -155,6 +155,70 @@ a[role='button'],
   animation: beaconFlicker 2.8s ease-in-out infinite;
 }
 
+/* ---- Waiting ----
+   A screen that is fetching and a screen that has finished and found nothing
+   used to look identical, so people tapped the button again. These say "still
+   working" without words. */
+
+@keyframes beaconSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The label breathes when the ring cannot turn, so the "still working" signal
+   survives prefers-reduced-motion instead of disappearing with the spin. */
+@keyframes beaconBreathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* A block standing in for content, sweeping left to right. */
+@keyframes beaconShimmer {
+  0% {
+    background-position: -280px 0;
+  }
+  100% {
+    background-position: 280px 0;
+  }
+}
+
+/* A newly arrived person, greeted once. Two turns of a soft ring, then it
+   stops on its own: a badge that pulses forever is a badge people stop
+   seeing, and then it is only noise on somebody's name. */
+@keyframes beaconWelcome {
+  0% {
+    box-shadow: 0 0 0 0 rgba(232, 184, 75, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(232, 184, 75, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(232, 184, 75, 0);
+  }
+}
+
+.beacon-spinner {
+  border-top-color: #1e2a4a;
+  animation: beaconSpin 0.75s linear infinite;
+}
+
+.beacon-skeleton {
+  background-image: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 40%, #f3f4f6 80%);
+  background-size: 280px 100%;
+  background-repeat: no-repeat;
+  animation: beaconShimmer 1.3s ease-in-out infinite;
+}
+
+.beacon-new {
+  animation: beaconWelcome 1.9s ease-out 2;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise {
     opacity: 1;
@@ -163,6 +227,20 @@ a[role='button'],
   .beacon-glow,
   .beacon-flame {
     animation: none;
+  }
+  .beacon-spinner {
+    animation: none;
+  }
+  .beacon-spinner-label {
+    animation: beaconBreathe 1.6s ease-in-out infinite;
+  }
+  .beacon-skeleton {
+    animation: none;
+    background-image: none;
+  }
+  .beacon-new {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(232, 184, 75, 0.7);
   }
 }
 
@@ -477,4 +555,29 @@ html {
   .print-area {
     box-shadow: none !important;
   }
+}
+
+/* ---- A scroll bar somebody can actually see and grab ----
+   The default on Windows is a thin grey sliver and on macOS it is invisible
+   until you scroll, so an inner scroll area reads as a list that has simply
+   been cut off. Making the bar visible is what tells somebody there is more
+   below without them having to discover it by accident. */
+.beacon-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #c7cbd4 transparent;
+}
+.beacon-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.beacon-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.beacon-scroll::-webkit-scrollbar-thumb {
+  background-color: #c7cbd4;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+.beacon-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #9aa1ad;
 }

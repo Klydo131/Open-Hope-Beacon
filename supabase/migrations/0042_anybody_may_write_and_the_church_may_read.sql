@@ -110,6 +110,38 @@ returns boolean language sql stable security definer set search_path to 'public'
 $$;
 
 -- ---------------------------------------------------------------------------
+-- THE ACTUAL BUG BEHIND "why would it violate the RLS?"
+-- ---------------------------------------------------------------------------
+-- The write policy was never what refused the post. It was the READ policy, and
+-- it refused on a row the writer had just created.
+--
+-- HOW. `createBlogPost` does `insert(...).select('id').single()` — a plain
+-- INSERT ... RETURNING. Postgres applies the SELECT policy to the row RETURNING
+-- hands back, and the SELECT policy called `can_read_post(id)`, which is STABLE
+-- and queries `blog_posts` for that id. A STABLE function runs on the snapshot
+-- the statement started with, and that snapshot predates the row. So the
+-- function looked for the post, could not find it, returned false, and the
+-- database refused to return to the author the row it had just accepted from
+-- them. The message says "new row violates row-level security policy", which
+-- reads exactly like a write refusal, which is why it was fixed as a write
+-- problem twice and stayed broken both times.
+--
+-- Proven, not guessed: the same insert WITHOUT `returning` succeeded, and with
+-- `with check (true)` on the write policy it still failed.
+--
+-- THE FIX is to answer the author's case from the row's own column instead of
+-- a self-query. `author_id = auth.uid()` needs no lookup, so it is true for a
+-- row that is not yet visible anywhere. It is also the faster path for the most
+-- common read.
+drop policy if exists blog_read on public.blog_posts;
+create policy blog_read on public.blog_posts
+  for select to authenticated
+  using (
+    author_id = (select auth.uid())
+    or public.can_read_post(id)
+  );
+
+-- ---------------------------------------------------------------------------
 -- Taking something down
 -- ---------------------------------------------------------------------------
 drop policy if exists blog_drop on public.blog_posts;

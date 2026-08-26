@@ -75,21 +75,73 @@ export function BeaconSplash({
   );
 }
 
+/**
+ * The inline wait.
+ *
+ * `inline` puts the mark and the label on one line at a small size, for a
+ * section inside a card that is fetching. Without it the loader is centred
+ * with generous padding, which is right for a whole page and far too heavy
+ * for a strip inside a card.
+ *
+ * A SECOND LOADER WAS ALMOST WRITTEN FOR THIS — a plain grey ring, because the
+ * inline case did not fit. Two spinners in one product is two answers to "is
+ * it working?", and people learn one of them. The variant belongs here.
+ *
+ * The label is the accessible name. A spinner with no words announces "busy"
+ * and leaves a screen reader user guessing at what.
+ */
 export function BeaconSpinner({
   label = 'Loading…',
   size = 48,
+  inline = false,
+  className = '',
 }: {
   label?: string;
   size?: number;
+  inline?: boolean;
+  className?: string;
 }) {
+  if (inline) {
+    return (
+      <div className={`flex items-center gap-2.5 ${className}`} role="status" aria-live="polite">
+        <Mark size={22} />
+        <span className="beacon-spinner-label text-sm font-semibold text-gray-500">{label}</span>
+      </div>
+    );
+  }
   return (
     <div
-      className="flex flex-col items-center justify-center gap-3 py-10"
+      className={`flex flex-col items-center justify-center gap-3 py-10 ${className}`}
       role="status"
       aria-live="polite"
     >
       <Mark size={size} />
       <p className="text-sm font-semibold text-gray-400">{label}</p>
+    </div>
+  );
+}
+
+/**
+ * A grey block standing in for content that is about to arrive.
+ *
+ * Used where the SHAPE of what is coming is known — a list of cards, a row of
+ * rows. It keeps the page from jumping when the real thing lands, which a
+ * centred spinner does not.
+ */
+export function Skeleton({ className = '', rows = 3 }: { className?: string; rows?: number }) {
+  return (
+    <div className={`space-y-2 ${className}`} role="status" aria-live="polite">
+      <span className="sr-only">Loading…</span>
+      {Array.from({ length: rows }, (_, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className="beacon-skeleton block h-12 rounded-xl bg-gray-100"
+          // Staggered, so it reads as one thing loading rather than several
+          // unrelated boxes flashing at each other.
+          style={{ animationDelay: `${i * 120}ms` }}
+        />
+      ))}
     </div>
   );
 }

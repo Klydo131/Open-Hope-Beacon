@@ -736,6 +736,34 @@ export async function endPairing(id: string): Promise<void> {
  * updated_at matters here, because updated_at moves for reasons that are not a
  * journey step and the chart would quietly count them.
  */
+/**
+ * Per role: how many are on the roll, how many did something in the window, how
+ * many did not, and how many are suspended.
+ *
+ * "ACTIVE" MEANS A RECORDED ACTION, NOT A SIGN-IN, and the screen has to say so.
+ * Beacon does not log sign-ins — there is no last_seen_at and nothing writes
+ * one — so a number claiming to be visits would be invented. What is real is
+ * whether the app recorded this person doing something: a message, a journey
+ * step on their pairing, a meeting, a post, a lesson. See migration 0043.
+ *
+ * Counts only. The function is SECURITY DEFINER so it can see messages a
+ * Director may not read, and it returns four integers per role and never a
+ * name, which is the same posture as the blog's reader count.
+ */
+export interface RoleActivity {
+  role: Role;
+  approved: number;
+  active: number;
+  inactive: number;
+  suspended: number;
+}
+
+export async function churchActivity(days: number): Promise<RoleActivity[]> {
+  const { data, error } = await db().rpc('church_activity', { p_days: days });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as RoleActivity[];
+}
+
 export async function listJourneyEvents(limit = 2000): Promise<JourneyEvent[]> {
   const { data, error } = await db()
     .from('journey_events')

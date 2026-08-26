@@ -23,6 +23,7 @@ import { LiveBlogFeed } from '@/components/LiveBlog';
 import { useLiveSession } from '@/lib/live/session';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
 import { LiveBillboard } from '@/components/LiveBillboard';
+import { BeaconSpinner } from '@/components/BeaconLoader';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Something went wrong. Please try again.';
@@ -44,7 +45,7 @@ export function LiveChurchPage() {
   }, []);
 
 
-  if (!profile) return <p className="text-gray-500">Loading…</p>;
+  if (!profile) return <BeaconSpinner inline label="Loading" />;
   const leads = profile.role === 'admin' || profile.role === 'executive';
 
   return (
@@ -140,7 +141,7 @@ export function LiveMailPage() {
     }
   };
 
-  if (!profile) return <p className="text-gray-500">Loading…</p>;
+  if (!profile) return <BeaconSpinner inline label="Loading" />;
 
   const leads = profile.role === 'admin' || profile.role === 'executive';
   if (!leads) {
@@ -282,7 +283,7 @@ export function LiveMailPage() {
         </p>
 
         {!invites ? (
-          <p className="mt-4 text-gray-400">Loading…</p>
+          <BeaconSpinner inline label="Loading" className="mt-4" />
         ) : waiting.length === 0 ? (
           <p className="mt-4 text-gray-500">Nobody is waiting. Everyone invited has joined.</p>
         ) : (
@@ -363,7 +364,7 @@ export function LiveMailPage() {
           Accepted {invites && <span className="text-gray-400">· {joined.length}</span>}
         </h2>
         {!invites ? (
-          <p className="mt-4 text-gray-400">Loading…</p>
+          <BeaconSpinner inline label="Loading" className="mt-4" />
         ) : joined.length === 0 ? (
           <p className="mt-4 text-gray-500">Nobody has accepted an invitation yet.</p>
         ) : (

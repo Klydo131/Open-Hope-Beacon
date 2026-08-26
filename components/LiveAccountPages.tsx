@@ -21,6 +21,7 @@ import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { useTutorialMode } from '@/lib/tutorial';
 import type { Role } from '@/lib/types';
+import { BeaconSpinner } from '@/components/BeaconLoader';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Something went wrong. Please try again.';
@@ -194,7 +195,7 @@ export function LiveProfilePage() {
 
 export function LiveSettingsPage() {
   const { profile } = useLiveSession();
-  if (!profile) return <p className="text-gray-500">Loading…</p>;
+  if (!profile) return <BeaconSpinner inline label="Loading your account" />;
   const leads = profile.role === 'admin' || profile.role === 'executive';
 
   return (

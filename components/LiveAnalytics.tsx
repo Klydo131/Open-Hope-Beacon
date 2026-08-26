@@ -1,36 +1,41 @@
 'use client';
 
-// The church's numbers over time, for a pastor on a Tuesday morning.
+// The church's numbers, for a Director or an Executive Director on a Tuesday.
 //
 // WHO THIS IS FOR. Somebody who uses a spreadsheet occasionally and has never
 // opened a BI tool, who has ten minutes before a meeting and needs to be able
-// to say what is happening. So: a headline they can read at a glance, one chart
-// they can point at, the two averages a spreadsheet would give them, and a
-// button that produces a file they can attach to an email.
+// to say what is happening. So: a headline they can read at a glance, two
+// charts that answer two specific questions, the averages a spreadsheet would
+// give them, and a file they can attach to an email.
 //
-// ONE AXIS, THREE LINES, NEVER MORE. Three counts of the same kind of thing
-// (events per week) share one scale honestly. A second y-axis would let any two
-// lines be made to tell any story, which is the single most common way a chart
-// lies, and it is not available here at all.
+// THE TWO QUESTIONS, replacing a generic "everything week by week" chart that
+// answered neither:
 //
-// THE PALETTE WAS VALIDATED, NOT CHOSEN. See lib/live/analytics.ts: run through
-// the dataviz checker for lightness, chroma, colour-vision separation and
-// contrast against the surface. The brand's gold failed twice and is not used
-// for a line. Every line also carries a direct label and a legend, so identity
-// never rests on colour alone.
+//   1. Who is using it — Guides and Explorers, active and inactive, over a day,
+//      a week and a month.
+//   2. Who is arriving and who is leaving — new members by role at any grain
+//      from daily to yearly, and the suspensions, refusals and removals beside
+//      them.
+//
+// ONE AXIS, ALWAYS. No chart here has two y-scales; that is the single most
+// common way a chart lies and it is not available.
+//
+// ARRIVALS ARE SMALL MULTIPLES, NOT FOUR LINES. Four series on one axis needs
+// four separable colours, and the validator says blue and purple sit at ΔE 5.7
+// under deuteranopia — below the floor at which direct labels can rescue them.
+// Four panels each hold one series, which needs one hue and no legend, and it
+// also fixes the scale: one Executive Director and thirteen Explorers do not
+// share a y-axis usefully.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import * as live from '@/lib/live/analytics';
+import * as an from '@/lib/live/analytics';
 import { Button, Card } from '@/components/ui';
+import { BeaconSpinner } from '@/components/BeaconLoader';
+import { roleNoun } from '@/lib/brand';
+import type { Role } from '@/lib/types';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Could not load the numbers.';
-
-const WINDOWS = [
-  { weeks: 6, label: '6 weeks' },
-  { weeks: 12, label: '3 months' },
-  { weeks: 26, label: '6 months' },
-];
 
 function download(name: string, body: string, mime: string) {
   const url = URL.createObjectURL(new Blob([body], { type: mime }));
@@ -63,197 +68,262 @@ function Kpi({ n, label, hint, tone = 'plain' }: {
   );
 }
 
-/**
- * The chart.
- *
- * Plain SVG rather than a charting library: one dependency that ships to every
- * phone in a congregation, for three polylines, is a poor trade. Marks follow
- * the spec that matters here: 2px lines, markers big enough to hit, a recessive
- * grid, and no number printed on every point.
- */
-function Lines({ labels, series, hovered, onHover }: {
-  labels: string[];
-  series: live.Series[];
-  hovered: number | null;
-  onHover: (i: number | null) => void;
-}) {
-  const W = 720;
-  const H = 240;
-  const PAD = { top: 16, right: 16, bottom: 28, left: 34 };
+// ---------------------------------------------------------------------------
+// Chart 1 — active against inactive
+// ---------------------------------------------------------------------------
+//
+// A part-to-whole: of the Guides on the roll, how many did something. Stacked
+// bars rather than two separate bars, because the two numbers add to a total
+// that matters, and a 2px gap between the segments so the boundary is a line
+// rather than a colour change somebody has to trust.
+
+export function ActiveBars({ slices, role }: { slices: an.ActivitySlice[]; role: Role }) {
+  const mine = an.ACTIVITY_WINDOWS.map((w) =>
+    slices.find((s) => s.role === role && s.days === w.days)
+    ?? { windowLabel: w.label, days: w.days, role, approved: 0, active: 0, inactive: 0, suspended: 0 });
+
+  const W = 320;
+  const H = 190;
+  const PAD = { top: 12, right: 8, bottom: 30, left: 30 };
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
-
-  const peak = Math.max(1, ...series.flatMap((s) => s.points));
-  // A round ceiling, so the axis reads 0 / 3 / 6 rather than 0 / 3.5 / 7.
-  const top = Math.max(2, Math.ceil(peak / 2) * 2);
-  const x = (i: number) => PAD.left + (labels.length < 2 ? plotW / 2 : (i / (labels.length - 1)) * plotW);
+  const top = Math.max(1, ...mine.map((m) => m.approved));
+  const band = plotW / mine.length;
+  const barW = Math.min(56, band * 0.55);
   const y = (v: number) => PAD.top + plotH - (v / top) * plotH;
 
-  // Every other label on a narrow window, so they never collide.
-  const step = labels.length > 14 ? 4 : labels.length > 8 ? 2 : 1;
+  // The roll is the same in all three windows, so it belongs in the caption
+  // rather than being re-derived from three bars of equal height.
+  const roll = Math.max(...mine.map((m) => m.approved), 0);
 
   return (
-    <div className="overflow-x-auto">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="w-full min-w-[560px]"
-        role="img"
-        aria-label={`Weekly church activity: ${series.map((s) => s.label).join(', ')}`}
-        onMouseLeave={() => onHover(null)}
-      >
-        {/* Grid: recessive, three lines, never competing with the data. */}
+    <figure className="m-0">
+      <figcaption className="text-sm font-bold text-navy">
+        {roleNoun(role)}s
+        {/* WITHOUT THIS, THE NUMBER ON THE BAR IS AMBIGUOUS: a reader cannot
+            tell whether 11 is the blue part or the whole bar. Naming the roll
+            once settles it, and the number on each bar is then plainly the
+            active one. */}
+        <span className="ml-1.5 font-normal text-gray-500">{roll} on the roll</span>
+      </figcaption>
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 w-full" role="img"
+        aria-label={`${roleNoun(role)}s active and inactive over today, this week and this month`}>
+        {/* Recessive grid: three lines, no box. */}
         {[0, 0.5, 1].map((f) => (
-          <g key={f}>
-            <line
-              x1={PAD.left} x2={W - PAD.right}
-              y1={PAD.top + plotH * f} y2={PAD.top + plotH * f}
-              stroke="#E4E9F0" strokeWidth={1}
-            />
-            <text
-              x={PAD.left - 8} y={PAD.top + plotH * f + 4}
-              textAnchor="end" fontSize={11} fill="#8892A0"
-            >
-              {Math.round(top * (1 - f))}
-            </text>
-          </g>
+          <line key={f} x1={PAD.left} x2={W - PAD.right} y1={y(top * f)} y2={y(top * f)}
+            stroke="#E5E7EB" strokeWidth={1} />
+        ))}
+        {[0, 0.5, 1].map((f) => (
+          <text key={f} x={PAD.left - 6} y={y(top * f) + 4} textAnchor="end"
+            className="fill-gray-400" style={{ fontSize: 10 }}>
+            {Math.round(top * f)}
+          </text>
         ))}
 
-        {labels.map((l, i) => (i % step === 0 ? (
-          <text key={l + i} x={x(i)} y={H - 8} textAnchor="middle" fontSize={11} fill="#8892A0">{l}</text>
-        ) : null))}
-
-        {/* The week under the pointer. Drawn behind the lines. */}
-        {hovered !== null && (
-          <line
-            x1={x(hovered)} x2={x(hovered)} y1={PAD.top} y2={PAD.top + plotH}
-            stroke="#1E2A4A" strokeOpacity={0.25} strokeWidth={1}
-          />
-        )}
-
-        {series.map((s) => (
-          <g key={s.key}>
-            <polyline
-              points={s.points.map((v, i) => `${x(i)},${y(v)}`).join(' ')}
-              fill="none" stroke={s.colour} strokeWidth={2}
-              strokeLinejoin="round" strokeLinecap="round"
-            />
-            {/* A ring in the surface colour, so overlapping points stay
-                separable where two lines cross. */}
-            {s.points.map((v, i) => (
-              <circle
-                key={i} cx={x(i)} cy={y(v)} r={hovered === i ? 5 : 3.5}
-                fill={s.colour} stroke="#fff" strokeWidth={1.5}
-              />
-            ))}
-          </g>
-        ))}
-
-        {/* Hit areas wider than the marks. */}
-        {labels.map((l, i) => (
-          <rect
-            key={`hit-${l}-${i}`}
-            x={x(i) - plotW / Math.max(1, labels.length) / 2}
-            y={PAD.top} width={plotW / Math.max(1, labels.length)} height={plotH}
-            fill="transparent"
-            onMouseEnter={() => onHover(i)}
-          />
-        ))}
+        {mine.map((m, i) => {
+          const cx = PAD.left + band * i + band / 2;
+          const x = cx - barW / 2;
+          const activeH = (m.active / top) * plotH;
+          const inactiveH = (m.inactive / top) * plotH;
+          const base = PAD.top + plotH;
+          return (
+            <g key={m.days}>
+              {/* Inactive sits underneath, active on top of it, with a 2px
+                  surface gap between so the join reads as a boundary. */}
+              <rect x={x} y={base - inactiveH} width={barW} height={Math.max(0, inactiveH)}
+                rx={4} fill={an.INACTIVE_COLOUR} />
+              <rect x={x} y={base - inactiveH - activeH - (activeH > 0 && inactiveH > 0 ? 2 : 0)}
+                width={barW} height={Math.max(0, activeH)} rx={4} fill={an.ACTIVE_COLOUR} />
+              {/* Direct label: the number that answers the question, on the
+                  mark, rather than a value on every segment. */}
+              <text x={cx} y={base - inactiveH - activeH - 6} textAnchor="middle"
+                className="fill-gray-700" style={{ fontSize: 11, fontWeight: 700 }}>
+                {m.active}
+              </text>
+              <title>{`${m.windowLabel}: ${m.active} active, ${m.inactive} with nothing recorded, of ${m.approved} on the roll`}</title>
+              <text x={cx} y={H - 10} textAnchor="middle" className="fill-gray-500"
+                style={{ fontSize: 11 }}>
+                {m.windowLabel}
+              </text>
+            </g>
+          );
+        })}
       </svg>
-    </div>
+    </figure>
   );
 }
 
-export function LiveAnalytics({ churchName }: { churchName?: string | null }) {
-  const [weeks, setWeeks] = useState(12);
-  const [data, setData] = useState<live.Analytics | null>(null);
+// ---------------------------------------------------------------------------
+// Chart 2 — arrivals, one small panel per role
+// ---------------------------------------------------------------------------
+
+export function ArrivalPanel({ panel, labels, peak }: {
+  panel: an.ArrivalPanel; labels: string[]; peak: number;
+}) {
+  const W = 320;
+  const H = 130;
+  const PAD = { top: 14, right: 8, bottom: 22, left: 26 };
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top - PAD.bottom;
+  const band = plotW / Math.max(1, panel.points.length);
+  const barW = Math.max(3, Math.min(22, band * 0.6));
+  const y = (v: number) => PAD.top + plotH - (v / peak) * plotH;
+
+  return (
+    <figure className="m-0 rounded-xl bg-gray-50 p-3">
+      <figcaption className="flex items-baseline justify-between">
+        <span className="text-sm font-bold text-navy">{panel.label}</span>
+        <span className="text-xs text-gray-500">{panel.total} in this period</span>
+      </figcaption>
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 w-full" role="img"
+        aria-label={`${panel.label} joining, ${panel.total} in this period`}>
+        <line x1={PAD.left} x2={W - PAD.right} y1={PAD.top + plotH} y2={PAD.top + plotH}
+          stroke="#E5E7EB" strokeWidth={1} />
+        <text x={PAD.left - 5} y={PAD.top + 8} textAnchor="end" className="fill-gray-400"
+          style={{ fontSize: 9 }}>{peak}</text>
+        {panel.points.map((v, i) => (
+          <g key={i}>
+            <rect
+              x={PAD.left + band * i + (band - barW) / 2}
+              y={y(v)}
+              width={barW}
+              height={Math.max(0, PAD.top + plotH - y(v))}
+              rx={4}
+              fill={an.ARRIVAL_COLOUR}
+            />
+            {v > 0 && (
+              <text x={PAD.left + band * i + band / 2} y={y(v) - 3} textAnchor="middle"
+                className="fill-gray-600" style={{ fontSize: 9, fontWeight: 700 }}>{v}</text>
+            )}
+          </g>
+        ))}
+        {/* First and last label only. A tick under every one of fourteen days
+            is unreadable at this width and tells nobody anything. */}
+        <text x={PAD.left} y={H - 6} className="fill-gray-400" style={{ fontSize: 9 }}>
+          {labels[0]}
+        </text>
+        <text x={W - PAD.right} y={H - 6} textAnchor="end" className="fill-gray-400"
+          style={{ fontSize: 9 }}>
+          {labels[labels.length - 1]}
+        </text>
+      </svg>
+    </figure>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+export function LiveAnalytics({ churchName }: { churchName?: string }) {
+  const [slices, setSlices] = useState<an.ActivitySlice[] | null>(null);
+  const [head, setHead] = useState<an.Headline | null>(null);
+  const [grain, setGrain] = useState<an.Grain>('week');
+  const [arr, setArr] = useState<an.Arrivals | null>(null);
+  const [gone, setGone] = useState<an.Departures | null>(null);
+  const [loadingArrivals, setLoadingArrivals] = useState(false);
   const [error, setError] = useState('');
-  const [hovered, setHovered] = useState<number | null>(null);
   const [howTo, setHowTo] = useState(false);
 
-  const load = useCallback(async () => {
-    try { setData(await live.churchAnalytics(weeks)); setError(''); }
-    catch (cause) { setError(message(cause)); }
-  }, [weeks]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    let alive = true;
+    Promise.all([an.activityByWindow(), an.headline()])
+      .then(([s, h]) => { if (alive) { setSlices(s); setHead(h); } })
+      .catch((cause) => { if (alive) { setSlices([]); setError(message(cause)); } });
+    return () => { alive = false; };
+  }, []);
 
-  const rows = useMemo(() => {
-    if (!data) return [];
-    return data.labels.map((label, i) => ({
-      week: label,
-      ...Object.fromEntries(data.series.map((s) => [s.label, s.points[i] ?? 0])),
-    }));
-  }, [data]);
+  const loadArrivals = useCallback(async (g: an.Grain) => {
+    setLoadingArrivals(true);
+    try {
+      const [a, d] = await Promise.all([an.arrivals(g), an.departures(an.windowStart(g))]);
+      setArr(a);
+      setGone(d);
+    } catch (cause) {
+      setError(message(cause));
+    } finally {
+      setLoadingArrivals(false);
+    }
+  }, []);
 
-  if (error) {
-    return <Card className="p-5"><p className="text-sm text-red-800">{error}</p></Card>;
-  }
-  if (!data) return <Card className="p-5"><p className="text-gray-400">Working out the numbers…</p></Card>;
+  useEffect(() => { void loadArrivals(grain); }, [grain, loadArrivals]);
 
-  const slug = `${(churchName || 'church').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-analytics-${new Date().toISOString().slice(0, 10)}`;
+  const csv = useMemo(() => {
+    if (!arr || !slices) return '';
+    const lines: string[][] = [];
+    lines.push(['Who is using it']);
+    lines.push(['Role', 'Period', 'On the roll', 'Active', 'Inactive', 'Suspended']);
+    for (const s of slices) {
+      lines.push([roleNoun(s.role), s.windowLabel, String(s.approved), String(s.active),
+        String(s.inactive), String(s.suspended)]);
+    }
+    lines.push([]);
+    lines.push([`Who is arriving (${an.GRAINS.find((g) => g.key === arr.grain)?.label})`]);
+    lines.push(['Period', ...arr.panels.map((p) => p.label)]);
+    arr.labels.forEach((label, i) => {
+      lines.push([label, ...arr.panels.map((p) => String(p.points[i] ?? 0))]);
+    });
+    lines.push(['Total', ...arr.panels.map((p) => String(p.total))]);
+    if (gone) {
+      lines.push([]);
+      lines.push([`Decisions recorded since ${gone.since}`]);
+      lines.push(['Approved', String(gone.approved)]);
+      lines.push(['Turned down', String(gone.disapproved)]);
+      lines.push(['Suspended', String(gone.suspended)]);
+      lines.push(['Suspension lifted', String(gone.released)]);
+      lines.push(['Removed and deleted', String(gone.removed)]);
+    }
+    return lines.map((r) => r.map(cell).join(',')).join('\r\n');
+  }, [arr, slices, gone]);
 
-  const exportCsv = () => {
-    const head = ['Week', ...data.series.map((s) => s.label)];
-    const body = data.labels.map((label, i) => [label, ...data.series.map((s) => s.points[i] ?? 0)]);
-    const stats = [
-      [],
-      ['Summary over', `${weeks} weeks`],
-      ['Measure', 'Total', 'Average per week', 'Middle week'],
-      ...data.series.map((s) => [
-        s.label, live.total(s.points),
-        live.mean(s.points).toFixed(1), live.median(s.points),
-      ]),
-    ];
-    download(
-      `${slug}.csv`,
-      [head, ...body, ...stats].map((r) => r.map(cell).join(',')).join('\r\n'),
-      'text/csv;charset=utf-8',
+  if (error && !slices?.length) {
+    return (
+      <Card className="p-5">
+        <h2 className="text-xl font-bold text-navy">📈 How the church is going</h2>
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-200">
+          {error}
+        </p>
+      </Card>
     );
-  };
+  }
+
+  if (!slices || !head) {
+    return (
+      <Card className="p-5">
+        <h2 className="text-xl font-bold text-navy">📈 How the church is going</h2>
+        <BeaconSpinner inline label="Counting" className="mt-4" />
+      </Card>
+    );
+  }
+
+  const grainLabel = an.GRAINS.find((g) => g.key === grain)?.label ?? 'Weekly';
 
   return (
     <div className="space-y-4">
       <Card className="p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-navy">📈 How the church is going</h2>
-            <p className="mt-1 text-sm text-gray-500">
-              Counted every week. Nobody&rsquo;s name, message or prayer appears here.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {WINDOWS.map((w) => (
-              <button
-                key={w.weeks}
-                type="button"
-                onClick={() => setWeeks(w.weeks)}
-                className={`tap-sm rounded-xl px-3 py-1.5 text-sm font-bold ${
-                  weeks === w.weeks ? 'bg-navy text-white' : 'bg-gray-100 text-navy hover:bg-gray-200'
-                }`}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <h2 className="text-xl font-bold text-navy">📈 How the church is going</h2>
+        <p className="mt-1 text-sm text-gray-500">
+          {churchName ? `${churchName}. ` : ''}
+          Nobody&rsquo;s name, message or prayer appears here.
+        </p>
 
         {/* THE HEADLINE. Four numbers, and the one that means somebody is being
             ignored is coloured when it is not zero. */}
         <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Kpi n={data.now.explorers} label="Explorers" hint="Approved and in the church" />
-          <Kpi n={data.now.guides} label="Guides" hint="Carrying at least one person" />
-          <Kpi n={data.now.graduated} label="Graduated" hint="Sent to disciple others" tone="good" />
+          <Kpi n={head.explorers} label="Explorers" hint="Approved and in the church" />
+          <Kpi n={head.guides} label="Guides" hint="Carrying at least one person" />
+          <Kpi n={head.graduated} label="Graduated" hint="Sent to disciple others" tone="good" />
           <Kpi
-            n={data.now.unpaired}
+            n={head.unpaired}
             label="Waiting for a Guide"
-            hint={data.now.unpaired ? 'Pair these first' : 'Everybody is paired'}
-            tone={data.now.unpaired ? 'watch' : 'good'}
+            hint={head.unpaired ? 'Pair these first' : 'Everybody is paired'}
+            tone={head.unpaired ? 'watch' : 'good'}
           />
         </div>
       </Card>
 
+      {/* ------------------------------------------------------------------ */}
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-lg font-bold text-navy">Week by week</h3>
+          <h3 className="text-lg font-bold text-navy">Who is using it</h3>
           <button
             type="button"
             onClick={() => setHowTo((v) => !v)}
@@ -263,94 +333,171 @@ export function LiveAnalytics({ churchName }: { churchName?: string | null }) {
           </button>
         </div>
 
-        {/* INSTRUCTIONS, WRITTEN FOR SOMEBODY WHO DOES NOT DO THIS FOR A LIVING.
-            Hidden by default so it does not shout at the person who already
-            knows, one tap away for the person who does not. */}
+        {/* THE DEFINITION IS NOT IN A TOOLTIP. It is the first thing under the
+            heading, because a Director who reads "active" as "opened the app"
+            will make a decision about a person on a number that does not mean
+            that. */}
+        <p className="mt-1 text-sm text-gray-500">
+          <strong>Active</strong> means Beacon recorded them doing something:
+          sending a message, a step on a journey, arranging a meeting, or
+          writing a post or a lesson. It is not a count of visits, because
+          Beacon does not record when somebody opens the app.
+        </p>
+
         {howTo && (
           <div className="mt-3 space-y-2 rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
-            <p><strong>Each point is one week.</strong> The line on the far right is the week you are in, so it is always partly finished and always looks low. Compare the two before it.</p>
-            <p><strong>The three lines answer three questions:</strong></p>
-            <ul className="list-disc space-y-1 pl-5">
-              {data.series.map((s) => (
-                <li key={s.key}>
-                  <span
-                    aria-hidden
-                    className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full align-middle"
-                    style={{ backgroundColor: s.colour }}
-                  />
-                  <strong>{s.label}.</strong> {s.meaning}
-                </li>
-              ))}
-            </ul>
-            <p><strong>Average and middle week.</strong> The average is the total shared out over the weeks. The middle week is the one in the centre when you line them up. When they differ a lot, one unusual week is pulling the average, and the middle week is closer to an ordinary one.</p>
-            <p><strong>A flat line is not a failure.</strong> A church of forty is not supposed to be busy every week. What is worth acting on is <em>Waiting for a Guide</em> above zero, and a month of nothing at all.</p>
+            <p><strong>Each bar is everybody on the roll for that role.</strong> The blue part did something in the period, the brown part did not. The number above the bar is the blue one.</p>
+            <p><strong>Today will almost always look low</strong>, and that is the day, not the church. Read the week and the month.</p>
+            <p><strong>Brown is not a failure.</strong> An Explorer who met their Guide in person and wrote nothing down is brown here. What is worth acting on is a whole month of brown for somebody, and <em>Waiting for a Guide</em> above zero.</p>
           </div>
         )}
 
         {/* Legend, always. Identity never rests on colour alone. */}
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
-          {data.series.map((s) => (
-            <span key={s.key} className="flex items-center gap-1.5 text-sm font-semibold text-gray-600">
-              <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.colour }} />
-              {s.label}
-            </span>
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-600">
+            <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: an.ACTIVE_COLOUR }} />
+            Active
+          </span>
+          <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-600">
+            <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: an.INACTIVE_COLOUR }} />
+            Nothing recorded
+          </span>
+        </div>
+
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          {an.ACTIVITY_ROLES.map((r) => (
+            <ActiveBars key={r} slices={slices} role={r} />
           ))}
         </div>
-
-        <div className="mt-2">
-          <Lines labels={data.labels} series={data.series} hovered={hovered} onHover={setHovered} />
-        </div>
-
-        {hovered !== null && (
-          <p className="mt-1 rounded-xl bg-gray-50 px-3 py-2 text-sm text-gray-700">
-            <strong>Week of {data.labels[hovered]}:</strong>{' '}
-            {data.series.map((s) => `${s.label} ${s.points[hovered] ?? 0}`).join(' · ')}
-          </p>
-        )}
 
         {/* THE TABLE IS NOT OPTIONAL. It is what makes the chart readable to a
             screen reader, to somebody who cannot separate the colours, and to
             anybody who just wants the number. */}
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[420px] border-collapse text-sm">
-            <caption className="sr-only">Weekly totals, and the average and middle week for each measure</caption>
+          <table className="w-full min-w-[460px] border-collapse text-sm">
+            <caption className="sr-only">Active and inactive members by role and period</caption>
             <thead>
               <tr>
-                <th className="border-b border-gray-200 p-2 text-left font-bold text-navy">Measure</th>
-                <th className="border-b border-gray-200 p-2 text-right font-bold text-navy">Total</th>
-                <th className="border-b border-gray-200 p-2 text-right font-bold text-navy">Average a week</th>
-                <th className="border-b border-gray-200 p-2 text-right font-bold text-navy">Middle week</th>
-                <th className="border-b border-gray-200 p-2 text-right font-bold text-navy">Last full week</th>
+                {['Role', 'Period', 'On the roll', 'Active', 'Nothing recorded', 'Suspended'].map((h) => (
+                  <th key={h} className="border-b border-gray-200 p-2 text-left font-bold text-navy">{h}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {data.series.map((s) => {
-                const w = live.weekOnWeek(s.points);
-                return (
-                  <tr key={s.key}>
-                    <td className="border-b border-gray-100 p-2">
-                      <span aria-hidden className="mr-1.5 inline-block h-2.5 w-2.5 rounded-full align-middle" style={{ backgroundColor: s.colour }} />
-                      {s.label}
-                    </td>
-                    <td className="border-b border-gray-100 p-2 text-right font-semibold">{live.total(s.points)}</td>
-                    <td className="border-b border-gray-100 p-2 text-right">{live.mean(s.points).toFixed(1)}</td>
-                    <td className="border-b border-gray-100 p-2 text-right">{live.median(s.points)}</td>
-                    <td className="border-b border-gray-100 p-2 text-right">
-                      {w.latest}
-                      {w.pct !== null && (
-                        <span className={`ml-1 text-xs font-semibold ${w.pct > 0 ? 'text-green-700' : w.pct < 0 ? 'text-amber-800' : 'text-gray-400'}`}>
-                          {w.pct > 0 ? '+' : ''}{w.pct}%
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              {slices.map((s) => (
+                <tr key={`${s.role}-${s.days}`}>
+                  <td className="border-b border-gray-100 p-2">{roleNoun(s.role)}</td>
+                  <td className="border-b border-gray-100 p-2">{s.windowLabel}</td>
+                  <td className="border-b border-gray-100 p-2">{s.approved}</td>
+                  <td className="border-b border-gray-100 p-2 font-semibold">{s.active}</td>
+                  <td className="border-b border-gray-100 p-2">{s.inactive}</td>
+                  <td className="border-b border-gray-100 p-2">{s.suspended}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </Card>
 
+      {/* ------------------------------------------------------------------ */}
+      <Card className="p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-bold text-navy">Who is arriving</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Counted on the day somebody finished signing up, not the day their
+              invitation was sent.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {an.GRAINS.map((g) => (
+              <button
+                key={g.key}
+                type="button"
+                onClick={() => setGrain(g.key)}
+                aria-pressed={grain === g.key}
+                className={`tap-sm rounded-xl px-3 py-1.5 text-sm font-bold ${
+                  grain === g.key ? 'bg-navy text-white' : 'bg-gray-100 text-navy hover:bg-gray-200'
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {loadingArrivals && <BeaconSpinner inline label={`Counting ${grainLabel.toLowerCase()}`} className="mt-4" />}
+
+        {arr && !loadingArrivals && (
+          <>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              {arr.panels.map((p) => (
+                <ArrivalPanel key={p.role} panel={p} labels={arr.labels} peak={arr.peak} />
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              All four panels share one scale, so a tall bar means the same
+              number of people wherever it appears.
+            </p>
+
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[460px] border-collapse text-sm">
+                <caption className="sr-only">People joining by role, and the average and middle period</caption>
+                <thead>
+                  <tr>
+                    {['Role', 'Total', `Average a ${arr.grain}`, `Middle ${arr.grain}`, 'Last full period'].map((h) => (
+                      <th key={h} className="border-b border-gray-200 p-2 text-left font-bold text-navy">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {arr.panels.map((p) => {
+                    const c = an.stepChange(p.points);
+                    return (
+                      <tr key={p.role}>
+                        <td className="border-b border-gray-100 p-2">{p.label}</td>
+                        <td className="border-b border-gray-100 p-2 font-semibold">{p.total}</td>
+                        <td className="border-b border-gray-100 p-2">{an.mean(p.points).toFixed(1)}</td>
+                        <td className="border-b border-gray-100 p-2">{an.median(p.points)}</td>
+                        <td className="border-b border-gray-100 p-2">
+                          {c.latest}
+                          {c.pct !== null && (
+                            <span className={`ml-1 text-xs font-semibold ${c.pct > 0 ? 'text-green-700' : c.pct < 0 ? 'text-amber-800' : 'text-gray-400'}`}>
+                              {c.pct > 0 ? '+' : ''}{c.pct}%
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {/* ---------------- Decisions, in the same window ---------------- */}
+        {gone && !loadingArrivals && (
+          <div className="mt-5 border-t border-gray-100 pt-4">
+            <h4 className="text-base font-bold text-navy">Decisions recorded since {gone.since}</h4>
+            <p className="mt-1 text-sm text-gray-500">
+              From the discipline record, which outlives the people in it. In
+              Beacon, removing somebody from the church deletes their account, so
+              &ldquo;removed&rdquo; and &ldquo;deleted&rdquo; are one number and
+              not two.
+            </p>
+            <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-5">
+              <Kpi n={gone.approved} label="Let in" tone="good" />
+              <Kpi n={gone.disapproved} label="Turned down" tone={gone.disapproved ? 'watch' : 'plain'} />
+              <Kpi n={gone.suspended} label="Suspended" tone={gone.suspended ? 'watch' : 'plain'} />
+              <Kpi n={gone.released} label="Suspension lifted" />
+              <Kpi n={gone.removed} label="Removed and deleted" tone={gone.removed ? 'watch' : 'plain'} />
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* ------------------------------------------------------------------ */}
       <Card className="p-5">
         <h3 className="text-lg font-bold text-navy">Take it with you</h3>
         <p className="mt-1 text-sm text-gray-500">
@@ -358,7 +505,15 @@ export function LiveAnalytics({ churchName }: { churchName?: string | null }) {
           print for a board meeting.
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="gold" onClick={exportCsv}>Download as CSV</Button>
+          <Button
+            variant="gold"
+            disabled={!csv}
+            onClick={() => download(
+              `${(churchName || 'church').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-numbers.csv`,
+              csv, 'text/csv;charset=utf-8')}
+          >
+            Download as CSV
+          </Button>
           {/* PRINT RATHER THAN A GENERATED PDF. Every browser and every phone
               can print to PDF, and the print dialog lets somebody choose the
               paper and the margins. A PDF we generate would be one fixed
@@ -366,11 +521,9 @@ export function LiveAnalytics({ churchName }: { churchName?: string | null }) {
           <Button variant="ghost" onClick={() => window.print()}>Print or save as PDF</Button>
         </div>
         <p className="mt-3 text-xs text-gray-500">
-          The CSV opens in Excel, Google Sheets, Numbers and LibreOffice. It has
-          one row per week, then the totals and averages underneath. Nobody&rsquo;s
-          name is in it.
+          The CSV opens in Excel, Google Sheets, Numbers and LibreOffice. Both
+          tables are in it, one under the other. Nobody&rsquo;s name is in it.
         </p>
-        <p className="sr-only">{rows.length} weeks of data are available in the table above.</p>
       </Card>
     </div>
   );

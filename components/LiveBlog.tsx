@@ -19,8 +19,9 @@ import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { Linked } from '@/components/Linked';
-import { roleLabel } from '@/lib/brand';
+import { roleLabel, roleNoun } from '@/lib/brand';
 import { useLiveSession } from '@/lib/live/session';
+import { BeaconSpinner } from '@/components/BeaconLoader';
 
 function when(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -157,6 +158,16 @@ export function LiveBlogDesk() {
               Everyone in the church
               <span className="text-gray-400">(it goes on the church home screen)</span>
             </label>
+            {/* SAID BEFORE THEY PRESS PUBLISH, not discovered afterwards. A
+                church-wide post is signed with the writer's name and role, and
+                somebody choosing that audience is entitled to know they are
+                choosing to be identified. */}
+            {audience === 'church' && (
+              <p className="mt-1 pl-6 text-xs text-gray-500">
+                Your name and role are shown on it, so the church can see who
+                said what.
+              </p>
+            )}
             <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
               <input type="radio" name="lblog-aud" checked={audience === 'all'} onChange={() => setAudience('all')} />
               Only the people I walk with
@@ -204,7 +215,7 @@ export function LiveBlogDesk() {
       )}
 
       <div className="mt-4 space-y-3">
-        {posts === null && <p className="text-sm text-gray-400">Loading…</p>}
+        {posts === null && <BeaconSpinner inline label="Loading your posts" className="mt-2" />}
         {posts?.length === 0 && !error && (
           <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
             Nothing written yet. Your first post can be three sentences.
@@ -325,9 +336,18 @@ export function LiveBlogFeed({ selfId }: { selfId?: string }) {
             <h3 className="text-lg font-bold text-navy">{p.title}</h3>
             <p className="mt-0.5 text-xs text-gray-500">
               {p.author_id === selfId ? 'You' : p.author_name}
-              {p.author_id !== selfId && profile
+              {/* THE ROLE IS ALWAYS SHOWN ON A CHURCH-WIDE POST, on purpose.
+                  lib/brand's roleLabel hides "Explorer" from viewers who have
+                  no business knowing who is at which stage, and that rule is
+                  right everywhere it applies — but it does not apply here.
+                  Publishing to the whole church is the writer's own decision to
+                  be identified, and a noticeboard where some posts are signed
+                  and others are anonymous is a noticeboard nobody can hold to
+                  account. Narrower audiences keep the ordinary rule. */}
+              {p.author_id !== selfId
                 ? (() => {
-                    const label = roleLabel(p.author_role, profile.role);
+                    if (p.audience === 'church') return ` · ${roleNoun(p.author_role)}`;
+                    const label = profile ? roleLabel(p.author_role, profile.role) : null;
                     return label ? ` · ${label}` : '';
                   })()
                 : ''}

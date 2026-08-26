@@ -49,7 +49,18 @@ export function NewBadge({ person }: {
   return (
     <span
       title={`Joined this week. This mark disappears in ${left} ${left === 1 ? 'day' : 'days'}.`}
-      className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-green-800"
+      /* THE RING PULSES TWICE AND STOPS. A badge that pulses forever is a badge
+         people stop seeing, and then it is only noise on somebody's name. Twice
+         on each render is enough to catch an eye scanning a roster and short
+         enough that it is over before it irritates. It does not animate at all
+         under prefers-reduced-motion; see app/globals.css.
+
+         EVERY ROLE GETS THE SAME MARK, and that is deliberate rather than
+         lazy. A different badge for a new Explorer would announce which
+         members are Explorers to everybody who can see the list, which is
+         exactly what lib/brand's roleLabel rule exists to prevent. Somebody
+         new is somebody new. */
+      className="beacon-new shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-green-800"
     >
       New
     </span>
