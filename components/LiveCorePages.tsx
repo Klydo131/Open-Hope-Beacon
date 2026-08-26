@@ -26,7 +26,8 @@ import { useDraft, clearDraft } from '@/lib/drafts';
 import { Linked } from '@/components/Linked';
 import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
-import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveLessonSeries, LiveNotes } from '@/components/LiveMinistry';
+import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveNotes } from '@/components/LiveMinistry';
+import { LiveStudies } from '@/components/LiveStudies';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -1810,7 +1811,7 @@ export function LiveAdminPage() {
             Worth stating because it was once reported as a bug — "the admin
             cannot see the prayer" — when it was the design working. */}
         {room === 'approvals' && <LiveRecommendationsForDirector />}
-        {room === 'lessons' && <LiveLessonSeries manage />}
+        {room === 'lessons' && <LiveStudies canWrite />}
         {room === 'church' && <LiveBoardReport churchName={church?.name} />}
       </div>
     </LiveAppShell>
@@ -1899,7 +1900,7 @@ export function LiveGuidePage() {
       <div className="mt-6 space-y-6">
         <LiveRecommend />
         <LiveFollowUps pairings={rows.map((r) => ({ id: r.id, ds_name: r.ds_name }))} />
-        <LiveLessonSeries />
+        <LiveStudies canWrite />
       </div>
 
       {/* The library, with a share button per Explorer. Links rather than
@@ -2301,7 +2302,7 @@ export function LiveExplorerPage() {
             exactly that and nothing had ever called them. */}
         {pairing && <LiveMeetings pairingId={pairing.id} withName={pairing.dm_name} />}
         <LiveSharedWithMe />
-        <LiveLessonSeries />
+        <LiveStudies />
         <LiveBlogFeed selfId={profile?.id} />
         <LiveAskForPrayer />
       </div>

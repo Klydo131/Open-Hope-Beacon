@@ -1339,6 +1339,19 @@ export async function deleteFollowUp(id: string): Promise<void> {
 export interface LessonSeries {
   id: string; church_id: string; title: string;
   description: string | null; topic: string; is_published: boolean; created_at: string;
+  /** Who wrote it. Null on series made before Guides could write their own. */
+  author_id: string | null;
+}
+
+/** One study inside a series. The body is the lesson; files hang off it. */
+export interface Lesson {
+  id: string; series_id: string | null; church_id: string; author_id: string;
+  title: string; body: string; position: number; created_at: string;
+}
+
+export interface LessonFile {
+  id: string; lesson_id: string; name: string; path: string;
+  mime: string | null; size_bytes: number | null; added_by: string;
 }
 
 export interface LessonAssignment {
@@ -1353,15 +1366,109 @@ export async function listLessonSeries(): Promise<LessonSeries[]> {
   return (data ?? []) as LessonSeries[];
 }
 
-export async function addLessonSeries(m: { title: string; topic: string; description?: string }): Promise<void> {
+export async function addLessonSeries(
+  m: { title: string; topic: string; description?: string; publish?: boolean },
+): Promise<string> {
   const supabase = db();
   const me_id = await uid();
   const { data: me } = await supabase.from('profiles').select('church_id').eq('id', me_id).maybeSingle();
   if (!me?.church_id) throw new Error('Your account is not in a church yet.');
-  const { error } = await supabase.from('lesson_series').insert({
+  const { data, error } = await supabase.from('lesson_series').insert({
     church_id: me.church_id, title: m.title.trim(),
     topic: m.topic.trim() || 'General', description: m.description?.trim() || null,
+    // Stamped so a Guide owns what they wrote. The write policy checks it
+    // against the caller, so this cannot be used to write as somebody else.
+    author_id: me_id,
+    is_published: m.publish ?? false,
+  }).select('id').single();
+  if (error) throw new Error(error.message);
+  return (data as { id: string }).id;
+}
+
+/** Publish or unpublish. Unpublished is visible to its author and Directors. */
+export async function setSeriesPublished(id: string, published: boolean): Promise<void> {
+  const { error } = await db().from('lesson_series').update({ is_published: published }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteLessonSeries(id: string): Promise<void> {
+  const { error } = await db().from('lesson_series').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
+// Lessons inside a series, and the handouts attached to them.
+// ---------------------------------------------------------------------------
+
+export async function listLessons(seriesId: string): Promise<Lesson[]> {
+  const { data, error } = await db().from('lessons')
+    .select('id, series_id, church_id, author_id, title, body, position, created_at')
+    .eq('series_id', seriesId)
+    .order('position', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Lesson[];
+}
+
+export async function addLesson(
+  seriesId: string, m: { title: string; body: string; position?: number },
+): Promise<string> {
+  const supabase = db();
+  const me_id = await uid();
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', me_id).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+  const { data, error } = await supabase.from('lessons').insert({
+    series_id: seriesId, church_id: me.church_id, author_id: me_id,
+    title: m.title.trim(), body: m.body.trim(), position: m.position ?? 0,
+  }).select('id').single();
+  if (error) throw new Error(error.message);
+  return (data as { id: string }).id;
+}
+
+export async function deleteLesson(id: string): Promise<void> {
+  const { error } = await db().from('lessons').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/** Every handout on these lessons, keyed by lesson id. */
+export async function listLessonFiles(lessonIds: string[]): Promise<Record<string, LessonFile[]>> {
+  if (lessonIds.length === 0) return {};
+  const { data, error } = await db().from('lesson_files')
+    .select('id, lesson_id, name, path, mime, size_bytes, added_by')
+    .in('lesson_id', lessonIds)
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  const out: Record<string, LessonFile[]> = {};
+  for (const row of (data ?? []) as LessonFile[]) (out[row.lesson_id] ??= []).push(row);
+  return out;
+}
+
+export async function attachLessonFile(lessonId: string, file: File): Promise<void> {
+  if (file.size > 10 * 1024 * 1024) throw new Error('That file is over 10 MB.');
+  const supabase = db();
+  const me_id = await uid();
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', me_id).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+  // The stored name is what a reader sees; the PATH never contains it, because
+  // a filename is text somebody chose and a path is used to build URLs.
+  const ext = (file.name.split('.').pop() || '').replace(/[^a-z0-9]/gi, '').slice(0, 6);
+  const path = `lessons/${me_id}/${lessonId}-${Date.now()}${ext ? '.' + ext : ''}`;
+  const up = await supabase.storage.from('pairing-media')
+    .upload(path, file, { upsert: false, contentType: file.type || undefined });
+  if (up.error) throw new Error(up.error.message);
+  const { error } = await supabase.from('lesson_files').insert({
+    lesson_id: lessonId, church_id: me.church_id, added_by: me_id,
+    name: file.name.slice(0, 200), path, mime: file.type || null, size_bytes: file.size,
   });
+  if (error) throw new Error(error.message);
+}
+
+export async function lessonFileUrl(path: string): Promise<string> {
+  const { data } = await db().storage.from('pairing-media').createSignedUrl(path, 60 * 60);
+  return data?.signedUrl ?? '';
+}
+
+export async function removeLessonFile(id: string): Promise<void> {
+  const { error } = await db().from('lesson_files').delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
 
@@ -1389,30 +1496,10 @@ export async function completeAssignment(id: string, done: boolean): Promise<voi
 // Lessons and notifications.
 // ---------------------------------------------------------------------------
 
-export interface Lesson {
-  id: string; church_id: string; author_id: string;
-  title: string; body: string; series_id: string | null;
-  position: number; created_at: string;
-}
-
-export async function listLessons(): Promise<Lesson[]> {
-  const { data, error } = await db().from('lessons').select('*')
-    .order('position', { ascending: true });
-  if (error) throw new Error(error.message);
-  return (data ?? []) as Lesson[];
-}
-
-export async function addLesson(m: { title: string; body: string; seriesId?: string }): Promise<void> {
-  const supabase = db();
-  const me_id = await uid();
-  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', me_id).maybeSingle();
-  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
-  const { error } = await supabase.from('lessons').insert({
-    church_id: me.church_id, author_id: me_id,
-    title: m.title.trim(), body: m.body, series_id: m.seriesId || null,
-  });
-  if (error) throw new Error(error.message);
-}
+// Lesson and addLesson used to be declared here as well, unused and
+// church-wide. They are gone: the series-scoped pair above replaced them, and
+// two functions with the same name doing nearly the same thing is how the
+// wrong one gets called later.
 
 export interface AppNotification {
   id: string; user_id: string; type: string;

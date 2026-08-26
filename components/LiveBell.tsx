@@ -8,11 +8,38 @@
 // able to write this table directly could make the app say anything to anybody.
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import * as live from '@/lib/live/data';
 
 export function LiveBell() {
   const [rows, setRows] = useState<live.AppNotification[]>([]);
   const [open, setOpen] = useState(false);
+  // THE SWITCH LIVES WHERE THE BELL IS.
+  //
+  // It was in Settings, three taps away, and the panel itself had no control
+  // of any kind. Somebody tapping a bell and finding one line of grey text has
+  // been shown a broken feature, whatever is true elsewhere in the app.
+  //
+  // DEFAULT ON. `!== 'off'` rather than `=== 'on'`, so a member who has never
+  // touched this gets alerts. Everyone reported not getting them, and a
+  // default of off is indistinguishable from a bug.
+  const [alerts, setAlerts] = useState(true);
+  const [perm, setPerm] = useState<NotificationPermission>('default');
+
+  useEffect(() => {
+    try { setAlerts(localStorage.getItem('hb-alerts') !== 'off'); } catch { /* private mode */ }
+    if (typeof Notification !== 'undefined') setPerm(Notification.permission);
+  }, []);
+
+  const flip = (on: boolean) => {
+    setAlerts(on);
+    try { localStorage.setItem('hb-alerts', on ? 'on' : 'off'); } catch { /* private mode */ }
+  };
+
+  const askDevice = async () => {
+    if (typeof Notification === 'undefined') return;
+    setPerm(await Notification.requestPermission());
+  };
 
   const load = useCallback(async () => {
     try { setRows(await live.listNotifications()); }
@@ -54,9 +81,54 @@ export function LiveBell() {
               </button>
             )}
           </div>
+          {/* THE ON AND OFF, RIGHT HERE. */}
+          <label className="mt-2 flex items-center justify-between gap-3 rounded-xl bg-gray-50 p-2.5">
+            <span className="text-sm font-semibold text-navy">Alerts in the app</span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={alerts}
+              onChange={(e) => flip(e.target.checked)}
+              aria-label="Show alerts in the app"
+              className="h-5 w-5 shrink-0"
+            />
+          </label>
+
+          {/* Device alerts are the browser's to grant, not ours. Asking is the
+              only thing a page may do, and once refused it may not ask again,
+              so that state says where to go instead of offering a dead button. */}
+          {typeof Notification !== 'undefined' && perm !== 'granted' && (
+            <div className="mt-1.5 rounded-xl bg-gray-50 p-2.5">
+              {perm === 'denied' ? (
+                <p className="text-xs text-gray-600">
+                  Alerts on this device are blocked by your browser. Open the padlock
+                  beside the address to allow them.
+                </p>
+              ) : (
+                <button
+                  onClick={askDevice}
+                  className="text-sm font-semibold text-navy underline underline-offset-2"
+                >
+                  Also alert me on this device
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="mt-2 max-h-80 space-y-1 overflow-y-auto">
-            {rows.length === 0 && <p className="p-2 text-sm text-gray-400">Nothing yet.</p>}
-            {rows.map((n) => (
+            {!alerts && (
+              <p className="p-2 text-sm text-gray-500">
+                Alerts are switched off. Anything that happens is still here when
+                you turn them back on.
+              </p>
+            )}
+            {alerts && rows.length === 0 && (
+              <p className="p-2 text-sm text-gray-500">
+                Nothing yet. A new message, a prayer request or somebody waiting to
+                be approved will appear here.
+              </p>
+            )}
+            {alerts && rows.map((n) => (
               <button
                 key={n.id}
                 onClick={async () => { if (!n.read_at) { await live.markNotificationRead(n.id); await load(); } }}
@@ -67,6 +139,13 @@ export function LiveBell() {
               </button>
             ))}
           </div>
+          <Link
+            href="/settings"
+            onClick={() => setOpen(false)}
+            className="mt-2 block text-center text-xs font-semibold text-gray-400 underline"
+          >
+            More notification settings
+          </Link>
         </div>
       )}
     </div>

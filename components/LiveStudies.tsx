@@ -1,0 +1,327 @@
+'use client';
+
+// Lesson studies a Guide writes, and an Explorer opens.
+//
+// WHAT WAS THERE BEFORE. A flat list of series titles and nothing else. No
+// lessons inside them, no files, nothing to click. A Guide could not write one
+// at all: the database policy on lesson_series was manages_church(church_id),
+// so only a Director could, and the person actually sitting with somebody week
+// by week could only look at a list.
+//
+// WHAT IT IS NOW. A Guide writes a series, adds studies to it, attaches the
+// handouts they already use, and publishes it. Anybody in the church can open
+// it and read the studies and the files. Directors keep the same power over
+// everything, which is what manages_church still means.
+//
+// A DRAFT IS VISIBLE TO ITS AUTHOR ONLY, which sounds obvious and is the thing
+// the old read policy got wrong: is_published alone meant a Guide could not see
+// what they had just written until they published it, which makes writing it
+// impossible.
+
+import { useCallback, useEffect, useState } from 'react';
+import * as live from '@/lib/live/data';
+import { useLiveSession } from '@/lib/live/session';
+import { Button, Card } from '@/components/ui';
+import { Linked } from '@/components/Linked';
+
+function message(cause: unknown): string {
+  return cause instanceof Error ? cause.message : 'That did not work.';
+}
+
+function kb(bytes: number | null): string {
+  if (!bytes) return '';
+  return bytes > 1024 * 1024
+    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/** One attached handout. The URL is signed when it is opened, never stored. */
+function FileRow({ file, canRemove, onRemove }: {
+  file: live.LessonFile; canRemove: boolean; onRemove: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <li className="flex flex-wrap items-center gap-2 text-sm">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            const url = await live.lessonFileUrl(file.path);
+            if (url) window.open(url, '_blank', 'noopener,noreferrer');
+          } finally { setBusy(false); }
+        }}
+        className="font-semibold text-blue-700 underline underline-offset-2"
+      >
+        📎 {file.name}
+      </button>
+      <span className="text-xs text-gray-400">{kb(file.size_bytes)}</span>
+      {canRemove && (
+        <button type="button" onClick={onRemove} className="text-xs text-gray-400 underline">
+          Remove
+        </button>
+      )}
+    </li>
+  );
+}
+
+/**
+ * One series, opened.
+ *
+ * `mine` decides whether the writing controls appear. It is a convenience, not
+ * a control: the database refuses a write from anybody else regardless of what
+ * this component draws.
+ */
+function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean }) {
+  const [lessons, setLessons] = useState<live.Lesson[] | null>(null);
+  const [files, setFiles] = useState<Record<string, live.LessonFile[]>>({});
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const { profile } = useLiveSession();
+
+  const load = useCallback(async () => {
+    try {
+      const rows = await live.listLessons(series.id);
+      setLessons(rows);
+      setFiles(await live.listLessonFiles(rows.map((l) => l.id)));
+      setError('');
+    } catch (cause) { setLessons([]); setError(message(cause)); }
+  }, [series.id]);
+  useEffect(() => { void load(); }, [load]);
+
+  const act = async (fn: () => Promise<void>) => {
+    setBusy(true); setError('');
+    try { await fn(); await load(); }
+    catch (cause) { setError(message(cause)); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="mt-3 border-t border-black/5 pt-3">
+      {error && <p className="mb-2 rounded-xl bg-red-50 p-2 text-sm text-red-800">{error}</p>}
+
+      {lessons !== null && lessons.length === 0 && (
+        <p className="text-sm text-gray-400">
+          {mine ? 'No studies in here yet. Add the first one below.' : 'Nothing in here yet.'}
+        </p>
+      )}
+
+      <ol className="space-y-3">
+        {lessons?.map((lesson, i) => (
+          <li key={lesson.id} className="rounded-xl bg-white p-3 ring-1 ring-black/5">
+            <p className="font-semibold text-navy">{i + 1}. {lesson.title}</p>
+            {lesson.body && (
+              <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
+                <Linked text={lesson.body} />
+              </p>
+            )}
+            {(files[lesson.id] ?? []).length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {files[lesson.id].map((f) => (
+                  <FileRow
+                    key={f.id}
+                    file={f}
+                    canRemove={f.added_by === profile?.id}
+                    onRemove={() => void act(() => live.removeLessonFile(f.id))}
+                  />
+                ))}
+              </ul>
+            )}
+            {mine && (
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <label className="cursor-pointer text-xs font-semibold text-navy underline">
+                  Attach a file
+                  <input
+                    type="file"
+                    className="hidden"
+                    disabled={busy}
+                    onChange={(event) => {
+                      const input = event.target;
+                      const file = input.files?.[0];
+                      if (!file) return;
+                      // The reset comes AFTER the upload. Clearing the input
+                      // first aborts the read on WebKit, which fails silently
+                      // and looks like a broken button on every iPhone.
+                      void act(async () => {
+                        try { await live.attachLessonFile(lesson.id, file); }
+                        finally { input.value = ''; }
+                      });
+                    }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void act(() => live.deleteLesson(lesson.id))}
+                  className="text-xs text-gray-400 underline"
+                >
+                  Delete study
+                </button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      {mine && (
+        <div className="mt-3 grid gap-2 rounded-xl bg-gray-50 p-3">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title of this study"
+            className="rounded-xl border border-gray-300 px-3 py-2"
+          />
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            rows={4}
+            placeholder="Write the study here. Links become clickable."
+            className="rounded-xl border border-gray-300 px-3 py-2"
+          />
+          <div>
+            <Button
+              disabled={busy || !title.trim()}
+              onClick={() => act(async () => {
+                await live.addLesson(series.id, {
+                  title, body, position: (lessons?.length ?? 0) + 1,
+                });
+                setTitle(''); setBody('');
+              })}
+            >
+              {busy ? 'Saving…' : 'Add this study'}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
+  const { profile } = useLiveSession();
+  const [rows, setRows] = useState<live.LessonSeries[] | null>(null);
+  const [open, setOpen] = useState('');
+  const [title, setTitle] = useState('');
+  const [topic, setTopic] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = useCallback(async () => {
+    try { setRows(await live.listLessonSeries()); setError(''); }
+    catch (cause) { setRows([]); setError(message(cause)); }
+  }, []);
+  useEffect(() => { void load(); }, [load]);
+
+  const act = async (fn: () => Promise<void>) => {
+    setBusy(true); setError('');
+    try { await fn(); await load(); }
+    catch (cause) { setError(message(cause)); }
+    finally { setBusy(false); }
+  };
+
+  const byTopic = (rows ?? []).reduce<Record<string, live.LessonSeries[]>>((acc, s) => {
+    (acc[s.topic || 'General'] ??= []).push(s); return acc;
+  }, {});
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-xl font-bold text-navy">📖 Lesson studies</h2>
+      <p className="mt-1 text-sm text-gray-500">
+        {canWrite
+          ? 'Write your own studies, attach the handouts you already use, and publish them for your church.'
+          : 'Open a series to read the studies in it and anything attached.'}
+      </p>
+
+      {error && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">{error}</p>}
+
+      {canWrite && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="New series title"
+            className="rounded-xl border border-gray-300 px-3 py-2"
+          />
+          <input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="Area of interest"
+            className="rounded-xl border border-gray-300 px-3 py-2"
+          />
+          <Button
+            disabled={busy || !title.trim()}
+            onClick={() => act(async () => {
+              const id = await live.addLessonSeries({ title, topic });
+              setTitle(''); setTopic('');
+              setOpen(id);
+            })}
+          >
+            Create
+          </Button>
+        </div>
+      )}
+
+      <div className="mt-4 space-y-4">
+        {rows?.length === 0 && <p className="text-sm text-gray-400">No series yet.</p>}
+        {Object.entries(byTopic).map(([t, list]) => (
+          <div key={t}>
+            <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">{t}</h3>
+            <div className="mt-1 space-y-2">
+              {list.map((s) => {
+                const mine = !!profile && s.author_id === profile.id;
+                const opened = open === s.id;
+                return (
+                  <div key={s.id} className="rounded-xl bg-gray-50 p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* THE WHOLE ROW OPENS IT. The complaint was that a
+                          series could not be clicked at all. */}
+                      <button
+                        type="button"
+                        onClick={() => setOpen(opened ? '' : s.id)}
+                        className="flex-1 text-left font-semibold text-navy underline underline-offset-2"
+                      >
+                        {s.title}
+                      </button>
+                      {!s.is_published && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                          Draft, only you can see it
+                        </span>
+                      )}
+                      {mine && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void act(() => live.setSeriesPublished(s.id, !s.is_published))}
+                            className="text-xs font-semibold text-navy underline"
+                          >
+                            {s.is_published ? 'Unpublish' : 'Publish'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => void act(() => live.deleteLessonSeries(s.id))}
+                            className="text-xs text-gray-400 underline"
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {s.description && (
+                      <p className="mt-1 text-sm text-gray-600"><Linked text={s.description} /></p>
+                    )}
+                    {opened && <SeriesBody series={s} mine={mine} />}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
