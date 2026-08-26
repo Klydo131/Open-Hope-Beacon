@@ -63,19 +63,18 @@ export function railGroupsFor(
       ...(opts.mail
         ? [{ href: '/mail', label: 'Mail', icon: '✉️', badge: counts.mail }]
         : []),
-      { href: '/settings', label: 'Settings', icon: '⚙️' },
-      // The replay lives inside Settings, which is not somewhere anyone thinks
-      // to look for it — "I dont see any retake for tutorial in the desktop".
-      // The anchor lands on the card rather than the top of the page.
-      { href: '/settings#tutorial', label: 'Tutorial', icon: '✦' },
-      // Same reasoning, same mistake, twice: "What's new" was only reachable by
-      // going into Settings and scrolling, so it was asked for repeatedly as a
-      // thing that did not exist. It is a standing part of the rail now, with a
-      // badge when there is a release nobody has read.
-      { href: '/settings#whats-new', label: "What's new", icon: '✨', badge: counts.updates },
-      // Reachable from every screen on purpose. Nobody who has just hit a bug
-      // goes looking through Settings for somewhere to report it.
-      { href: '/settings#feedback', label: 'Feedback', icon: '💬' },
+      // TUTORIAL, WHAT'S NEW AND FEEDBACK LIVE IN SETTINGS, not out here.
+      //
+      // They were rail entries for a while, put there because each had been
+      // reported as missing when it was only reachable by scrolling Settings.
+      // That fixed the wrong half: it made the rail six items long for three
+      // things somebody uses once a month, and the rail is the thing people
+      // look at all day. They are cards in Settings, which is one tap away and
+      // is where a person already looks for the occasional thing.
+      //
+      // The unread badge moves onto Settings itself, so a release nobody has
+      // read is still visible from every screen without costing a whole row.
+      { href: '/settings', label: 'Settings', icon: '⚙️', badge: counts.updates },
     ],
   };
 
@@ -83,6 +82,20 @@ export function railGroupsFor(
   // up on the whole church before dropping into their own desk, so it sits at
   // the very top, ahead of the role dashboard and the resources shelf.
   const home = { href: '/church', label: 'Home', icon: '🏠' };
+
+  // CASES ARE A ROOM, FOR EVERY ROLE, AND ALWAYS PRESENT.
+  //
+  // A case used to be a card partway down a dashboard, which is easy to scroll
+  // past on the one day it matters and puts a formal hearing in the same visual
+  // rank as a study plan. It is also the screen an Explorer most needs to be
+  // able to find without being told, because an Explorer called into a case is
+  // the person in it with the least standing.
+  //
+  // The link does not appear and disappear with the caseload. A rail entry that
+  // comes and goes is one nobody trusts is there, and its absence on a quiet
+  // day is indistinguishable from it being broken. The room says plainly that
+  // nothing is open.
+  const cases = { href: '/cases', label: 'Cases', icon: '⚖️' };
 
   if (role === 'ds') {
     return [
@@ -92,6 +105,7 @@ export function railGroupsFor(
           home,
           { href: '/ds', label: 'My Journey', icon: '🎯' },
           { href: '/library', label: 'My Library', icon: '📚' },
+          cases,
         ],
       },
       personal,
@@ -106,6 +120,7 @@ export function railGroupsFor(
           home,
           { href: '/dm', label: 'My Explorers', icon: '🤝', badge: counts.seekers },
           { href: '/library', label: 'Resources', icon: '📚' },
+          cases,
         ],
       },
       personal,
@@ -120,6 +135,7 @@ export function railGroupsFor(
         home,
         { href: '/admin', label: 'Admin', icon: '🛡️', badge: counts.approvals },
         { href: '/library', label: 'Resources', icon: '📚' },
+        cases,
       ],
     },
     personal,

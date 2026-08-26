@@ -141,7 +141,7 @@ export function ChurchBillboard() {
 
       {/* Announcements — church-wide notices, pinned above the live stream. */}
       <div>
-        <h2 className="mb-3 text-xl font-bold text-navy">📌 Announcements</h2>
+        <h2 className="mb-3 text-xl font-bold text-room">📌 Announcements</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {ANNOUNCEMENTS.map((a) => (
             <Card key={a.id} className="p-4">
@@ -158,7 +158,7 @@ export function ChurchBillboard() {
 
       {/* The live stream. */}
       <div>
-        <h2 className="mb-3 text-xl font-bold text-navy">🔔 Latest across the church</h2>
+        <h2 className="mb-3 text-xl font-bold text-room">🔔 Latest across the church</h2>
         {feed.length === 0 ? (
           <Card className="p-6 text-center text-gray-400">
             Nothing yet. As the church moves, it shows up here.

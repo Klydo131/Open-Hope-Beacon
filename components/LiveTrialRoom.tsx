@@ -266,7 +266,17 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
 // you look into it must not take away their answer, or every case that began
 // with a precautionary suspension would only ever hear one side.
 
-export function LiveCourt({ me }: { me: Profile }) {
+export function LiveCourt({ me, emptyState }: {
+  me: Profile;
+  /**
+   * What to draw when this person has no cases.
+   *
+   * Nothing, by default: on a dashboard an empty courtroom is a permanent
+   * reminder of a proceeding that is not happening. On the Cases room, where a
+   * blank screen would read as broken, the page passes a real empty state.
+   */
+  emptyState?: React.ReactNode;
+}) {
   const [cases, setCases] = useState<live.Trial[] | null>(null);
   const [statements, setStatements] = useState<Record<string, live.TrialStatement[]>>({});
   const [names, setNames] = useState<Record<string, string>>({});
@@ -505,8 +515,9 @@ export function LiveCourt({ me }: { me: Profile }) {
     </li>
   );
 
-  // Somebody with no cases at all should not be shown an empty courtroom.
-  if (cases && cases.length === 0 && !leads) return null;
+  // Somebody with no cases at all should not be shown an empty courtroom,
+  // unless the screen they are on has nothing else to say.
+  if (cases && cases.length === 0 && !leads) return <>{emptyState ?? null}</>;
 
   return (
     <Card className="p-5">

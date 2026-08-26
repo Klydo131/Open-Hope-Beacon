@@ -281,12 +281,13 @@ export function BlogDesk({ userId }: { userId: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// The reader's side: the church noticeboard, plus anything written for them
+// The reader's side: Community Blogs, plus anything written for them
 // personally. Named for what it is now rather than for the Guide-only version
 // it started as.
 // ---------------------------------------------------------------------------
 export function BlogFeed({ userId }: { userId: string }) {
   const { db, recordBlogView } = useDemo();
+  const [open, setOpen] = useState(true);
 
   // The Guides this person is actually walking with. A post from anybody else
   // is not theirs to read, whatever its audience says.
@@ -326,21 +327,44 @@ export function BlogFeed({ userId }: { userId: string }) {
 
   return (
     <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">📣 Church noticeboard</h2>
-      <p className="mt-0.5 text-sm text-gray-500">
-        What people in your church have published, newest first.
-      </p>
-      <div className="mt-3 space-y-4">
-        {posts.map((p: BlogPost) => (
-          <article key={p.id} className="rounded-xl bg-navy/5 p-4">
-            <h3 className="text-lg font-bold text-navy">{p.title}</h3>
-            <p className="mt-0.5 text-xs text-gray-500">
-              {nameOf(p.author_id)} · {when(p.created_at)}
-            </p>
-            <Body text={p.body} />
-          </article>
-        ))}
+      {/* Same fold-away and scroll box as the live one. A tutorial that teaches
+          a panel which cannot be shut, when the real one can, is the kind of
+          small gap that stops the demo being a demo of anything. */}
+      <div className="mb-0 flex flex-wrap items-start justify-between gap-3">
+        <h2 className="text-xl font-bold text-navy">📣 Community Blogs</h2>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="tap-sm shrink-0 rounded-xl bg-gray-100 px-3 py-1.5 text-sm font-bold text-navy hover:bg-gray-200"
+        >
+          {open ? 'Hide' : `Show (${posts.length})`}
+        </button>
       </div>
+      <p className="mt-0.5 text-sm text-gray-500">
+        {open
+          ? 'What people in your church have published, newest first.'
+          : `${posts.length} ${posts.length === 1 ? 'post' : 'posts'} from your church.`}
+      </p>
+      {open && (
+        <div
+          className={`mt-3 space-y-4 ${
+            posts.length > 3
+              ? 'beacon-scroll max-h-[32rem] overflow-y-auto overscroll-contain pr-1'
+              : ''
+          }`}
+        >
+          {posts.map((p: BlogPost) => (
+            <article key={p.id} className="rounded-xl bg-navy/5 p-4">
+              <h3 className="text-lg font-bold text-navy">{p.title}</h3>
+              <p className="mt-0.5 text-xs text-gray-500">
+                {nameOf(p.author_id)} · {when(p.created_at)}
+              </p>
+              <Body text={p.body} />
+            </article>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }

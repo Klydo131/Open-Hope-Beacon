@@ -145,7 +145,13 @@ Three things about it are worth knowing before you use it on twenty people.
 
 ### Meetings
 
-A Guide and an Explorer arrange a time together on the same card, and both see it. Either may propose one: a title, a date and time, online or in person, and a place that becomes a map link. The other person confirms it, and either can cancel. Nobody else in the church sees any of it.
+A Guide and an Explorer arrange a time together on the same card, and both see it. Either may propose one: a title, a date and time, and online or in person. The other person confirms it, and either can cancel. Nobody else in the church sees any of it.
+
+**In person asks where, and will not let you skip it.** The place becomes an **Open in Maps** button that opens whichever map app that person already has, signed in, with their own saved places. Give it a place and a street, for example *Church cafe, 12 Rizal St, Cavite*, because "Church hall" on its own maps to every church hall in the country.
+
+> **NOTE** · A link, never an embedded map
+>
+> An embedded map needs a Google Maps key, which means a billing account and a key that reaches every browser in the congregation. A link costs nothing, needs no account of ours, and opens the app people already use.
 
 ### Lesson studies
 
@@ -153,7 +159,26 @@ A Guide writes their own. Create a series, add studies to it, attach the handout
 
 Directors keep the same control over everything, which is what running the church means. A Guide may edit and delete only what they wrote.
 
-### The church noticeboard
+### Announcements
+
+A notice pinned where the church will see it: an icon, a title, a line of detail, and a free-text when, because "This Sabbath, 9:00 AM" and "Every evening this week" are what a church actually writes and neither is a date. Notices come down by being taken down, not by a clock nobody set.
+
+**Guides, Directors and Executive Directors can write one.** Guides were left out at first, which meant a Guide arranging something for the five people they walk with had nowhere to pin it and sent the same message five times.
+
+**Explorers cannot.** A notice sits above everybody's church screen, and pinning something there is an act of leading rather than of speaking. An Explorer with something to say to the church has Community Blogs, which is exactly that and does not sit above everyone else's.
+
+Two audiences:
+
+| Who sees it | Who it reaches |
+| --- | --- |
+| **The whole church** | Every member. The default, because it is what the word notice already means. |
+| **Only the people I walk with** | For a Guide, their Explorers. A Director is usually paired with nobody, so the screen warns them that a private notice from them goes to nobody but themselves. |
+
+A notice that is not church-wide is marked as such on its card. The ordinary case is not labelled, because a word on every card tells nobody anything.
+
+**Anybody in leadership can take down any notice, and an author can take down their own.** A pinned notice reaches the whole church, and anything that reaches the whole church needs an off switch that does not depend on the person who wrote it being available.
+
+### Community Blogs
 
 **Anybody approved in the church can write a post.** Explorers, Guides, Directors and Executive Directors all have **Your blog** on their own screen. Before tonight only Guides and leaders could, and an Explorer who tried was shown an error from the database.
 
@@ -161,7 +186,7 @@ Three audiences, and the choice is made before publishing.
 
 | Audience | Who reads it |
 | --- | --- |
-| **Everyone in the church** | Every approved member of your church. This is the noticeboard. |
+| **Everyone in the church** | Every approved member of your church. It appears in Community Blogs. |
 | **Only the people I walk with** | For a Guide, their Explorers. For an Explorer, their Guide. |
 | **Only the people I choose** | The people named on it, and nobody else. It only appears when there is somebody to choose. |
 
@@ -169,9 +194,15 @@ A post stays private until it is published, and **Make private** takes it back o
 
 > **CAUTION** · A church-wide post is signed
 >
-> Choosing **Everyone in the church** puts your name and your role on it, and the screen says so before you press publish. That is on purpose: a noticeboard where some posts are signed and others are anonymous is one nobody can hold to account. The narrower audiences follow the app's ordinary rule, which does not name an Explorer's role to people who have no reason to know it.
+> Choosing **Everyone in the church** puts your name and your role on it, and the screen says so before you press publish. That is on purpose: a blog everyone reads where some posts are signed and others are anonymous is one nobody can hold to account. The narrower audiences follow the app's ordinary rule, which does not name an Explorer's role to people who have no reason to know it.
 
-The noticeboard is the **first thing on Home** for every role, newest first. It draws nothing at all when nobody has published, rather than leaving an empty card at the top of the screen.
+**Community Blogs** sits below the masthead on the church Home screen, and at the bottom of every other role's own screen, newest first. It is deliberately never the first thing anybody sees. On the church Home the order is the church's name, then the blogs, then the pinned notices; on a Guide's or an Explorer's own screen the blogs are last, because what a person came there to do belongs above what everybody else has written.
+
+It draws nothing at all when nobody has published, rather than leaving an empty card on the screen.
+
+Past three posts it gets a scroll bar of its own instead of growing down the page, and **Hide** folds it away entirely. Both are remembered on that device, so somebody who would rather not read the blogs shuts them once rather than scrolling past them every time. Folded, the heading still says how many posts are waiting, because a shut panel with no count looks like an empty one and nobody opens it again.
+
+On an Explorer's **My Journey**, the first thing on the screen is their Guide's name. The whole design says the journey is a relationship, and an Explorer opening that screen is looking for their person.
 
 **Directors and Executive Directors can delete any post in their church.** That is not tidying up; it is the reason an audience open to every member is safe to have at all. A church-wide megaphone with no way to switch it off is a problem waiting for a Sabbath morning. Anybody can always delete their own.
 
@@ -184,6 +215,16 @@ Advance stage is one tap, and taps go wrong. **Undo, step back** sits beside it 
 The screen a Guide lands on opens with their own figures: how many Explorers they have, how many have **graduated**, how many are still walking, and the breakdown by level. Above that sits whatever is waiting today, which is usually short: prayer requests, and the next meeting with a name and a day.
 
 **Graduated** means reached Commission: walked the whole journey and now sent to walk with somebody else. It is the number the whole design exists to produce.
+
+### Cases
+
+**Cases have a room of their own**, in the left column on every screen, for every role. A case is a formal proceeding about a person, sometimes about the person reading it, and it used to be a card partway down a dashboard: easy to scroll past on the one day it mattered, and sitting in the same visual rank as a study plan.
+
+The link is always there, whether or not anything is open. A link that comes and goes is one nobody trusts is there, and its absence on a quiet day looks the same as it being broken. When there is nothing, the room says so.
+
+An **Explorer** has the room too, and that matters most. An Explorer called into a case is the person in it with the least standing, and their answer has to be findable without anybody having to tell them where to look. They can write in it even while suspended: suspending somebody pending a hearing must not take away their side of it.
+
+A Director judging a case still works through it in **Admin → Safeguarding**, beside the reports the cases came from. That is a different job from answering one, and the screen tells the two apart by itself.
 
 ### Safeguarding
 
@@ -292,15 +333,32 @@ There is one player, in two sizes, and they are two views of the same thing rath
 
 **The full one** is the first thing on **My Library**, and it is the only place it appears. It used to sit on My Journey and on a Guide's workspace as well, where it was the largest card on a screen meant to be about somebody's next step.
 
+It is a real player, not a play button. Both sizes have:
+
+- a **progress bar you can drag**, with the time so far on the left and the time remaining on the right;
+- **previous** and **next** through whatever is queued;
+- **back ten seconds** and **forward ten seconds**, which is what you actually want in a talk;
+- **mute**, and a volume slider.
+
+Pressing previous once restarts the track you are on, the way every player people already use behaves. Pressing it again goes back a track.
+
+**Video plays too, with a picture.** A video's picture appears in whichever player you are looking at, and follows you: start one in the Library, go back to your room, and it keeps playing with its picture in the rail.
+
 Three tabs, in the order most people want them.
 
 - **Vault** is your own music and video, saved on this device. There is a search box over it, because a vault worth having is a vault too long to scroll, and a **Save music or video** button that puts more in. Files stay on the device and are never uploaded.
 - **Playlists** are your own, saved on the device and never uploaded: name one, then add whatever is playing to it. A playlist can mix ambience and your own recordings, so rainfall behind a sermon is one list.
-- **Ambience** is **made on the device as it plays**: rainfall, distant surf, plain hush. There is no file to download, it costs no data, and it works with no signal.
+- **Ambience** is **made on the device as it plays**: rainfall, distant surf, plain hush. There is no file to download, it costs no data, and it works with no signal. It has no progress bar, because it has no end; the player says so rather than showing a bar that never moves.
 
-Both sizes drive the same sound, so starting a track in the Library and walking back to your room keeps it playing.
+Both sizes drive the same element, so starting a track in the Library and walking back to your room keeps it playing.
 
 What somebody listens to while they read is nobody else's business, which is why the vault and the playlists stay on the device rather than in the church's database.
+
+### What is in the left column
+
+Home, your own screen, the library, and **Cases**. Under **You**: Profile, Mail and Settings.
+
+**Tutorial, What's new and Feedback are cards inside Settings**, not rows in the column. They were rows for a while, put there because each had been reported as missing when it was only reachable by scrolling Settings. That fixed the wrong half: it made the column six entries long for three things somebody uses about once a month, and the column is what people look at all day. The unread mark for a new release sits on Settings itself, so it is still visible from every screen.
 
 ### Waiting
 

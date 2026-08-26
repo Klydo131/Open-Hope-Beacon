@@ -256,7 +256,7 @@ export type BlogVisibility = 'private' | 'published';
  * Who a post is for. Mirrors the live enum (migration 0042) exactly, so the
  * tutorial teaches the choice people actually get.
  *
- *   church   — everybody in the church. The noticeboard.
+ *   church   — everybody in the church. Community Blogs.
  *   all      — the people the writer walks with.
  *   selected — named people, and nobody else.
  */

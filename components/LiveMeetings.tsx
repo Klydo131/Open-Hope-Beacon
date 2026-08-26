@@ -128,18 +128,28 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
             <option value="in_person">In person</option>
           </select>
         </div>
+        {/* AN IN-PERSON MEETING WITHOUT A PLACE IS NOT A MEETING.
+            This used to be optional, so it was possible to propose meeting
+            somebody in person and send them a time and no location. The other
+            person then has to ask where, which is the one thing arranging it on
+            a shared card was supposed to save them. The Propose button below
+            stays disabled until this is filled in.
+
+            The example is a real address shape on purpose: "Church hall" alone
+            gives a map of every church hall in the country. */}
         {mode === 'in_person' && (
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="Where? A church hall, a café, an address"
+            placeholder="Where? A place and a street, for example Church cafe, 12 Rizal St, Cavite"
+            aria-label="Where you are meeting"
             className="rounded-xl border border-gray-300 px-3 py-2"
           />
         )}
         <div>
           <Button
             variant="gold"
-            disabled={busy || !startsAt}
+            disabled={busy || !startsAt || (mode === 'in_person' && !location.trim())}
             onClick={() => act(async () => {
               await live.scheduleMeeting(pairingId, {
                 title, startsAt: new Date(startsAt).toISOString(), mode, location,
@@ -186,9 +196,9 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
                   href={map}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-1 inline-block text-sm font-semibold text-blue-700 underline underline-offset-2"
+                  className="tap-sm mt-1 inline-flex items-center gap-1.5 rounded-lg bg-white px-3 text-sm font-semibold text-navy ring-1 ring-black/5"
                 >
-                  Open in maps ↗
+                  <span aria-hidden>📍</span> Open in Maps
                 </a>
               )}
               <div className="mt-2 flex flex-wrap gap-2">

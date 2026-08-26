@@ -50,15 +50,18 @@ export function LiveChurchPage() {
 
   return (
     <div className="space-y-6">
-      {/* THE NOTICEBOARD IS THE FIRST THING ON HOME, above the masthead.
-          Home is where "Home" in the rail lands and where every account starts,
-          and what people write to each other is the reason to come back to it;
-          the church's own statistics are context around that, not the point of
-          the screen. It draws nothing at all when nobody has published. */}
-      <LiveBlogFeed selfId={profile.id} />
       {/* THE BOARD, not a heading and two numbers. Masthead, anything waiting
-          for a Director, and the church's own notices. */}
-      <LiveBillboard churchName={churchName} />
+          for a Director, then Community Blogs, then the church's own notices.
+
+          THAT ORDER IS THE ASK, and it settles what a home screen is for. The
+          church's name is the first thing; what people wrote comes next,
+          because it is the reason to come back; the pinned notices sit under
+          it. The blogs are not first anywhere, and on every other role's home
+          screen they are last. */}
+      <LiveBillboard
+        churchName={churchName}
+        between={<LiveBlogFeed selfId={profile.id} />}
+      />
       <LiveChurchOverview />
       {/* The board report is numbers only, and it names nobody — so it is safe
           for every role to see, not just leadership. A Guide who can see what

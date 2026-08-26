@@ -866,7 +866,7 @@ export type BlogVisibility = 'private' | 'published';
 /**
  * Who a post is for.
  *
- *   church   — everybody in the writer's church. The noticeboard.
+ *   church   — everybody in the writer's church. Community Blogs.
  *   all      — the people the writer walks with. For a Guide that is their
  *              Explorers; for an Explorer it is their Guide. Leaders' `all`
  *              posts also reach their whole church, which is how the board
@@ -894,7 +894,7 @@ export interface MyBlogPost {
  *
  * The reader count stays out: that is the writer's, and a reader knowing how
  * many others have read a post changes what the post is. Who wrote it does
- * belong here — a noticeboard anyone may post to is unreadable without it.
+ * belong here — a blog anyone may post to is unreadable without it.
  */
 export interface FeedPost {
   id: string;
@@ -922,7 +922,7 @@ export async function listMyBlogPosts(): Promise<MyBlogPost[]> {
  *
  * The caller's own posts come back here too. That used to be filtered out on
  * the grounds that a Guide should see what was written FOR them; on a church
- * noticeboard it is the opposite, because a post you wrote is part of the board
+ * shared blog it is the opposite, because a post you wrote is part of the list
  * everybody else is reading and leaving it out makes the board look wrong to
  * its own author.
  */
@@ -1209,13 +1209,13 @@ export async function unshareMaterial(shareId: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// The church noticeboard.
+// Church announcements.
 // ---------------------------------------------------------------------------
 //
 // Notices the whole church reads and only leadership writes. Kept apart from
-// the blog because they are different things: a blog post belongs to whoever
-// wrote it and is addressed to the people they walk with; a notice belongs to
-// the church.
+// Community Blogs because they are different things: a blog post belongs to
+// whoever wrote it and carries their name; an announcement belongs to the
+// church and speaks for it.
 
 export interface Announcement {
   id: string;
@@ -1224,12 +1224,19 @@ export interface Announcement {
   body: string;
   when_text: string;
   is_pinned: boolean;
+  /**
+   * True for the whole church, false for the people the author walks with.
+   * The policy decides who actually receives it; this is here so the screen
+   * can tell the author which of the two they chose.
+   */
+  is_public: boolean;
+  author_id: string | null;
   created_at: string;
 }
 
 export async function listAnnouncements(): Promise<Announcement[]> {
   const { data, error } = await db().from('announcements')
-    .select('id, icon, title, body, when_text, is_pinned, created_at')
+    .select('id, icon, title, body, when_text, is_pinned, is_public, author_id, created_at')
     .order('is_pinned', { ascending: false })
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
@@ -1237,7 +1244,7 @@ export async function listAnnouncements(): Promise<Announcement[]> {
 }
 
 export async function addAnnouncement(
-  a: { icon?: string; title: string; body?: string; whenText?: string },
+  a: { icon?: string; title: string; body?: string; whenText?: string; isPublic?: boolean },
 ): Promise<void> {
   const supabase = db();
   const me_id = await uid();
@@ -1250,6 +1257,9 @@ export async function addAnnouncement(
     title: a.title.trim(),
     body: (a.body || '').trim(),
     when_text: (a.whenText || '').trim(),
+    // Public unless somebody says otherwise. A notice written by mistake with
+    // the wrong audience should fail towards the meaning the word already has.
+    is_public: a.isPublic !== false,
   });
   if (error) throw new Error(error.message);
 }

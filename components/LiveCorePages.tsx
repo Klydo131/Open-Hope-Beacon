@@ -1361,6 +1361,12 @@ export function LiveAdminPage() {
             reported, then the cases arising from it, then the room where a
             case is opened or somebody is stopped on the spot. Putting the
             trial room first would offer the punishment before the hearing. */}
+        {/* A Director sees the cases they are judging here, beside the reports
+            they come from. This is not a duplicate of the /cases room: that one
+            is where a person answers a case they were called to, and this is
+            where a head judge works through the ones they opened. Both call the
+            same component because the component already tells those two jobs
+            apart by whether the reader leads the church. */}
         {room === 'safeguarding' && profile && <LiveCourt me={profile} />}
         {room === 'safeguarding' && profile && (
           <LiveTrialRoom
@@ -1387,7 +1393,7 @@ export function LiveAdminPage() {
             announcement. An announcement is the church speaking; a post is a
             person speaking, and it can be addressed to the whole church, to the
             people they walk with, or to named people. It lands on everybody's
-            Home through the noticeboard. */}
+            Home through Community Blogs. */}
         {room === 'church' && <LiveBlogDesk />}
 
         {/* THE LIBRARY BELONGS TO DIRECTORS TOO.
@@ -1910,20 +1916,15 @@ export function LiveGuidePage() {
       <p className="mt-1 text-room-soft">Only people paired with you appear here.</p>
       {error && <div className="mt-5"><Notice tone="error">{error}</Notice></div>}
 
-      {/* THE NOTICEBOARD, FIRST THING, same as every other role's home screen.
-          Draws nothing when nobody has published. */}
-      <div className="mt-5"><LiveBlogFeed selfId={profile?.id} /></div>
-
       {/* HOW MANY, AT WHAT LEVEL, AND HOW MANY HAVE FINISHED.
           A Guide could see a list of cards and nothing else: answering "where
           are my people up to" meant reading every card and counting. These are
           the same rows, added up. */}
       {rows.length > 0 && <MyExplorersAtAGlance rows={rows} waiting={unprayed} />}
 
-      {/* A Guide called into a case must be able to answer it. LiveCourt draws
-          nothing at all when there are no cases, so on an ordinary day this
-          costs the page nothing. */}
-      {profile && <div className="mt-6"><LiveCourt me={profile} /></div>}
+      {/* Cases moved to their own room, /cases, reachable from the rail on
+          every screen. A formal hearing does not belong as one card among a
+          Guide's Explorers. */}
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         {rows.map((row) => {
           const stage = stageInfo(row.journey_stage);
@@ -1979,8 +1980,10 @@ export function LiveGuidePage() {
       </div>
 
       {/* Last on the page on purpose: the people waiting on this Guide come
-          first, and writing is what you do once everyone is answered. */}
+          first, and writing is what you do once everyone is answered. Reading
+          what everybody else wrote comes after that again. */}
       <div className="mt-6"><LiveBlogDesk /></div>
+      <div className="mt-6"><LiveBlogFeed selfId={profile?.id} /></div>
     </LiveAppShell>
   );
 }
@@ -2343,19 +2346,25 @@ export function LiveExplorerPage() {
         </div>
         {error && <Notice tone="error">{error}</Notice>}
 
-        {/* THE NOTICEBOARD, FIRST THING. What the church is saying comes before
-            this person's own journey furniture, on every role's home screen.
-            Draws nothing when nobody has published. */}
-        <LiveBlogFeed selfId={profile?.id} />
+        {/* WHO IS WALKING WITH YOU, FIRST, and on this screen only.
+            On a Director's or a Guide's home the church's writing comes first,
+            because their job is the church. An Explorer opening My Journey is
+            not looking for the church, they are looking for their person; the
+            whole design says the journey is a relationship, and then the page
+            opened on a list of everybody else's posts. The Guide's name goes
+            above the blogs here. */}
+        {pairing && (
+          <Card className="p-5">
+            <p className="text-sm text-gray-500">Walking with you</p>
+            <p className="mt-1 text-xl font-bold text-navy">{pairing.dm_name}</p>
+            <p className="mt-2 text-sm text-gray-500">Only you and your Guide can read this conversation.</p>
+          </Card>
+        )}
 
-        {/* An Explorer called into a case is the person with the least standing
-            in it, so their answer has to be reachable on their own home screen
-            rather than somewhere they would have to be told about. It draws
-            nothing when there are no cases.
-
-            They can post here even while suspended, on purpose: suspending
-            somebody pending a hearing must not take away their side of it. */}
-        {profile && <LiveCourt me={profile} />}
+        {/* Cases moved to their own room, /cases, in the rail on every screen.
+            An Explorer called into one is the person in it with the least
+            standing, so it has to be somewhere they can find without being
+            told, and a card partway down this page was not that. */}
 
         {!pairing ? (
           <Card className="p-6 text-center">
@@ -2364,11 +2373,8 @@ export function LiveExplorerPage() {
           </Card>
         ) : (
           <>
-            <Card className="p-5">
-              <p className="text-sm text-gray-500">Walking with you</p>
-              <p className="mt-1 text-xl font-bold text-navy">{pairing.dm_name}</p>
-              <p className="mt-2 text-sm text-gray-500">Only you and your Guide can read this conversation.</p>
-            </Card>
+            {/* The card that used to sit here has moved to the top of the page.
+                Two copies of a person's Guide on one screen is not emphasis. */}
             <Conversation
               messages={messages}
               files={files}
@@ -2408,6 +2414,10 @@ export function LiveExplorerPage() {
             accept — see migration 0042. */}
         <LiveBlogDesk />
         <LiveAskForPrayer />
+        {/* COMMUNITY BLOGS GO LAST, on every home screen. See LiveChurchPages
+            for why: what a person came here to do belongs above what everybody
+            else has written. */}
+        <LiveBlogFeed selfId={profile?.id} />
       </div>
     </LiveAppShell>
   );

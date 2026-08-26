@@ -278,27 +278,54 @@ export function LiveBlogDesk() {
 // The Explorer's feed.
 // ---------------------------------------------------------------------------
 /**
- * The church noticeboard, first thing on Home.
+ * Community Blogs.
  *
  * WHAT CHANGED AND WHY. This was headed "From your Guide" and quietly dropped
  * the reader's own posts, both of which were right while a Guide was the only
  * person who could write. Now anybody in the church can, so the heading names
- * the board rather than one relationship, every post carries its writer, and
- * your own posts stay in the list — a board that hides your contribution from
+ * the thing rather than one relationship, every post carries its writer, and
+ * your own posts stay in the list: a board that hides your contribution from
  * you looks broken to the one person who knows exactly what should be on it.
  *
- * It renders nothing at all when the board is empty and nothing failed. An
- * empty card at the top of Home is worse than no card: it is a permanent
+ * IT SCROLLS, AND IT FOLDS AWAY. This sits near the top of every home screen,
+ * so left alone it grows until it is the whole page and everything a person
+ * came to do is below it. Past three posts it gets a scroll box of its own, and
+ * the heading folds it shut entirely. Both are per device and remembered, so
+ * somebody who does not want to read the blogs today shuts them once rather
+ * than scrolling past them every time.
+ *
+ * SHUT STILL SAYS HOW MANY. A folded panel with no count is indistinguishable
+ * from an empty one, and then nobody ever opens it again.
+ *
+ * It renders nothing at all when there is nothing to read and nothing failed.
+ * An empty card at the top of Home is worse than no card: it is a permanent
  * reminder of a thing not happening.
  */
+const OPEN_KEY = 'beacon.blogs.open';
+
 export function LiveBlogFeed({ selfId }: { selfId?: string }) {
   // The viewer's own role, because naming somebody's role is not unconditional:
   // lib/brand.ts hides "Explorer" from viewers who have no business knowing who
-  // is at which stage. Passing the viewer through keeps the noticeboard inside
-  // that rule instead of quietly working around it.
+  // is at which stage. Passing the viewer through keeps the blogs inside that
+  // rule instead of quietly working around it.
   const { profile } = useLiveSession();
   const [posts, setPosts] = useState<live.FeedPost[] | null>(null);
   const [error, setError] = useState('');
+  const [open, setOpen] = useState(true);
+
+  // Read once on mount rather than during render: the server has no
+  // localStorage, and reading it inline is how a hydration mismatch starts.
+  useEffect(() => {
+    try {
+      setOpen(window.localStorage.getItem(OPEN_KEY) !== '0');
+    } catch { /* private mode, or storage switched off. Open is fine. */ }
+  }, []);
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    try { window.localStorage.setItem(OPEN_KEY, next ? '1' : '0'); } catch { /* fine */ }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -321,51 +348,75 @@ export function LiveBlogFeed({ selfId }: { selfId?: string }) {
 
   return (
     <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">📣 Church noticeboard</h2>
-      <p className="mt-0.5 text-sm text-gray-500">
-        What people in your church have published, newest first.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold text-navy">📣 Community Blogs</h2>
+          <p className="mt-0.5 text-sm text-gray-500">
+            {open
+              ? 'What people in your church have published, newest first.'
+              : `${posts.length} ${posts.length === 1 ? 'post' : 'posts'} from your church.`}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-expanded={open}
+          className="tap-sm shrink-0 rounded-xl bg-gray-100 px-3 py-1.5 text-sm font-bold text-navy hover:bg-gray-200"
+        >
+          {open ? 'Hide' : `Show (${posts.length})`}
+        </button>
+      </div>
+
       {error && (
         <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-200">
           {error}
         </p>
       )}
-      <div className="mt-3 space-y-4">
-        {posts.map((p) => (
-          <article key={p.id} className="rounded-xl bg-navy/5 p-4">
-            <h3 className="text-lg font-bold text-navy">{p.title}</h3>
-            <p className="mt-0.5 text-xs text-gray-500">
-              {p.author_id === selfId ? 'You' : p.author_name}
-              {/* THE ROLE IS ALWAYS SHOWN ON A CHURCH-WIDE POST, on purpose.
-                  lib/brand's roleLabel hides "Explorer" from viewers who have
-                  no business knowing who is at which stage, and that rule is
-                  right everywhere it applies — but it does not apply here.
-                  Publishing to the whole church is the writer's own decision to
-                  be identified, and a noticeboard where some posts are signed
-                  and others are anonymous is a noticeboard nobody can hold to
-                  account. Narrower audiences keep the ordinary rule. */}
-              {p.author_id !== selfId
-                ? (() => {
-                    if (p.audience === 'church') return ` · ${roleNoun(p.author_role)}`;
-                    const label = profile ? roleLabel(p.author_role, profile.role) : null;
-                    return label ? ` · ${label}` : '';
-                  })()
-                : ''}
-              {' · '}
-              {when(p.created_at)}
-              {/* Said plainly, because "published" means two different sizes of
-                  audience and the writer should be able to see which one they
-                  actually chose. */}
-              {p.author_id === selfId && p.audience !== 'church' && (
-                <span className="text-gray-400">
-                  {p.audience === 'all' ? ' · only the people you walk with' : ' · chosen people'}
-                </span>
-              )}
-            </p>
-            <Body text={p.body} />
-          </article>
-        ))}
-      </div>
+
+      {open && (
+        <div
+          className={`mt-3 space-y-4 ${
+            posts.length > 3
+              ? 'beacon-scroll max-h-[32rem] overflow-y-auto overscroll-contain pr-1'
+              : ''
+          }`}
+        >
+          {posts.map((p) => (
+            <article key={p.id} className="rounded-xl bg-navy/5 p-4">
+              <h3 className="text-lg font-bold text-navy">{p.title}</h3>
+              <p className="mt-0.5 text-xs text-gray-500">
+                {p.author_id === selfId ? 'You' : p.author_name}
+                {/* THE ROLE IS ALWAYS SHOWN ON A CHURCH-WIDE POST, on purpose.
+                    lib/brand's roleLabel hides "Explorer" from viewers who have
+                    no business knowing who is at which stage, and that rule is
+                    right everywhere it applies, but it does not apply here.
+                    Publishing to the whole church is the writer's own decision
+                    to be identified, and a board where some posts are signed
+                    and others are anonymous is one nobody can hold to account.
+                    Narrower audiences keep the ordinary rule. */}
+                {p.author_id !== selfId
+                  ? (() => {
+                      if (p.audience === 'church') return ` · ${roleNoun(p.author_role)}`;
+                      const label = profile ? roleLabel(p.author_role, profile.role) : null;
+                      return label ? ` · ${label}` : '';
+                    })()
+                  : ''}
+                {' · '}
+                {when(p.created_at)}
+                {/* Said plainly, because "published" means two different sizes
+                    of audience and the writer should be able to see which one
+                    they actually chose. */}
+                {p.author_id === selfId && p.audience !== 'church' && (
+                  <span className="text-gray-400">
+                    {p.audience === 'all' ? ' · only the people you walk with' : ' · chosen people'}
+                  </span>
+                )}
+              </p>
+              <Body text={p.body} />
+            </article>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }

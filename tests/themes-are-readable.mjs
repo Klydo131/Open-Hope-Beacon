@@ -12,7 +12,7 @@
 // Two properties, and the first is the one nobody checks by eye across eleven
 // themes on every surface.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 let bad = 0;
 const ok = (cond, msg) => {
@@ -142,20 +142,39 @@ for (const shell of ['components/LiveAppShell.tsx', 'components/AppShell.tsx']) 
   // straight onto the page needs to follow theme.ink, so the check asks which
   // side of the nearest Card boundary the title falls on. A blunter rule would
   // flag correct code, and a check that cries wolf gets switched off.
-  const screens = ['components/LiveCorePages.tsx', 'components/LiveChurchPages.tsx'];
+  // EVERY HEADING, NOT JUST <h1>, AND EVERY LIVE SCREEN, NOT TWO OF THEM.
+  //
+  // This checked h1 in two files and passed while the Announcements heading,
+  // an h2 in LiveBillboard, was navy on a navy page and invisible on the dark
+  // themes. The bug was reported by the owner, not caught here, because the
+  // check was narrower than the rule it was meant to enforce. A section
+  // heading sitting on the page is exactly as invisible as a page title.
+  const screens = readdirSync('components')
+    .filter((f) => f.endsWith('.tsx'))
+    .map((f) => `components/${f}`);
+  const offenders = [];
   for (const file of screens) {
     const code = readFileSync(file, 'utf8');
-    const onPage = [];
-    for (const m of code.matchAll(/<h1 className="[^"]*text-navy[^"]*"/g)) {
+    for (const m of code.matchAll(/<h[1-3] className="[^"]*text-navy[^"]*"/g)) {
       const before = code.slice(0, m.index);
-      const opened = before.lastIndexOf('<Card');
+      // A SURFACE IS NOT ONLY A <Card>. Two panels are hand-rolled white boxes
+      // ("rounded-2xl border-2 bg-white"), and navy text on those is correct in
+      // every theme. Flagging them would be crying wolf, and the comment above
+      // says exactly what happens to a check that cries wolf.
+      // The white box has to be the heading's OWN wrapper, not any bg-white
+      // anywhere earlier in the file. Widening it to "anywhere before" made the
+      // check pass on the two headings it was written to catch, which is worse
+      // than the false positives it was fixing.
+      const nearby = before.slice(-400);
+      const white = nearby.includes('bg-white') ? before.length - 1 : -1;
+      const opened = Math.max(before.lastIndexOf('<Card'), white);
       const closed = before.lastIndexOf('</Card>');
-      if (opened <= closed) onPage.push(before.split('\n').length);
+      if (opened <= closed) offenders.push(`${file}:${before.split('\n').length}`);
     }
-    ok(onPage.length === 0,
-       `${file}: no page title outside a card hard-codes a colour the theme cannot change`
-       + (onPage.length ? ` (line ${onPage.join(', ')})` : ''));
   }
+  ok(offenders.length === 0,
+     'no heading outside a card hard-codes a colour the theme cannot change'
+     + (offenders.length ? ` (${offenders.join(', ')})` : ''));
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

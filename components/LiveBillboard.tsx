@@ -37,9 +37,26 @@ function Chip({ label }: { label: string }) {
   );
 }
 
-export function LiveBillboard({ churchName }: { churchName?: string | null }) {
+export function LiveBillboard({ churchName, between }: {
+  churchName?: string | null;
+  /**
+   * Rendered between the masthead and the notices.
+   *
+   * The church home reads masthead, then Community Blogs, then Announcements,
+   * and the blogs are not this component's business. Passing them in beats
+   * either importing them here or splitting the billboard into two exports
+   * that a caller has to remember to use in the right order.
+   */
+  between?: React.ReactNode;
+}) {
   const { profile } = useLiveSession();
   const leads = profile?.role === 'admin' || profile?.role === 'executive';
+  // WHO MAY PIN A NOTICE. Guides as well as leadership, because a Guide
+  // arranging something for the people they walk with had nowhere to pin it and
+  // was sending the same message five times. Not Explorers: a notice sits above
+  // everybody's church screen, and that is an act of leading rather than of
+  // speaking. An Explorer with something to say has Community Blogs.
+  const mayPost = leads || profile?.role === 'dm';
 
   const [members, setMembers] = useState<Profile[] | null>(null);
   const [notices, setNotices] = useState<live.Announcement[] | null>(null);
@@ -47,6 +64,7 @@ export function LiveBillboard({ churchName }: { churchName?: string | null }) {
 
   // Writing a notice.
   const [icon, setIcon] = useState('📌');
+  const [isPublic, setIsPublic] = useState(true);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [whenText, setWhenText] = useState('');
@@ -79,7 +97,11 @@ export function LiveBillboard({ churchName }: { churchName?: string | null }) {
   const guides = members?.filter((m) => m.role === 'dm' && m.is_approved).length;
   const explorers = members?.filter((m) => m.role === 'ds' && m.is_approved).length;
   const waiting = members?.filter((m) => !m.is_approved) ?? [];
-  const shown = (notices ?? []).filter((n) => n.is_pinned || leads);
+  // A taken-down notice stays visible to whoever can put it back up, which is
+  // leadership and its own author.
+  const shown = (notices ?? []).filter(
+    (n) => n.is_pinned || leads || n.author_id === profile?.id,
+  );
 
   return (
     <div className="space-y-6">
@@ -131,18 +153,20 @@ export function LiveBillboard({ churchName }: { churchName?: string | null }) {
         </div>
       )}
 
+      {between}
+
       {/* Notices */}
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-xl font-bold text-navy">📌 Announcements</h2>
-          {leads && (
+          <h2 className="text-xl font-bold text-room">📌 Announcements</h2>
+          {mayPost && (
             <Button variant="ghost" onClick={() => setWriting((v) => !v)}>
               {writing ? 'Close' : 'Write a notice'}
             </Button>
           )}
         </div>
 
-        {leads && writing && (
+        {mayPost && writing && (
           <Card className="mb-3 p-4">
             <div className="grid gap-2 sm:grid-cols-[4rem_1fr]">
               <input
@@ -171,13 +195,44 @@ export function LiveBillboard({ churchName }: { churchName?: string | null }) {
               placeholder="When? For example: This Sabbath, 9:00 AM"
               className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2"
             />
-            <div className="mt-2">
+            {/* PUBLIC IS THE DEFAULT AND IS LISTED FIRST, because that is
+                what the word notice already means. The private option exists
+                for a Guide with something for their own five people. */}
+            <fieldset className="mt-3">
+              <legend className="text-sm font-semibold text-navy">Who sees it</legend>
+              <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="radio" name="notice-audience" checked={isPublic}
+                  onChange={() => setIsPublic(true)}
+                />
+                The whole church
+              </label>
+              <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="radio" name="notice-audience" checked={!isPublic}
+                  onChange={() => setIsPublic(false)}
+                />
+                Only the people I walk with
+              </label>
+              {/* SAID PLAINLY RATHER THAN LEFT TO BE DISCOVERED. A Director is
+                  usually paired with nobody, so a private notice from one goes
+                  to nobody but themselves. Better to say that than to let
+                  somebody write to an empty room and assume it was delivered. */}
+              {!isPublic && leads && (
+                <p className="mt-1 pl-6 text-xs text-amber-800">
+                  You are not paired with anybody, so only you will see this.
+                  Choose the whole church, or write it in Community Blogs.
+                </p>
+              )}
+            </fieldset>
+
+            <div className="mt-3">
               <Button
                 variant="gold"
                 disabled={busy || !title.trim()}
                 onClick={() => act(async () => {
-                  await live.addAnnouncement({ icon, title, body, whenText });
-                  setTitle(''); setBody(''); setWhenText(''); setIcon('📌');
+                  await live.addAnnouncement({ icon, title, body, whenText, isPublic });
+                  setTitle(''); setBody(''); setWhenText(''); setIcon('📌'); setIsPublic(true);
                   setWriting(false);
                 })}
               >
@@ -189,7 +244,7 @@ export function LiveBillboard({ churchName }: { churchName?: string | null }) {
 
         {shown.length === 0 ? (
           <Card className="p-6 text-center text-gray-400">
-            {leads
+            {mayPost
               ? 'No notices yet. Write the first one above.'
               : 'Nothing pinned at the moment.'}
           </Card>
@@ -203,7 +258,15 @@ export function LiveBillboard({ churchName }: { churchName?: string | null }) {
                 {n.when_text && (
                   <p className="mt-2 text-xs font-semibold text-gray-400">{n.when_text}</p>
                 )}
-                {leads && (
+                {/* Marked only when it is NOT the whole church. Labelling the
+                    ordinary case adds a word to every card and tells nobody
+                    anything; labelling the exception is the whole job. */}
+                {!n.is_public && (
+                  <p className="mt-2 text-xs font-bold uppercase tracking-wide text-amber-700">
+                    Only the people {n.author_id === profile?.id ? 'you' : 'they'} walk with
+                  </p>
+                )}
+                {(leads || n.author_id === profile?.id) && (
                   <div className="mt-2 flex flex-wrap gap-3">
                     <button
                       type="button"

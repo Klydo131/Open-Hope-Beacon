@@ -2,19 +2,24 @@
 
 // The player, in two sizes.
 //
-// `PlayerStrip` is the right-rail version: art, title, play, volume. It is the
-// one people see all day, so it is deliberately small and says only what is
-// playing.
+// `PlayerStrip` is the right-rail version: what is playing, the transport and
+// the volume. It is the one people see all day, so it is deliberately small.
 //
-// `PlayerPanel` is the library version: the same player with the things you
-// choose from underneath it, in tabs.
+// `PlayerPanel` is the library version: a picture when there is one, the full
+// transport, and the things you choose from underneath it, in tabs.
 //
-// BOTH DRIVE THE SAME AUDIO. See lib/player.tsx: the element lives above both,
-// so pressing play in the rail and then opening the library does not start a
-// second copy, and leaving the library does not cut the sound off.
+// BOTH DRIVE THE SAME ELEMENT. See lib/player.tsx: it lives above both, in the
+// root layout, so pressing play in the rail and then opening the library does
+// not start a second copy, and leaving the library does not cut the sound off.
+// A video's picture moves to whichever of them is showing it and its sound
+// never stops.
+//
+// WHAT A PLAYER HAS TO HAVE, and this had none of it: a progress bar you can
+// drag, the time so far and the time left, previous and next, and a mute. A
+// play button and a volume slider is a toy.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AMBIENCE, playerCredit, usePlayer, type Track } from '@/lib/player';
+import { AMBIENCE, clock, playerCredit, usePlayer, type Track } from '@/lib/player';
 import { usePlayerLists } from '@/lib/player-lists';
 import { getBlob, humanSize, listMedia, type MediaMeta } from '@/lib/localMedia';
 import { saveFilesFromInput, savedMessage } from '@/lib/save-media';
@@ -83,6 +88,9 @@ function useVault(supplied?: MediaMeta[]) {
     id: m.id,
     title: m.title,
     url,
+    // The player needs to know there is a picture, so it can give the element
+    // a stage rather than leaving a video playing into a hidden corner.
+    video: m.type === 'video',
     icon: m.type === 'video' ? '🎬' : '🎵',
   });
 
@@ -113,6 +121,179 @@ function useVault(supplied?: MediaMeta[]) {
 }
 
 /** The three tabs, in the order somebody actually wants them. */
+/**
+ * The progress bar.
+ *
+ * A real input[type=range] rather than a div somebody drags. It gets keyboard
+ * seeking, a hit area the browser already sizes for touch, and the correct
+ * behaviour for a screen reader, none of which a styled div has unless every
+ * one of them is written by hand and then maintained.
+ *
+ * Generated ambience has no length and no position, so this draws a plain line
+ * and says so instead of showing a bar pinned at zero that never moves.
+ */
+function Scrubber({ accent, compact = false }: { accent: string; compact?: boolean }) {
+  const player = usePlayer();
+  if (!player) return null;
+  const { current, position, duration, seek } = player;
+
+  if (current?.noise) {
+    return (
+      <p className={`${compact ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
+        Made on your device as it plays. It does not end.
+      </p>
+    );
+  }
+
+  const max = duration > 0 ? duration : 0;
+  return (
+    <div>
+      <input
+        type="range"
+        min={0}
+        max={max || 1}
+        step={0.1}
+        value={Math.min(position, max || 1)}
+        disabled={max === 0}
+        onChange={(e) => seek(Number(e.target.value))}
+        aria-label="Position in the track"
+        className={`${compact ? 'h-1' : 'h-1.5'} w-full cursor-pointer disabled:cursor-default disabled:opacity-40`}
+        style={{ accentColor: accent }}
+      />
+      <div className={`flex justify-between ${compact ? 'text-[10px]' : 'text-xs'} tabular-nums text-gray-500`}>
+        <span>{clock(position)}</span>
+        {/* THE TIME LEFT, not the total. "How much longer" is the question
+            somebody actually has, and it is the one a total makes you do
+            arithmetic for. The total is on the other side of the dash for
+            anybody who wants it. */}
+        <span>{max > 0 ? `-${clock(Math.max(0, max - position))}` : '--:--'}</span>
+      </div>
+    </div>
+  );
+}
+
+/** Previous, play/pause, next, and the two skips. */
+function Transport({ accent, compact = false }: { accent: string; compact?: boolean }) {
+  const player = usePlayer();
+  if (!player) return null;
+  const { current, playing, loading, toggle, next, previous, nudge, queue } = player;
+
+  const at = current ? queue.findIndex((t) => t.id === current.id) : -1;
+  const hasNext = at >= 0 && at < queue.length - 1;
+  // Previous is never disabled once something is playing: on the first press it
+  // restarts the track, which is what it does in every player people already
+  // use.
+  const live = Boolean(current);
+  const seekable = Boolean(current && !current.noise);
+
+  const round = compact ? 'h-9 w-9 text-sm' : 'h-11 w-11 text-base';
+  const big = compact ? 'h-11 w-11 text-lg' : 'h-14 w-14 text-xl';
+  const ghost = 'grid place-items-center rounded-full bg-gray-100 text-navy hover:bg-gray-200 disabled:opacity-30';
+
+  return (
+    <div className={`flex items-center ${compact ? 'gap-1.5' : 'gap-2'}`}>
+      <button
+        type="button" disabled={!seekable} onClick={() => nudge(-10)}
+        aria-label="Back ten seconds" title="Back 10 seconds"
+        className={`${ghost} ${round}`}
+      >
+        ↺
+      </button>
+      <button
+        type="button" disabled={!live} onClick={previous}
+        aria-label="Previous track" title="Previous"
+        className={`${ghost} ${round}`}
+      >
+        ⏮
+      </button>
+      <button
+        type="button"
+        onClick={() => (current ? toggle() : player.play(AMBIENCE[0], AMBIENCE))}
+        aria-label={playing ? 'Pause' : 'Play'}
+        className={`grid shrink-0 place-items-center rounded-full text-white ${big}`}
+        style={{ backgroundColor: accent }}
+      >
+        {/* The spinner replaces the glyph rather than sitting beside it, so the
+            button never changes size while a track is loading. */}
+        {loading ? (
+          <span aria-hidden className="beacon-spinner block h-5 w-5 rounded-full border-2 border-white/40"
+            style={{ borderTopColor: '#fff' }} />
+        ) : playing ? '❚❚' : '▶'}
+      </button>
+      <button
+        type="button" disabled={!hasNext} onClick={next}
+        aria-label="Next track" title="Next"
+        className={`${ghost} ${round}`}
+      >
+        ⏭
+      </button>
+      <button
+        type="button" disabled={!seekable} onClick={() => nudge(10)}
+        aria-label="Forward ten seconds" title="Forward 10 seconds"
+        className={`${ghost} ${round}`}
+      >
+        ↻
+      </button>
+    </div>
+  );
+}
+
+/** Mute and the volume slider, which are one control in most people's heads. */
+function Volume({ accent, compact = false }: { accent: string; compact?: boolean }) {
+  const player = usePlayer();
+  if (!player) return null;
+  const { volume, muted, setVolume, toggleMute } = player;
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={toggleMute}
+        aria-label={muted ? 'Unmute' : 'Mute'}
+        title={muted ? 'Unmute' : 'Mute'}
+        className="shrink-0 text-gray-500 hover:text-navy"
+      >
+        <span aria-hidden>{muted || volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊'}</span>
+      </button>
+      <input
+        type="range" min={0} max={1} step={0.01}
+        value={muted ? 0 : volume}
+        onChange={(e) => setVolume(Number(e.target.value))}
+        aria-label="Volume"
+        className={`${compact ? 'h-1' : 'h-1.5'} w-full ${compact ? '' : 'max-w-[10rem]'} cursor-pointer`}
+        style={{ accentColor: accent }}
+      />
+    </div>
+  );
+}
+
+/**
+ * Where a video's picture goes.
+ *
+ * The element is adopted on mount and handed back on unmount, so the sound
+ * never stops when somebody leaves this screen. The box keeps its shape when
+ * nothing is playing rather than appearing and shoving the page down.
+ */
+function VideoStage() {
+  const player = usePlayer();
+  const box = useRef<HTMLDivElement | null>(null);
+  const attach = player?.attachVideo;
+  const showing = Boolean(player?.hasVideo);
+
+  useEffect(() => {
+    if (!attach) return;
+    if (showing) attach(box.current);
+    return () => { attach(null); };
+  }, [attach, showing]);
+
+  if (!showing) return null;
+  return (
+    <div
+      ref={box}
+      className="mt-3 aspect-video w-full overflow-hidden rounded-2xl bg-black"
+    />
+  );
+}
+
 type Tab = 'vault' | 'playlists' | 'ambience';
 
 const TAB_LABEL: Record<Tab, string> = {
@@ -159,7 +340,7 @@ export function PlayerStrip({ theme }: { theme: RoomTheme }) {
   };
 
   if (!player) return null;
-  const { current, playing, volume, toggle, play, setVolume } = player;
+  const { current, playing, play } = player;
 
   const needle = find.trim().toLowerCase();
   const found = needle
@@ -215,36 +396,23 @@ export function PlayerStrip({ theme }: { theme: RoomTheme }) {
         </div>
       </div>
 
-      <div className="mt-2 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => (current ? toggle() : player.play(AMBIENCE[0], AMBIENCE))}
-          aria-label={playing ? 'Pause' : 'Play'}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-lg text-white"
-          style={{ backgroundColor: theme.accent }}
-        >
-          {playing ? '❚❚' : '▶'}
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-bold" style={{ color: theme.ink }}>
-            {current ? `${current.icon ?? ''} ${current.title}`.trim() : 'Nothing playing'}
-          </p>
-          <p className="text-xs" style={{ color: theme.inkSoft }}>
-            {current ? (playing ? 'Playing' : 'Paused') : 'Pick something below'}
-          </p>
-        </div>
+      <div className="mt-2 min-w-0">
+        <p className="truncate text-sm font-bold" style={{ color: theme.ink }}>
+          {current ? `${current.icon ?? ''} ${current.title}`.trim() : 'Nothing playing'}
+        </p>
+        <p className="text-xs" style={{ color: theme.inkSoft }}>
+          {current ? (playing ? 'Playing' : 'Paused') : 'Pick something below'}
+        </p>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <span aria-hidden style={{ color: theme.inkSoft }}>🔈</span>
-        <input
-          type="range" min={0} max={1} step={0.01} value={volume}
-          onChange={(e) => setVolume(Number(e.target.value))}
-          aria-label="Volume"
-          className="h-1 w-full cursor-pointer"
-          style={{ accentColor: theme.accent }}
-        />
-      </div>
+      {/* A VIDEO KEEPS ITS PICTURE IN THE RAIL TOO. The rail is narrow, so this
+          is small, but a video playing with no picture anywhere is a bug people
+          report as "the sound is coming from nowhere". */}
+      <VideoStage />
+
+      <div className="mt-2"><Scrubber accent={theme.accent} compact /></div>
+      <div className="mt-2 flex justify-center"><Transport accent={theme.accent} compact /></div>
+      <div className="mt-2"><Volume accent={theme.accent} compact /></div>
 
       {open && (
         <>
@@ -475,7 +643,7 @@ export function PlayerPanel({
   const [openList, setOpenList] = useState('');
   const [find, setFind] = useState('');
   if (!player) return null;
-  const { current, playing, volume, toggle, play, setVolume } = player;
+  const { current, playing, play } = player;
 
   const accent = theme?.accent ?? '#1E2A4A';
 
@@ -504,31 +672,26 @@ export function PlayerPanel({
         in the background while you read. Files stay on this device.
       </p>
 
-      <div className="mt-4 flex items-center gap-3 rounded-2xl bg-gray-50 p-3">
-        <button
-          type="button"
-          onClick={() => (current ? toggle() : play(AMBIENCE[0], AMBIENCE))}
-          aria-label={playing ? 'Pause' : 'Play'}
-          className="grid h-14 w-14 shrink-0 place-items-center rounded-full text-xl text-white"
-          style={{ backgroundColor: accent }}
-        >
-          {playing ? '❚❚' : '▶'}
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-bold text-navy">
-            {current ? `${current.icon ?? ''} ${current.title}`.trim() : 'Nothing playing'}
-          </p>
-          <p className="text-sm text-gray-500">{current ? (playing ? 'Playing' : 'Paused') : 'Choose a track'}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <span aria-hidden className="text-gray-400">🔈</span>
-            <input
-              type="range" min={0} max={1} step={0.01} value={volume}
-              onChange={(e) => setVolume(Number(e.target.value))}
-              aria-label="Volume"
-              className="h-1 w-full max-w-xs cursor-pointer"
-              style={{ accentColor: accent }}
-            />
-          </div>
+      {/* The picture, when there is one. Nothing is drawn for audio, so a
+          music track does not leave a black rectangle on the page. */}
+      <VideoStage />
+
+      <div className="mt-4 rounded-2xl bg-gray-50 p-4">
+        <p className="truncate text-lg font-bold text-navy">
+          {current ? `${current.icon ?? ''} ${current.title}`.trim() : 'Nothing playing'}
+        </p>
+        <p className="text-sm text-gray-500">
+          {current ? (playing ? 'Playing' : 'Paused') : 'Choose a track'}
+        </p>
+
+        <div className="mt-3"><Scrubber accent={accent} /></div>
+
+        {/* Transport centred, volume off to one side. Centring the transport is
+            not decoration: it is where a thumb goes on a phone, and it is where
+            every player people already use puts it. */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="mx-auto sm:mx-0"><Transport accent={accent} /></div>
+          <div className="w-full sm:w-44"><Volume accent={accent} /></div>
         </div>
       </div>
 

@@ -70,10 +70,10 @@ const BODY = 'A short note for this week.\n\nSecond paragraph, so the renderer h
   await page.goto(`${BASE}/ds`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1800);
 
-  // The heading names the BOARD, not one relationship. It was "From your
+  // The heading names the THING, not one relationship. It was "From your
   // Guide", which stopped being true the moment anybody in the church could
   // publish (migration 0042).
-  ok(await page.getByText(/Church noticeboard/i).count() > 0, 'the Explorer sees the church noticeboard');
+  ok(await page.getByText(/Community Blogs/i).count() > 0, 'the Explorer sees Community Blogs');
   // And a board that anyone may post to is unreadable without a name on each
   // post, so check the writer is actually printed rather than only the title.
   ok(await page.getByText(/Maria Santos/i).count() > 0, 'the post says who wrote it');
