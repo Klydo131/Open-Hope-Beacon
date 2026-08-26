@@ -61,7 +61,12 @@ export const GOLD = '#E8B84B';
 // "Commission". Colors come straight from the design spec.
 export const STAGES: { key: Stage; label: string; color: string; blurb: string }[] =
   [
-    { key: 'create', label: 'Create', color: '#F5921B', blurb: 'First contact' },
+    // LABEL ONLY. The key is a database enum on every pairing and every
+    // journey event; renaming it would be a migration and a rewrite of
+    // recorded history to change one word on a screen. "Beginner" says what
+    // the stage means to the person in it, which "Create" never did: it named
+    // what the church was doing, not where the Explorer was.
+    { key: 'create', label: 'Beginner', color: '#F5921B', blurb: 'Just beginning' },
     { key: 'connect', label: 'Connect', color: '#EA7C1F', blurb: 'Building rapport' },
     { key: 'care', label: 'Care', color: '#E0703C', blurb: 'Walking alongside' },
     { key: 'call', label: 'Call', color: '#E8B84B', blurb: 'Point of decision' },

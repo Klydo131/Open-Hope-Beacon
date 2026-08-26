@@ -6,7 +6,7 @@ import { MinorBadge } from '@/components/MinorBadge';
 import { copyText } from '@/lib/share';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NAVY, roleNoun, stageInfo, previousStage } from '@/lib/brand';
+import { NAVY, roleNoun, stageInfo, previousStage, STAGES } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { LiveReportControl, LiveReportsForDirector } from '@/components/LiveSafeguarding';
@@ -1872,6 +1872,12 @@ export function LiveGuidePage() {
       <p className="mt-1 text-room-soft">Only people paired with you appear here.</p>
       {error && <div className="mt-5"><Notice tone="error">{error}</Notice></div>}
 
+      {/* HOW MANY, AT WHAT LEVEL, AND HOW MANY HAVE FINISHED.
+          A Guide could see a list of cards and nothing else: answering "where
+          are my people up to" meant reading every card and counting. These are
+          the same rows, added up. */}
+      {rows.length > 0 && <MyExplorersAtAGlance rows={rows} waiting={unprayed} />}
+
       {/* A Guide called into a case must be able to answer it. LiveCourt draws
           nothing at all when there are no cases, so on an ordinary day this
           costs the page nothing. */}
@@ -2682,6 +2688,102 @@ function PeopleRoom({
           })}
         </div>
       )}
+    </Card>
+  );
+}
+
+/**
+ * A Guide's own numbers: how many Explorers, at which level, and how many have
+ * been all the way through.
+ *
+ * GRADUATED IS THE POINT OF THE WHOLE DESIGN and no screen showed it. An
+ * Explorer who reaches Commission has walked the journey and is now sent to
+ * walk with somebody else, which is the only kind of growth this app believes
+ * in. A Guide who cannot see that number cannot see whether any of it worked.
+ *
+ * "Still walking" is stated rather than left to be worked out. Five figures a
+ * Director has to add up in their head is not a number they have.
+ */
+function MyExplorersAtAGlance({
+  rows, waiting,
+}: { rows: live.PairingView[]; waiting: Record<string, number> }) {
+  const graduated = rows.filter((r) => r.journey_stage === 'commission').length;
+  const walking = rows.length - graduated;
+  const prayers = Object.values(waiting).reduce((a, b) => a + b, 0);
+
+  // WHAT IS WAITING, before the numbers. A Guide opening this screen is asking
+  // "is there anything I should do today", and the honest answer is usually
+  // short: somebody asked for prayer, or you are meeting somebody on Thursday.
+  const [next, setNext] = useState<live.Meeting | null>(null);
+  useEffect(() => {
+    let alive = true;
+    live.myUpcomingMeetings(1)
+      .then((list) => { if (alive) setNext(list[0] ?? null); })
+      // A missed meeting lookup must not take the numbers down with it.
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const nameFor = (pairingId: string) =>
+    rows.find((r) => r.id === pairingId)?.ds_name ?? 'someone';
+
+  return (
+    <Card className="mt-6 p-5">
+      {(prayers > 0 || next) && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {prayers > 0 && (
+            <span className="rounded-full bg-purple-100 px-3 py-1.5 text-sm font-semibold text-purple-900">
+              🙏 {prayers} {prayers === 1 ? 'prayer request' : 'prayer requests'} waiting
+            </span>
+          )}
+          {next && (
+            <span className="rounded-full bg-gold/25 px-3 py-1.5 text-sm font-semibold text-navy">
+              📅 {new Date(next.starts_at).toLocaleDateString(undefined, {
+                weekday: 'long', hour: 'numeric', minute: '2-digit',
+              })} with {nameFor(next.pairing_id)}
+            </span>
+          )}
+        </div>
+      )}
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-xl font-bold text-navy">Your Explorers</h2>
+        <p className="text-sm text-gray-500">
+          {rows.length} {rows.length === 1 ? 'person' : 'people'} paired with you
+        </p>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <div className="rounded-xl bg-gold/15 p-4 text-center">
+          <p className="text-3xl font-extrabold text-navy">{graduated}</p>
+          <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-gray-500">Graduated</p>
+        </div>
+        <div className="rounded-xl bg-navy/5 p-4 text-center">
+          <p className="text-3xl font-extrabold text-navy">{walking}</p>
+          <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-gray-500">Still walking</p>
+        </div>
+      </div>
+
+      <h3 className="mt-5 text-sm font-bold uppercase tracking-wide text-gray-500">By level</h3>
+      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {STAGES.map((stage) => {
+          const n = rows.filter((r) => r.journey_stage === stage.key).length;
+          return (
+            <div
+              key={stage.key}
+              className={`rounded-xl p-3 text-center ${n === 0 ? 'bg-gray-100' : ''}`}
+              // The stage's own colour, faintly, so the levels read as a
+              // sequence rather than six identical boxes. Only where somebody
+              // is actually standing: an empty level should recede.
+              style={n > 0 ? { backgroundColor: `${stage.color}22` } : undefined}
+            >
+              <p className={`text-2xl font-extrabold ${n === 0 ? 'text-gray-400' : 'text-navy'}`}>{n}</p>
+              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                {stage.label}
+              </p>
+            </div>
+          );
+        })}
+      </div>
     </Card>
   );
 }

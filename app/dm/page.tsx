@@ -186,7 +186,10 @@ function Dashboard() {
 
       {/* Where everyone sits on the journey */}
       <Card className="p-5">
-        <h2 className="mb-3 text-xl font-bold text-navy">Your flock</h2>
+        {/* "Your flock" was a shepherd's word for the church's people. It reads
+            as a group somebody owns, and this list is the opposite of that:
+            individuals, one at a time, each on their own journey. */}
+        <h2 className="mb-3 text-xl font-bold text-navy">Your Explorers</h2>
         {/* Six across only works when there is room for six labels. On a
             phone the columns ended up sized by their words — uneven boxes and
             "CreateConnectCareCall" run together — so it wraps to two rows of

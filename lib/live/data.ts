@@ -1306,6 +1306,28 @@ export async function scheduleMeeting(
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Every meeting ahead of this caller, across all their pairings.
+ *
+ * ONE QUERY, NO PAIRING FILTER, and that is not laziness. The policy on
+ * `meetings` is in_pairing(pairing_id), so an unfiltered read already returns
+ * exactly the meetings this person is part of and nothing else. Adding a
+ * client-side filter would protect nobody and would go wrong the first time
+ * somebody forgot it.
+ */
+export async function myUpcomingMeetings(limit = 5): Promise<Meeting[]> {
+  const { data, error } = await db()
+    .from('meetings')
+    .select('id, pairing_id, title, starts_at, mode, location, notes, status, created_by')
+    .neq('status', 'cancelled')
+    // An hour's grace, so something starting right now is still "ahead".
+    .gte('starts_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
+    .order('starts_at', { ascending: true })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Meeting[];
+}
+
 /** Confirm a proposed time. The other person agreeing is what makes it real. */
 export async function confirmMeeting(id: string): Promise<void> {
   const { error } = await db().from('meetings').update({ status: 'confirmed' }).eq('id', id);

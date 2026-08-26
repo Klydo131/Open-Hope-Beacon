@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { copyText } from '@/lib/share';
 import * as live from '@/lib/live/data';
+import { STAGES as BRAND_STAGES } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { Pdf, downloadBlob } from '@/lib/pdf';
 
@@ -35,11 +36,21 @@ interface Numbers {
   stages: Record<string, number>;
 }
 
-const STAGES = ['create', 'connect', 'care', 'call', 'cultivate', 'commission'] as const;
-const STAGE_LABEL: Record<string, string> = {
-  create: 'Create', connect: 'Connect', care: 'Care',
-  call: 'Call', cultivate: 'Cultivate', commission: 'Commission',
-};
+// ONE SOURCE FOR THE ORDER AND THE WORDS. This file carried its own copy of
+// both, and the copies drifted the instant "Create" became "Beginner": brand.ts
+// was renamed and this was not, so the board report and the overview would have
+// disagreed about what the first stage is called.
+const STAGES = BRAND_STAGES.map((s) => s.key);
+const STAGE_LABEL: Record<string, string> = Object.fromEntries(
+  BRAND_STAGES.map((s) => [s.key, s.label]),
+);
+
+/**
+ * GRADUATED means reached Commission: walked the whole way, and now sent to
+ * walk with somebody else. It is the number the whole design exists to produce,
+ * and until now no screen showed it.
+ */
+const GRADUATED = 'commission';
 
 function Stat({ n, label, tone = 'navy' }: { n: number; label: string; tone?: 'navy' | 'gold' | 'grey' }) {
   const bg = tone === 'gold' ? 'bg-gold/15' : tone === 'grey' ? 'bg-gray-100' : 'bg-navy/5';
@@ -114,10 +125,22 @@ export function LiveChurchOverview() {
         <Stat n={n.awaiting} label="Awaiting approval" tone={n.awaiting ? 'gold' : 'grey'} />
       </div>
 
+      {/* THE TWO NUMBERS A DIRECTOR IS ACTUALLY ASKED FOR, above the breakdown.
+          "How many have we seen all the way through, and how many are still
+          walking?" was answerable only by adding five figures in your head. */}
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        <Stat n={n.stages[GRADUATED] ?? 0} label="Graduated" tone="gold" />
+        <Stat
+          n={STAGES.filter((s) => s !== GRADUATED)
+            .reduce((total, s) => total + (n.stages[s] ?? 0), 0)}
+          label="Still walking"
+        />
+      </div>
+
       <h3 className="mt-6 text-sm font-bold uppercase tracking-wide text-gray-500">Where people are on the journey</h3>
       <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
         {STAGES.map((s) => (
-          <Stat key={s} n={n.stages[s] ?? 0} label={STAGE_LABEL[s]} tone="grey" />
+          <Stat key={s} n={n.stages[s] ?? 0} label={STAGE_LABEL[s]} tone={s === GRADUATED ? 'gold' : 'grey'} />
         ))}
       </div>
 
@@ -160,6 +183,12 @@ export function LiveBoardReport({ churchName }: { churchName?: string }) {
           `People being walked with: ${members.filter((m) => m.role === 'ds' && m.is_approved).length}`,
           `Active relationships: ${active.length}`,
           `Awaiting approval: ${members.filter((m) => !m.is_approved).length}`,
+          '',
+          // THE TWO A BOARD ACTUALLY ASKS FOR, before the breakdown. "How many
+          // have we seen all the way through" was answerable only by finding
+          // Commission inside a run-on line and reading the number after it.
+          `Graduated (sent to disciple others): ${active.filter((p) => p.journey_stage === GRADUATED).length}`,
+          `Still walking: ${active.filter((p) => p.journey_stage !== GRADUATED).length}`,
           '',
           `Journey: ${byStage}`,
           '',
