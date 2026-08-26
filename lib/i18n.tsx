@@ -118,7 +118,7 @@ const EN: Record<MsgKey, string> = {
   seekers: `${ROLE_LABELS.ds}s`,
   missionaries: `${ROLE_LABELS.dm}s`,
   members: 'Members',
-  appTagline: 'Walking with Christ, one step at a time.',
+  appTagline: 'Walking with Jesus, one step at a time.',
   small: 'Small',
   normal: 'Normal',
   large: 'Large',

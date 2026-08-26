@@ -27,8 +27,8 @@ export const APP_SHORT_NAME = 'Hope Beacon';
  * still a church, because there it means an actual congregation.
  */
 export const APP_DESCRIPTION =
-  'Walking with Christ, one step at a time — and never on your own. ' +
-  'A church pairs you with someone who walks it with you.';
+  'Walking with Jesus, one step at a time. And never on your own. ' +
+  'Someone from your church walks it with you.';
 
 /** The two ends of the logo gradient, left to right. */
 export const BRAND_FROM = '#2F80ED';

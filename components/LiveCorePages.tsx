@@ -72,10 +72,10 @@ export function LiveHomePage() {
             how the app works rather than what it is for. Somebody arriving from
             an invitation reads the top line and nothing else. */}
         <p className="mt-3 text-xl font-semibold text-white/90">
-          Walking with Christ, one step at a time.
+          Walking with Jesus, one step at a time.
         </p>
         <p className="mt-1 text-base text-white/60">
-          And never on your own — one person, walking with one person.
+          And never on your own. One person, walking with one person.
         </p>
 
         <Button
@@ -93,7 +93,8 @@ export function LiveHomePage() {
           I have an invitation
         </Link>
         <p className="mt-7 max-w-sm text-sm leading-relaxed text-white/55">
-          Invitation only. Your church invites you; there is no public sign-up.
+          By invitation. Someone from your church brings you in, so there is
+          nothing to sign up for here.
         </p>
 
         {/* THE WAY INTO THE TUTORIAL, AND IT HAS TO BE ON THIS SCREEN.

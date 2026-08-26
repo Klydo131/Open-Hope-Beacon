@@ -26,12 +26,12 @@ export function ConsentNotice() {
         </div>
 
         <div className="space-y-3 p-6">
-          <Point icon="🔒" text="Your conversations with your missionary are private — only the two of you can read them." />
-          <Point icon="📚" text="What you study and your progress are shared only with your missionary and the church admin." />
-          <Point icon="📊" text="Church leaders see only totals — never your name or your details." />
+          <Point icon="🔒" text="What you say to your Guide stays between the two of you. Nobody else can read it." />
+          <Point icon="📚" text="What you are reading, and how far you have come, is seen by your Guide and your church Director. Nobody else." />
+          <Point icon="📊" text="Church leaders see counts only. Never your name, and never what you wrote." />
           <Point icon="🏠" text="Your information stays with the church, not outsiders." />
           <Point icon="💛" text="We keep a little activity (like when you open a reading) so the church can care for you better." />
-          <Point icon="🖐️" text="You can ask to stop, or to remove your information, at any time." />
+          <Point icon="🖐️" text="You can change your details whenever you need to. If you ever want to leave, ask a Director and they will remove you." />
 
           <div className="rounded-xl bg-gray-50 p-3 text-sm text-gray-500">
             Questions? Just ask your Guide or the church Director.
@@ -43,7 +43,7 @@ export function ConsentNotice() {
               className="tap w-full rounded-xl px-5 text-lg font-bold text-white"
               style={{ backgroundColor: NAVY }}
             >
-              I understand — continue
+              I understand, continue
             </button>
             <button
               onClick={() => {
