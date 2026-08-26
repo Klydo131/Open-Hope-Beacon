@@ -558,8 +558,22 @@ if (exists('app/api/auth/sign-in/route.ts')) {
   ok(/saveBrowserSession\(payload\.session/.test(liveData) &&
       /localStorage\.setItem/.test(browserClient) && /localStorage\.getItem/.test(browserClient),
     'the browser saves and confirms the verified session before navigation');
-  ok(/accessToken:\s*async\s*\(\)\s*=>\s*readBrowserSession/.test(browserClient) &&
-      !/auth\.getUser\(\)/.test(liveData),
+  // THE PROPERTY IS "no second Auth round trip", NOT ONE PARTICULAR LINE.
+  //
+  // This used to match `accessToken: async () => readBrowserSession(...)`
+  // exactly, and that spelling had to change: handing over the STORED token
+  // forever is what expired every session after an hour, so the callback now
+  // refreshes when the token is about to lapse. It still never asks Auth who
+  // the user is; it reads the same first-party session and, at most, trades a
+  // refresh token the browser already holds.
+  //
+  // So the check moved to the two things that actually matter: the token comes
+  // from the stored session, and nothing calls getUser().
+  ok(/accessToken:\s*liveAccessToken/.test(browserClient)
+      && /function liveAccessToken/.test(browserClient)
+      && /readBrowserSession\(\)/.test(browserClient),
+    'the data client takes its token from the stored first-party session');
+  ok(!/auth\.getUser\(\)/.test(liveData) && !/auth\.getUser\(\)/.test(browserClient),
     'live data uses the verified first-party session without a second Auth round trip');
 }
 

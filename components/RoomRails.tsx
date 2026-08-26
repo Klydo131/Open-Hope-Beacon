@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { Role } from '@/lib/types';
 import { roleLabel } from '@/lib/brand';
-import { useRoom, type RoomTheme, type RoomPrefs } from '@/lib/room-theme';
+import { useRoom, type RoomTheme, type RoomPrefs, inkOn } from '@/lib/room-theme';
 
 // -------------------------------------------------------------------------
 // The room rails — the workspace either side of the page on a wide screen.
@@ -161,7 +161,10 @@ export function LeftRail({
                     className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold"
                     style={{
                       backgroundColor: on ? theme.accent : 'transparent',
-                      color: on ? '#fff' : theme.ink,
+                      // Not always white: four palettes have an accent light
+                      // enough that white on it is unreadable, and the
+                      // selected item is the page you are already on.
+                      color: on ? inkOn(theme.accent) : theme.ink,
                     }}
                   >
                     <span aria-hidden className="text-base">
@@ -173,7 +176,7 @@ export function LeftRail({
                         className="grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold"
                         style={{
                           backgroundColor: on ? 'rgba(255,255,255,0.25)' : theme.accent,
-                          color: '#fff',
+                          color: on ? inkOn(theme.accent) : inkOn(theme.accent),
                         }}
                       >
                         {l.badge}

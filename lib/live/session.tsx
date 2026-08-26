@@ -70,8 +70,27 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
         setError(mine ? '' : 'Your account profile is not ready yet.');
       } catch (cause) {
         if (!alive) return;
-        setProfile(null);
-        setError(cause instanceof Error ? cause.message : 'Could not load your account.');
+        const why = cause instanceof Error ? cause.message : '';
+        // A DEAD SESSION IS NOT AN ERROR TO READ, IT IS A SIGN-IN SCREEN.
+        //
+        // This used to print "Your account is not ready. JWT expired." under a
+        // Sign out button. Every word of that is wrong from where the person
+        // is standing: their account is fine, they have no idea what a JWT is,
+        // and the one action offered is the one they did not want. It happened
+        // an hour after signing in, because nothing refreshed the token.
+        //
+        // The refresh in lib/supabase/client.ts is what stops it happening.
+        // This is the floor underneath that: if a session really is finished,
+        // say so by showing the front door, not by naming the mechanism.
+        if (/jwt|expired|invalid|refresh token|not authenticated/i.test(why)) {
+          live.signOut().catch(() => {});
+          setSession(null);
+          setProfile(null);
+          setError('');
+        } else {
+          setProfile(null);
+          setError(why || 'Could not load your account.');
+        }
       } finally {
         if (alive) setLoading(false);
       }
@@ -81,9 +100,22 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
     const syncAcrossTabs = () => void load(readBrowserSession());
     window.addEventListener('storage', syncAcrossTabs);
 
+    // COMING BACK TO THE APP RE-CHECKS THE SESSION.
+    //
+    // A phone left overnight wakes with an access token hours past its expiry.
+    // The first request would refresh it anyway, so this is not what keeps
+    // somebody signed in -- it is what means the first thing they tap is not
+    // the thing that pays for the refresh. Only when the tab becomes visible,
+    // so a backgrounded app costs nothing.
+    const recheck = () => {
+      if (document.visibilityState === 'visible') void load(readBrowserSession());
+    };
+    document.addEventListener('visibilitychange', recheck);
+
     return () => {
       alive = false;
       window.removeEventListener('storage', syncAcrossTabs);
+      document.removeEventListener('visibilitychange', recheck);
     };
   }, []);
 

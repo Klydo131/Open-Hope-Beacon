@@ -119,7 +119,17 @@ export function LiveAppShell({
   const today: { label: string; value: string }[] = [];
 
   return (
-    <div className="min-h-screen bg-[#f5f6f8]">
+    // THE THEME PAINTS THE PAGE, WHICH IS WHAT MAKES IT A THEME.
+    //
+    // This was a hard-coded light grey, and only the rails were themed. The
+    // left navigation draws its labels in theme.ink with no surface of its own,
+    // so choosing Slate wrote near-white text straight onto that grey page and
+    // the whole of the left column disappeared. The right rail looked fine
+    // because it paints theme.panel behind itself.
+    //
+    // `room-surface` is the same class the tutorial's shell uses, so both now
+    // agree on what a theme is: the page, the rails and the panels together.
+    <div className="room-surface min-h-screen" style={{ background: room.theme.bg }}>
       <header
         className="sticky z-20 text-white shadow-md"
         /* Sticks BELOW the tutorial bar when there is one. See AppShell. */

@@ -17,6 +17,36 @@ import type { Role } from './types';
 // the choice follows the person on the machine they made it on.
 // -------------------------------------------------------------------------
 
+/**
+ * Black or white on this colour, whichever is actually easier to read.
+ *
+ * WHY NOT ALWAYS WHITE. The selected item in the left navigation is drawn on
+ * theme.accent, and several palettes have an accent light enough that white on
+ * it falls under 3:1 -- Morning Light measured 1.8:1, which is a label you
+ * cannot read on the page you are currently on. The accents are deliberate
+ * design choices, so darkening them to suit one label is the wrong repair. The
+ * foreground moves instead.
+ *
+ * WHY IT COMPARES RATHER THAN THRESHOLDS. A first version returned dark above
+ * a fixed luminance, and mid-toned accents lost both ways: #C08A3E is under
+ * the threshold and white on it is only 3.0:1. Measuring both and taking the
+ * better one has no middle to fall into.
+ */
+export function inkOn(background: string): string {
+  const hex = background.replace('#', '');
+  const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+  const channel = (i: number) => {
+    const v = parseInt(full.slice(i, i + 2), 16) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const bg = 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
+  const against = (l: number) => (Math.max(l, bg) + 0.05) / (Math.min(l, bg) + 0.05);
+  // Near-black rather than pure black: #1A1D24 is the app's own ink and reads
+  // as deliberate where #000 reads as unstyled.
+  const DARK = 0.0114; // luminance of #1A1D24
+  return against(DARK) >= against(1) ? '#1A1D24' : '#FFFFFF';
+}
+
 export interface RoomTheme {
   key: string;
   label: string;
@@ -127,7 +157,7 @@ export const OFFICE_THEMES: RoomTheme[] = [
     ink: '#3B3125',
     inkSoft: '#8B7C66',
     line: 'rgba(59,49,37,0.10)',
-    accent: '#A87B3C',
+    accent: '#96682A',
   },
   {
     key: 'focus',
