@@ -986,6 +986,15 @@ export function LiveAdminPage() {
   // above, so a failure has somewhere useful to point.
   const [linkCopied, setLinkCopied] = useState<'' | 'yes' | 'failed'>('');
 
+  // Finding one person in a list of thirty-seven. Kept in the component rather
+  // than the URL: it is a way of looking, not a place you would want to return
+  // to or send to somebody else.
+  const [findApproved, setFindApproved] = useState('');
+  // Deleting is permanent, so it takes two taps in the row itself rather than a
+  // browser confirm. A confirm() dialog on a phone lands under the thumb that
+  // just tapped Delete, and the button that dismisses it is the one that agrees.
+  const [confirmDelete, setConfirmDelete] = useState('');
+
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -1017,6 +1026,12 @@ export function LiveAdminPage() {
   );
   const pending = manageable.filter((member) => !member.is_approved);
   const approved = manageable.filter((member) => member.is_approved);
+  // Matching is on the name a Director reads on the row. Case and surrounding
+  // spaces are ignored, because a name copied out of an email carries both.
+  const approvedNeedle = findApproved.trim().toLowerCase();
+  const approvedShown = approvedNeedle
+    ? approved.filter((member) => (member.full_name || '').toLowerCase().includes(approvedNeedle))
+    : approved;
   // Directors are their own room, and only an Executive has one. A Director
   // does not manage other Directors, so showing them the tab would be a room
   // with nothing they can do in it.
@@ -1131,6 +1146,44 @@ export function LiveAdminPage() {
     }
   };
 
+  // DELETE, WHICH IS NOT DISAPPROVE.
+  //
+  // Disapprove switches an account off and keeps it. Delete removes the auth
+  // user, and because every table hangs off that row, the person leaves the
+  // system entirely -- including their address, which is the point. Until this
+  // existed, an address that had ever been invited could never be invited
+  // again: the account stayed in auth.users where no screen could see it, and
+  // a fresh invitation to the same person was refused as already registered.
+  //
+  // WHO MAY DELETE WHOM IS DECIDED IN THE DATABASE, not here. remove_member_by_
+  // leader runs discipline_check first (migration 0023): an Executive may act
+  // on anyone in a church they oversee, a Director on Guides and Explorers
+  // only, nobody on themselves, and nobody at all on the Head Executive
+  // Director. It returns a sentence when it refuses, which is shown as-is.
+  //
+  // The act is recorded. remove_member_by_leader writes to discipline_log
+  // before it deletes, and that entry outlives the person it describes
+  // (migration 0028) -- so a church can always answer who removed whom.
+  const deleteAccount = async (member: Profile) => {
+    setBusy(member.id);
+    setError('');
+    setNotice('');
+    try {
+      const verdict = await live.removeMemberByLeader(member.id);
+      if (verdict !== 'ok') { setError(verdict); return; }
+      setNotice(
+        `${member.full_name || 'That account'} was deleted. Their email address is `
+        + 'free again, so you can invite them as a new member whenever you want.',
+      );
+      setConfirmDelete('');
+      await load();
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      setBusy('');
+    }
+  };
+
   const pair = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!dmId || !dsId) return;
@@ -1178,9 +1231,20 @@ export function LiveAdminPage() {
             so it costs a Director no attention on an ordinary day. */}
         <LiveReportsForDirector
           onRemove={async (id, who) => {
-            if (!confirm(`Remove ${who} from the church? They lose access immediately.`)) return;
+            if (!confirm(
+              `Remove ${who} from the church permanently? Their account, messages `
+              + 'and pairings go. The record of this stays, and their email address '
+              + 'is freed so they could be invited again.',
+            )) return;
             try {
-              await live.removeMember(id);
+              // The RPC, not the plain profile delete this used to call. A
+              // deleted profile left the auth account behind where no screen
+              // could reach it, so somebody removed after a safeguarding report
+              // still held a login and their address could never be invited
+              // again. It also refuses rather than throwing when a Director
+              // lacks the authority, so a refusal is a sentence to show.
+              const verdict = await live.removeMemberByLeader(id);
+              if (verdict !== 'ok') { setError(verdict); return; }
               setNotice(`${who} was removed from the church.`);
               await load();
             } catch (cause) {
@@ -1350,28 +1414,104 @@ export function LiveAdminPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-bold text-navy">Approved accounts</h2>
-              <p className="text-sm text-gray-500">Disapproval suspends workspace access without deleting the account.</p>
+              <p className="text-sm text-gray-500">
+                Disapprove switches an account off and keeps it. Delete removes
+                the person and frees their email address.
+              </p>
             </div>
             <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-bold text-emerald-800">{approved.length}</span>
           </div>
+
+          {/* SEARCH, once the list is longer than a screen. Below five rows a
+              box is one more thing to read on the way to the row you can
+              already see; at thirty-seven it is the only way to reach one
+              person without scrolling past thirty-six others. */}
+          {approved.length > 5 && (
+            <div className="mt-4">
+              <input
+                value={findApproved}
+                onChange={(event) => setFindApproved(event.target.value)}
+                type="search"
+                inputMode="search"
+                placeholder="Search by name"
+                aria-label="Search approved accounts by name"
+                className="tap w-full rounded-xl bg-gray-100 px-4 text-base outline-none focus:ring-2 focus:ring-gold"
+              />
+              {approvedNeedle && (
+                <p className="mt-1.5 text-sm text-gray-500">
+                  {approvedShown.length} of {approved.length}
+                  {approvedShown.length === 0 && ' · nobody by that name'}
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="mt-4 space-y-2">
             {loading ? <p className="text-gray-400">Loading…</p> : approved.length === 0 ? (
               <p className="text-gray-400">No approved accounts to manage.</p>
-            ) : approved.map((member) => (
-              <div key={member.id} className="flex flex-col gap-3 rounded-xl bg-gray-50 px-4 py-3 sm:flex-row sm:items-center">
-                <Avatar name={member.full_name || 'Member'} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-navy">{member.full_name || 'Member'}</p>
-                  <p className="text-sm text-gray-500">{roleNoun(member.role)} · access approved</p>
+            ) : approvedShown.length === 0 ? (
+              <p className="text-gray-400">Nobody here matches “{findApproved.trim()}”.</p>
+            ) : approvedShown.map((member) => (
+              <div key={member.id} className="rounded-xl bg-gray-50 px-4 py-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Avatar name={member.full_name || 'Member'} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-navy">{member.full_name || 'Member'}</p>
+                    <p className="text-sm text-gray-500">{roleNoun(member.role)} · access approved</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="ghost"
+                      className="text-red-700"
+                      onClick={() => void disapprove(member)}
+                      disabled={busy === member.id}
+                    >
+                      Disapprove
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="text-red-700"
+                      onClick={() => setConfirmDelete(confirmDelete === member.id ? '' : member.id)}
+                      disabled={busy === member.id}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  className="text-red-700"
-                  onClick={() => void disapprove(member)}
-                  disabled={busy === member.id}
-                >
-                  Disapprove
-                </Button>
+
+                {/* THE SECOND TAP, AND WHAT IT COSTS, IN THE SAME PLACE.
+                    Saying "this cannot be undone" is not the same as saying
+                    what goes: their messages, who they walked with, and their
+                    way back in. The last line is the one a Director is
+                    actually here for, so it is stated rather than implied. */}
+                {confirmDelete === member.id && (
+                  <div className="mt-3 rounded-xl bg-red-50 p-3 ring-1 ring-red-200">
+                    <p className="text-sm font-bold text-red-900">
+                      Delete {member.full_name || 'this account'} permanently?
+                    </p>
+                    <p className="mt-1 text-sm text-red-800">
+                      Their account, messages and pairings go, and cannot be brought back.
+                      The record of who removed them is kept.
+                    </p>
+                    <p className="mt-1 text-sm text-red-800">
+                      Their email address leaves the system, so you can invite them
+                      again afterwards as a brand new member, in any role.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        variant="ghost"
+                        className="bg-red-600 text-white hover:bg-red-700"
+                        disabled={busy === member.id}
+                        onClick={() => void deleteAccount(member)}
+                      >
+                        {busy === member.id ? 'Deleting…' : 'Yes, delete permanently'}
+                      </Button>
+                      <Button variant="ghost" onClick={() => setConfirmDelete('')}>
+                        Keep the account
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

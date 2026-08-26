@@ -433,11 +433,22 @@ export async function setMemberRole(userId: string, role: Role): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-export async function removeMember(userId: string): Promise<void> {
-  if (userId === (await uid())) throw new Error('You cannot remove yourself.');
-  const { error } = await db().from('profiles').delete().eq('id', userId);
-  if (error) throw new Error(error.message);
-}
+// removeMember USED TO LIVE HERE, AND DELETING IT IS THE FIX.
+//
+// It deleted the profiles row and nothing else. profiles.id references
+// auth.users on delete cascade, and a cascade only runs in that direction, so
+// the auth account survived every use of it -- invisible to every screen, since
+// only the service role can read auth.users.
+//
+// Two things followed, both reported as bugs before the cause was found. The
+// removed person still held a working login that resolved to no profile. And
+// their address could never be invited again: member_by_email joins auth.users
+// to profiles, the row was still there, and a fresh invitation was refused as
+// already registered.
+//
+// removeMemberByLeader below is the whole act: it checks authority, writes the
+// discipline log, clears messages and pairings, and deletes the auth user,
+// which cascades everything else away and frees the address.
 
 // ---------------------------------------------------------------------------
 // Pairings
