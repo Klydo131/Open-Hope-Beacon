@@ -28,6 +28,7 @@ import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary'
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
 import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveNotes } from '@/components/LiveMinistry';
 import { LiveStudies } from '@/components/LiveStudies';
+import { LiveBulkInvite } from '@/components/LiveBulkInvite';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -1483,6 +1484,10 @@ export function LiveAdminPage() {
         </Card>
 
         )}
+
+        {/* BULK, UNDER THE SINGLE FORM. One at a time is right for the usual
+            case and hopeless for twenty-five, which is a real Sunday. */}
+        {room === 'approvals' && <LiveBulkInvite roles={roleOptions} />}
 
         {room === 'approvals' && (
         <Card className="p-5">
