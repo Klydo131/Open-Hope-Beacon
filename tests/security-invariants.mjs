@@ -20,6 +20,33 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const exists = (p) => fs.existsSync(path.join(root, p));
 
+/**
+ * The source of every live screen, concatenated.
+ *
+ * For assertions about what the signed-in app DOES rather than about one file.
+ * Covers components/live/* and any remaining Live*.tsx, so a screen moving
+ * between them cannot switch an invariant off.
+ *
+ * This exists because it happened: two checks here read
+ * components/LiveCorePages.tsx by name, that file was split by screen, and the
+ * checks went quiet. For a safeguarding placement check that is the worst way
+ * to fail, and the comment beside it already warned that placement is what a
+ * refactor removes without noticing.
+ */
+const liveScreens = () => {
+  const out = [];
+  for (const dir of ['components/live', 'components']) {
+    if (!exists(dir)) continue;
+    for (const f of fs.readdirSync(path.join(root, dir))) {
+      if (!f.endsWith('.tsx')) continue;
+      if (dir === 'components' && !/^Live/.test(f)) continue;
+      out.push(read(`${dir}/${f}`));
+    }
+  }
+  return out.join('\n');
+};
+
+
 let bad = 0;
 const ok = (c, m) => {
   if (!c) bad++;
@@ -423,9 +450,9 @@ if (exists('components/Mailbox.tsx')) {
 // hosts from the rendered layout. Both halves are asserted because deleting
 // either branch would make one mode silently impersonate the other.
 // ---------------------------------------------------------------------------
-if (exists('app/login/page.tsx') && exists('components/LiveCorePages.tsx')) {
+if (exists('app/login/page.tsx') && liveScreens()) {
   const login = read('app/login/page.tsx');
-  const livePages = read('components/LiveCorePages.tsx');
+  const livePages = liveScreens();
   const layout = read('app/layout.tsx');
   // The choice moved from a build-time constant to a per-visitor one when the
   // tutorial got its own door (lib/tutorial.tsx), so the shape to assert is
@@ -823,8 +850,8 @@ if (exists('app/api/auth/sign-in/route.ts')) {
 // This is a placement check, and placement is exactly the thing a refactor
 // removes without noticing.
 // ---------------------------------------------------------------------------
-if (exists('components/LiveCorePages.tsx')) {
-  const live = read('components/LiveCorePages.tsx');
+if (liveScreens()) {
+  const live = liveScreens();
   const badges = (live.match(/<MinorBadge\b/g) || []).length;
   ok(badges >= 3,
      `the MINOR badge is on all three responsible surfaces (found ${badges})`);

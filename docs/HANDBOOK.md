@@ -209,6 +209,16 @@ The screen a Guide lands on opens with their own figures: how many Explorers the
 
 **Graduated** means reached Commission: walked the whole journey and now sent to walk with somebody else. It is the number the whole design exists to produce.
 
+### The Office
+
+Guides, Directors and Executive Directors have an **Office**, in the left column on every screen. It holds the work: the numbers, the downloads, the studies you write and the shelf you stock.
+
+The split is by kind of work rather than by rank. A roster, a conversation, a case is about a person, and lives on that person's screen. Numbers, exports, writing and stocking a shelf are office work, and live here. Before this, a Guide's roster carried study-writing, library-stocking and a blog desk underneath the list of five people they walk with, and a Director's analytics sat three clicks inside an admin tab. The people screens were four screens long and the tools were hard to find.
+
+Follow-ups and prayer requests stayed on the Guide's roster, because they are about the people on it.
+
+**Explorers do not have this room**, and not because anything is hidden from them. None of it is theirs to do: no roster to report on, no shelf to stock, nobody to write studies for. A room that would be empty for them tells them they are missing something.
+
 ### Cases
 
 **Cases have a room of their own**, in the left column on every screen, for every role. A case is a formal proceeding about a person, sometimes about the person reading it, and it used to be a card partway down a dashboard: easy to scroll past on the one day it mattered, and sitting in the same visual rank as a study plan.
@@ -349,7 +359,7 @@ What somebody listens to while they read is nobody else's business, which is why
 
 ### What is in the left column
 
-Home, your own screen, the library, and **Cases**. Under **You**: Profile, Mail and Settings.
+Home, your own screen, the library, and **Cases**. Guides and leadership also have the **Office**. Under **You**: Profile, Mail and Settings.
 
 **Tutorial, What's new and Feedback are cards inside Settings**, not rows in the column. They were rows for a while, put there because each had been reported as missing when it was only reachable by scrolling Settings. That fixed the wrong half: it made the column six entries long for three things somebody uses about once a month, and the column is what people look at all day. The unread mark for a new release sits on Settings itself, so it is still visible from every screen.
 
@@ -599,6 +609,26 @@ Two scheduled jobs live in the repository. Both are free on a public repository,
 | A Guide cannot take another Explorer | They are at the church's limit, five by default. | Pair with another Guide, recruit one, or raise the limit in Church settings. Do not raise it to solve a shortage of Guides. |
 | The whole left column is invisible on a dark theme | Fixed on 26 August 2026. The page background was not being themed, so light text landed on a light page. | Nothing to do. |
 | A Guide cannot be given another Explorer | They already have five. The database refuses a sixth. | Pair with a different Guide, or recruit one. Do not raise the cap to solve a shortage of Guides. |
+
+### Where the code lives
+
+Written down because a church that cannot hand this to somebody else owns a liability rather than an app.
+
+| Looking for | Open |
+| --- | --- |
+| The signed-out door: home, sign-in, sign-up, joining by invitation | `components/live/DoorPages.tsx` |
+| The Director and Executive Director screen | `components/live/AdminPage.tsx` |
+| A Guide's roster, and one Explorer's page | `components/live/GuidePages.tsx` |
+| An Explorer's own journey | `components/live/ExplorerPage.tsx` |
+| The conversation, and the small parts screens share | `components/live/shared.tsx` |
+| Everything that talks to the database | `lib/live/data.ts` |
+| The rules that keep the promises | `supabase/migrations/` |
+
+All of those live screens were one file of three thousand lines called `LiveCorePages.tsx` until they were split by screen. That file still exists and re-exports them, so nothing that imported it had to change; new code should import from the file that holds the screen.
+
+> **NOTE** · Two checks went quiet during that split, and that is the lesson
+>
+> They read `components/LiveCorePages.tsx` by name, so when the screens moved, ten assertions stopped testing anything while still reporting nothing wrong. One of them was a safeguarding placement check. They read every live screen now, so the next move cannot switch them off. **A check pinned to a file name is a check a refactor can silently delete.**
 
 ## 11. For an AI tool continuing this
 

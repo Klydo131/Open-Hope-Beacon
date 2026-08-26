@@ -18,10 +18,17 @@ const ok = (cond, msg) => {
 };
 
 const read = (p) => (existsSync(p) ? readFileSync(p, 'utf8') : '');
-/** Source with comments blanked, so prose about a rule cannot satisfy it. */
-const code = (p) => {
+/**
+ * Source with comments blanked, so prose about a rule cannot satisfy it.
+ *
+ * Takes a path OR source text. It used to take only a path, which is what tied
+ * these assertions to one file name; passing text lets a check be about the
+ * whole signed-in app rather than about wherever the code happens to sit today.
+ */
+const code = (pathOrSource) => {
+  const source = pathOrSource.includes('\n') ? pathOrSource : read(pathOrSource);
   let inBlock = false;
-  return read(p).split('\n').map((line) => {
+  return source.split('\n').map((line) => {
     if (inBlock) { if (line.includes('*/')) inBlock = false; return ''; }
     if (/^\s*\/\//.test(line)) return '';
     if (/^\s*\{?\/\*/.test(line)) { if (!line.includes('*/')) inBlock = true; return ''; }
@@ -29,7 +36,40 @@ const code = (p) => {
   }).join('\n');
 };
 
-const ADMIN = 'components/LiveCorePages.tsx';
+
+/**
+ * The source of every live screen, concatenated.
+ *
+ * Used where an assertion is about what the signed-in app DOES rather than
+ * about one file. Includes the legacy path when it still holds code, so this
+ * works before and after the split.
+ */
+function liveScreens() {
+  const roots = ['components/live', 'components'];
+  const out = [];
+  for (const dir of roots) {
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir)) {
+      if (!f.endsWith('.tsx')) continue;
+      const full = `${dir}/${f}`;
+      if (dir === 'components' && !/^Live/.test(f)) continue;
+      out.push(read(full));
+    }
+  }
+  return out.join('\n');
+}
+
+// EVERY LIVE SCREEN, NOT ONE FILE NAME.
+//
+// This read components/LiveCorePages.tsx. That file was three thousand lines
+// and got split by screen, and the moment it did, ten assertions here went from
+// passing to failing: not because anything broke, but because the test was
+// pinned to a path rather than to the behaviour it is about. A check that a
+// refactor can silently disable is worse than no check, because it goes on
+// reporting OK.
+//
+// Reading the whole live folder means the next split cannot switch it off.
+const ADMIN = liveScreens();
 const DATA = 'lib/live/data.ts';
 
 // ---------------------------------------------------------------------------
