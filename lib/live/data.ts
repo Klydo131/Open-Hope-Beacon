@@ -727,6 +727,25 @@ export async function endPairing(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Every stage change this caller may see, for the analytics screen.
+ *
+ * NO PAIRING FILTER, on purpose: the policy on journey_events already decides
+ * who sees what, so a Director gets their church and a Guide gets their own
+ * people. Reading the real events rather than approximating from a pairing's
+ * updated_at matters here, because updated_at moves for reasons that are not a
+ * journey step and the chart would quietly count them.
+ */
+export async function listJourneyEvents(limit = 2000): Promise<JourneyEvent[]> {
+  const { data, error } = await db()
+    .from('journey_events')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as JourneyEvent[];
+}
+
 export async function listJourney(pairingId: string): Promise<JourneyEvent[]> {
   const { data, error } = await db()
     .from('journey_events')

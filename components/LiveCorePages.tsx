@@ -30,6 +30,7 @@ import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveNotes
 import { LiveStudies } from '@/components/LiveStudies';
 import { LiveBulkInvite } from '@/components/LiveBulkInvite';
 import { LiveExport } from '@/components/LiveExport';
+import { LiveAnalytics } from '@/components/LiveAnalytics';
 import { NewBadge } from '@/components/NewBadge';
 import { Avatar, Button, Card } from '@/components/ui';
 
@@ -71,7 +72,12 @@ export function LiveHomePage() {
   return (
     <div className="min-h-screen text-white" style={{ backgroundColor: NAVY }}>
       <main className="mx-auto flex min-h-[100svh] max-w-lg flex-col items-center justify-center px-4 py-10 text-center">
-        <HopeBeaconMark size={92} />
+        {/* The app is named after a light somebody far away can see. On the
+            one screen that is only ever a first impression, it behaves like
+            one. Scenery: aria-hidden, and the glow cannot take a tap. */}
+        <span className="beacon-glow" aria-hidden>
+          <HopeBeaconMark size={92} />
+        </span>
         <h1 className="mt-6 text-5xl font-extrabold tracking-tight">Hope Beacon</h1>
         {/* THE THEME FIRST, THE MECHANISM SECOND. This door used to lead with
             "One person, walking with one person" — true, and a description of
@@ -1374,6 +1380,7 @@ export function LiveAdminPage() {
         {room === 'church' && <LiveChurchPulse />}
         {/* A church that cannot get its own member list out of the app is
             depending on us still being here next year. */}
+        {room === 'church' && <LiveAnalytics churchName={church?.name} />}
         {room === 'church' && <LiveExport churchName={church?.name} />}
 
         {/* THE LIBRARY BELONGS TO DIRECTORS TOO.

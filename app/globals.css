@@ -250,6 +250,75 @@ a[role='button'],
 .beacon-bar {
   animation: beaconSlide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
+/* THE BEACON ITSELF, on the front door.
+   A lighthouse is not a logo that sits there; it is a light somebody far away
+   can see, and the app is named after one. The glow is a radial wash BEHIND
+   the mark rather than a filter on it, so the logo's own colours stay exact
+   and only the air around it brightens.
+
+   Two layers at different speeds. One breathing halo alone reads as a pulsing
+   button; a slow wide wash under a slightly faster near glow reads as light
+   carrying, which is the thing being described. Six seconds, because anything
+   quicker becomes a demand for attention on a screen somebody is trying to
+   sign in on.
+
+   Pointer events off and aria-hidden at the call site: it is scenery, and it
+   must never sit between a finger and the button underneath. */
+.beacon-glow {
+  position: relative;
+  isolation: isolate;
+}
+.beacon-glow::before,
+.beacon-glow::after {
+  content: '';
+  position: absolute;
+  inset: -60%;
+  z-index: -1;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+.beacon-glow::before {
+  background: radial-gradient(
+    circle,
+    rgba(90, 170, 255, 0.38) 0%,
+    rgba(47, 128, 237, 0.16) 42%,
+    rgba(47, 128, 237, 0) 70%
+  );
+  animation: beaconGlowWide 6s ease-in-out infinite;
+}
+.beacon-glow::after {
+  inset: -25%;
+  background: radial-gradient(
+    circle,
+    rgba(232, 184, 75, 0.30) 0%,
+    rgba(232, 184, 75, 0.10) 45%,
+    rgba(232, 184, 75, 0) 72%
+  );
+  animation: beaconGlowNear 4.2s ease-in-out infinite;
+}
+@keyframes beaconGlowWide {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+@keyframes beaconGlowNear {
+  0%,
+  100% {
+    opacity: 0.75;
+    transform: scale(1.04);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+}
+
 .beacon-splash-out {
   animation: beaconFadeOut 0.3s ease forwards;
 }
@@ -372,6 +441,12 @@ html {
   .beacon-lamp,
   .beacon-halo,
   .beacon-bar {
+    animation: none;
+  }
+  /* The glow STAYS, it just stops moving: somebody who asked for less motion
+     asked for less motion, not a different design. */
+  .beacon-glow::before,
+  .beacon-glow::after {
     animation: none;
   }
   .animate-drop,
