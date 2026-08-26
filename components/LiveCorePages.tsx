@@ -1925,14 +1925,26 @@ export function LiveGuidePage() {
       {/* Cases moved to their own room, /cases, reachable from the rail on
           every screen. A formal hearing does not belong as one card among a
           Guide's Explorers. */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      {/* ONE ROW PER PERSON, FULL WIDTH, NOT A GRID OF TILES.
+          Two columns of tiles made every name compete with the one beside it,
+          and on a desktop it left the right half of a wide screen empty while
+          truncating the names in the left half. A roster is a list: face, name,
+          what is going on with them, and where they are up to, in the same
+          places on every row so the eye can run straight down the column.
+
+          The stage sits on the right on its own line above the path, which is
+          where the reference design puts it and where a scan for "who is at
+          Commission" actually looks. */}
+      <div className="mt-6 space-y-2.5">
         {rows.map((row) => {
           const stage = stageInfo(row.journey_stage);
+          const waiting = unprayed[row.ds_id] ?? 0;
           return (
-            <Link key={row.id} href={`/dm/${row.id}`}>
-              <Card className="h-full p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex items-center gap-3">
+            <Link key={row.id} href={`/dm/${row.id}`} className="block">
+              <Card className="p-4 transition hover:-translate-y-0.5 hover:shadow-md sm:p-5">
+                <div className="flex items-center gap-3 sm:gap-4">
                   <Avatar name={row.ds_name} />
+
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <p className="truncate text-lg font-bold text-navy">{row.ds_name}</p>
@@ -1943,16 +1955,30 @@ export function LiveGuidePage() {
                           mark you have to go looking for is one nobody sees. */}
                       <MinorBadge person={{ birthday: row.ds_birthday, guardian_consent_at: row.ds_guardian_consent_at }} />
                     </div>
-                    {unprayed[row.ds_id] ? (
-                      <p className="text-sm font-semibold" style={{ color: '#7C3AED' }}>
-                        🙏 asked for prayer
-                        {unprayed[row.ds_id] > 1 ? ` ×${unprayed[row.ds_id]}` : ''}
+                    {/* THE LINE UNDER THE NAME IS WHAT NEEDS DOING, when there
+                        is anything. A prayer request waiting is the one thing
+                        on this row that is asking something of the Guide, so it
+                        takes the line; the path is context and yields to it. */}
+                    {waiting > 0 ? (
+                      <p className="mt-0.5 text-sm font-semibold" style={{ color: '#7C3AED' }}>
+                        🙏 Asked for prayer{waiting > 1 ? ` ×${waiting}` : ''}
                       </p>
                     ) : (
-                      <p className="text-sm text-gray-500">{row.track} path</p>
+                      <p className="mt-0.5 text-sm text-gray-500">{row.track} path</p>
                     )}
                   </div>
-                  <span className="rounded-full px-3 py-1 text-xs font-bold" style={{ backgroundColor: `${stage.color}20`, color: stage.color }}>{stage.label}</span>
+
+                  <div className="shrink-0 text-right">
+                    <span
+                      className="inline-block rounded-full px-3 py-1 text-xs font-bold"
+                      style={{ backgroundColor: `${stage.color}20`, color: stage.color }}
+                    >
+                      {stage.label}
+                    </span>
+                    {waiting > 0 && (
+                      <p className="mt-1 text-xs text-gray-500">{row.track} path</p>
+                    )}
+                  </div>
                 </div>
               </Card>
             </Link>

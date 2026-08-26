@@ -167,14 +167,7 @@ A notice pinned where the church will see it: an icon, a title, a line of detail
 
 **Explorers cannot.** A notice sits above everybody's church screen, and pinning something there is an act of leading rather than of speaking. An Explorer with something to say to the church has Community Blogs, which is exactly that and does not sit above everyone else's.
 
-Two audiences:
-
-| Who sees it | Who it reaches |
-| --- | --- |
-| **The whole church** | Every member. The default, because it is what the word notice already means. |
-| **Only the people I walk with** | For a Guide, their Explorers. A Director is usually paired with nobody, so the screen warns them that a private notice from them goes to nobody but themselves. |
-
-A notice that is not church-wide is marked as such on its card. The ordinary case is not labelled, because a word on every card tells nobody anything.
+**Every notice goes to the whole church, and there is no audience to choose.** A private option existed briefly and was taken out: a notice only part of the congregation can see is not a notice, and having the setting invites somebody to use it. The screen says so above the Post button, so nobody writes one assuming it will reach fewer people. Anything meant for fewer people belongs in a message or in Community Blogs.
 
 **Anybody in leadership can take down any notice, and an author can take down their own.** A pinned notice reaches the whole church, and anything that reaches the whole church needs an off switch that does not depend on the person who wrote it being available.
 

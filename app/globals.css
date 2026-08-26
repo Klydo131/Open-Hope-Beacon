@@ -258,14 +258,6 @@ a[role='button'],
 /* ---- The loader (components/BeaconLoader.tsx) ---- */
 
 /* The beam sweeping out from the lamp. */
-@keyframes beaconSweep {
-  from {
-    transform: rotate(-32deg);
-  }
-  to {
-    transform: rotate(328deg);
-  }
-}
 /* The lamp itself, brightening as the beam comes round. */
 @keyframes beaconPulse {
   0%,
@@ -274,17 +266,6 @@ a[role='button'],
   }
   50% {
     opacity: 1;
-  }
-}
-@keyframes beaconHalo {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.9;
-    transform: scale(1.03);
   }
 }
 /* An indeterminate progress bar that slides rather than fills — it makes no
@@ -315,15 +296,8 @@ a[role='button'],
   }
 }
 
-.beacon-beam {
-  animation: beaconSweep 3.6s linear infinite;
-}
 .beacon-lamp {
   animation: beaconPulse 1.8s ease-in-out infinite;
-}
-.beacon-halo {
-  transform-origin: center;
-  animation: beaconHalo 3.6s ease-in-out infinite;
 }
 .beacon-bar {
   animation: beaconSlide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
@@ -515,9 +489,7 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .beacon-beam,
   .beacon-lamp,
-  .beacon-halo,
   .beacon-bar {
     animation: none;
   }

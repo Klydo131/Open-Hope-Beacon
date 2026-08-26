@@ -27,19 +27,12 @@ function Mark({ size = 96 }: { size?: number }) {
       aria-hidden
       className="beacon-mark"
     >
-      <defs>
-        <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#E8B84B" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#E8B84B" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-
-      {/* The sweeping beam, behind the tower. */}
-      <g className="beacon-beam" style={{ transformOrigin: '60px 34px' }}>
-        <polygon points="60,34 120,4 120,64" fill="url(#beam)" />
-      </g>
-
-      <circle cx="60" cy="60" r="58" fill="#E8B84B" className="beacon-halo" />
+      {/* THE BEAM AND THE HALO ARE GONE. A rotating wedge plus a breathing
+          circle plus a flickering lamp is three animations fighting for the
+          same 90 pixels, and the result reads as busy rather than as waiting.
+          The lamp alone still says the light is on. */}
+      <circle cx="60" cy="60" r="58" fill="#E8B84B" opacity="0.14" />
+      <circle cx="60" cy="60" r="58" fill="none" stroke="#E8B84B" strokeOpacity="0.35" strokeWidth="1.5" />
       <path d="M60 20 L75 75 H45 Z" fill="#1E2A4A" />
       <rect x="49" y="75" width="22" height="22" rx="3" fill="#1E2A4A" />
       <circle cx="60" cy="33" r="7.5" fill="#fff" className="beacon-lamp" />
@@ -47,27 +40,46 @@ function Mark({ size = 96 }: { size?: number }) {
   );
 }
 
+/**
+ * The full-screen splash, on first load.
+ *
+ * QUIETER THAN IT WAS, and every removal is the point. It had a rotating beam,
+ * a pulsing halo, a flickering lamp, a wordmark and a sliding bar, five moving
+ * things on a screen whose whole job is to be over quickly. A loading screen
+ * that is busy makes an app feel slower than the same wait spent looking at
+ * something calm.
+ *
+ * What is left: the mark, the name, one line, and one bar. The bar is the
+ * honest part, so it stays; it is the only element that says "still going"
+ * rather than merely moving.
+ *
+ * The ground is a soft vertical wash rather than flat navy, because a flat
+ * fill at this size reads as a failed page rather than a deliberate screen.
+ */
 export function BeaconSplash({
-  label = 'Lighting the way…',
+  label = 'Getting things ready…',
 }: {
   label?: string;
 }) {
   return (
     <div
       className="fixed inset-0 z-[100] grid place-items-center"
-      style={{ backgroundColor: '#1E2A4A' }}
+      style={{ background: 'linear-gradient(180deg, #24314f 0%, #1E2A4A 55%, #182240 100%)' }}
       role="status"
       aria-live="polite"
     >
-      <div className="flex flex-col items-center gap-5 px-6 text-center">
-        <Mark size={104} />
+      <div className="flex flex-col items-center gap-6 px-6 text-center">
+        <Mark size={88} />
         <div>
-          <p className="text-2xl font-extrabold tracking-tight text-white">
-            Beacon
+          <p className="text-[1.6rem] font-extrabold tracking-tight text-white">
+            Hope Beacon
           </p>
-          <p className="mt-1 text-sm text-white/60">{label}</p>
+          <p className="mt-1.5 text-sm text-white/50">{label}</p>
         </div>
-        <div className="beacon-track h-1 w-40 overflow-hidden rounded-full bg-white/15">
+        {/* One bar, thin, and it never claims a percentage. A progress bar that
+            invents its own position is a lie that people learn to distrust, so
+            this one only travels. */}
+        <div className="beacon-track h-[3px] w-32 overflow-hidden rounded-full bg-white/10">
           <div className="beacon-bar h-full w-1/3 rounded-full bg-gold" />
         </div>
       </div>

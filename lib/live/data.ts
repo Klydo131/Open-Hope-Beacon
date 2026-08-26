@@ -1225,18 +1225,16 @@ export interface Announcement {
   when_text: string;
   is_pinned: boolean;
   /**
-   * True for the whole church, false for the people the author walks with.
-   * The policy decides who actually receives it; this is here so the screen
-   * can tell the author which of the two they chose.
+   * Kept so a card can offer "take it down" to whoever wrote it, not to decide
+   * who reads it. Every notice goes to the whole church; see migration 0045.
    */
-  is_public: boolean;
   author_id: string | null;
   created_at: string;
 }
 
 export async function listAnnouncements(): Promise<Announcement[]> {
   const { data, error } = await db().from('announcements')
-    .select('id, icon, title, body, when_text, is_pinned, is_public, author_id, created_at')
+    .select('id, icon, title, body, when_text, is_pinned, author_id, created_at')
     .order('is_pinned', { ascending: false })
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
@@ -1244,7 +1242,7 @@ export async function listAnnouncements(): Promise<Announcement[]> {
 }
 
 export async function addAnnouncement(
-  a: { icon?: string; title: string; body?: string; whenText?: string; isPublic?: boolean },
+  a: { icon?: string; title: string; body?: string; whenText?: string },
 ): Promise<void> {
   const supabase = db();
   const me_id = await uid();
@@ -1257,9 +1255,6 @@ export async function addAnnouncement(
     title: a.title.trim(),
     body: (a.body || '').trim(),
     when_text: (a.whenText || '').trim(),
-    // Public unless somebody says otherwise. A notice written by mistake with
-    // the wrong audience should fail towards the meaning the word already has.
-    is_public: a.isPublic !== false,
   });
   if (error) throw new Error(error.message);
 }

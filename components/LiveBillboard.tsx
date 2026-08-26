@@ -64,7 +64,6 @@ export function LiveBillboard({ churchName, between }: {
 
   // Writing a notice.
   const [icon, setIcon] = useState('📌');
-  const [isPublic, setIsPublic] = useState(true);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [whenText, setWhenText] = useState('');
@@ -195,44 +194,20 @@ export function LiveBillboard({ churchName, between }: {
               placeholder="When? For example: This Sabbath, 9:00 AM"
               className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2"
             />
-            {/* PUBLIC IS THE DEFAULT AND IS LISTED FIRST, because that is
-                what the word notice already means. The private option exists
-                for a Guide with something for their own five people. */}
-            <fieldset className="mt-3">
-              <legend className="text-sm font-semibold text-navy">Who sees it</legend>
-              <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio" name="notice-audience" checked={isPublic}
-                  onChange={() => setIsPublic(true)}
-                />
-                The whole church
-              </label>
-              <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="radio" name="notice-audience" checked={!isPublic}
-                  onChange={() => setIsPublic(false)}
-                />
-                Only the people I walk with
-              </label>
-              {/* SAID PLAINLY RATHER THAN LEFT TO BE DISCOVERED. A Director is
-                  usually paired with nobody, so a private notice from one goes
-                  to nobody but themselves. Better to say that than to let
-                  somebody write to an empty room and assume it was delivered. */}
-              {!isPublic && leads && (
-                <p className="mt-1 pl-6 text-xs text-amber-800">
-                  You are not paired with anybody, so only you will see this.
-                  Choose the whole church, or write it in Community Blogs.
-                </p>
-              )}
-            </fieldset>
-
+            {/* SAID BEFORE THEY POST, because there is no audience to choose
+                and somebody writing a notice should know that rather than
+                assume there is one somewhere. */}
+            <p className="mt-2 text-xs text-gray-500">
+              Everybody in the church sees this. Anything for fewer people
+              belongs in a message or in Community Blogs.
+            </p>
             <div className="mt-3">
               <Button
                 variant="gold"
                 disabled={busy || !title.trim()}
                 onClick={() => act(async () => {
-                  await live.addAnnouncement({ icon, title, body, whenText, isPublic });
-                  setTitle(''); setBody(''); setWhenText(''); setIcon('📌'); setIsPublic(true);
+                  await live.addAnnouncement({ icon, title, body, whenText });
+                  setTitle(''); setBody(''); setWhenText(''); setIcon('📌');
                   setWriting(false);
                 })}
               >
@@ -257,14 +232,6 @@ export function LiveBillboard({ churchName, between }: {
                 {n.body && <p className="text-sm text-gray-600">{n.body}</p>}
                 {n.when_text && (
                   <p className="mt-2 text-xs font-semibold text-gray-400">{n.when_text}</p>
-                )}
-                {/* Marked only when it is NOT the whole church. Labelling the
-                    ordinary case adds a word to every card and tells nobody
-                    anything; labelling the exception is the whole job. */}
-                {!n.is_public && (
-                  <p className="mt-2 text-xs font-bold uppercase tracking-wide text-amber-700">
-                    Only the people {n.author_id === profile?.id ? 'you' : 'they'} walk with
-                  </p>
                 )}
                 {(leads || n.author_id === profile?.id) && (
                   <div className="mt-2 flex flex-wrap gap-3">

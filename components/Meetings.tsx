@@ -76,24 +76,48 @@ export function Meetings({ pairingId }: { pairingId: string }) {
           className="tap w-full min-w-0 rounded-xl bg-white px-3 text-base ring-1 ring-black/5"
           aria-label="Date and time"
         />
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value as Meeting['mode'])}
-          className="tap w-full min-w-0 rounded-xl bg-white px-3 text-base ring-1 ring-black/5"
-        >
-          <option value="online">Online (call)</option>
-          <option value="in_person">In person</option>
-        </select>
+        {/* TWO BUTTONS, NOT A DROPDOWN, matching the live screen. The select
+            defaulted to Online and said so whether or not anybody had looked at
+            it, so the place field, which exists only for the other choice, was
+            never reached: "I still dont see the location with the meetings".
+            Two buttons show both choices at once. */}
+        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Online or in person">
+          {([['online', '💻 Online call'], ['in_person', '📍 In person']] as const).map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              aria-pressed={mode === m}
+              className={`tap-sm rounded-xl px-3 py-2.5 text-sm font-bold ${
+                mode === m ? 'bg-navy text-white' : 'bg-gray-100 text-navy hover:bg-gray-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         {mode === 'in_person' && (
-          <input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="Where? (e.g. Church café, 12 Rizal St, Cavite)"
-            className="tap w-full min-w-0 rounded-xl bg-white px-4 text-base ring-1 ring-black/5 sm:col-span-2"
-          />
+          <div className="sm:col-span-2">
+            <input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              placeholder="Church cafe, 12 Rizal St, Cavite"
+              aria-label="Where you are meeting"
+              className="tap w-full min-w-0 rounded-xl bg-white px-4 text-base ring-1 ring-black/5"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              A place and a street. It becomes an Open in Maps button for both
+              of you.
+            </p>
+          </div>
         )}
         <div className="sm:col-span-2">
-          <Button variant="gold" disabled={!when} onClick={schedule}>
+          {/* An in-person meeting with no place is a time and nothing else. */}
+          <Button
+            variant="gold"
+            disabled={!when || (mode === 'in_person' && !location.trim())}
+            onClick={schedule}
+          >
             Schedule
           </Button>
         </div>
