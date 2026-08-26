@@ -114,6 +114,7 @@ const staticChecks = [
   ['linkify safety', 'tests/linkify.mjs'],
   ['minor badge', 'tests/minor-badge.mjs'],
   ['email templates', 'tests/email-templates.mjs'],
+  ['invite emails', 'tests/invite-emails.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:
   // it exists only behind a session, and the sandbox these run in cannot reach

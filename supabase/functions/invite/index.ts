@@ -32,6 +32,7 @@
 // Director can send by hand, which is the reason that link exists.
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
+import { inviteHtml, subjectFor, type InviteRole } from './email.ts';
 
 // WHO MAY CALL THIS FROM A BROWSER.
 //
@@ -355,43 +356,62 @@ async function handle(req: Request): Promise<Response> {
         .from('churches').select('name').eq('id', church).maybeSingle();
       const churchName = String(churchRow?.name ?? '').trim();
 
-      const templateId = Number(await setting(admin, 'BREVO_INVITE_TEMPLATE_ID')) || 0;
+      // A TEMPLATE PER ROLE, IF THE CHURCH WANTS ONE, AND OTHERWISE NONE AT ALL.
+      //
+      // The owner asked for three different invitations -- an Explorer being
+      // walked with, a Guide walking with five others, a Director approving
+      // people -- and Supabase Auth cannot do that: it has ONE invite template
+      // with no branch to hang a role on. Brevo can, two ways.
+      //
+      // The way that needs no dashboard work is the default: email.ts composes
+      // the message, so the words live in git, change through review, and are
+      // rendered by a test across all three roles rather than by remembering to
+      // click Preview.
+      //
+      // A church that would rather design in Brevo's editor sets one id per
+      // role. BREVO_INVITE_TEMPLATE_ID stays honoured as the id for every role,
+      // so an existing single-template setup keeps working untouched.
+      const ROLE_TEMPLATE_SETTING: Record<string, string> = {
+        ds: 'BREVO_INVITE_TEMPLATE_ID_DS',
+        dm: 'BREVO_INVITE_TEMPLATE_ID_DM',
+        admin: 'BREVO_INVITE_TEMPLATE_ID_ADMIN',
+      };
+      const templateId =
+        Number(await setting(admin, ROLE_TEMPLATE_SETTING[role] ?? '')) ||
+        Number(await setting(admin, 'BREVO_INVITE_TEMPLATE_ID')) || 0;
+
       const senderEmail = (await setting(admin, 'BREVO_SENDER')) || 'hello@hopeklyde.online';
       const senderName = (await setting(admin, 'BREVO_SENDER_NAME')) || 'Hope Beacon';
 
+      const asRole = role as InviteRole;
       const ROLE_WORD: Record<string, string> = {
         admin: 'Director', dm: 'Guide', ds: 'Explorer',
-      };
-
-      // Brevo merges these into whatever the church designed. Names are
-      // SHOUTED because that is Brevo's own convention for template params and
-      // a lowercase one is easy to mistype into silence.
-      const params = {
-        JOIN_URL: joinUrl,
-        FULL_NAME: fullName,
-        CHURCH_NAME: churchName,
-        ROLE: ROLE_WORD[role] ?? 'member',
       };
 
       const payload: Record<string, unknown> = {
         sender: { email: senderEmail, name: senderName },
         to: [fullName ? { email, name: fullName } : { email }],
-        params,
       };
 
       if (templateId) {
         payload.templateId = templateId;
+        // Brevo merges these into whatever the church designed. Names are
+        // SHOUTED because that is Brevo's own convention for template params
+        // and a lowercase one is easy to mistype into silence.
+        payload.params = {
+          JOIN_URL: joinUrl,
+          FULL_NAME: fullName,
+          CHURCH_NAME: churchName,
+          ROLE: ROLE_WORD[role] ?? 'member',
+        };
       } else {
-        // No template chosen yet, so the invitation still has to be worth
-        // receiving. Plain, short, and carrying the link twice.
-        payload.subject = `You're invited to ${churchName || 'Hope Beacon'}`;
-        payload.htmlContent =
-          `<p>Hello${fullName ? ` ${fullName}` : ''},</p>`
-          + `<p>Someone from ${churchName || 'your church'} would like to walk `
-          + `alongside you, at whatever pace suits you.</p>`
-          + `<p><a href="${joinUrl}">Accept your invitation</a></p>`
-          + `<p>If that does not work, copy this into your browser:<br>${joinUrl}</p>`
-          + `<p>This link works once. If it has expired, ask your church for a new one.</p>`;
+        // SUBJECTS DIFFER PER ROLE, and that is not decoration. Gmail threads by
+        // subject and collapses a later message in a thread behind "Show quoted
+        // text" when it resembles an earlier one -- which is how two
+        // invitations to one person came to read as one invitation and one
+        // blank message. Three roles, three subjects, no collapsing.
+        payload.subject = subjectFor(asRole);
+        payload.htmlContent = inviteHtml(asRole, churchName, joinUrl);
       }
 
       try {
