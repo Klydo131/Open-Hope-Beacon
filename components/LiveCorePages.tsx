@@ -454,7 +454,27 @@ export function LiveJoinPage() {
         if (linkError) {
           throw new Error(
             /expired/i.test(linkError)
-              ? 'This invitation link has expired or has already been used. Ask your church to send a new one.'
+              // NAME THE LIKELIEST CAUSE FIRST, BECAUSE IT IS ALSO THE ONE
+              // THE READER CAN FIX WITHOUT ASKING ANYBODY.
+              //
+              // A church has exactly one live invitation per person: sending a
+              // second replaces the first, which is correct, because a link
+              // that outlived its replacement would be a way in that nobody
+              // could revoke. But every invitation email is identical -- same
+              // subject, same wording, same sender -- so a Director who pressed
+              // Send twice leaves the invited person holding several messages
+              // with no way to tell which one is alive, and the older ones fail
+              // exactly like a genuinely expired link.
+              //
+              // The old wording, "expired or already used", sent that person
+              // back to the church for a THIRD invitation, which killed the
+              // second and repeated the whole loop. Saying "open the newest
+              // email" first ends it, and costs nothing when the cause really
+              // was age.
+              ? 'This link is not the current one. If your church sent more than one '
+                + 'invitation, only the newest email works -- open the most recent one '
+                + 'and use its button. Otherwise this link has expired, and your church '
+                + 'can send a fresh one.'
               : decodeURIComponent(linkError.replace(/\+/g, ' ')),
           );
         }
@@ -739,7 +759,9 @@ export function LiveJoinPage() {
             <>
               <Notice tone="error">{error}</Notice>
               <p className="mt-3 text-sm text-gray-500">
-                Invitation links can only be used once. Ask your church to send a new one.
+                Invitations work once, and only the most recent one works. Check your
+                inbox for the newest message before asking for another, because a new
+                invitation switches off the one you already have.
               </p>
               <Link href="/login" className="mt-4 inline-block font-semibold text-navy underline">Go to sign in</Link>
             </>

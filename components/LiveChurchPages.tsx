@@ -260,6 +260,19 @@ export function LiveMailPage() {
           <strong> Re-send</strong> — it mints a fresh link and posts it again,
           with nothing to retype.
         </p>
+        {/* SAY THE COST OF THE BUTTON NEXT TO THE BUTTON.
+            A person may hold only one live invitation, so re-sending switches
+            off the link already in their inbox. That is correct -- an old link
+            outliving its replacement would be a way in nobody could revoke --
+            but every invitation email looks identical, so somebody pressed
+            three times, sent the recipient to the oldest of the three, and
+            watched it fail as "expired". Nothing here said that would happen. */}
+        <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <strong>Press it once.</strong> Each re-send switches off the link
+          already in that person&rsquo;s inbox, so only the newest email will
+          work. If they are unsure which to open, tell them to use the most
+          recent one.
+        </p>
 
         {!invites ? (
           <p className="mt-4 text-gray-400">Loading…</p>

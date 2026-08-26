@@ -949,14 +949,33 @@ if (exists('supabase/functions/invite/index.ts')) {
     .map((line) => (/^\s*(\/\/|\*|\/\*)/.test(line) ? '' : line))
     .join('\n');
 
-  // WHY BRACE MATCHING AND NOT lastIndexOf. The first version of this check
-  // asked whether an `if (sendError)` appeared before generateLink. It always
-  // does -- the block that rewrites the four refusal messages is one, and it
-  // sits between the send and this point. The negative control passed with the
-  // bug fully restored, which is the only reason it was caught. Enclosure is
-  // the property; proximity is not.
+  // THE PROPERTY IS ORDERING, NOT LOCATION, AND THE FIRST TWO VERSIONS OF THIS
+  // CHECK BOTH GOT IT WRONG IN DIFFERENT DIRECTIONS.
+  //
+  // v1 asked whether an `if (sendError)` appeared anywhere before generateLink.
+  // One always does -- the block that rewrites the four refusal messages sits
+  // between the send and this point -- so the negative control passed with the
+  // bug fully restored.
+  //
+  // v2 demanded that EVERY generateLink sit inside an `if (sendError)` block.
+  // That failed the moment the Brevo path was added, correctly by its own
+  // wording and wrongly in substance: on that path generateLink is the ONLY
+  // mint, it runs before anything is emailed, and Supabase sends nothing at
+  // all. Nothing is being overwritten there.
+  //
+  // What actually causes a dead link in somebody's inbox is minting a token
+  // AFTER Supabase Auth has already emailed one. So a generateLink call is safe
+  // when either:
+  //   * it runs BEFORE the first Supabase send in the file (the Brevo path, and
+  //     any future path that composes its own message), or
+  //   * it is enclosed by an `if (sendError)` block (the hand-over fallback,
+  //     where no mail went and there is no token in an inbox to protect).
+  // Match `if (sendError` as a PREFIX. The guard grew a second condition
+  // (`&& !joinUrl`) when the Brevo path started arriving here with a link it
+  // had already minted, and an exact-string matcher silently stopped finding
+  // the block -- reporting the fallback as unguarded when it is guarded.
   const blocks = [];
-  for (let i = code.indexOf('if (sendError)'); i !== -1; i = code.indexOf('if (sendError)', i + 1)) {
+  for (let i = code.indexOf('if (sendError'); i !== -1; i = code.indexOf('if (sendError', i + 1)) {
     const open = code.indexOf('{', i);
     if (open === -1) continue;
     let depth = 0;
@@ -969,14 +988,28 @@ if (exists('supabase/functions/invite/index.ts')) {
     }
   }
 
-  const genIdx = code.indexOf('generateLink');
-  ok(genIdx !== -1, 'the hand-over link is still generated for the failure path');
-  ok(blocks.length > 0, 'there is at least one sendError branch to enclose it');
-  ok(blocks.some(([a, b]) => genIdx > a && genIdx < b),
-     'generateLink is enclosed by an if (sendError) block, so a delivered token is never overwritten');
+  const firstSupabaseSend = Math.min(
+    ...['inviteUserByEmail', 'resetPasswordForEmail']
+      .map((n) => code.indexOf(n))
+      .filter((i) => i !== -1)
+      .concat([Number.MAX_SAFE_INTEGER]),
+  );
+  ok(firstSupabaseSend !== Number.MAX_SAFE_INTEGER,
+     'Supabase Auth is still a send path, so the ordering rule has something to order against');
 
-  // The success reply must not carry a link, because producing one requires
-  // minting the token that would kill the emailed one.
+  const mints = [];
+  for (let i = code.indexOf('generateLink'); i !== -1; i = code.indexOf('generateLink', i + 1)) mints.push(i);
+  ok(mints.length > 0, 'the join link is still minted somewhere');
+
+  const unsafe = mints.filter((i) =>
+    i > firstSupabaseSend && !blocks.some(([a, b]) => i > a && i < b));
+  ok(unsafe.length === 0,
+     'no token is minted after a Supabase send except under a sendError guard'
+     + (unsafe.length ? ` (${unsafe.length} unguarded)` : ''));
+
+  // The success reply must not carry a link on the SUPABASE path, because
+  // producing one there would mint the token that kills the emailed one. The
+  // Brevo path already holds a link it minted itself and may return it.
   const successReturn = code.slice(code.lastIndexOf("delivery: 'email'"));
   ok(!/\blink\s*:/.test(successReturn),
      'the success reply carries no link, so no second token is ever needed');

@@ -301,37 +301,146 @@ async function handle(req: Request): Promise<Response> {
     return json({ error: 'Cannot work out this app’s address. Set SITE_URL.' }, 400);
   }
 
-  // SEND IT. Two shapes, because the person either has an account or does not.
+  // WHO SENDS THE INVITATION, AND WHY IT IS A SETTING RATHER THAN A REWRITE.
   //
-  //   inviteUserByEmail      creates the account AND sends "you have been invited"
-  //   resetPasswordForEmail  sends "set a password" to an account that exists
+  // Supabase Auth has ONE email template per kind and one mailer, so an
+  // invitation designed for a congregation and a password reset are forced to
+  // share a look and a set of variables. A church that wants to write its own
+  // welcome, with its own words and its own design, cannot do it there.
   //
-  // A resend almost always lands on the second: the first invitation created
-  // the account, so inviting again is refused as already registered. Both mails
-  // land on /join, which is the screen that finishes the sign-up either way.
+  // So: if BREVO_API_KEY is present, the invitation is composed and posted by
+  // this function, and the church designs it in Brevo. If it is absent,
+  // Supabase Auth sends it exactly as before. Password resets are untouched by
+  // this choice and continue to go through Supabase Auth over SMTP, which is
+  // what a reset should be -- it belongs to the auth system, not the church.
   //
-  // Neither call changes when a church connects its own provider. Supabase Auth
-  // uses the SMTP server configured in the dashboard, so this code is the same
-  // whether the message leaves through Supabase's mailer or the church's.
+  // THE ONE-TOKEN RULE STILL GOVERNS BOTH PATHS. generateLink mints a token and
+  // sends NOTHING, which is exactly what a self-sent message needs: we mint
+  // once, put that link in our own email, and no second mint ever races the
+  // first. That is the same property the Supabase path gets by NOT calling
+  // generateLink after a successful send.
+  const brevoKey = await setting(admin, 'BREVO_API_KEY');
+
   let via = '';
   let sendError = '';
   let waitSeconds = 0;
+  let joinUrl = '';
 
-  const { error: inviteMailErr } = await admin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: fullName },
-    redirectTo: `${site}/join`,
-  });
-
-  if (!inviteMailErr) {
-    via = 'invite';
-  } else if (/already|registered|exists/i.test(String(inviteMailErr.message ?? ''))) {
-    const { error: resetErr } = await admin.auth.resetPasswordForEmail(email, {
-      redirectTo: `${site}/join?recovery=1`,
+  if (brevoKey) {
+    // Mint exactly one token. No mail leaves Supabase on this path.
+    let kind = 'invite';
+    let { data: link } = await admin.auth.admin.generateLink({
+      type: 'invite',
+      email,
+      options: { data: { full_name: fullName }, redirectTo: `${site}/join` },
     });
-    if (!resetErr) via = 'recovery';
-    else sendError = String(resetErr.message ?? '');
+    if (!link?.properties?.hashed_token) {
+      // Already registered but never finished: a recovery token is the right
+      // shape, and /join?recovery=1 is the screen that completes either.
+      ({ data: link } = await admin.auth.admin.generateLink({
+        type: 'recovery',
+        email,
+        options: { redirectTo: `${site}/join?recovery=1` },
+      }));
+      kind = 'recovery';
+    }
+    const hashed = link?.properties?.hashed_token ?? '';
+
+    if (!hashed) {
+      sendError = 'Could not create a join link for that address.';
+    } else {
+      joinUrl = `${site}/join?token_hash=${encodeURIComponent(hashed)}&type=${kind}`;
+
+      const { data: churchRow } = await admin
+        .from('churches').select('name').eq('id', church).maybeSingle();
+      const churchName = String(churchRow?.name ?? '').trim();
+
+      const templateId = Number(await setting(admin, 'BREVO_INVITE_TEMPLATE_ID')) || 0;
+      const senderEmail = (await setting(admin, 'BREVO_SENDER')) || 'hello@hopeklyde.online';
+      const senderName = (await setting(admin, 'BREVO_SENDER_NAME')) || 'Hope Beacon';
+
+      const ROLE_WORD: Record<string, string> = {
+        admin: 'Director', dm: 'Guide', ds: 'Explorer',
+      };
+
+      // Brevo merges these into whatever the church designed. Names are
+      // SHOUTED because that is Brevo's own convention for template params and
+      // a lowercase one is easy to mistype into silence.
+      const params = {
+        JOIN_URL: joinUrl,
+        FULL_NAME: fullName,
+        CHURCH_NAME: churchName,
+        ROLE: ROLE_WORD[role] ?? 'member',
+      };
+
+      const payload: Record<string, unknown> = {
+        sender: { email: senderEmail, name: senderName },
+        to: [fullName ? { email, name: fullName } : { email }],
+        params,
+      };
+
+      if (templateId) {
+        payload.templateId = templateId;
+      } else {
+        // No template chosen yet, so the invitation still has to be worth
+        // receiving. Plain, short, and carrying the link twice.
+        payload.subject = `You're invited to ${churchName || 'Hope Beacon'}`;
+        payload.htmlContent =
+          `<p>Hello${fullName ? ` ${fullName}` : ''},</p>`
+          + `<p>Someone from ${churchName || 'your church'} would like to walk `
+          + `alongside you, at whatever pace suits you.</p>`
+          + `<p><a href="${joinUrl}">Accept your invitation</a></p>`
+          + `<p>If that does not work, copy this into your browser:<br>${joinUrl}</p>`
+          + `<p>This link works once. If it has expired, ask your church for a new one.</p>`;
+      }
+
+      try {
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'api-key': brevoKey,
+            'content-type': 'application/json',
+            accept: 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          via = `brevo:${kind}`;
+        } else {
+          // Brevo's own words, kept. The classifier below turns the two we can
+          // act on into instructions and leaves the rest alone.
+          sendError = `Brevo refused this (${res.status}): ${(await res.text()).slice(0, 300)}`;
+        }
+      } catch (err) {
+        sendError = `Could not reach Brevo: ${String((err as Error)?.message ?? err)}`;
+      }
+    }
   } else {
-    sendError = String(inviteMailErr.message ?? '');
+    // SUPABASE AUTH SENDS IT. Two shapes, because the person either has an
+    // account or does not.
+    //
+    //   inviteUserByEmail      creates the account AND sends "you have been invited"
+    //   resetPasswordForEmail  sends "set a password" to an account that exists
+    //
+    // A resend almost always lands on the second: the first invitation created
+    // the account, so inviting again is refused as already registered. Both
+    // mails land on /join, which finishes the sign-up either way.
+    const { error: inviteMailErr } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: { full_name: fullName },
+      redirectTo: `${site}/join`,
+    });
+
+    if (!inviteMailErr) {
+      via = 'invite';
+    } else if (/already|registered|exists/i.test(String(inviteMailErr.message ?? ''))) {
+      const { error: resetErr } = await admin.auth.resetPasswordForEmail(email, {
+        redirectTo: `${site}/join?recovery=1`,
+      });
+      if (!resetErr) via = 'recovery';
+      else sendError = String(resetErr.message ?? '');
+    } else {
+      sendError = String(inviteMailErr.message ?? '');
+    }
   }
 
   // WHY THE SEND FAILED, IN WORDS A DIRECTOR CAN ACT ON.
@@ -445,8 +554,7 @@ async function handle(req: Request): Promise<Response> {
   // When the mail did NOT go there is no token in anybody's inbox to protect,
   // so minting one here costs nothing and is the only way that person gets in.
   // That is why the fallback keeps working exactly as before.
-  let joinUrl = '';
-  if (sendError) {
+  if (sendError && !joinUrl) {
     let { data: link } = await admin.auth.admin.generateLink({
       type: 'invite',
       email,
