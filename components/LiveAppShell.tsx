@@ -129,7 +129,21 @@ export function LiveAppShell({
     //
     // `room-surface` is the same class the tutorial's shell uses, so both now
     // agree on what a theme is: the page, the rails and the panels together.
-    <div className="room-surface min-h-screen" style={{ background: room.theme.bg }}>
+    <div
+      className="room-surface min-h-screen"
+      style={{
+        background: room.theme.bg,
+        // PUBLISHED AS VARIABLES, not threaded through every screen. Cards
+        // paint their own white surface and keep navy text; what needs these
+        // is the text that sits directly on the page: page titles and the
+        // lines under them. Those were hard-coded navy, which is invisible on
+        // a dark theme, and the church name was the first thing to disappear.
+        ['--room-ink' as string]: room.theme.ink,
+        ['--room-ink-soft' as string]: room.theme.inkSoft,
+        ['--room-line' as string]: room.theme.line,
+        ['--room-accent' as string]: room.theme.accent,
+      } as React.CSSProperties}
+    >
       <header
         className="sticky z-20 text-white shadow-md"
         /* Sticks BELOW the tutorial bar when there is one. See AppShell. */

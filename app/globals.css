@@ -353,6 +353,20 @@ html {
   transition: background 0.45s ease;
 }
 
+/* TEXT THAT SITS ON THE PAGE, NOT IN A CARD.
+   A card paints its own white surface, so navy text inside one is right in
+   every theme. A page title has no surface: it is drawn straight onto
+   theme.bg, and hard-coding navy made the church name vanish the moment
+   somebody chose Slate. These follow the theme and fall back to the brand
+   navy wherever the variables are not set, which is every screen outside the
+   signed-in shell. */
+.text-room {
+  color: var(--room-ink, #1E2A4A);
+}
+.text-room-soft {
+  color: var(--room-ink-soft, #5B6472);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .beacon-beam,
   .beacon-lamp,

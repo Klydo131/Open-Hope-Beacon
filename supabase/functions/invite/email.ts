@@ -33,7 +33,7 @@
 // mark is a table cell with a border-radius, which degrades to a coloured
 // square rather than to nothing.
 
-export type InviteRole = 'ds' | 'dm' | 'admin';
+export type InviteRole = 'ds' | 'dm' | 'admin' | 'executive';
 
 interface RoleCopy {
   /** What this person is called on screen and in the message. */
@@ -83,6 +83,22 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
 
   // Running the church. Named plainly, because somebody accepting this should
   // know before they click that they are taking on approving people.
+  // Overseeing more than one congregation. Only another Executive Director can
+  // send this, and the message says plainly what is being handed over, because
+  // somebody accepting it can appoint Directors afterwards.
+  executive: {
+    word: 'Executive Director',
+    subject: 'You have been asked to serve as an Executive Director',
+    lead:
+      'They would like you to serve as an Executive Director. You will oversee '
+      + 'the churches you are given, and appoint the Directors who run them.',
+    steps: [
+      ['Choose a password.', 'That is what finishes your sign-up.'],
+      ['Appoint the Directors.', 'Each church is run day to day by its own Directors, and you decide who they are.'],
+      ['Watch the one number that matters.', 'Explorers with no Guide. Everything else can wait a week; that cannot.'],
+    ],
+  },
+
   admin: {
     word: 'Director',
     subject: 'You have been asked to help lead Hope Beacon',

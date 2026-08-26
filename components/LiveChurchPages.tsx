@@ -162,8 +162,8 @@ export function LiveMailPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-extrabold text-navy">Invitations</h1>
-        <p className="text-gray-500">
+        <h1 className="text-3xl font-extrabold text-room">Invitations</h1>
+        <p className="text-room-soft">
           Everyone this church has invited, and who is still on the doorstep.
         </p>
       </div>

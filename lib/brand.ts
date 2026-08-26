@@ -134,6 +134,19 @@ export function trackColor(track: Track): string {
 // If you are forking this and want different words, this map is the only place
 // to change them. If you want a different RULE, change roleLabel() — and the
 // test in tests/brand-consistency.mjs will tell you what you broke.
+/**
+ * The stage before this one, or null at the very first.
+ *
+ * Used by the Guide's Undo control, and by anything that needs to know whether
+ * stepping back is even possible before offering it. Reading the order from
+ * STAGES rather than repeating it means a stage added to the journey cannot
+ * leave a second list quietly wrong.
+ */
+export function previousStage(stage: Stage): Stage | null {
+  const i = STAGES.findIndex((s) => s.key === stage);
+  return i > 0 ? STAGES[i - 1].key : null;
+}
+
 export const ROLE_LABELS: Record<string, string> = {
   executive: 'Executive Director',
   admin: 'Director',

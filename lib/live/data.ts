@@ -646,6 +646,52 @@ const ORDER: Stage[] = ['create', 'connect', 'care', 'call', 'cultivate', 'commi
  * two devices would otherwise both write "connect → care" from the same stale
  * view, and the journey would show one step where two happened.
  */
+/**
+ * Move an Explorer BACK one stage, because Advance is one tap and a mistake.
+ *
+ * WHY THIS EXISTS. Advance was the only control. A Guide who tapped it on the
+ * wrong person, or twice, had no way to put it right: the stage is on the
+ * Explorer's own journey, and the only remaining fix was to ask a Director to
+ * edit the database. So the app quietly recorded a decision nobody had made
+ * about somebody's faith.
+ *
+ * IT IS A CORRECTION, NOT A DEMOTION, and the difference matters to the person
+ * it is about. Nothing is deleted: the step back is written to journey_events
+ * exactly like a step forward, with who did it and when, so the record shows
+ * what actually happened rather than pretending the mistake never occurred.
+ * That also means an Explorer's history stays honest if anybody ever reads it.
+ *
+ * The Explorer is never shown their stage at all, here or anywhere, so a
+ * correction is invisible to them. That is deliberate: see myPairing.
+ */
+export async function stepBackStage(pairingId: string): Promise<Stage | null> {
+  const client = db();
+  const { data, error } = await client
+    .from('pairings')
+    .select('journey_stage')
+    .eq('id', pairingId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  const from = (data as { journey_stage: Stage }).journey_stage;
+  const back = ORDER[ORDER.indexOf(from) - 1];
+  // Already at the first stage. Returning null rather than throwing: the
+  // button is disabled there, and a race is not worth an error message.
+  if (!back) return null;
+
+  const { error: upErr } = await client
+    .from('pairings')
+    .update({ journey_stage: back, updated_at: new Date().toISOString() })
+    .eq('id', pairingId);
+  if (upErr) throw new Error(upErr.message);
+
+  await client
+    .from('journey_events')
+    .insert({ pairing_id: pairingId, from_stage: from, to_stage: back, changed_by: await uid() });
+  return back;
+}
+
 export async function advanceStage(pairingId: string): Promise<Stage | null> {
   const client = db();
   const { data, error } = await client

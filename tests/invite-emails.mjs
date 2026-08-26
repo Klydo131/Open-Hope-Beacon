@@ -31,7 +31,9 @@ const mod = { exports: {} };
 new Function('module', 'exports', js)(mod, mod.exports);
 const { inviteHtml, subjectFor, roleWord } = mod.exports;
 
-const ROLES = ['ds', 'dm', 'admin'];
+// All four. A role the composer does not cover renders as undefined and
+// sends a blank message, which is exactly the failure this file exists for.
+const ROLES = ['ds', 'dm', 'admin', 'executive'];
 // A NEUTRAL HOST, deliberately. tests/no-backend.js forbids this deployment's
 // hostname anywhere in the tree, because a fork that inherits it inherits a
 // wrong address in a place nobody thinks to look. Any absolute URL proves the

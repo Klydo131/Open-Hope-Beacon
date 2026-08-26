@@ -152,7 +152,13 @@ async function handle(req: Request): Promise<Response> {
   const fullName = (body.full_name ?? '').trim();
 
   if (!email || !email.includes('@')) return json({ error: 'That is not an email address.' }, 400);
-  if (!['admin', 'dm', 'ds'].includes(role)) return json({ error: 'Unknown role.' }, 400);
+  if (!['executive', 'admin', 'dm', 'ds'].includes(role)) return json({ error: 'Unknown role.' }, 400);
+  // AN EXECUTIVE BENCH CAN ONLY BE APPOINTED BY THE BENCH. Same shape as the
+  // Director guard below: the role being asked for is checked against who is
+  // asking, in the one place holding the key that could bypass it.
+  if (role === 'executive' && me.role !== 'executive') {
+    return json({ error: 'Only an Executive Director can invite another Executive Director.' }, 403);
+  }
   if (role === 'admin' && me.role !== 'executive') {
     return json({ error: 'Only an Executive Director may invite a Director.' }, 403);
   }
@@ -375,6 +381,7 @@ async function handle(req: Request): Promise<Response> {
         ds: 'BREVO_INVITE_TEMPLATE_ID_DS',
         dm: 'BREVO_INVITE_TEMPLATE_ID_DM',
         admin: 'BREVO_INVITE_TEMPLATE_ID_ADMIN',
+        executive: 'BREVO_INVITE_TEMPLATE_ID_EXECUTIVE',
       };
       const templateId =
         Number(await setting(admin, ROLE_TEMPLATE_SETTING[role] ?? '')) ||

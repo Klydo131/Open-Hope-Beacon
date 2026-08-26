@@ -117,5 +117,46 @@ for (const shell of ['components/LiveAppShell.tsx', 'components/AppShell.tsx']) 
      `${shell}: does not hard-code a page colour a theme cannot override`);
 }
 
+// --- text on the page follows the theme -------------------------------------
+//
+// A card paints its own white surface, so navy text inside one is right in
+// every theme. A PAGE TITLE has no surface: it is drawn straight onto
+// theme.bg. Those were hard-coded navy, and the church name vanished the
+// moment somebody chose Slate, which is how this was reported.
+{
+  const css = readFileSync('app/globals.css', 'utf8');
+  ok(/\.text-room\s*\{[^}]*var\(--room-ink/.test(css),
+     'there is a text colour that follows the theme');
+  ok(/var\(--room-ink,\s*#/.test(css),
+     'and it falls back to the brand colour outside the signed-in shell');
+
+  const shell = readFileSync('components/LiveAppShell.tsx', 'utf8');
+  ok(/--room-ink/.test(shell), 'the shell publishes the theme as CSS variables');
+
+  // The page titles themselves. Checked by file so a new screen that
+  // hard-codes navy on the background is caught rather than discovered.
+  //
+  // INSIDE A CARD IS FINE, AND THE DIFFERENCE IS THE WHOLE POINT. A Card paints
+  // white behind itself in every theme, so navy text in one is correct and
+  // changing it would break the light themes instead. Only a title drawn
+  // straight onto the page needs to follow theme.ink, so the check asks which
+  // side of the nearest Card boundary the title falls on. A blunter rule would
+  // flag correct code, and a check that cries wolf gets switched off.
+  const screens = ['components/LiveCorePages.tsx', 'components/LiveChurchPages.tsx'];
+  for (const file of screens) {
+    const code = readFileSync(file, 'utf8');
+    const onPage = [];
+    for (const m of code.matchAll(/<h1 className="[^"]*text-navy[^"]*"/g)) {
+      const before = code.slice(0, m.index);
+      const opened = before.lastIndexOf('<Card');
+      const closed = before.lastIndexOf('</Card>');
+      if (opened <= closed) onPage.push(before.split('\n').length);
+    }
+    ok(onPage.length === 0,
+       `${file}: no page title outside a card hard-codes a colour the theme cannot change`
+       + (onPage.length ? ` (line ${onPage.join(', ')})` : ''));
+  }
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

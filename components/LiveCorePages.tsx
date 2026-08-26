@@ -6,7 +6,7 @@ import { MinorBadge } from '@/components/MinorBadge';
 import { copyText } from '@/lib/share';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NAVY, roleNoun, stageInfo } from '@/lib/brand';
+import { NAVY, roleNoun, stageInfo, previousStage } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { LiveReportControl, LiveReportsForDirector } from '@/components/LiveSafeguarding';
@@ -1040,7 +1040,12 @@ export function LiveAdminPage() {
     void load();
   }, [load]);
 
-  const roleOptions: Role[] = profile?.role === 'executive' ? ['admin', 'dm', 'ds'] : ['dm', 'ds'];
+  // An Executive Director may appoint their own bench, which is why
+  // 'executive' is here and why the edge function refuses it from anybody
+  // else. A Director invites Guides and Explorers only.
+  const roleOptions: Role[] = profile?.role === 'executive'
+    ? ['executive', 'admin', 'dm', 'ds']
+    : ['dm', 'ds'];
   const guides = members.filter((member) => member.role === 'dm' && member.is_approved);
   const explorers = members.filter((member) => member.role === 'ds' && member.is_approved);
   const manageable = members.filter(
@@ -1287,7 +1292,7 @@ export function LiveAdminPage() {
             the room names below now say, and it said it again on every visit.
             On a 664px phone that block plus the header spent 300px before a
             Director could reach anything they came to do. */}
-        <h1 className="text-2xl font-extrabold text-navy sm:text-3xl">
+        <h1 className="text-2xl font-extrabold text-room sm:text-3xl">
           {church?.name || 'Church administration'}
         </h1>
 
@@ -1863,8 +1868,8 @@ export function LiveGuidePage() {
 
   return (
     <LiveAppShell allow={['dm']}>
-      <h1 className="text-3xl font-extrabold text-navy">My Explorers</h1>
-      <p className="mt-1 text-gray-500">Only people paired with you appear here.</p>
+      <h1 className="text-3xl font-extrabold text-room">My Explorers</h1>
+      <p className="mt-1 text-room-soft">Only people paired with you appear here.</p>
       {error && <div className="mt-5"><Notice tone="error">{error}</Notice></div>}
 
       {/* A Guide called into a case must be able to answer it. LiveCourt draws
@@ -2091,6 +2096,30 @@ export function LiveConversationPage() {
     }
   };
 
+  // PUTTING IT BACK. Advance is one tap and a mis-tap had no remedy: the stage
+  // is on somebody else's journey, so the only fix left was asking a Director
+  // to edit the database. Confirmed, because a correction is still a change to
+  // a record about a person, and recorded, because pretending the mistake
+  // never happened is what makes a history untrustworthy.
+  const stepBack = async () => {
+    if (!pairing) return;
+    const to = stageInfo(previousStage(pairing.journey_stage) ?? pairing.journey_stage).label;
+    if (!confirm(
+      `Put ${pairing.ds_name} back to ${to}? This is recorded as a correction, `
+      + 'and they are never shown their stage either way.',
+    )) return;
+    setBusy(true);
+    setError('');
+    try {
+      await live.stepBackStage(pairingId);
+      await load();
+    } catch (cause) {
+      setError(errorText(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <LiveAppShell allow={['dm']}>
       {!pairing ? <Card className="p-6">This Explorer is not on your list.</Card> : (
@@ -2111,7 +2140,15 @@ export function LiveConversationPage() {
                 <p className="text-sm text-gray-500">Private conversation</p>
               </div>
               <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-navy">{stageInfo(pairing.journey_stage).label}</span>
-              <Button onClick={() => void advance()} disabled={busy || pairing.journey_stage === 'commission'}>Advance stage</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => void advance()} disabled={busy || pairing.journey_stage === 'commission'}>Advance stage</Button>
+                {/* Only where there is somewhere to go back to. */}
+                {previousStage(pairing.journey_stage) && (
+                  <Button variant="ghost" onClick={() => void stepBack()} disabled={busy}>
+                    Undo, step back
+                  </Button>
+                )}
+              </div>
             </div>
           </Card>
           {error && <Notice tone="error">{error}</Notice>}
