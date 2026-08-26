@@ -162,57 +162,26 @@ export function LiveProfilePage() {
         </p>
       </Card>
 
-      <WithdrawConsent hasConsent={Boolean(profile.consent_at)} onDone={refreshProfile} />
     </div>
   );
 }
 
-// The other half of the promise made at sign-up: "I can withdraw this at any
-// time from Settings, and my details are removed when I do." A promise with no
-// button behind it is worse than not making it.
-function WithdrawConsent({ hasConsent, onDone }: { hasConsent: boolean; onDone: () => void }) {
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-  if (!hasConsent) return null;
-
-  return (
-    <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">Permission to keep your details</h2>
-      <p className="mt-1 text-sm text-gray-600">
-        You agreed at sign-up that your church may keep your contact details. You
-        can take that back here. Your account, your Guide and your conversations
-        stay — only the details you gave are cleared.
-      </p>
-      {!confirming ? (
-        <Button variant="ghost" className="mt-4" onClick={() => setConfirming(true)}>
-          Withdraw permission
-        </Button>
-      ) : (
-        <div className="mt-4 rounded-xl bg-red-50 p-4 ring-1 ring-red-200">
-          <p className="text-sm font-semibold text-red-800">
-            Clear your birthday, contact, city, work and topics? This cannot be undone.
-          </p>
-          <div className="mt-3 flex gap-2">
-            <Button
-              variant="ghost" disabled={busy}
-              onClick={async () => {
-                setBusy(true); setError('');
-                try { await live.withdrawMyConsent(); onDone(); setConfirming(false); }
-                catch (cause) { setError(message(cause)); }
-                finally { setBusy(false); }
-              }}
-            >
-              {busy ? 'Clearing…' : 'Yes, clear them'}
-            </Button>
-            <Button variant="ghost" onClick={() => setConfirming(false)}>Keep them</Button>
-          </div>
-          {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
-        </div>
-      )}
-    </Card>
-  );
-}
+// THERE IS NO SELF-SERVICE WITHDRAWAL, AND THAT IS A DECISION RATHER THAN AN
+// OMISSION.
+//
+// This file used to carry a "Withdraw permission" card that cleared a member's
+// birthday, contact, city, work and topics. The owner's rule replaces it: a
+// member may change those details whenever they like, as long as what they put
+// there is true, and their Guide and Director see that they changed. Using the
+// app is the undertaking to keep it truthful.
+//
+// The sign-up wording moved with it, in the same commit. A promise of a button
+// that no longer exists is worse than never having offered one.
+//
+// LEAVING IS STILL POSSIBLE. remove_member_by_leader deletes the profile
+// outright, so the route out is a conversation with a Director rather than a
+// button -- which for a church is the more honest shape, because somebody
+// notices that a person has gone.
 
 // ---------------------------------------------------------------------------
 // Settings

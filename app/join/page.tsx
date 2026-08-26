@@ -205,8 +205,9 @@ function Join() {
             <span className="text-sm leading-relaxed text-gray-700">
               I give permission for <strong>{db.church_name}</strong> to keep my
               contact details so someone from the church can stay in touch with
-              me about my studies. I can withdraw this at any time from
-              Settings, and my details are removed when I do.{' '}
+              me about my studies. I can update them whenever I need to, I will
+              keep them truthful, and my Guide and my church&rsquo;s leadership
+              can see when I change them.{' '}
               <span className="text-red-600">*</span>
             </span>
           </label>

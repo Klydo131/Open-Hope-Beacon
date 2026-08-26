@@ -194,20 +194,54 @@ export async function updateMyProfile(patch: Partial<Profile>): Promise<void> {
 }
 
 /**
- * Withdraw the permission given at sign-up.
+ * What this person has changed about their own details, newest first.
  *
- * The sign-up form promises "I can withdraw this at any time from Settings, and
- * my details are removed when I do." This is the mechanism behind that promise;
- * a promise without one is worse than not making it.
- *
- * It clears exactly what was collected under the permission and nothing else.
- * The account, the Guide, the conversation and the study history all stay —
- * destroying those was never what was agreed to.
+ * Readable by that member, by the Guide currently paired with them, and by
+ * their church's leadership -- migration 0035 sets those three policies and
+ * nothing else, so this call needs no role check of its own. Asking for
+ * somebody you are not walking with returns an empty list rather than an
+ * error, which is what a row level security refusal looks like from here and
+ * is the right shape: absence of permission should not confirm existence.
  */
-export async function withdrawMyConsent(): Promise<void> {
-  const { error } = await db().rpc('withdraw_my_consent');
-  if (error) throw new Error(error.message);
+export interface ProfileChange {
+  id: string;
+  field: string;
+  old_value: string | null;
+  new_value: string | null;
+  changed_at: string;
 }
+
+/** The field names, in words a Guide would use rather than column names. */
+export const PROFILE_FIELD_LABEL: Record<string, string> = {
+  full_name: 'Name',
+  preferred_contact: 'Contact',
+  preferred_language: 'Language',
+  birthday: 'Birthday',
+  gender: 'Gender',
+  life_status: 'Status',
+  city_of_residence: 'City',
+  work_industry: 'Work',
+};
+
+export async function listProfileChanges(personId: string, limit = 20): Promise<ProfileChange[]> {
+  const { data, error } = await db()
+    .from('profile_changes')
+    .select('id, field, old_value, new_value, changed_at')
+    .eq('profile_id', personId)
+    .order('changed_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ProfileChange[];
+}
+
+// withdrawMyConsent() was here, and is gone on purpose. It called
+// withdraw_my_consent(), which migration 0035 drops.
+//
+// A member now keeps their details accurate rather than being able to erase
+// them, and every edit is recorded for their Guide and Director to see. Leaving
+// the function behind an unused screen would have left a SECURITY DEFINER route
+// to clearing somebody's details reachable by anything holding a session --
+// which is not a dead function, it is an undocumented one.
 
 // ---------------------------------------------------------------------------
 // Who has been invited, and who has not arrived yet

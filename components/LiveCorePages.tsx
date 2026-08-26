@@ -837,12 +837,17 @@ export function LiveJoinPage() {
 
               {!recovery && (
                 <>
-                  {/* PERMISSION. Named church, plain words, and the right to
-                      withdraw stated in the same breath as the request — a
-                      permission you cannot see how to take back is not much of
-                      a permission. Unticked by default: a box that arrives
-                      already ticked is not consent, it is a default nobody
-                      noticed. */}
+                  {/* PERMISSION. Named church, plain words, and the OBLIGATION
+                      stated in the same breath as the request, because that is
+                      what is actually being agreed to here.
+                      This used to promise "I can withdraw this at any time from
+                      Settings, and my details are removed when I do", and
+                      Settings had the button behind it. Both went together in
+                      the same commit: keeping the sentence after removing the
+                      button would have made the app lie at the exact moment it
+                      asks somebody to trust it. Unticked by default -- a box
+                      that arrives already ticked is not consent, it is a
+                      default nobody noticed. */}
                   <label className="flex items-start gap-3 rounded-xl bg-navy/5 p-4">
                     <input
                       type="checkbox"
@@ -853,8 +858,9 @@ export function LiveJoinPage() {
                     <span className="text-sm leading-relaxed text-gray-700">
                       I give permission for <strong>{churchName || 'my church'}</strong> to
                       keep my contact details so someone from the church can stay in touch
-                      with me about my studies. I can withdraw this at any time from
-                      Settings, and my details are removed when I do.{' '}
+                      with me about my studies. I can update them whenever I need to, I
+                      will keep them truthful, and my Guide and my church&rsquo;s
+                      leadership can see when I change them.{' '}
                       <span className="text-red-600">*</span>
                     </span>
                   </label>
@@ -1583,6 +1589,72 @@ export function LiveGuidePage() {
   );
 }
 
+// WHAT THIS PERSON HAS CHANGED ABOUT THEMSELVES.
+//
+// The app no longer offers a way to erase your details; it asks you to keep
+// them true instead, and tells the people walking with you when they move. That
+// undertaking is worth nothing if the change is invisible, so this is the half
+// that makes it real.
+//
+// COLLAPSED BY DEFAULT, AND ABSENT WHEN THERE IS NOTHING. A Guide opens this
+// screen to talk to somebody, not to audit them, and a permanent panel headed
+// "changes" turns a conversation into a file. It appears only when something
+// actually changed, and shows the newest three until asked for more.
+//
+// The values are shown in full rather than masked. A Guide who can see the
+// current phone number gains nothing from having the previous one starred out,
+// and "changed from ****** to ******" answers none of the questions that make
+// this worth having.
+function DetailChanges({ personId, firstName }: { personId: string; firstName: string }) {
+  const [rows, setRows] = useState<live.ProfileChange[] | null>(null);
+  const [all, setAll] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    live.listProfileChanges(personId)
+      .then((r) => { if (alive) setRows(r); })
+      // A refusal and an empty history look the same from here, and both mean
+      // "nothing to show". Neither is worth an error box on a chat screen.
+      .catch(() => { if (alive) setRows([]); });
+    return () => { alive = false; };
+  }, [personId]);
+
+  if (!rows || rows.length === 0) return null;
+  const shown = all ? rows : rows.slice(0, 3);
+
+  return (
+    <Card className="p-4">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-gray-500">
+        What {firstName} has updated
+      </h2>
+      <ul className="mt-2 space-y-2">
+        {shown.map((row) => (
+          <li key={row.id} className="text-sm text-gray-700">
+            <span className="font-semibold text-navy">
+              {live.PROFILE_FIELD_LABEL[row.field] ?? row.field}
+            </span>{' '}
+            <span className="text-gray-400 line-through">{row.old_value || 'blank'}</span>
+            {' \u2192 '}
+            <span className="font-medium">{row.new_value || 'blank'}</span>
+            <span className="ml-2 text-xs text-gray-400">
+              {new Date(row.changed_at).toLocaleDateString()}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {rows.length > 3 && (
+        <button
+          type="button"
+          onClick={() => setAll((v) => !v)}
+          className="mt-3 text-sm font-semibold text-navy underline"
+        >
+          {all ? 'Show fewer' : `Show all ${rows.length}`}
+        </button>
+      )}
+    </Card>
+  );
+}
+
 export function LiveConversationPage() {
   const params = useParams();
   const pairingId = String(params.id);
@@ -1713,6 +1785,11 @@ export function LiveConversationPage() {
             onlyFor={pairing.ds_id}
             nameFor={() => pairing.ds_name}
             heading={`What ${pairing.ds_name.split(' ')[0]} has asked prayer for`}
+          />
+
+          <DetailChanges
+            personId={pairing.ds_id}
+            firstName={pairing.ds_name.split(' ')[0]}
           />
 
           <Conversation
