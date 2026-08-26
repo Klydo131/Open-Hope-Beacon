@@ -68,6 +68,20 @@ for (const file of files) {
     ok(vars.includes('params.JOIN_URL'), `${file}: carries the one-time link`);
     ok(!/\.ConfirmationURL/.test(html),
        `${file}: carries no Supabase tag, which Brevo would print as literal text`);
+    // NO CONDITIONAL BLOCKS, IN EITHER DIALECT.
+    //
+    // A first version used `{% if params.FULL_NAME %}` to fall back to a
+    // generic greeting when a name was missing. Brevo's preview showed the tags
+    // as literal text -- which is expected there, since params are only filled
+    // at send time -- and that left no way to confirm from outside whether the
+    // engine evaluates them at send time or ships them to the reader verbatim.
+    //
+    // An unverifiable maybe is not acceptable in a message going to a
+    // congregation. Plain `{{ params.X }}` substitution is the part that is
+    // certain, so the design is built to read correctly with any value,
+    // including an empty one, and needs no branching at all.
+    ok(!/\{%/.test(html),
+       `${file}: uses no conditional block, whose send-time behaviour cannot be verified from here`);
     const hrefs = (html.match(/href="\{\{\s*params\.JOIN_URL\s*\}\}"/g) || []).length;
     ok(hrefs >= 2, `${file}: the link appears as both a button and copyable text`);
   } else {

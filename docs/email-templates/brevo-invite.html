@@ -21,17 +21,24 @@
           <td style="padding:40px 44px 36px 44px;font-family:Helvetica,Arial,sans-serif;">
 
             <h1 style="margin:0 0 6px 0;font-family:Helvetica,Arial,sans-serif;font-size:27px;line-height:1.25;color:#1E2A4A;font-weight:bold;">
-              {% if params.FULL_NAME %}{{ params.FULL_NAME }}, you&rsquo;re invited{% else %}You&rsquo;re invited to Hope Beacon{% endif %}
+              You&rsquo;re invited to Hope&nbsp;Beacon
             </h1>
 
             <p style="margin:0 0 20px 0;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:#5B6472;">
-              {% if params.CHURCH_NAME %}{{ params.CHURCH_NAME }}{% else %}Your church{% endif %}
-              has invited you to join as {% if params.ROLE == 'Explorer' %}an{% else %}a{% endif %}
-              <strong style="color:#1E2A4A;">{% if params.ROLE %}{{ params.ROLE }}{% else %}member{% endif %}</strong>.
-              Someone will walk alongside you, at whatever pace suits you. Nobody
-              else can see your journey, and nothing is shared beyond the person
-              walking with you.
+              <strong style="color:#1E2A4A;">{{ params.CHURCH_NAME }}</strong> has invited you.
+              Someone from the church will walk alongside you, at whatever pace
+              suits you. Nobody else can see your journey, and nothing is shared
+              beyond the person walking with you.
             </p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;border-top:1px solid #E4E9F0;border-bottom:1px solid #E4E9F0;">
+              <tr>
+                <td style="padding:12px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;color:#5B6472;">
+                  Invited as
+                  <strong style="color:#1E2A4A;">{{ params.ROLE }}</strong>
+                </td>
+              </tr>
+            </table>
 
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 26px 0;">
               <tr>
@@ -87,10 +94,9 @@
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;">
         <tr>
           <td align="center" style="padding:22px 24px 0 24px;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:#8892A0;">
-            You received this because a leader at
-            {% if params.CHURCH_NAME %}{{ params.CHURCH_NAME }}{% else %}your church{% endif %}
-            invited you. If you were not expecting it, you can ignore this message
-            and no account will be used.
+            You received this because a leader at your church invited you. If you
+            were not expecting it, you can ignore this message and no account
+            will be used.
           </td>
         </tr>
       </table>
