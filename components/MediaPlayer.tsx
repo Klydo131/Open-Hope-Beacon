@@ -108,7 +108,7 @@ export function MediaPlayer({ item, theme }: { item: MediaMeta; theme: RoomTheme
         <p className="mt-1 text-amber-800">
           Items added to the library are kept in the browser that added them, so
           they never travel on their own. If someone shared this with you, ask
-          them to send a link instead — a link opens anywhere. If you added it
+          them to send a link instead, because a link opens anywhere. If you added it
           yourself, it was removed from this browser, or added on another one.
         </p>
       </div>

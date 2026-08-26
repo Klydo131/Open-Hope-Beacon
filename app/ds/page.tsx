@@ -65,7 +65,7 @@ function Home() {
         <h1 className="text-3xl font-extrabold">{me.full_name.split(' ')[0]}</h1>
         <div className="mt-4 rounded-xl bg-white/10 p-4">
           <p className="text-lg italic">{verse[0]}</p>
-          <p className="mt-1 text-sm text-white/70">— {verse[1]}</p>
+          <p className="mt-1 text-sm text-white/70">{verse[1]}</p>
         </div>
       </div>
 
@@ -222,7 +222,7 @@ function PrayerCorner() {
       <h2 className="text-xl font-bold text-navy">🙏 Prayer</h2>
       <p className="mb-4 text-sm text-gray-500">
         Share a request with your Guide. You can also let the whole church
-        pray — your name is never shown there.
+        pray for it. Your name is never shown when they do.
       </p>
 
       <div className="rounded-xl bg-gray-50 p-3">
@@ -515,7 +515,7 @@ function StudyShelf() {
 
       <div className="mt-4 space-y-2">
         {mine.length === 0 ? (
-          <p className="text-gray-400">Nothing yet — add your first note above.</p>
+          <p className="text-gray-400">Nothing yet. Add your first note above.</p>
         ) : (
           mine.map((m) => {
             const url = safeExternalUrl(m.external_url);

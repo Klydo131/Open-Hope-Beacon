@@ -51,7 +51,7 @@ export function LiveRecommend() {
     <Card className="p-5">
       <h2 className="text-xl font-bold text-navy">🤝 Recommend someone</h2>
       <p className="mt-1 text-sm text-gray-500">
-        You put the name forward; your Director sends the invitation. You cannot invite directly, on purpose.
+        You put the name forward and your Director sends the invitation. Guides do not invite people directly.
       </p>
       <Err msg={error} />
       {flash && <p className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{flash}</p>}
@@ -212,7 +212,7 @@ export function LiveNotes({ pairingId }: { pairingId: string }) {
   return (
     <Card className="p-5">
       <h2 className="text-xl font-bold text-navy">📓 Your private notes</h2>
-      <p className="mt-1 text-sm text-gray-500">Nobody else can read these — not even your Director.</p>
+      <p className="mt-1 text-sm text-gray-500">Nobody else can read these, not even your Director.</p>
       <Err msg={error} />
       <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={3}
         placeholder="What would help you remember?"

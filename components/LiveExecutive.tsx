@@ -153,7 +153,7 @@ export function LiveBoardReport({ churchName }: { churchName?: string }) {
           .map((s) => `${STAGE_LABEL[s]}: ${active.filter((p) => p.journey_stage === s).length}`)
           .join(' · ');
         setLines([
-          `${churchName ?? 'This church'} — Hope Beacon report`,
+          `${churchName ?? 'This church'} · Hope Beacon report`,
           `Prepared ${new Date().toLocaleDateString()}`,
           '',
           `Guides serving: ${members.filter((m) => m.role === 'dm' && m.is_approved).length}`,

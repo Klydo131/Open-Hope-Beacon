@@ -23,9 +23,9 @@ const AVATARS = ['🙂', '😊', '🧑', '👩', '👨', '🧕', '👵', '👴',
 
 // A distinct look per role, so an Admin's profile reads differently from a DS's.
 const ROLE_STYLE: Record<Role, { bg: string; icon: string; blurb: string }> = {
-  executive: { bg: '#0F172A', icon: '⭐', blurb: 'Executive admin — oversees all churches.' },
-  admin: { bg: '#1E2A4A', icon: '🛡️', blurb: 'Church coordinator — full access.' },
-  dm: { bg: '#2F80ED', icon: '🤝', blurb: 'Guide — walking with people, one at a time.' },
+  executive: { bg: '#0F172A', icon: '⭐', blurb: 'Executive admin. Oversees all churches.' },
+  admin: { bg: '#1E2A4A', icon: '🛡️', blurb: 'Church coordinator. Full access.' },
+  dm: { bg: '#2F80ED', icon: '🤝', blurb: 'Guide. Walks with people, one at a time.' },
   ds: { bg: '#7FB03A', icon: '🌱', blurb: 'Exploring faith at your own pace.' },
 };
 

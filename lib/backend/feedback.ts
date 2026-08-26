@@ -81,7 +81,7 @@ const STORE_KEY = 'hope-beacon.feedback.local';
  * feedback teaches everybody that feedback is pointless.
  */
 export const localFeedbackSink: FeedbackSink = {
-  describe: 'saved on this device only — no server is configured',
+  describe: 'saved on this device only, no server is configured',
   async send(message) {
     try {
       const raw = localStorage.getItem(STORE_KEY);

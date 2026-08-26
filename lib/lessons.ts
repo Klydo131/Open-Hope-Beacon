@@ -18,7 +18,7 @@ export const LESSONS: Lesson[] = [
 
   // Connect — building rapport
   { id: 'l-connect-1', stage: 'connect', title: 'God’s love for you', description: 'The heart of the good news, in plain words.' },
-  { id: 'l-connect-2', stage: 'connect', title: 'Prayer: talking with God', description: 'You don’t need special words — just an honest heart.' },
+  { id: 'l-connect-2', stage: 'connect', title: 'Prayer: talking with God', description: 'You don’t need special words, just an honest heart.' },
 
   // Care — walking alongside
   { id: 'l-care-1', stage: 'care', title: 'Finding rest and peace', description: 'Rest for a weary heart, and where it comes from.' },
@@ -26,15 +26,15 @@ export const LESSONS: Lesson[] = [
 
   // Call — the point of decision
   { id: 'l-call-1', stage: 'call', title: 'Choosing to follow Jesus', description: 'What it means to say yes, and why it’s worth it.' },
-  { id: 'l-call-2', stage: 'call', title: 'Baptism: a new beginning', description: 'A fresh start — what baptism is and isn’t.' },
+  { id: 'l-call-2', stage: 'call', title: 'Baptism: a new beginning', description: 'A fresh start, and what baptism is and isn’t.' },
 
   // Cultivate — growing in faith
   { id: 'l-cult-1', stage: 'cultivate', title: 'Growing every day', description: 'Simple habits that keep faith alive and green.' },
-  { id: 'l-cult-2', stage: 'cultivate', title: 'The Sabbath: a gift of rest', description: 'A weekly gift — time to be still and known.' },
+  { id: 'l-cult-2', stage: 'cultivate', title: 'The Sabbath: a gift of rest', description: 'A weekly gift of time to be still and known.' },
 
   // Commission — sent to disciple
   { id: 'l-comm-1', stage: 'commission', title: 'Sharing your story', description: 'Your own story is the most powerful thing you can give.' },
-  { id: 'l-comm-2', stage: 'commission', title: 'Serving others', description: 'Faith that reaches out — small acts, big love.' },
+  { id: 'l-comm-2', stage: 'commission', title: 'Serving others', description: 'Faith that reaches out, in small acts and big love.' },
 ];
 
 export function lessonsForStage(stage: Stage): Lesson[] {

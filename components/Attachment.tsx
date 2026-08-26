@@ -52,7 +52,7 @@ export function Attachment({
   if (missing) {
     return (
       <div className="rounded-xl bg-gray-100 px-3 py-2 text-sm text-gray-500">
-        {media.title} — file not on this device
+        {media.title} · file not on this device
       </div>
     );
   }

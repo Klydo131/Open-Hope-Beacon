@@ -345,7 +345,7 @@ function RoomCard({
             <button
               key={t.key}
               onClick={() => update({ theme: t.key })}
-              title={`${t.label} — ${t.blurb}`}
+              title={`${t.label} · ${t.blurb}`}
               aria-label={t.label}
               aria-pressed={on}
               className="h-8 rounded-lg"
@@ -359,7 +359,7 @@ function RoomCard({
         })}
       </div>
       <p className="mt-1.5 text-xs" style={{ color: theme.inkSoft }}>
-        {theme.label} — {theme.blurb}
+        {theme.label} · {theme.blurb}
       </p>
     </div>
   );

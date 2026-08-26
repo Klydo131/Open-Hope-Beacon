@@ -409,7 +409,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         const from = pairing.journey_stage;
         const dmName =
           prev.profiles.find((p) => p.id === pairing.dm_id)?.full_name ??
-          'Your missionary';
+          'Your Guide';
         const next: DB = {
           ...prev,
           pairings: prev.pairings.map((p) =>
@@ -561,7 +561,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               link: '/login',
               body:
                 `Hello ${who.full_name.split(' ')[0]},\n\n` +
-                `Good news — your account has been approved. ` +
+                `Good news, your account has been approved. ` +
                 `${roleLabel(role, role) ? `You are now a ${roleLabel(role, role)} at ` : `Welcome to `}` +
                 `${prev.church_name}.\n\n` +
                 `Sign in whenever you're ready. Someone from the church will be ` +
@@ -605,7 +605,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               id: uid(),
               user_id: dsId,
               type: 'journey',
-              title: 'You’ve been connected with a missionary',
+              title: 'You’ve been connected with a Guide',
               body: `${nameOf(dmId)} will walk with you.`,
               created_at: nowIso(),
             },
@@ -1051,7 +1051,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               user_id: other,
               type: 'meeting',
               title: 'A meeting was scheduled',
-              body: `${meeting.title} — ${new Date(meeting.when).toLocaleString()}`,
+              body: `${meeting.title} · ${new Date(meeting.when).toLocaleString()}`,
               created_at: nowIso(),
             },
             ...prev.notifications,
@@ -1682,7 +1682,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
                   type: 'prayer',
                   title:
                     status === 'praying'
-                      ? 'Your missionary is praying with you 🙏'
+                      ? 'Your Guide is praying with you 🙏'
                       : status === 'answered'
                         ? 'A prayer marked answered 🙌'
                         : 'A prayer update',
@@ -2018,7 +2018,7 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
               `Beacon is a private, invitation-only app that walks you through ` +
               `a journey of faith alongside someone from the church.\n\n` +
               `Tap the button below to set your password and finish signing up. ` +
-              `This link is just for you — please don't forward it.`,
+              `This link is just for you, please don't forward it.`,
           }),
           ...prev.emails,
         ],

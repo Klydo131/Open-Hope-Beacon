@@ -142,7 +142,7 @@ export function LiveMailPage() {
       <Card className="p-6">
         <h1 className="text-2xl font-extrabold text-navy">Mail</h1>
         <p className="mt-2 text-gray-600">
-          Hope Beacon sends real email — invitations and password resets go to
+          Hope Beacon sends real email. Invitations and password resets go to
           your own inbox, not to a page inside the app. There is nothing for you
           to read here.
         </p>
@@ -196,7 +196,7 @@ export function LiveMailPage() {
           {/* A cooldown is not a fault. See LiveCorePages for the reasoning. */}
           <p className={`font-bold ${handLink.wait ? 'text-blue-900' : 'text-amber-900'}`}>
             {handLink.wait
-              ? `Nearly — wait ${handLink.wait} seconds, then press Re-send once`
+              ? `Nearly there. Wait ${handLink.wait} seconds, then press Re-send once`
               : `Send this link to ${handLink.to} yourself`}
           </p>
           <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
@@ -209,7 +209,7 @@ export function LiveMailPage() {
               been handed is to click it, and clicking this one uses up somebody
               else's invitation and signs you out of your own account. */}
           <p className="mt-1 text-sm font-semibold text-amber-900">
-            Do not open it yourself. Send it to {handLink.to} — it only works
+            Do not open it yourself. Send it to {handLink.to}. It only works
             once, and opening it here would sign you out and start their
             sign-up on your device.
           </p>
@@ -257,7 +257,7 @@ export function LiveMailPage() {
           Everybody here still needs to set a password of their own. An
           invitation that failed to send looks exactly like one somebody has not
           got round to, so if a person says they never got theirs, press
-          <strong> Re-send</strong> — it mints a fresh link and posts it again,
+          <strong> Re-send</strong>. It mints a fresh link and posts it again,
           with nothing to retype.
         </p>
         {/* SAY THE COST OF THE BUTTON NEXT TO THE BUTTON.

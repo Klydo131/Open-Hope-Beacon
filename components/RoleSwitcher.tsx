@@ -26,8 +26,8 @@ import type { Role } from '@/lib/types';
 // how a removed feature comes back through some other button.
 
 const ROLES: { role: Role; icon: string; blurb: string }[] = [
-  { role: 'ds', icon: '🌱', blurb: 'Follow a journey with a missionary' },
-  { role: 'dm', icon: '🤝', blurb: 'Guide explorers, one at a time' },
+  { role: 'ds', icon: '🌱', blurb: 'Follow a journey with a Guide' },
+  { role: 'dm', icon: '🤝', blurb: 'Guide Explorers, one at a time' },
   { role: 'admin', icon: '🛡️', blurb: 'Invite people, pair them, see the numbers' },
   { role: 'executive', icon: '⭐', blurb: 'Oversee every church' },
 ];
@@ -96,7 +96,7 @@ export function RoleSwitcher() {
           <div className="shrink-0 border-b border-black/5 px-4 py-3">
             <p className="font-extrabold">Try any account</p>
             <p className="mt-0.5 text-sm text-gray-500">
-              Demo only — none of this exists once a real backend is connected.
+              Demo only. None of this exists once a real backend is connected.
             </p>
           </div>
 

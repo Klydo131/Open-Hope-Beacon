@@ -1447,7 +1447,7 @@ export async function sendPairingFile(pairingId: string, file: File): Promise<Pa
 
   if (file.size > MAX_ATTACHMENT_BYTES) {
     throw new Error(
-      `That file is ${Math.round(file.size / 1024 / 1024)} MB. The limit is 10 MB — `
+      `That file is ${Math.round(file.size / 1024 / 1024)} MB. The limit is 10 MB. `
       + 'try a photo rather than a video, or share a link instead.',
     );
   }

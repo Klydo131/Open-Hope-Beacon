@@ -137,8 +137,8 @@ export function InviteManager() {
                 </Button>
               </div>
               <p className="mt-2 text-xs text-green-700">
-                Paste this into your own email or message — there is no mail
-                server in this build.
+                Paste this into your own email or message. There is no mail server
+                in this build.
               </p>
             </>
           )}

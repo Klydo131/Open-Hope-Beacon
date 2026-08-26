@@ -117,8 +117,8 @@ export default function PolicyPage() {
               will read them one day.
             </li>
             <li>
-              If you are out of your depth — grief, abuse, self-harm, anything —
-              tell a Director. That is not failing. Carrying it alone is.
+              If something is beyond you, such as grief, abuse or self-harm,
+              tell a Director. That is what Directors are there for.
             </li>
           </ul>
         </Card>
@@ -128,24 +128,25 @@ export default function PolicyPage() {
           <ol className="mt-2 list-decimal space-y-2 pl-5 text-gray-700">
             <li>Every Director of your church is notified straight away.</li>
             <li>
-              A Director reads it, and can read the conversation it came from —
-              in place, with what came before and after, not as a quoted line.
+              A Director reads it, and can read the conversation it came from in
+              place, with what came before and after, rather than as a single
+              quoted line.
             </li>
             <li>
               They decide. That may be a conversation, a pause, or removing the
               person from the church&rsquo;s Hope Beacon. It may also be that
-              there was nothing to answer, which is a real outcome and not a
-              judgement on you for raising it.
+              there was nothing to answer. That happens, and it is not held
+              against you for raising it.
             </li>
             <li>
-              The report is kept either way. Reports are never deleted — a
-              record that can be made to disappear is not a record.
+              The report is kept either way. Reports are never deleted, so the
+              record stays complete whatever was decided.
             </li>
           </ol>
           <p className="mt-3 text-sm text-gray-600">
-            Your name is visible to the Directors. Not to hold it against you —
-            they cannot ask what happened, or support you, or tell a genuine
-            concern from a grudge, without knowing who raised it. The person you
+            Your name is visible to the Directors. They need it so they can ask
+            you what happened, support you, and tell a genuine concern from a
+            grudge. The person you
             reported is the one who is never told.
           </p>
         </Card>

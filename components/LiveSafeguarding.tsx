@@ -149,7 +149,7 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
         </h2>
         <p className="mt-1 text-sm text-gray-500">
           Raised by Guides and Explorers. The person reported has not been told
-          and will not be —{' '}
+          and will not be.{' '}
           <Link href="/policy" className="underline underline-offset-2">
             how we treat each other
           </Link>

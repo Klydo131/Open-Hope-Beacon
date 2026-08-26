@@ -83,7 +83,7 @@ export function MySeries() {
             <div className="mb-4 rounded-xl bg-green-50 p-4">
               <p className="font-bold text-green-700">🎉 You finished the whole series.</p>
               <p className="mt-1 text-sm text-green-800">
-                Every lesson done. Tell the person walking with you — they will be
+                Every lesson done. Tell the person walking with you. They will be
                 glad to hear it.
               </p>
             </div>

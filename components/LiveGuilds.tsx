@@ -109,7 +109,7 @@ export function LiveGuilds({ me }: { me: Profile }) {
     <Card className="p-5">
       <h2 className="text-xl font-bold text-navy">🛡️ Guilds</h2>
       <p className="mt-1 text-sm text-gray-500">
-        Group your Guides and Explorers and give the group a name — a campus, a
+        Group your Guides and Explorers and give the group a name: a campus, a
         cohort, a Sabbath team. Everyone in a guild keeps their own private
         conversation; a guild does not join anybody&apos;s messages together.
       </p>
@@ -249,7 +249,7 @@ export function LiveGuilds({ me }: { me: Profile }) {
                           <option value="">Choose a Guide or Explorer…</option>
                           {canAdd.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.full_name} — {roleNoun(p.role)}
+                              {p.full_name} · {roleNoun(p.role)}
                             </option>
                           ))}
                         </select>

@@ -128,7 +128,7 @@ export function LiveProfilePage() {
           <Field
             label="Preferred contact" value={f.preferred_contact}
             onChange={set('preferred_contact')}
-            hint="How you would rather be reached — a phone number, an app."
+            hint="How you would rather be reached: a phone number, an app."
           />
           <Field label="Birthday" type="date" value={f.birthday} onChange={set('birthday')} />
           <Field label="Gender" value={f.gender} onChange={set('gender')} />
@@ -278,7 +278,7 @@ function NotificationCard() {
           // not show the prompt again however many times it is asked.
           <p className="mt-1 text-sm text-gray-600">
             Blocked by your browser. Open the padlock beside the address and
-            allow notifications for this site — this page cannot ask again.
+            allow notifications for this site. This page cannot ask again.
           </p>
         ) : (
           <>
@@ -350,7 +350,7 @@ function TutorialCard() {
       <h2 className="mb-1 text-xl font-bold text-navy">🧪 The tutorial</h2>
       <p className="mb-4 text-sm text-gray-500">
         A complete practice church with sample people in it. Useful for training
-        someone new without touching anybody&rsquo;s real details — it runs in
+        someone new without touching anybody&rsquo;s real details. It runs in
         this browser and cannot reach your church&rsquo;s database.
       </p>
       <Button variant="ghost" onClick={enterTutorial}>Open the tutorial</Button>

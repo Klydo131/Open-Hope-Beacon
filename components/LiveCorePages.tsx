@@ -127,7 +127,7 @@ export function LiveHomePage() {
           </button>
           <p className="mt-2.5 text-xs text-white/55">
             Runs entirely in this browser. No account, no database, nothing sent
-            anywhere — and nothing you do there can touch a church's real data.
+            anywhere, and nothing you do there can touch a church's real data.
           </p>
         </div>
 
@@ -703,12 +703,12 @@ export function LiveJoinPage() {
             </p>
             <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
               If you sent this invitation and only wanted to check the link
-              works, go back. Send the link to the person instead — it works on
+              works, go back. Send the link to the person instead. It works on
               their phone, and opening it yourself uses it up.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button variant="gold" onClick={() => router.replace('/')}>
-                Go back — this is not my link
+                Go back, this is not my link
               </Button>
               <Button
                 variant="ghost"
@@ -718,7 +718,7 @@ export function LiveJoinPage() {
                   setHandover(true);
                 }}
               >
-                It is mine — sign {signedInAs} out
+                It is mine, sign {signedInAs} out
               </Button>
             </div>
           </Card>
@@ -1259,7 +1259,7 @@ export function LiveAdminPage() {
                 handLink.wait ? 'text-blue-900' : handLink.why === 'sent' ? 'text-green-900' : 'text-amber-900'
               }`}>
                 {handLink.wait
-                  ? `Nearly — wait ${handLink.wait} seconds, then press Send once`
+                  ? `Nearly there. Wait ${handLink.wait} seconds, then press Send once`
                   : handLink.why === 'sent'
                     ? 'Their link, in case the e-mail does not arrive'
                     : `Send this link to ${handLink.to} yourself`}

@@ -52,8 +52,8 @@ export function FrozenCopy() {
         </p>
         <p className="mt-1 text-sm text-amber-900">
           It was installed from <strong>{where}</strong>, which is a temporary
-          address. Your app is not broken and your data is safe — but this icon
-          is stuck on the day it was installed, and no update can ever reach it.
+          address. Your app is not broken and your data is safe, but this icon is
+          stuck on the day it was installed, and no update can ever reach it.
         </p>
         <p className="mt-2 text-sm text-amber-900">
           Open the real address, install from there, then delete this icon.

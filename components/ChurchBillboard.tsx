@@ -61,12 +61,12 @@ export function ChurchBillboard() {
           <Chip
             label={`${
               db.profiles.filter((p) => p.role === 'ds' && p.is_approved).length
-            } seekers walking`}
+            } Explorers walking`}
           />
           <Chip
             label={`${
               db.profiles.filter((p) => p.role === 'dm' && p.is_approved).length
-            } missionaries`}
+            } Guides`}
           />
         </div>
       </div>

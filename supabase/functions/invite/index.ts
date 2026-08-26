@@ -490,7 +490,7 @@ async function handle(req: Request): Promise<Response> {
     if (cooldown) {
       waitSeconds = Number(cooldown[1]);
       sendError =
-        'Nearly — one message per address per minute, and one has just gone out. '
+        'Nearly there. One message per address per minute, and one has just gone out. '
         + `Wait ${cooldown[1]} seconds and press Send once. The link below works meanwhile.`;
     } else if (/525|unauthorized ip/i.test(sendError)) {
       // The one failure a church cannot diagnose from inside this app, because
@@ -505,7 +505,7 @@ async function handle(req: Request): Promise<Response> {
       sendError =
         'Your email provider refused the connection because it does not '
         + 'recognise the address it came from. That is IP blocking, and it has '
-        + 'to be turned OFF rather than added to — the connection is made by '
+        + 'to be turned OFF rather than added to. The connection is made by '
         + 'your mail service, not by this computer, and its address changes. '
         + 'In Brevo: Settings → Security → Authorized IPs → Deactivate '
         + 'blocking. The link below works meanwhile.';

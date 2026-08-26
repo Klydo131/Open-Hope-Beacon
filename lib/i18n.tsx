@@ -60,7 +60,7 @@ export type MsgKey =
   | 'takeTutorial'
   | 'welcome'
   | 'seekers'
-  | 'missionaries'
+  | 'guides'
   | 'members'
   | 'appTagline'
   | 'small'
@@ -81,7 +81,7 @@ export type MsgKey =
   | 'createPairing'
   | 'activePairings'
   | 'pairThem'
-  | 'missionary'
+  | 'guide'
   | 'seeker'
   | 'track'
   | 'addMaterial'
@@ -116,7 +116,7 @@ const EN: Record<MsgKey, string> = {
   takeTutorial: 'Take the tutorial',
   welcome: 'Welcome',
   seekers: `${ROLE_LABELS.ds}s`,
-  missionaries: `${ROLE_LABELS.dm}s`,
+  guides: `${ROLE_LABELS.dm}s`,
   members: 'Members',
   appTagline: 'Walking with Jesus, one step at a time.',
   small: 'Small',
@@ -135,7 +135,7 @@ const EN: Record<MsgKey, string> = {
   createPairing: 'Create a pairing',
   activePairings: 'Active pairings',
   pairThem: 'Pair them',
-  missionary: ROLE_LABELS.dm,
+  guide: ROLE_LABELS.dm,
   seeker: ROLE_LABELS.ds,
   track: 'Track',
   addMaterial: 'Add material',

@@ -27,7 +27,7 @@ export default function manifest(): MetadataRoute.Manifest {
   const preview = BUILD_ENV === 'preview';
   return {
     id: '/',
-    name: preview ? `${APP_NAME} PREVIEW — do not install` : APP_NAME,
+    name: preview ? `${APP_NAME} PREVIEW · do not install` : APP_NAME,
     short_name: preview ? `${APP_SHORT_NAME} PREVIEW` : APP_SHORT_NAME,
     description: APP_DESCRIPTION,
     start_url: '/',

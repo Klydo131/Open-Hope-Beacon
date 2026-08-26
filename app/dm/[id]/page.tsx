@@ -321,7 +321,7 @@ function Detail() {
 
           <Card className="p-5">
             <h2 className="mb-1 text-xl font-bold text-navy">
-              📖 Single lessons — {stageInfo(pairing.journey_stage).label}
+              📖 Single lessons · {stageInfo(pairing.journey_stage).label}
             </h2>
             <p className="mb-4 text-sm text-gray-500">
               Assign short studies for this step. {first} completes them at their
@@ -443,7 +443,7 @@ function Detail() {
             <div className="space-y-2">
               {library.length === 0 ? (
                 <p className="text-gray-400">
-                  No published resources yet — an admin adds these.
+                  No published resources yet. An admin adds these.
                 </p>
               ) : (
                 library.map((m) => {

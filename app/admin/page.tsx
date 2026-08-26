@@ -189,7 +189,7 @@ function Reports() {
         </h2>
         <p className="mt-1 text-sm text-gray-500">
           Someone in your church raised these. The person reported has not been
-          told and will not be — that is what makes reporting possible.
+          told, and will not be, so anyone can raise a concern safely.
         </p>
 
         {open.length === 0 ? (
@@ -419,7 +419,7 @@ function LocalAnalytics({
       <Card className="p-5">
         <h3 className="mb-1 text-lg font-bold text-navy">Explorer study uploads</h3>
         <p className="mb-3 text-sm text-gray-500">
-          What Explorers are adding to their own shelves — advanced monitoring.
+          What Explorers are adding to their own shelves.
         </p>
         {db.seeker_media.length === 0 ? (
           <p className="text-gray-400">No explorer uploads yet.</p>
@@ -484,7 +484,7 @@ function GlobalAnalytics({ events }: { events: AnalyticsEvent[] }) {
   return (
     <div className="space-y-4">
       <div className="rounded-xl bg-sky-50 p-3 text-sm text-sky-800 ring-1 ring-sky-200">
-        🌐 <strong>Global data.</strong> Anonymous totals and trends — no names,
+        🌐 <strong>Global data.</strong> Anonymous totals and trends. No names,
         no profiles. Safe to sync to a shared backend for wider analysis.
       </div>
 
@@ -566,7 +566,7 @@ function GlobalAnalytics({ events }: { events: AnalyticsEvent[] }) {
       </Card>
 
       <BoardView
-        missionaries={db.profiles.filter((p) => p.role === 'dm' && p.is_approved).length}
+        guides={db.profiles.filter((p) => p.role === 'dm' && p.is_approved).length}
         walkedWith={active.length}
         actionsThisWeek={pace.latest}
         movedForwardThisWeek={advancePace.latest}
@@ -593,12 +593,12 @@ function GlobalAnalytics({ events }: { events: AnalyticsEvent[] }) {
 // It is deliberately the anonymous rollup and nothing else. Everything on this
 // card is a count.
 function BoardView({
-  missionaries,
+  guides,
   walkedWith,
   actionsThisWeek,
   movedForwardThisWeek,
 }: {
-  missionaries: number;
+  guides: number;
   walkedWith: number;
   actionsThisWeek: number;
   movedForwardThisWeek: number;
@@ -622,7 +622,7 @@ function BoardView({
 
       <dl className="mt-4 grid grid-cols-2 gap-3">
         {[
-          ['Missionaries', missionaries],
+          ['Guides', guides],
           ['People being walked with', walkedWith],
           ['Actions this week', actionsThisWeek],
           ['Moved forward this week', movedForwardThisWeek],
@@ -639,7 +639,7 @@ function BoardView({
           <strong className="text-navy">What the board is not shown.</strong> No
           names against these numbers, no messages, no prayer requests. If you
           want to know how one particular person is doing, ask the Guide
-          walking with them. The app will not tell you, and that is on purpose.
+          walking with them. The app will not show you.
         </p>
         <p>
           <strong className="text-navy">Where the board&rsquo;s approval
@@ -858,7 +858,7 @@ function Pairing() {
         <h2 className="mb-4 text-xl font-bold text-navy">{t('createPairing')}</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block">
-            <span className="text-sm text-gray-500">{t('missionary')}</span>
+            <span className="text-sm text-gray-500">{t('guide')}</span>
             <select
               value={dm}
               onChange={(e) => setDm(e.target.value)}

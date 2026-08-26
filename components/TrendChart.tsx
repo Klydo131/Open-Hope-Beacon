@@ -98,7 +98,7 @@ export function MomentumLine({
   noun?: string;
   period?: string;
 }) {
-  const arrow = direction === 'up' ? '▲' : direction === 'down' ? '▼' : '—';
+  const arrow = direction === 'up' ? '▲' : direction === 'down' ? '▼' : '●';
   const colour =
     direction === 'up' ? '#16A34A' : direction === 'down' ? '#B45309' : '#6B7280';
 
@@ -110,9 +110,9 @@ export function MomentumLine({
       {noun} this {period}
       {deltaPct === null ? (
         previous === 0 && latest > 0 ? (
-          <> — the first this {period} after a quiet one</>
+          <>, the first this {period} after a quiet one</>
         ) : (
-          <> — no {period} before this one to compare with</>
+          <>, with no {period} before this one to compare with</>
         )
       ) : (
         <>

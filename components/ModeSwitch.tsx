@@ -102,7 +102,7 @@ export function ModeSwitch({ onDark = false }: { onDark?: boolean }) {
                   your host and redeploy.
                 </p>
                 <p className="text-xs text-gray-500">
-                  That is the whole switch — there is no flag to remember.
+                  That is the whole switch. There is no flag to remember.
                 </p>
               </>
             )}

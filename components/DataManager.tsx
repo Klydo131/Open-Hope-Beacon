@@ -80,8 +80,8 @@ export function DataManager() {
       </div>
       <p className="mt-2 text-xs text-gray-400">
         The backup is a complete copy (everything). The roster is a simple
-        spreadsheet of Explorers and their journey — opens in Excel or Google
-        Sheets.
+        spreadsheet of Explorers and their journey. It opens in Excel or
+        Google Sheets.
       </p>
 
       <hr className="my-5 border-black/5" />
@@ -89,7 +89,7 @@ export function DataManager() {
       <h3 className="text-lg font-bold text-navy">Restore from a backup</h3>
       <p className="mt-1 text-sm text-gray-500">
         This <strong>replaces all current data</strong> with the backup file.
-        This cannot be undone — download a backup first if you’re unsure.
+        This cannot be undone, so download a backup first if you’re unsure.
       </p>
 
       <input

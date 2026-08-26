@@ -60,7 +60,7 @@ function DemoSignupPage() {
           <HopeBeaconMark size={56} className="rise rise-1 mt-3" />
           <h1 className="rise rise-2 mt-3 text-3xl font-extrabold">Join Hope Beacon</h1>
           <p className="rise rise-3 mt-1 text-white/70">
-            Your church invites you — Beacon has no public sign-up.
+            Your church invites you. Beacon has no public sign-up.
           </p>
         </div>
       </div>
@@ -114,8 +114,8 @@ function DemoSignupPage() {
             No invitation yet?
           </h2>
           <p className="text-gray-600">
-            Ask someone at your church — a Director or the Guide you’ve been
-            talking with — to send you one. They enter your email and Beacon does
+            Ask someone at your church to send you one, a Director or the Guide
+            you’ve been talking with. They enter your email and Beacon does
             the rest.
           </p>
         </Card>

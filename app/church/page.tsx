@@ -74,8 +74,8 @@ function Body() {
           <div>
             <h2 className="mb-1 text-xl font-bold text-navy">🙏 Prayer wall</h2>
             <p className="mb-3 text-sm text-gray-500">
-              Requests our church family is praying over — shared anonymously, no
-              names.
+              Requests our church family is praying over, shared anonymously and
+              without names.
             </p>
             {wall.length === 0 ? (
               <Card className="p-4">
@@ -98,7 +98,7 @@ function Body() {
                       }}
                     >
                       {r.status === 'answered'
-                        ? 'Answered 🙌 — praise God'
+                        ? 'Answered. Praise God 🙌'
                         : r.status === 'praying'
                           ? 'The church is praying'
                           : 'Please pray'}
@@ -122,7 +122,7 @@ function Body() {
         <h2 className="mb-4 text-xl font-bold text-navy">Our journey together</h2>
         <div className="mb-5 grid grid-cols-3 gap-3 text-center">
           <Stat n={seekers} label="Explorers walking" />
-          <Stat n={dms} label="Missionaries" />
+          <Stat n={dms} label="Guides" />
           <Stat n={members.length} label="Members" />
         </div>
         {seesMore && (
@@ -145,7 +145,7 @@ function Body() {
         </div>
         )}
         <p className="mt-3 text-sm text-gray-400">
-          Counts only — no names or personal details appear on the general board.
+          Counts only. No names or personal details appear on the general board.
         </p>
       </Card>
 

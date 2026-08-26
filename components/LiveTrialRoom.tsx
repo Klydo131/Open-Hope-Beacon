@@ -117,7 +117,7 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
       <p className="mt-1 text-sm text-gray-500">
         <strong>Suspend</strong> switches their account off. They stay in the
         church and keep their history, and cannot sign in at all until you lift
-        it — if they are signed in right now, they are signed out immediately.
+        it. If they are signed in right now, they are signed out immediately.
         <strong> Remove</strong> is permanent.
       </p>
 
@@ -366,7 +366,7 @@ export function LiveCourt({ me }: { me: Profile }) {
           {c.status === 'closed' && (
             <span className="mt-1 block text-sm font-semibold text-navy">
               {verdictWord(c.verdict)}
-              {c.verdict_note ? ` — ${c.verdict_note}` : ''}
+              {c.verdict_note ? ` · ${c.verdict_note}` : ''}
             </span>
           )}
         </span>
@@ -513,7 +513,7 @@ export function LiveCourt({ me }: { me: Profile }) {
       <p className="mt-1 text-sm text-gray-500">
         {leads
           ? 'Open a case from the trial room below, hear both sides here, then decide it.'
-          : 'A case you have been called to. Say what happened in your own words — the head judge reads everything here before deciding.'}
+          : 'A case you have been called to. Say what happened in your own words. The head judge reads everything here before deciding.'}
       </p>
 
       {error && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">{error}</p>}

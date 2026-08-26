@@ -76,7 +76,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       + 'you and them.',
     steps: [
       ['Choose a password.', 'That is what finishes your sign-up.'],
-      ['Meet whoever is paired with you.', 'A Guide walks with at most five people at once, on purpose. Five is a ceiling, not a target.'],
+      ['Meet whoever is paired with you.', 'A Guide walks with at most five people at once. Five is a ceiling, not a target.'],
       ['Share from the church library.', 'You choose what each person sees, and when they are ready for it.'],
     ],
   },

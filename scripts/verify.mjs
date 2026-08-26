@@ -116,6 +116,7 @@ const staticChecks = [
   ['email templates', 'tests/email-templates.mjs'],
   ['invite emails', 'tests/invite-emails.mjs'],
   ['iPhone install', 'tests/ios-install.mjs'],
+  ['plain words', 'tests/plain-words.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:
   // it exists only behind a session, and the sandbox these run in cannot reach

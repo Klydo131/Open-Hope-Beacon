@@ -154,7 +154,7 @@ export function LessonSeriesLibrary() {
         </div>
         {saved && (
           <p className="mt-2 font-semibold text-green-600">
-            ✓ &ldquo;{saved}&rdquo; is on the shelf. Missionaries can start it now.
+            ✓ &ldquo;{saved}&rdquo; is on the shelf. Guides can start it now.
           </p>
         )}
       </Card>
@@ -162,9 +162,9 @@ export function LessonSeriesLibrary() {
       <Card className="p-5">
         <h2 className="mb-1 text-xl font-bold text-navy">On the shelf</h2>
         <p className="mb-4 text-sm text-gray-500">
-          {published} of {existing.length} available to missionaries. Taking one
-          off the shelf stops it being offered; it never removes it from a seeker
-          who has already started it.
+          {published} of {existing.length} available to Guides. Taking one off
+          the shelf stops it being offered. It never removes it from an
+          Explorer who has already started it.
         </p>
         {existing.length === 0 ? (
           <p className="text-gray-400">No series yet. Build the first one above.</p>

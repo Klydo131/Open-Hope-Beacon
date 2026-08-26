@@ -130,7 +130,7 @@ export function BuildNotice({
         onClick={() => setShown(false)}
         className="animate-drop pointer-events-auto max-w-[92vw] rounded-full px-4 py-2 text-xs font-bold text-white shadow-lg"
         style={{ backgroundColor: color }}
-        aria-label={`${label} — tap to dismiss`}
+        aria-label={`${label}. Tap to dismiss`}
       >
         {label}
       </button>

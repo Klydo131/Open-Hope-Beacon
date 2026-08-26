@@ -90,7 +90,7 @@ export function ReportDialog({
           whether a frightened person goes through with it. */}
       <p className="mt-2 rounded-xl bg-blue-50 p-3 text-sm text-blue-900 ring-1 ring-blue-200">
         This goes to your church&rsquo;s Directors. <strong>{subjectName} is
-        not told</strong> — no message, no notification, nothing they could
+        not told</strong>. No message, no notification, nothing they could
         notice.
       </p>
 

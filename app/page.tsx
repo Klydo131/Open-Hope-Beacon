@@ -102,7 +102,7 @@ function DemoHome() {
               person forms their first impression on, and the bar is 46px of
               chrome that eyes skip. */}
           <p className="mx-auto mt-5 inline-block rounded-full bg-white/15 px-4 py-1.5 text-sm font-bold tracking-wide">
-            🧪 TUTORIAL — sample people
+            🧪 TUTORIAL · sample people
           </p>
           <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed text-white/70">
             Everyone in here was invented for you to look around with. Nothing
@@ -154,7 +154,7 @@ function DemoHome() {
               This copy has no passwords. Everyone signs in by choosing a sample
               person, because there is no server to hold an account. When you
               connect a real backend, point this at your provider&rsquo;s
-              password-reset flow — see <span className="font-mono">docs/BACKENDS.md</span>.
+              password-reset flow. See <span className="font-mono">docs/BACKENDS.md</span>.
             </p>
           )}
 
@@ -247,7 +247,7 @@ function DemoHome() {
                 admin.
               </li>
               <li>
-                • Leaders see totals and trends only — never anyone’s identity.
+                • Leaders see totals and trends only, never anyone’s identity.
               </li>
               <li>
                 • Personal data stays on the device; only anonymous totals are

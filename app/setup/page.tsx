@@ -153,7 +153,7 @@ export default function Setup() {
           <HopeBeaconMark size={48} className="mt-3" />
           <h1 className="mt-3 text-3xl font-extrabold">Set up your Hope Beacon</h1>
           <p className="mt-1 text-white/70">
-            Four steps to your own church app. No code to write — the whole thing is already here.
+            Four steps to your own church app. No code to write, because the whole thing is already here.
           </p>
         </div>
       </div>
@@ -197,7 +197,7 @@ export default function Setup() {
             )}
             {health.state === 'no-tables' && (
               <>
-                The connection works — the database answered. It just has no tables yet, so step 2
+                The connection works. The database answered, it just has no tables yet, so step 2
                 is the one to do.
               </>
             )}
@@ -219,7 +219,7 @@ export default function Setup() {
         {/* ------------------------------- steps ------------------------------- */}
         <Step n={1} title="Create a database and connect it" status={at(1)}>
           <p>
-            Make a free project with any Postgres host that offers an auth service — the app is
+            Make a free project with any Postgres host that offers an auth service. The app is
             built against one, and <Link href="/" className="underline">the docs</Link> name the
             alternatives. Then, in this folder:
           </p>
@@ -242,7 +242,7 @@ export default function Setup() {
           </p>
           <p className="text-sm">
             The file that matters most is the one holding the security rules. It decides who can
-            read what — a Guide sees their own people, an Explorer sees only themselves. Run it and
+            read what: a Guide sees their own people, an Explorer sees only themselves. Run it and
             read it; it is the part you should understand before real names go in.
           </p>
         </Step>
@@ -261,7 +261,7 @@ export default function Setup() {
 
         <Step n={4} title="Make yourself the first administrator" status={at(4)}>
           <p>
-            There is no public sign-up — the app is invitation-only by design, which leaves the
+            There is no public sign-up. The app is invitation-only by design, which leaves the
             first account a chicken-and-egg problem. Create it directly:
           </p>
           <ol className="list-decimal space-y-1 pl-5">
@@ -279,7 +279,7 @@ export default function Setup() {
             <h2 className="text-lg font-bold text-navy">Before real people go in</h2>
             <div className="mt-2 space-y-2 text-gray-600">
               <p>
-                Sign in as somebody with the least access — an Explorer — and try to reach what
+                Sign in as somebody with the least access, an Explorer, and try to reach what
                 they should not: another person&rsquo;s conversation, the church list, the admin
                 screens. The rules are enforced by the database, not by the screens, so this is a
                 real test and not a formality.

@@ -84,7 +84,7 @@ function DemoLogin() {
           <h2 className="text-xl font-bold text-navy">Setting this up for your own church?</h2>
           <p className="mt-1 text-gray-500">
             These are sample people, kept in this browser. Connect a database and this same
-            screen becomes a real sign-in for your own members — there is no code to write.
+            screen becomes a real sign-in for your own members, with no code to write.
           </p>
           <Link
             href="/setup"

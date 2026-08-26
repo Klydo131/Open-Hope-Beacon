@@ -438,7 +438,7 @@ function InstallSource() {
       <span className="font-mono">{host}</span>
       {canUpdate
         ? ' · updates reach this copy'
-        : ' · THIS ADDRESS CANNOT UPDATE — install from the church’s main address instead'}
+        : ' · THIS ADDRESS CANNOT UPDATE. Install from the church’s main address instead'}
     </p>
   );
 }
@@ -495,7 +495,7 @@ function Body() {
         >
           {LANGUAGES.map((l) => (
             <option key={l.code} value={l.code}>
-              {l.native} — {l.name}
+              {l.native} · {l.name}
             </option>
           ))}
         </select>

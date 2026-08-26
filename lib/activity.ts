@@ -77,7 +77,7 @@ export const ANNOUNCEMENTS: Announcement[] = [
     icon: '🙏',
     title: 'Week of Prayer',
     body: 'Every evening this week, online and in person. All are welcome.',
-    when: 'Mon–Fri, 7:00 PM',
+    when: 'Mon to Fri, 7:00 PM',
   },
   {
     id: 'a-welcome',

@@ -273,7 +273,7 @@ export function makeSeed(): DB {
         material_id: 'kit-egw-sc',
         pairing_id: 'pair-john',
         shared_by: 'dm-maria',
-        note: 'This one is short — it helped me when I started out.',
+        note: 'This one is short, and it helped me when I started out.',
         created_at: iso(60 * 17),
       },
       {
@@ -375,7 +375,7 @@ export function makeSeed(): DB {
         ds_id: 'ds-john',
         title: 'Question about the Sabbath',
         type: 'link',
-        note: 'Found this while reading — want to ask Maria.',
+        note: 'Found this while reading, want to ask Maria.',
         external_url: 'https://www.bibleinfo.com/',
         created_at: iso(60 * 5),
       },
@@ -384,7 +384,7 @@ export function makeSeed(): DB {
       {
         id: 'pr1',
         ds_id: 'ds-john',
-        body: 'Please pray for my mother — she is unwell.',
+        body: 'Please pray for my mother, she is unwell.',
         share_with_board: true,
         status: 'praying',
         created_at: iso(60 * 14),
@@ -485,7 +485,7 @@ export function makeSeed(): DB {
         id: 'sn1',
         pairing_id: 'pair-john',
         author_id: 'dm-maria',
-        body: 'His mother is in hospital again. Don’t push the next lesson this week — just check in.',
+        body: 'His mother is in hospital again. Don’t push the next lesson this week, just check in.',
         created_at: iso(60 * 14),
       },
       {
@@ -526,7 +526,7 @@ export function makeSeed(): DB {
         id: 'fu3',
         pairing_id: 'pair-grace',
         owner_id: 'dm-maria',
-        title: 'Ring her — she doesn’t like messaging',
+        title: 'Ring her, she doesn’t like messaging',
         due_on: dateKey(0),
         created_at: iso(60 * 24 * 2),
       },
@@ -557,7 +557,7 @@ export function makeSeed(): DB {
           'Beacon is a private, invitation-only app that walks you through a ' +
           'journey of faith alongside someone from the church.\n\n' +
           "Tap the button below to set your password and finish signing up. " +
-          "This link is just for you — please don't forward it.",
+          "This link is just for you, please don't forward it.",
         created_at: iso(60 * 2),
       },
       {
@@ -593,12 +593,12 @@ export function makeSeed(): DB {
         body:
           'Someone asked me this week why the psalm says "I shall not want" '
           + 'when plainly we do want things, most of the time.\n\n'
-          + 'The line is not a promise that wanting stops. It is a claim about '
-          + 'who is doing the leading. A shepherd walks ahead; the sheep does '
+          + 'I do not think it is saying the wanting stops. I think it is saying '
+          + 'who is doing the leading. A shepherd walks ahead. The sheep does '
           + 'not need the whole map, only to keep the shepherd in sight.\n\n'
-          + 'If this week has been the kind where you cannot see very far '
-          + 'ahead, that is not a failure of faith. It is the ordinary shape of '
-          + 'following someone.',
+          + 'So if this week has been the kind where you cannot see very far '
+          + 'ahead, that is alright. That is most weeks for me. Keep your eyes '
+          + 'on Jesus and take the next step.',
         visibility: 'published',
         audience: 'all',
         created_at: iso(60 * 26),
@@ -606,7 +606,7 @@ export function makeSeed(): DB {
       {
         id: 'blog-draft',
         author_id: 'dm-maria',
-        title: 'Notes for Sabbath — not finished',
+        title: 'Notes for Sabbath, not finished',
         body: 'Three things on hospitality. Still working out the second one.',
         visibility: 'private',
         audience: 'all',

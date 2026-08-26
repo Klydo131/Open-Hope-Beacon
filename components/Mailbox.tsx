@@ -70,7 +70,7 @@ export function Mailbox() {
           somebody else's invitation in the system-wide list. */}
       {box === 'all' && (
         <p className="rounded-xl bg-gray-50 px-3 py-2 text-sm text-gray-500">
-          Every message the app has sent to anyone in this sample church — not
+          Every message the app has sent to anyone in this sample church, not
           your own mail. Your own is under <strong>Inbox</strong>.
         </p>
       )}

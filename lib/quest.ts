@@ -93,9 +93,9 @@ const DM_STEPS: QuestStep[] = [
     id: 'open',
     where: 'My Explorers',
     learn:
-      'This list is only the people paired with you. You never see another missionary\u2019s explorers, and they never see yours. Each card shows how long it has been since you last spoke, so the quiet ones rise to the top.',
+      'This list is only the people paired with you. You never see another Guide\u2019s Explorers, and they never see yours. Each card shows how long it has been since you last spoke, so the quiet ones rise to the top.',
     title: 'Open an Explorer',
-    hint: 'Tap the highlighted card to open this person’s journey. You only ever see the explorers paired with you.',
+    hint: 'Tap the highlighted card to open this person’s journey. You only ever see the Explorers paired with you.',
     target: 'seeker-card',
     route: '/dm',
     routeLabel: 'Go to My Explorers',
@@ -143,7 +143,7 @@ const DM_STEPS: QuestStep[] = [
     id: 'share',
     where: 'My Explorers \u203a an Explorer \u203a Resources',
     learn:
-      'What you share lands in that person\u2019s library and nowhere else. Sharing is one person at a time on purpose, so an Explorer only ever sees what you chose for them, when they are ready for it.',
+      'What you share lands in that person\u2019s library and nowhere else. Sharing is one person at a time, so an Explorer only ever sees what you chose for them, when they are ready for it.',
     title: 'Share a resource',
     hint: 'Tap the highlighted Share button to give them a reading or video. An Explorer only ever sees what you personally share.',
     target: 'share',
@@ -200,7 +200,7 @@ const ADMIN_STEPS: QuestStep[] = [
     id: 'a-approve',
     where: 'Admin › Approvals',
     learn:
-      'You choose the role as you approve, and that choice decides what they can see for as long as they are here. A missionary sees the explorers paired with them. An Explorer sees only their own journey. Nobody can change their own role afterwards, including you.',
+      'You choose the role as you approve, and that choice decides what they can see for as long as they are here. A Guide sees the Explorers paired with them. An Explorer sees only their own journey. Nobody can change their own role afterwards, including you.',
     title: 'Let someone in',
     hint: 'Pick a role for the highlighted person, then tap Approve. They can sign in from that moment.',
     target: 'approve',
@@ -216,16 +216,16 @@ const ADMIN_STEPS: QuestStep[] = [
   },
   {
     id: 'a-recommend',
-    where: 'Admin › Approvals › Recommended by a missionary',
+    where: 'Admin › Approvals › Recommended by a Guide',
     learn:
-      'A missionary cannot invite anybody themselves. They recommend a name and an email, it arrives here, and you decide. When you invite, the new person is paired to the missionary who recommended them automatically, so nobody has to remember to do it afterwards.',
+      'A Guide cannot invite anybody themselves. They recommend a name and an email, it arrives here, and you decide. When you invite, the new person is paired to the Guide who recommended them automatically, so nobody has to remember to do it afterwards.',
     title: 'Act on a recommendation',
     hint: 'Tap Invite on the highlighted recommendation. That sends the invitation and sets up the pairing in one go.',
     target: 'invite-recommended',
     fallbacks: [
       {
         target: 'tab-approvals',
-        hint: 'Open the Approvals tab. Recommendations from missionaries are listed under the people waiting.',
+        hint: 'Open the Approvals tab. Recommendations from Guides are listed under the people waiting.',
       },
     ],
     route: '/admin',
@@ -237,8 +237,8 @@ const ADMIN_STEPS: QuestStep[] = [
     where: 'Admin › People & pairing',
     learn:
       'A pairing is the whole relationship: it is what lets those two message each other, and it is what stops everybody else reading it. Unpair them and the conversation is no longer visible to either side. This is also where you can remove a member.',
-    title: 'Pair a missionary with an Explorer',
-    hint: 'Choose a missionary and an Explorer in the highlighted card, then create the pairing. They can talk from that moment.',
+    title: 'Pair a Guide with an Explorer',
+    hint: 'Choose a Guide and an Explorer in the highlighted card, then create the pairing. They can talk from that moment.',
     target: 'create-pairing',
     fallbacks: [
       {
@@ -254,9 +254,9 @@ const ADMIN_STEPS: QuestStep[] = [
     id: 'a-materials',
     where: 'Admin › Materials',
     learn:
-      'Anything you add here becomes available for missionaries to share, but it does not reach a single explorer until a missionary chooses to send it to one. You stock the shelf; they decide who is ready for what.',
+      'Anything you add here becomes available for Guides to share, but it does not reach a single Explorer until a Guide chooses to send it to one. You stock the shelf; they decide who is ready for what.',
     title: 'Stock the library',
-    hint: 'Open the highlighted Materials tab. Readings and videos you add here are what missionaries can share.',
+    hint: 'Open the highlighted Materials tab. Readings and videos you add here are what Guides can share.',
     target: 'tab-materials',
     route: '/admin',
     routeLabel: 'Go to Admin',
@@ -283,7 +283,7 @@ const EXEC_STEPS: QuestStep[] = [
     id: 'x-analytics',
     where: 'Admin › Analytics',
     learn:
-      'These are counts, not names. You can see how many people are being walked with and how active the church is, without reading anybody’s private conversation. Scroll down and there is a “For the church board” panel: the four numbers to read out at a meeting, what the board is deliberately not shown, and a Print button. The board has no account here — you are the one who will be asked, so it lives in yours.',
+      'These are counts, not names. You can see how many people are being walked with and how active the church is, without reading anybody’s private conversation. Scroll down and there is a “For the church board” panel: the four numbers to read out at a meeting, what the board is deliberately not shown, and a Print button. The board has no account here. You are the one who will be asked, so it lives in yours.',
     title: 'Read the church at a glance',
     hint: 'Tap the highlighted Analytics tab. This is the whole church in numbers.',
     target: 'tab-analytics',
@@ -307,7 +307,7 @@ const EXEC_STEPS: QuestStep[] = [
     id: 'x-approvals',
     where: 'Admin › Approvals',
     learn:
-      'Church board approval of a missionary happens off the app, in your meeting, exactly as it does today. What happens here is only the record of it: somebody is let in, with a role, and the app remembers who did it and when.',
+      'Church board approval of a Guide happens off the app, in your meeting, exactly as it does today. What happens here is only the record of it: somebody is let in, with a role, and the app remembers who did it and when.',
     title: 'See who is waiting to join',
     hint: 'Tap the highlighted Approvals tab. Nobody joins your church without passing through here.',
     target: 'tab-approvals',
@@ -333,7 +333,7 @@ const EXEC_STEPS: QuestStep[] = [
 const DS_STEPS: QuestStep[] = [
   {
     id: 's-message',
-    where: 'My Journey › Talk with your missionary',
+    where: 'My Journey › Talk with your Guide',
     learn:
       'This conversation is only between you and the person walking with you. Church leaders cannot read it. Nobody else in the church can read it.',
     title: 'Say hello',
@@ -347,7 +347,7 @@ const DS_STEPS: QuestStep[] = [
     id: 's-lesson',
     where: 'My Journey › My lessons',
     learn:
-      'Your missionary chooses what to send you and when. Nothing appears here that they did not pick for you, and there is no schedule you are behind on.',
+      'Your Guide chooses what to send you and when. Nothing appears here that they did not pick for you, and there is no schedule you are behind on.',
     title: 'Open a lesson',
     hint: 'Tap the highlighted lesson to open it. Mark it done when you have finished, in your own time.',
     target: 'ds-lesson',
@@ -359,9 +359,9 @@ const DS_STEPS: QuestStep[] = [
     id: 's-prayer',
     where: 'My Journey › Prayer',
     learn:
-      'A request goes to your missionary by default. If you tick the box, the whole church can pray for it — and your name is never shown when they do.',
+      'A request goes to your Guide by default. If you tick the box, the whole church can pray for it, and your name is never shown when they do.',
     title: 'Ask for prayer',
-    hint: 'Write what is on your heart and tap the highlighted button. Your missionary will see it.',
+    hint: 'Write what is on your heart and tap the highlighted button. Your Guide will see it.',
     target: 'ds-prayer',
     route: '/ds',
     routeLabel: 'Go to My Journey',

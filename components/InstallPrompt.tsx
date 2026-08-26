@@ -370,7 +370,7 @@ export function InstallPrompt() {
   const steps = inApp
     ? [
         `Tap the ••• menu at the top of ${inApp}`,
-        'Choose “Open in Safari” — or “Open in browser”',
+        'Choose “Open in Safari”, or “Open in browser”',
         'Then tap Share, and “Add to Home Screen”',
       ]
     : wrongBrowser
@@ -397,9 +397,9 @@ export function InstallPrompt() {
               <p className="font-extrabold text-white">Install Hope Beacon</p>
               <p className="text-xs text-white/60">
                 {inApp
-                  ? `Open in Safari first — ${inApp} cannot install apps`
+                  ? `Open in Safari first. ${inApp} cannot install apps`
                   : wrongBrowser
-                  ? `Open in Safari first — ${wrongBrowser} on iPhone cannot install apps`
+                  ? `Open in Safari first. ${wrongBrowser} on iPhone cannot install apps`
                   : manual ? 'Two steps, no app store' : 'One click, no app store'}
               </p>
             </div>
@@ -593,7 +593,7 @@ export function InstallPrompt() {
                   ? `Open the ••• menu in ${inApp} now, and choose Open in Safari.`
                   : manual === 'mac'
                     ? 'Now open Share in Safari’s toolbar, at the top of the window.'
-                    : `Now look for the Share button ${shareWhere.replace(/^at /, 'at ')} — the square with an arrow coming out of it.`}
+                    : `Now look for the Share button ${shareWhere.replace(/^at /, 'at ')}. It is the square with an arrow coming out of it.`}
               </p>
             )}
             <button

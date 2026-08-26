@@ -117,18 +117,18 @@ export function parseBackup(text: string): ParseResult {
 export function rosterCsv(db: DB): string {
   const nameById = new Map(db.profiles.map((p) => [p.id, p.full_name]));
   const rows: string[][] = [
-    ['Explorer', 'City', 'Journey stage', 'Track', 'Missionary', 'Started'],
+    ['Explorer', 'City', 'Journey stage', 'Track', 'Guide', 'Started'],
   ];
   for (const pr of db.pairings) {
     const seeker = nameById.get(pr.ds_id) ?? 'Unknown';
-    const missionary = nameById.get(pr.dm_id) ?? 'Unassigned';
+    const guide = nameById.get(pr.dm_id) ?? 'Unassigned';
     const seekerProfile = db.profiles.find((p) => p.id === pr.ds_id);
     rows.push([
       seeker,
       seekerProfile?.city_of_residence ?? '',
       stageInfo(pr.journey_stage as Stage).label,
       pr.track === 'digital' ? 'Digital' : 'Traditional',
-      missionary,
+      guide,
       pr.created_at ? new Date(pr.created_at).toLocaleDateString() : '',
     ]);
   }
