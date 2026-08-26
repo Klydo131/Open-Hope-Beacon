@@ -345,12 +345,17 @@ async function handle(req: Request): Promise<Response> {
   //   "525 Unauthorized IP"        the provider's IP blocking is switched on.
   //   anything else SMTP-shaped    the provider refused; pass on what it said.
   //
-  // The second one is the wall this church kept hitting. Supabase's built-in
-  // mailer allows two messages an hour for the entire project — measured, not
-  // guessed: the auth log shows at most two successes in any hour and a 429 on
-  // everything after. So a Director inviting a third person gets a refusal that
-  // has nothing to do with the address they typed, and the old message showed
-  // them the raw provider text and left them to work that out.
+  // The second one is the wall this church kept hitting. With no provider
+  // connected, Supabase's built-in mailer allows two messages an hour for the
+  // entire project — measured, not guessed: the auth log shows at most two
+  // successes in any hour and a 429 on everything after. So a Director inviting
+  // a third person gets a refusal that has nothing to do with the address they
+  // typed, and the old message showed them the raw provider text and left them
+  // to work that out.
+  //
+  // Connecting SMTP raises that ceiling but does not remove it, and the refusal
+  // arriving here looks identical at either height. The note on the branch
+  // itself explains why the message no longer names a mailer or a number.
   if (sendError) {
     const cooldown = /after (\d+) seconds/i.exec(sendError);
     if (cooldown) {
@@ -376,12 +381,28 @@ async function handle(req: Request): Promise<Response> {
         + 'In Brevo: Settings → Security → Authorized IPs → Deactivate '
         + 'blocking. The link below works meanwhile.';
     } else if (/email rate limit|over_email_send_rate/i.test(sendError)) {
+      // DO NOT NAME THE MAILER OR THE NUMBER HERE.
+      //
+      // This message used to say "Supabase's built-in mailer sends two messages
+      // an hour". That was true of this project and false of any church that had
+      // connected its own provider, which is exactly the group most likely to be
+      // sending in volume and so most likely to read it. A Director on Brevo
+      // hitting their raised ceiling was told to go and connect a provider they
+      // had already connected.
+      //
+      // GoTrue reports the refusal identically either way and never says which
+      // mailer or which ceiling, so the honest message describes the symptom and
+      // names BOTH remedies. Whoever reads it knows which of the two situations
+      // they are in. This function does not, and must not pretend to.
       sendError =
-        'This project has used up its email for the hour. Supabase\u2019s built-in '
-        + 'mailer sends two messages an hour, for the whole church, and both have '
-        + 'gone. Nothing is broken and nothing was lost — send the link below to '
-        + 'this person now, and the next hour starts fresh. To lift that limit, '
-        + 'connect your own email provider: see docs/EMAIL.md.';
+        'This church has used up its email allowance for the hour. Nothing is '
+        + 'broken and nothing was lost: the account exists and the link below '
+        + 'works, so send that to this person now, and the next hour starts '
+        + 'fresh. If no email provider is connected yet, the allowance is two '
+        + 'messages an hour for the whole project, and connecting one is what '
+        + 'lifts it. If a provider is already connected, raise the ceiling under '
+        + 'Authentication and then Rate Limits. Either way, docs/EMAIL.md has '
+        + 'the steps.';
     } else if (/smtp|relay|starttls|authentication failed/i.test(sendError)) {
       // Custom SMTP is configured and the provider said no. Which provider and
       // why is theirs to say, so their words are kept — but the two things a
