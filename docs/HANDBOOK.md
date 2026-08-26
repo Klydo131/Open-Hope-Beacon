@@ -2,7 +2,7 @@
 
 Everything needed to run Open Hope Beacon, move it to a new project, and keep it working. Written for the people who run a church, and for the AI tools that will be asked to continue the work.
 
-**Version:** 26 August 2026 · **Applies to:** migrations through `0035`, invite function `v21` · **Licence:** AGPL-3.0 · **Source:** `github.com/Klydo131/Open-Hope-Beacon`
+**Version:** 26 August 2026 (evening) · **Applies to:** migrations through `0040`, invite function `v22` · **Licence:** AGPL-3.0 · **Source:** `github.com/Klydo131/Open-Hope-Beacon`
 
 > **NOTE** · How to read this
 >
@@ -64,11 +64,13 @@ Five stages, and an Explorer moves through them at their own pace. The stage is 
 
 | Stage | What it means |
 | --- | --- |
-| **Create** | First contact. Somebody has said yes to being walked with. |
+| **Beginner** | Just beginning. Somebody has said yes to being walked with. |
 | **Connect** | Building rapport. Getting to know each other. |
 | **Care** | Walking alongside. The longest stage, and usually the most valuable. |
 | **Call** | A point of decision. |
 | **Cultivate** | Growing in faith after that decision. |
+
+The first stage was called *Create* until August 2026. That named what the church was doing; *Beginner* names where the Explorer is, which is whose journey it is. Nothing changed in the database, so no history moved.
 
 A sixth idea sits behind these: **Commission**. An Explorer who has been walked with becomes a Guide, and walks with somebody else. That is the whole point of the design, and it is the only kind of growth that does not run out.
 
@@ -94,11 +96,19 @@ A sixth idea sits behind these: **Commission**. An Explorer who has been walked 
 
 Open the **Pairings** room, choose one of each, and press **Create pairing**. They can talk from that moment. A Guide already carrying five will not appear in the list, because the database will not allow a sixth.
 
+**Five is a ceiling, and a church can raise it.** A Guide walks with five Explorers by default, enforced by the database. A congregation with more Explorers than Guides can carry may raise that limit in Church settings, up to twenty-five. Only a Director or an Executive Director can, and only for their own church: a Guide can never give themselves more people.
+
+Raising it is a decision, not a drift. Five is the number the design is built around because it is how many people one person can actually walk with.
+
 **The one number worth watching is unpaired Explorers.** An Explorer with no Guide has been invited into an app where nothing happens. Your dashboard opens on that number for exactly this reason.
 
 ### Finding one person
 
 The approved list gets long. Once it passes five accounts a search box appears above it: type any part of a name and the list narrows as you type, showing "4 of 37" so a short list is never mistaken for a lost account.
+
+### The "New" mark
+
+Anybody who finished signing up in the last seven days carries a green **New** badge on the rosters and on a Guide's cards. It works out the answer from the date every time it draws, so it can never be left on somebody by mistake, and it counts from when they chose a password rather than when a Director typed their address.
 
 ### Disapprove, or delete
 
@@ -127,6 +137,26 @@ Three things about it are worth knowing before you use it on twenty people.
 >
 > Decided by the database, not the screen. An Executive Director may act on anyone in a church they oversee. A Director may act on Guides and Explorers only, never another Director. Nobody may act on themselves, and nobody at all may act on the Head Executive Director. If an action is refused you are told why, in a sentence.
 
+### Meetings
+
+A Guide and an Explorer arrange a time together on the same card, and both see it. Either may propose one: a title, a date and time, online or in person, and a place that becomes a map link. The other person confirms it, and either can cancel. Nobody else in the church sees any of it.
+
+### Lesson studies
+
+A Guide writes their own. Create a series, add studies to it, attach the handouts you already use, and publish it when it is ready. Until you publish, only you can see it. Anybody in the church can then open the series, read the studies and open the files.
+
+Directors keep the same control over everything, which is what running the church means. A Guide may edit and delete only what they wrote.
+
+### Undoing a step
+
+Advance stage is one tap, and taps go wrong. **Undo, step back** sits beside it and puts an Explorer back a level. It asks first, and it is recorded as a correction rather than erased, so the history stays honest. The Explorer is never shown their stage either way, so a correction is invisible to the person it is about.
+
+### Numbers a Guide can see
+
+The screen a Guide lands on opens with their own figures: how many Explorers they have, how many have **graduated**, how many are still walking, and the breakdown by level. Above that sits whatever is waiting today, which is usually short: prayer requests, and the next meeting with a name and a day.
+
+**Graduated** means reached Commission: walked the whole journey and now sent to walk with somebody else. It is the number the whole design exists to produce.
+
 ### Safeguarding
 
 Anybody can report a conversation. When they do:
@@ -136,6 +166,20 @@ Anybody can report a conversation. When they do:
 - **The person reported is never told.** No message, no notification, nothing they could notice.
 - The reporter's name is visible to Directors, because a Director cannot support them or tell a genuine concern from a grudge without it.
 - Reports are never deleted, whatever is decided.
+
+### Reading the numbers
+
+The Church screen carries a chart of the last few weeks and four headline figures: Explorers, Guides, Graduated, and how many are waiting for a Guide. Three lines share one scale: people joining, new pairings, and journeys moving.
+
+> **NOTE** · How to read it, in four sentences
+>
+> **Each point is one week.** The point on the far right is the week you are in, so it is always partly finished and always looks low. Compare the two before it.
+>
+> **Average and middle week are both shown** because they disagree in the case that matters. One busy week after a quiet month pulls the average up; the middle week is closer to an ordinary one.
+>
+> **A flat line is not a failure.** A church of forty is not supposed to be busy every week. What is worth acting on is *Waiting for a Guide* above zero, and a month of nothing at all.
+
+The same numbers download as a CSV that opens in Excel, Google Sheets, Numbers or LibreOffice, with one row per week and the totals underneath. For a board pack, use the browser's own print, which every phone and computer can already save as a PDF. Nobody's name is in either file.
 
 ### The board report
 
@@ -193,6 +237,18 @@ Nobody reinstalls. When a new version ships, every open copy notices within seco
 > Signing in is stored in the browser, tied to the database project, and shipping new code does not touch it. Nor does the offline cache being rebuilt, nor the crash recovery, which clears caches only. There is a test that fails the build if that ever stops being true.
 >
 > **Two things do end every session, and both are in Part 7:** moving to a different database project, and changing the web address.
+
+### Something to listen to
+
+Every signed-in screen carries a small player in the right-hand column, and the library has the full version. Ambience is **made on the device as it plays**: rainfall, distant surf, plain hush. There is no file to download, it costs no data, and it works with no signal.
+
+Three tabs. **Ambience** is the generated sound. **Playlists** are your own, saved on your device and never uploaded: name one, then add whatever is playing to it. A playlist can mix ambience and church audio, so rainfall behind a recorded sermon is one list. **Library** is anything your church added as audio.
+
+What somebody listens to while they read is nobody else's business, which is why playlists stay on the device rather than in the church's database.
+
+### Notifications
+
+The bell in the header holds both the list and its switch. Alerts in the app are **on by default**. Device alerts are the browser's to grant: the panel offers to ask once, and if a browser has already refused it says where to change that rather than offering a button that would do nothing.
 
 ## 6. Email, end to end
 
@@ -412,6 +468,10 @@ Two scheduled jobs live in the repository. Both are free on a public repository,
 | "This copy can never update" | It was installed from a temporary preview address. | Open the real address, install from there, then delete the old icon. |
 | A setting was changed and nothing happened | The two settings beginning `NEXT_PUBLIC_` are read when the site is built. | Redeploy. Saving alone changes nothing. |
 | Everybody was signed out at once | The database project changed, the web address changed, or the project's signing secret was rotated. A code deploy does not do this. | See Part 7. If the address changed, people must reinstall as well. |
+| "Your account is not ready. JWT expired." | Fixed on 26 August 2026. A sign-in lasts one hour unless the app trades its refresh token for a new one, and nothing did, so everybody was signed out an hour after signing in. | Nothing to do. A session now lasts until somebody signs out, and coming back to the app re-checks it. |
+| A stage was advanced by mistake | Advance is one tap. | **Undo, step back** beside it. Recorded as a correction, and the Explorer never sees their stage either way. |
+| A Guide cannot take another Explorer | They are at the church's limit, five by default. | Pair with another Guide, recruit one, or raise the limit in Church settings. Do not raise it to solve a shortage of Guides. |
+| The whole left column is invisible on a dark theme | Fixed on 26 August 2026. The page background was not being themed, so light text landed on a light page. | Nothing to do. |
 | A Guide cannot be given another Explorer | They already have five. The database refuses a sixth. | Pair with a different Guide, or recruit one. Do not raise the cap to solve a shortage of Guides. |
 
 ## 11. For an AI tool continuing this
@@ -467,7 +527,7 @@ Stated plainly, because a plan that hides its gaps is worse than no plan.
 | Non-English wording | Eleven translations still use the old words for Explorer and Guide. Whether those names translate at all is a decision per language. |
 | Two end-to-end tests | Failing before this work started, in the guided tutorial. Diagnose before demonstrating the tutorial. |
 | Creating a new church without a developer | Possible in the database, not yet possible from a screen. |
-| Bulk invitations | **Designed, not built.** See below. Acting on many existing accounts at once IS built; it is only inviting in bulk that is not. |
+| Bulk invitations by dropped spreadsheet | Pasting a list **is built**. Dragging a .csv or .xlsx onto the screen is not, and is the remaining stage. |
 | The one-tap Safari handoff on a real device | Tested against simulated iPhone browsers. Never run on a physical iPhone. |
 
 ### Bulk invitations, as specified

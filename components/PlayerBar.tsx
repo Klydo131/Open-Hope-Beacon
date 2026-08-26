@@ -15,7 +15,8 @@
 
 import { useState } from 'react';
 import { AMBIENCE, playerCredit, usePlayer, type Track } from '@/lib/player';
-import { Card } from '@/components/ui';
+import { usePlayerLists } from '@/lib/player-lists';
+import { Button, Card } from '@/components/ui';
 import type { RoomTheme } from '@/lib/room-theme';
 
 function Credit({ className = '' }: { className?: string }) {
@@ -84,15 +85,26 @@ export function PlayerStrip({ theme }: { theme: RoomTheme }) {
   );
 }
 
-type Tab = 'ambience' | 'library';
+type Tab = 'ambience' | 'playlists' | 'library';
 
 export function PlayerPanel({ libraryTracks = [] }: { libraryTracks?: Track[] }) {
   const player = usePlayer();
+  const lists = usePlayerLists();
   const [tab, setTab] = useState<Tab>('ambience');
+  const [newName, setNewName] = useState('');
+  const [openList, setOpenList] = useState('');
   if (!player) return null;
   const { current, playing, volume, toggle, play, setVolume } = player;
 
-  const shown = tab === 'ambience' ? AMBIENCE : libraryTracks;
+  // Everything the player can reach, so a playlist can hold ambience and
+  // library audio side by side. Somebody wanting rainfall behind a sermon
+  // recording should not need two players to do it.
+  const everything = [...AMBIENCE, ...libraryTracks];
+  const byId = new Map(everything.map((t) => [t.id, t]));
+  const tracksOf = (ids: string[]) =>
+    ids.map((id) => byId.get(id)).filter((t): t is Track => Boolean(t));
+
+  const shown = tab === 'ambience' ? AMBIENCE : tab === 'library' ? libraryTracks : [];
 
   return (
     <Card className="p-5">
@@ -131,20 +143,116 @@ export function PlayerPanel({ libraryTracks = [] }: { libraryTracks?: Track[] })
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {(['ambience', 'library'] as Tab[]).map((t) => (
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        {(['ambience', 'playlists', 'library'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`tap-sm rounded-xl px-4 py-2 text-sm font-bold capitalize ${
+            className={`tap-sm rounded-xl px-3 py-2 text-sm font-bold ${
               tab === t ? 'bg-navy text-white' : 'bg-gray-100 text-navy hover:bg-gray-200'
             }`}
           >
-            {t === 'ambience' ? 'Ambience' : 'From the library'}
+            {t === 'ambience' ? 'Ambience' : t === 'playlists' ? 'Playlists' : 'Library'}
           </button>
         ))}
       </div>
+
+      {/* PLAYLISTS. Kept on this device, never uploaded: what somebody listens
+          to while they read is nobody else's business, and a church database is
+          a place other people can see. */}
+      {tab === 'playlists' && (
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Name a playlist, for example Sabbath study"
+              className="min-w-0 flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm"
+            />
+            <Button
+              variant="ghost"
+              disabled={!newName.trim()}
+              onClick={() => {
+                // Seeded with whatever is playing, because the moment somebody
+                // wants a playlist is usually while listening to something.
+                lists.create(newName, current ? [current.id] : []);
+                setNewName('');
+              }}
+            >
+              Create
+            </Button>
+          </div>
+
+          {lists.lists.length === 0 && (
+            <p className="rounded-xl bg-gray-50 p-3 text-sm text-gray-500">
+              No playlists yet. Name one above, then use <strong>Add to playlist</strong>
+              {' '}on any track.
+            </p>
+          )}
+
+          {lists.lists.map((list) => {
+            const tracks = tracksOf(list.trackIds);
+            const open = openList === list.id;
+            return (
+              <div key={list.id} className="rounded-xl bg-gray-50 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setOpenList(open ? '' : list.id)}
+                    className="flex-1 text-left font-semibold text-navy underline underline-offset-2"
+                  >
+                    {list.name}
+                  </button>
+                  <span className="text-xs text-gray-500">
+                    {tracks.length} {tracks.length === 1 ? 'track' : 'tracks'}
+                  </span>
+                  <Button
+                    disabled={tracks.length === 0}
+                    onClick={() => play(tracks[0], tracks)}
+                  >
+                    Play
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => lists.remove(list.id)}
+                    className="text-xs text-gray-400 underline"
+                  >
+                    Delete
+                  </button>
+                </div>
+                {open && (
+                  <ul className="mt-2 space-y-1">
+                    {tracks.length === 0 && (
+                      <li className="text-sm text-gray-500">
+                        Nothing in here yet.
+                      </li>
+                    )}
+                    {tracks.map((t) => (
+                      <li key={t.id} className="flex items-center gap-2 text-sm">
+                        <button
+                          type="button"
+                          onClick={() => play(t, tracks)}
+                          className="min-w-0 flex-1 truncate text-left font-semibold text-navy"
+                        >
+                          {t.icon ?? '🎵'} {t.title}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => lists.removeFrom(list.id, t.id)}
+                          className="text-xs text-gray-400 underline"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="mt-3 space-y-1.5">
         {shown.length === 0 && (
@@ -172,6 +280,23 @@ export function PlayerPanel({ libraryTracks = [] }: { libraryTracks?: Track[] })
             </button>
           );
         })}
+
+        {/* ADD TO PLAYLIST, where the tracks are. A select rather than a menu:
+            it is one tap on a phone and needs no dismiss logic. Drawn only when
+            a playlist exists, so it never offers an empty list. */}
+        {shown.length > 0 && lists.lists.length > 0 && current && (
+          <label className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 p-2.5 text-sm">
+            <span className="font-semibold text-navy">Add what is playing to</span>
+            <select
+              value=""
+              onChange={(e) => { if (e.target.value) lists.addTo(e.target.value, current.id); }}
+              className="rounded-xl border border-gray-300 px-2 py-1"
+            >
+              <option value="">Choose a playlist…</option>
+              {lists.lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+          </label>
+        )}
       </div>
 
       {/* AMBIENCE IS GENERATED, and saying so is worth a line: somebody on a

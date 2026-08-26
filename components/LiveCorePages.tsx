@@ -31,6 +31,7 @@ import { LiveStudies } from '@/components/LiveStudies';
 import { LiveBulkInvite } from '@/components/LiveBulkInvite';
 import { LiveExport } from '@/components/LiveExport';
 import { LiveAnalytics } from '@/components/LiveAnalytics';
+import { PlayerPanel } from '@/components/PlayerBar';
 import { NewBadge } from '@/components/NewBadge';
 import { Avatar, Button, Card } from '@/components/ui';
 
@@ -1391,6 +1392,7 @@ export function LiveAdminPage() {
             per-Explorer share buttons, which is right: stocking the shelf is a
             Director's job, handing a book to one person is a Guide's. */}
         {room === 'lessons' && <LiveLibraryForGuide pairings={[]} />}
+        {room === 'lessons' && <PlayerPanel />}
 
         {room === 'approvals' && (
         <Card className="p-5">
@@ -1939,6 +1941,10 @@ export function LiveGuidePage() {
           files, so what arrives actually opens on their phone. */}
       <div className="mt-6">
         <LiveLibraryForGuide pairings={rows.map((r) => ({ id: r.id, ds_name: r.ds_name }))} />
+        {/* Ambience, playlists and anything the church added as audio. The rail
+            carries the same player, so starting here and walking away keeps it
+            playing. */}
+        <PlayerPanel />
       </div>
 
       {/* Named requests from their own Explorers, then the nameless wall the
@@ -2366,6 +2372,7 @@ export function LiveExplorerPage() {
             exactly that and nothing had ever called them. */}
         {pairing && <LiveMeetings pairingId={pairing.id} withName={pairing.dm_name} />}
         <LiveSharedWithMe />
+        <PlayerPanel />
         <LiveStudies />
         <LiveBlogFeed selfId={profile?.id} />
         <LiveAskForPrayer />
