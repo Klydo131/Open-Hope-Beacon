@@ -97,6 +97,13 @@ export function railGroupsFor(
   // nothing is open.
   const cases = { href: '/cases', label: 'Cases', icon: '⚖️' };
 
+  // THE OFFICE, for everybody who has work to do in this app rather than a
+  // journey to walk. The tools were scattered through the screens that are
+  // about people, which made those screens long and the tools hard to find.
+  // Explorers do not get it: none of it is theirs to do, and an empty room
+  // tells somebody they are missing something.
+  const office = { href: '/office', label: 'Office', icon: '🗂️' };
+
   if (role === 'ds') {
     return [
       {
@@ -119,6 +126,7 @@ export function railGroupsFor(
         links: [
           home,
           { href: '/dm', label: 'My Explorers', icon: '🤝', badge: counts.seekers },
+          office,
           { href: '/library', label: 'Resources', icon: '📚' },
           cases,
         ],
@@ -134,6 +142,7 @@ export function railGroupsFor(
       links: [
         home,
         { href: '/admin', label: 'Admin', icon: '🛡️', badge: counts.approvals },
+        office,
         { href: '/library', label: 'Resources', icon: '📚' },
         cases,
       ],

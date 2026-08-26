@@ -26,11 +26,9 @@ import { useDraft, clearDraft } from '@/lib/drafts';
 import { Linked } from '@/components/Linked';
 import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
-import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveNotes } from '@/components/LiveMinistry';
+import { LiveRecommendationsForDirector, LiveFollowUps, LiveNotes } from '@/components/LiveMinistry';
 import { LiveStudies } from '@/components/LiveStudies';
 import { LiveBulkInvite } from '@/components/LiveBulkInvite';
-import { LiveExport } from '@/components/LiveExport';
-import { LiveAnalytics } from '@/components/LiveAnalytics';
 import { NewBadge } from '@/components/NewBadge';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { Avatar, Button, Card, Tabs } from '@/components/ui';
@@ -1386,16 +1384,11 @@ export function LiveAdminPage() {
             church's totals cannot run it. */}
         {room === 'church' && profile && <LiveGuilds me={profile} />}
         {room === 'church' && <LiveChurchPulse />}
-        {/* A church that cannot get its own member list out of the app is
-            depending on us still being here next year. */}
-        {room === 'church' && <LiveAnalytics churchName={church?.name} />}
-        {room === 'church' && <LiveExport churchName={church?.name} />}
-        {/* A DIRECTOR'S OWN WRITING, which is not the same thing as an
-            announcement. An announcement is the church speaking; a post is a
-            person speaking, and it can be addressed to the whole church, to the
-            people they walk with, or to named people. It lands on everybody's
-            Home through Community Blogs. */}
-        {room === 'church' && <LiveBlogDesk />}
+        {/* THE NUMBERS, THE DOWNLOADS AND THE WRITING MOVED TO THE OFFICE.
+            They were three clicks inside an admin tab, which is not where
+            anybody looks for the thing they open on a Tuesday morning. This
+            room keeps what it is for: the state of the church and its guilds.
+            See app/office/page.tsx. */}
 
         {/* THE LIBRARY BELONGS TO DIRECTORS TOO.
             The tutorial's Director walk ends on "Stock the library", and live
@@ -2015,28 +2008,21 @@ export function LiveGuidePage() {
       </div>
       {rows.length === 0 && !error && <Card className="mt-6 p-6 text-center text-gray-500">No active pairing yet.</Card>}
 
+      {/* FOLLOW-UPS STAY. They are about the people on this list and nothing
+          else, which is what this screen is for. Writing studies, stocking the
+          shelf, recommending somebody and the blog desk all moved to the
+          Office, because they are work rather than people and they were making
+          this page four screens long. See app/office/page.tsx. */}
       <div className="mt-6 space-y-6">
-        <LiveRecommend />
         <LiveFollowUps pairings={rows.map((r) => ({ id: r.id, ds_name: r.ds_name }))} />
-        <LiveStudies canWrite />
       </div>
 
-      {/* The library, with a share button per Explorer. Links rather than
-          files, so what arrives actually opens on their phone. */}
-      <div className="mt-6">
-        <LiveLibraryForGuide pairings={rows.map((r) => ({ id: r.id, ds_name: r.ds_name }))} />
-      </div>
-
-      {/* Named requests from their own Explorers, then the nameless wall the
-          rest of the church sees. Both, because a Guide is also a member. */}
+      {/* Named requests from their own Explorers. A prayer request is about a
+          person, so it belongs here rather than in the Office. */}
       <div className="mt-6 space-y-6">
         <LivePrayerForGuide nameFor={(id) => rows.find((r) => r.ds_id === id)?.ds_name ?? 'An Explorer'} />
       </div>
 
-      {/* Last on the page on purpose: the people waiting on this Guide come
-          first, and writing is what you do once everyone is answered. Reading
-          what everybody else wrote comes after that again. */}
-      <div className="mt-6"><LiveBlogDesk /></div>
       <div className="mt-6"><LiveBlogFeed selfId={profile?.id} /></div>
     </LiveAppShell>
   );
@@ -2579,15 +2565,19 @@ export function LiveExplorerPage() {
         {pairing && <LiveMeetings pairingId={pairing.id} withName={pairing.dm_name} />}
         <LiveSharedWithMe />
         <LiveStudies />
-        {/* AN EXPLORER MAY WRITE TOO. Writing was limited to Guides and
-            leaders, so this screen offered a blog the database refused to
-            accept — see migration 0042. */}
+
+        {/* WRITE, THEN READ, THEN ASK, and that order is deliberate.
+            Your own writing first, because it is yours and it is the shorter
+            card. What everybody else wrote next. Asking for prayer last, at the
+            foot of the page, because it is the most exposed thing anybody does
+            in this app and it should not be the first thing on the screen every
+            time somebody opens their journey.
+
+            AN EXPLORER MAY WRITE AT ALL only since migration 0042. Before that
+            this screen offered a blog the database refused to accept. */}
         <LiveBlogDesk />
-        <LiveAskForPrayer />
-        {/* COMMUNITY BLOGS GO LAST, on every home screen. See LiveChurchPages
-            for why: what a person came here to do belongs above what everybody
-            else has written. */}
         <LiveBlogFeed selfId={profile?.id} />
+        <LiveAskForPrayer />
       </div>
     </LiveAppShell>
   );

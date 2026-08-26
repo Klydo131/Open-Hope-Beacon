@@ -264,25 +264,37 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
         </div>
       )}
 
-      <div className="mt-4 space-y-4">
+      {/* TIGHTER, ON PURPOSE. Each series was a padded box with a gap between
+          its title and its own one-line description, so four studies filled a
+          screen and the card read as four separate things rather than one list.
+          A list of short items wants less air, not more: the grouping does the
+          separating, and the padding only has to stop the text touching the
+          edge. */}
+      <div className="mt-3 space-y-3">
         {rows?.length === 0 && <p className="text-sm text-gray-400">No series yet.</p>}
         {Object.entries(byTopic).map(([t, list]) => (
           <div key={t}>
-            <h3 className="text-sm font-bold uppercase tracking-wide text-gray-500">{t}</h3>
-            <div className="mt-1 space-y-2">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-gray-400">{t}</h3>
+            <div className="mt-1.5 space-y-1.5">
               {list.map((s) => {
                 const mine = !!profile && s.author_id === profile.id;
                 const opened = open === s.id;
                 return (
-                  <div key={s.id} className="rounded-xl bg-gray-50 p-3">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div key={s.id} className="rounded-xl bg-gray-50 px-4 py-2.5">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       {/* THE WHOLE ROW OPENS IT. The complaint was that a
-                          series could not be clicked at all. */}
+                          series could not be clicked at all. The chevron says
+                          so without an underline, which on a list of four
+                          titles reads as four links rather than four rows. */}
                       <button
                         type="button"
                         onClick={() => setOpen(opened ? '' : s.id)}
-                        className="flex-1 text-left font-semibold text-navy underline underline-offset-2"
+                        aria-expanded={opened}
+                        className="flex flex-1 items-center gap-1.5 text-left font-semibold text-navy"
                       >
+                        <span aria-hidden className="text-xs text-gray-400">
+                          {opened ? '▾' : '▸'}
+                        </span>
                         {s.title}
                       </button>
                       {!s.is_published && (
@@ -312,7 +324,9 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
                       )}
                     </div>
                     {s.description && (
-                      <p className="mt-1 text-sm text-gray-600"><Linked text={s.description} /></p>
+                      <p className="pl-[1.1rem] text-sm leading-snug text-gray-500">
+                        <Linked text={s.description} />
+                      </p>
                     )}
                     {opened && <SeriesBody series={s} mine={mine} />}
                   </div>
