@@ -994,6 +994,14 @@ export function LiveAdminPage() {
   // browser confirm. A confirm() dialog on a phone lands under the thumb that
   // just tapped Delete, and the button that dismisses it is the one that agrees.
   const [confirmDelete, setConfirmDelete] = useState('');
+  // Bulk selection, held as ids rather than as a flag on each row, so the set
+  // survives the list being re-sorted or re-filtered under it.
+  const [picked, setPicked] = useState<string[]>([]);
+  // '' none pending, 'disapprove' or 'delete' waiting on the second press.
+  const [bulkAsk, setBulkAsk] = useState<'' | 'disapprove' | 'delete'>('');
+  // What happened to each person in the last batch. A batch that reports one
+  // number hides the one refusal that mattered.
+  const [bulkResult, setBulkResult] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1032,6 +1040,9 @@ export function LiveAdminPage() {
   const approvedShown = approvedNeedle
     ? approved.filter((member) => (member.full_name || '').toLowerCase().includes(approvedNeedle))
     : approved;
+  // Only the rows on screen. Select-all and its half-ticked state both mean
+  // "of what you can see", never "of everything the filter is hiding".
+  const pickedShown = approvedShown.filter((member) => picked.includes(member.id));
   // Directors are their own room, and only an Executive has one. A Director
   // does not manage other Directors, so showing them the tab would be a room
   // with nothing they can do in it.
@@ -1182,6 +1193,58 @@ export function LiveAdminPage() {
     } finally {
       setBusy('');
     }
+  };
+
+  // ACTING ON SEVERAL PEOPLE AT ONCE, ONE PERSON AT A TIME UNDERNEATH.
+  //
+  // There is no bulk endpoint and there should not be. Every rule that governs
+  // a single removal -- who may act on whom, the discipline log, freeing the
+  // address -- lives in the database function, and a batch call would have to
+  // reimplement all three. So the batch is a loop over the same call.
+  //
+  // ONE REFUSAL MUST NOT UNDO THE REST. A Director selecting twelve people and
+  // catching one refusal on a Director they may not touch should still have
+  // acted on the other eleven, and should be told exactly which one failed.
+  // Reporting "12 accounts" and meaning eleven is how trust in a bulk action
+  // goes, permanently.
+  const runBulk = async (what: 'disapprove' | 'delete') => {
+    const people = approved.filter((member) => picked.includes(member.id));
+    if (people.length === 0) return;
+    setBusy('bulk');
+    setError('');
+    setNotice('');
+    const done: string[] = [];
+    const failed: string[] = [];
+    for (const member of people) {
+      const who = member.full_name || 'An account';
+      try {
+        if (what === 'delete') {
+          const verdict = await live.removeMemberByLeader(member.id);
+          if (verdict !== 'ok') { failed.push(`${who}: ${verdict}`); continue; }
+        } else {
+          await live.disapproveMember(member.id);
+        }
+        done.push(who);
+      } catch (cause) {
+        failed.push(`${who}: ${errorText(cause)}`);
+      }
+    }
+    setBulkResult(failed);
+    if (done.length > 0) {
+      setNotice(
+        what === 'delete'
+          ? `${done.length} ${done.length === 1 ? 'account was' : 'accounts were'} deleted. `
+            + 'Their email addresses are free again.'
+          : `${done.length} ${done.length === 1 ? 'account' : 'accounts'} no longer have workspace access.`,
+      );
+    }
+    if (failed.length > 0) {
+      setError(`${failed.length} could not be done. See below.`);
+    }
+    setPicked([]);
+    setBulkAsk('');
+    setBusy('');
+    await load();
   };
 
   const pair = async (event: React.FormEvent) => {
@@ -1446,6 +1509,116 @@ export function LiveAdminPage() {
             </div>
           )}
 
+          {/* SELECT ALL MEANS ALL OF WHAT YOU CAN SEE, not all of everything.
+              With a search of "ma" showing four rows, a box labelled Select all
+              that quietly took thirty-seven is the difference between
+              disapproving four people and disapproving a church. */}
+          {approvedShown.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-gray-50 px-3 py-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-navy">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={pickedShown.length === approvedShown.length && approvedShown.length > 0}
+                  ref={(node) => {
+                    // Some are picked, but not all. The browser has a third
+                    // state for exactly this and it has to be set in code.
+                    if (node) node.indeterminate =
+                      pickedShown.length > 0 && pickedShown.length < approvedShown.length;
+                  }}
+                  onChange={(event) => {
+                    const shown = approvedShown.map((m) => m.id);
+                    setPicked((prev) => (event.target.checked
+                      ? [...new Set([...prev, ...shown])]
+                      : prev.filter((id) => !shown.includes(id))));
+                  }}
+                />
+                {approvedNeedle ? `Select these ${approvedShown.length}` : 'Select all'}
+              </label>
+              {picked.length > 0 && (
+                <>
+                  <span className="text-sm text-gray-500">{picked.length} selected</span>
+                  <div className="ml-auto flex flex-wrap gap-2">
+                    <Button
+                      variant="ghost"
+                      className="text-red-700"
+                      disabled={busy === 'bulk'}
+                      onClick={() => setBulkAsk('disapprove')}
+                    >
+                      Disapprove selected
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="text-red-700"
+                      disabled={busy === 'bulk'}
+                      onClick={() => setBulkAsk('delete')}
+                    >
+                      Delete selected
+                    </Button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* THE SECOND PRESS NAMES EVERY PERSON. "Delete 12 accounts?" is not
+              a confirmation, it is a number: nobody can tell from it whether
+              the twelve are the twelve they meant. Deleting cannot be undone,
+              so the list is spelled out before it happens. */}
+          {bulkAsk && picked.length > 0 && (
+            <div className={`mt-3 rounded-xl p-3 ring-1 ${
+              bulkAsk === 'delete' ? 'bg-red-50 ring-red-200' : 'bg-amber-50 ring-amber-200'
+            }`}>
+              <p className={`text-sm font-bold ${bulkAsk === 'delete' ? 'text-red-900' : 'text-amber-900'}`}>
+                {bulkAsk === 'delete'
+                  ? `Delete ${picked.length} ${picked.length === 1 ? 'account' : 'accounts'} permanently?`
+                  : `Disapprove ${picked.length} ${picked.length === 1 ? 'account' : 'accounts'}?`}
+              </p>
+              <p className={`mt-1 text-sm ${bulkAsk === 'delete' ? 'text-red-800' : 'text-amber-800'}`}>
+                {approved.filter((m) => picked.includes(m.id))
+                  .map((m) => m.full_name || 'Unnamed account').join(', ')}
+              </p>
+              <p className={`mt-1 text-sm ${bulkAsk === 'delete' ? 'text-red-800' : 'text-amber-800'}`}>
+                {bulkAsk === 'delete'
+                  ? 'Their accounts, messages and pairings go and cannot be brought back. Their email addresses are freed, so they can be invited again later.'
+                  : 'They keep their accounts and history, and cannot enter until you approve them again.'}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button
+                  variant="ghost"
+                  className={bulkAsk === 'delete'
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-amber-600 text-white hover:bg-amber-700'}
+                  disabled={busy === 'bulk'}
+                  onClick={() => void runBulk(bulkAsk)}
+                >
+                  {busy === 'bulk'
+                    ? 'Working…'
+                    : bulkAsk === 'delete' ? 'Yes, delete them all' : 'Yes, disapprove them'}
+                </Button>
+                <Button variant="ghost" onClick={() => setBulkAsk('')}>Cancel</Button>
+              </div>
+            </div>
+          )}
+
+          {/* PER PERSON, NOT PER BATCH. A refusal names who and why, so a
+              Director can act on it rather than re-running the whole batch. */}
+          {bulkResult.length > 0 && (
+            <div className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
+              <p className="font-bold">Not everybody could be done:</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                {bulkResult.map((line) => <li key={line}>{line}</li>)}
+              </ul>
+              <button
+                type="button"
+                onClick={() => setBulkResult([])}
+                className="mt-2 text-xs font-semibold underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           <div className="mt-4 space-y-2">
             {loading ? <p className="text-gray-400">Loading…</p> : approved.length === 0 ? (
               <p className="text-gray-400">No approved accounts to manage.</p>
@@ -1454,6 +1627,15 @@ export function LiveAdminPage() {
             ) : approvedShown.map((member) => (
               <div key={member.id} className="rounded-xl bg-gray-50 px-4 py-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 self-start sm:self-center"
+                    aria-label={`Select ${member.full_name || 'this account'}`}
+                    checked={picked.includes(member.id)}
+                    onChange={(event) => setPicked((prev) => (event.target.checked
+                      ? [...prev, member.id]
+                      : prev.filter((id) => id !== member.id)))}
+                  />
                   <Avatar name={member.full_name || 'Member'} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-navy">{member.full_name || 'Member'}</p>

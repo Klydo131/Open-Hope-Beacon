@@ -23,7 +23,9 @@
 import { useEffect, useState } from 'react';
 import { Button, Card } from '@/components/ui';
 import {
+  OpenInSafari,
   inAppBrowser,
+  iosBrowser,
   iosShareLocation,
   isInstallable,
   isIos,
@@ -45,6 +47,9 @@ export function InstallCard() {
   const [wrongHost, setWrongHost] = useState(false);
   const [steps, setSteps] = useState(false);
   const [inApp, setInApp] = useState('');
+  // Chrome, Firefox, Edge or Opera on an iPhone. A real browser, and still one
+  // that Apple will not let install an app.
+  const [wrongBrowser, setWrongBrowser] = useState('');
   const [shareWhere, setShareWhere] = useState('at the bottom of Safari');
 
   useEffect(() => {
@@ -53,6 +58,7 @@ export function InstallCard() {
 
     setPlatform(isIos() ? 'ios' : isMacSafari() ? 'mac' : 'other');
     setInApp(inAppBrowser());
+    setWrongBrowser(iosBrowser());
     setShareWhere(iosShareLocation());
 
     // Arrived from the header's Install chip, which on Apple is the only thing
@@ -127,9 +133,38 @@ export function InstallCard() {
             It cannot install apps. Only Safari can, so open this page in Safari
             and the option appears.
           </p>
-          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-amber-900">
+          <OpenInSafari from={inApp} />
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-amber-900/70">
+            Or do it by hand
+          </p>
+          <ol className="mt-1 list-decimal space-y-1.5 pl-5 text-sm text-amber-900">
             <li>Tap the <strong>•••</strong> menu, usually top right.</li>
             <li>Choose <strong>Open in Safari</strong>, or <strong>Open in browser</strong>.</li>
+            <li>In Safari, tap <strong>Share</strong> {shareWhere.replace(/^at /, '')}, then <strong>Add to Home Screen</strong>.</li>
+          </ol>
+        </div>
+      ) : wrongBrowser ? (
+        // A REAL BROWSER, AND STILL THE WRONG ONE. Chrome, Firefox, Edge and
+        // Opera on iOS all run Safari's engine underneath and still cannot add
+        // to the home screen, because Apple grants that to Safari alone. The
+        // reported bug was people switching from Chrome to Safari and finding
+        // it "still not working" -- they had switched by opening Safari and
+        // typing the address, which loses the invitation link they were on.
+        <div className="mt-4 rounded-xl bg-amber-50 p-4 ring-1 ring-amber-200">
+          <p className="font-semibold text-amber-900">
+            {wrongBrowser} on an iPhone cannot install apps
+          </p>
+          <p className="mt-1 text-sm text-amber-900">
+            Apple allows only Safari to do it. The button below carries this
+            exact page across, so nothing is lost on the way.
+          </p>
+          <OpenInSafari from={wrongBrowser} />
+          <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-amber-900/70">
+            Or do it by hand
+          </p>
+          <ol className="mt-1 list-decimal space-y-1.5 pl-5 text-sm text-amber-900">
+            <li>Tap the <strong>•••</strong> menu in {wrongBrowser}.</li>
+            <li>Choose <strong>Open in Safari</strong>.</li>
             <li>In Safari, tap <strong>Share</strong> {shareWhere.replace(/^at /, '')}, then <strong>Add to Home Screen</strong>.</li>
           </ol>
         </div>

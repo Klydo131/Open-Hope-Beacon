@@ -68,6 +68,28 @@ const safariTestAt = code.search(/return\s*''\s*;\s*\n\s*\}/);
 ok(criosAt !== -1 && (safariTestAt === -1 || criosAt < safariTestAt),
    'the specific browsers are tested before falling through to Safari');
 
+// THE ONE-TAP HANDOFF, and the gate that keeps it on the right platform.
+//
+// `x-safari-https://...` asks iOS to reopen the page in Safari, which is the
+// only browser Apple lets install an app. It must never be offered anywhere
+// else: in-app browsers exist on Android too, and telling an Android user to
+// open Safari names a browser their phone does not have.
+//
+// This is checked here, at the source, because it cannot be checked in the
+// browser. tests/e2e/safari-handoff.js tried and its Android assertion passed
+// with the gate deliberately removed -- the surface it reads never renders the
+// handoff on Android for an unrelated reason. This check does fail when the
+// gate goes.
+ok(/x-safari-/.test(code), 'a one-tap handoff into Safari exists');
+{
+  const fn = code.slice(code.indexOf('export function safariHandoffUrl'));
+  const body = fn.slice(0, fn.indexOf('\n}'));
+  ok(/!isIos\(\)/.test(body),
+     'and it is gated on iOS, so Android is never told to open Safari');
+  ok(body.indexOf('!isIos()') < body.indexOf('x-safari-'),
+     'with the gate BEFORE the link is built, not after');
+}
+
 // ---------------------------------------------------------------------------
 // The output side: what actually reaches an iPhone.
 // ---------------------------------------------------------------------------

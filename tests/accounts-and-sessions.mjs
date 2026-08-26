@@ -97,6 +97,43 @@ const DATA = 'lib/live/data.ts';
 }
 
 // ---------------------------------------------------------------------------
+// 2b. Acting on many accounts at once, without acting on the wrong ones.
+// ---------------------------------------------------------------------------
+// A bulk delete is the most dangerous control in the app: it is irreversible,
+// it is one press, and the thing it acts on is a selection the Director cannot
+// see all of at once. Three properties make it safe enough to exist.
+{
+  const adminCode = code(ADMIN);
+
+  // (a) SELECT ALL MEANS THE ROWS ON SCREEN. With a search showing four of
+  //     thirty-seven, a select-all that quietly took all thirty-seven is the
+  //     difference between disapproving four people and disapproving a church.
+  ok(/approvedShown\.map\(\(m\) => m\.id\)/.test(adminCode),
+     'select-all takes the ids of the FILTERED rows, not of every account');
+  ok(/pickedShown/.test(adminCode),
+     'and the half-ticked state is measured against the filtered rows too');
+
+  // (b) THE CONFIRMATION NAMES PEOPLE. "Delete 12 accounts?" is a number, not
+  //     a confirmation: nobody can tell from it whether the twelve are the
+  //     twelve they meant, and there is no undo to find out with.
+  ok(/picked\.includes\(m\.id\)\)\s*\n?\s*\.map\(\(m\) => m\.full_name/.test(adminCode)
+     || /\.map\(\(m\) => m\.full_name \|\| 'Unnamed account'\)\.join\(', '\)/.test(adminCode),
+     'the confirmation lists every name, not just how many');
+
+  // (c) ONE REFUSAL DOES NOT UNDO THE REST. The database refuses some pairs of
+  //     people on purpose -- a Director may not remove another Director -- and
+  //     a batch that abandons the other eleven on the first refusal makes the
+  //     Director redo work they already decided on.
+  const bulk = adminCode.slice(adminCode.indexOf('const runBulk'));
+  const body = bulk.slice(0, bulk.indexOf('\n  };'));
+  ok(/for \(const member of people\)/.test(body), 'the batch acts on one person at a time');
+  ok(/catch \(cause\)/.test(body) && /continue;/.test(body),
+     'and a refusal or a throw moves on to the next person rather than abandoning the batch');
+  ok(/failed\.push/.test(body) && /setBulkResult/.test(body),
+     'and every failure is reported by name afterwards');
+}
+
+// ---------------------------------------------------------------------------
 // 3. Shipping an update does not sign anybody out.
 // ---------------------------------------------------------------------------
 // The session is one localStorage entry, `sb-<project-ref>-auth-token`. Nothing

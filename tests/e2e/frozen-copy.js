@@ -95,6 +95,22 @@ async function open(browser, { standalone, path }) {
   }
 
   await browser.close();
+  // WHY THIS SUITE FAILS IN THE GENERAL HARNESS, said here rather than left to
+  // be rediscovered. CANONICAL_HOST is stamped into the bundle at BUILD time,
+  // and `npm run verify:all` builds without it, so the app under test has no
+  // idea which address is its real one and the warning can never appear. The
+  // feature is fine; the build is not the one this suite needs. Without this
+  // line the failure reads as "the frozen-copy warning is broken", which sent
+  // one investigation down the wrong path already.
+  if (bad > 0) {
+    console.log(
+      '\nHINT: this suite needs the canonical host stamped into the build.\n'
+      + '      CANONICAL_HOST=beacon.example npm run build\n'
+      + '      node scripts/run-next.mjs start -p 4396 &\n'
+      + '      node tests/e2e/frozen-copy.js 4396\n'
+      + '      A plain `npm run build` cannot pass this, and that is not a product bug.',
+    );
+  }
   console.log(bad === 0 ? '\nAll frozen-copy checks passed.' : `\n${bad} failed.`);
   process.exit(bad === 0 ? 0 : 1);
 })().catch((e) => { console.error(e); process.exit(1); });

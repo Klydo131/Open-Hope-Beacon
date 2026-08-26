@@ -4,6 +4,7 @@ import { onCanonicalHost } from '@/lib/canonical';
 import { useDemo } from '@/lib/demo/store';
 import { useEffect, useState } from 'react';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { copyText } from '@/lib/share';
 
 // -------------------------------------------------------------------------
 // "Install Hope Beacon".
@@ -236,6 +237,98 @@ export function iosShareLocation(): string {
   return bigScreen ? 'at the top of Safari' : 'at the bottom of Safari';
 }
 
+/**
+ * A link that opens THIS page in Safari, from a browser that cannot install.
+ *
+ * WHY THIS IS THE BEST AVAILABLE ANSWER ON APPLE.
+ *
+ * Only Safari may add an app to the iPhone home screen. That is Apple's rule,
+ * it applies to every website equally, and no amount of code changes it. What
+ * IS in our hands is the distance between "you are in the wrong browser" and
+ * "you are in Safari", and until now that distance was three instructions
+ * about a ••• menu whose position differs in every app that has one.
+ *
+ * iOS understands a URL beginning `x-safari-https://` as "open the rest of
+ * this in Safari". Chrome, Firefox, Edge and most in-app browsers hand it to
+ * the system, which opens Safari on the same page. One tap instead of three
+ * steps, and no menu to find.
+ *
+ * IT IS OFFERED, NEVER RELIED ON. The scheme is not documented by Apple, some
+ * in-app browsers refuse to hand off at all, and nothing reports a refusal:
+ * the tap simply does nothing. So the written steps stay on screen underneath
+ * it, always, and the copy button is there for the person whose browser
+ * refuses both. A tap that does nothing costs a second; a tap that replaces
+ * the instructions and then does nothing costs the install.
+ *
+ * RETURNS '' ANYWHERE THAT IS NOT iOS, and that is not a detail. Messenger and
+ * Instagram have in-app browsers on Android too, and they cannot install either
+ * -- but the answer there is Chrome, which CAN, and telling an Android user to
+ * open Safari names a browser that does not exist on their phone. The iOS test
+ * is what keeps this advice attached to the platform it is true on.
+ */
+export function safariHandoffUrl(): string {
+  if (typeof window === 'undefined') return '';
+  if (!isIos()) return '';
+  return `x-safari-${window.location.href}`;
+}
+
+/**
+ * One tap to Safari, with a copy fallback and no promise it worked.
+ *
+ * `from` names the browser they are in, because "open in Safari" means nothing
+ * to somebody who does not know they are not in Safari.
+ */
+export function OpenInSafari({ from }: { from: string }) {
+  const [href, setHref] = useState('');
+  const [copied, setCopied] = useState<'' | 'yes' | 'failed'>('');
+  const [tapped, setTapped] = useState(false);
+
+  // Read the address after mount. On the server there is no location, and a
+  // link rendered empty and filled in later is better than one that differs
+  // between the server's HTML and the browser's.
+  useEffect(() => { setHref(safariHandoffUrl()); }, []);
+
+  // copyText, not navigator.clipboard. Safari refuses the write when the
+  // document is not focused and the API does not exist at all over plain http;
+  // lib/share.ts owns those two failures in one place, and a security check
+  // fails the build if this reaches for the raw API instead.
+  const copy = async () => {
+    setCopied((await copyText(window.location.href)) ? 'yes' : 'failed');
+  };
+
+  if (!href) return null;
+
+  return (
+    <div className="mt-2 rounded-xl bg-amber-50 p-3 ring-1 ring-amber-200">
+      <p className="text-sm font-bold text-amber-900">
+        {from} cannot install apps. Safari can.
+      </p>
+      <a
+        href={href}
+        onClick={() => setTapped(true)}
+        className="tap mt-2 flex w-full items-center justify-center rounded-xl px-4 text-base font-bold text-white"
+        style={{ backgroundColor: '#1E2A4A' }}
+      >
+        Open this page in Safari
+      </a>
+      <button
+        type="button"
+        onClick={() => void copy()}
+        className="mt-1.5 w-full rounded-xl py-2 text-xs font-semibold text-amber-900"
+      >
+        {copied === 'yes' ? '✓ Link copied. Paste it into Safari.'
+          : copied === 'failed' ? 'Could not copy. Use the address bar above.'
+          : 'Or copy the link and paste it into Safari'}
+      </button>
+      {tapped && (
+        <p className="mt-1 text-xs text-amber-800">
+          If Safari did not open, use the steps below instead.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function isDesktop(): boolean {
   if (typeof window === 'undefined') return false;
   return window.matchMedia('(min-width: 768px)').matches;
@@ -425,8 +518,9 @@ export function InstallPrompt() {
               </li>
             </ul>
 
-            {manual || inApp ? (
+            {manual || inApp || wrongBrowser ? (
               <>
+                {(inApp || wrongBrowser) && <OpenInSafari from={inApp || wrongBrowser} />}
                 {/* A REAL BUTTON ON APPLE. Safari has never fired
                     beforeinstallprompt, so nothing here can install for the
                     person. Pressing this shows the two controls to press, in
@@ -570,6 +664,7 @@ export function InstallPrompt() {
                 behind a tap sent them looking for a Share button that does not
                 exist in the browser they are in. tests/e2e/in-app-browser.js
                 fails the build if this is ever gated again. */}
+            {(inApp || wrongBrowser) && <OpenInSafari from={inApp || wrongBrowser} />}
             <ol className="mt-2 space-y-1.5 rounded-xl bg-gray-50 p-3 text-sm text-navy">
               {steps.map((step, i) => (
                 <li key={step} className="flex gap-2">

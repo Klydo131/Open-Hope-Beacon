@@ -283,6 +283,11 @@ const GUARDRAILS = new Set([
   // server configuration names without permitting an actual key.
   'docs/BUILD-BRIEF.md',
   'docs/DEMO-SETUP.md',
+  // The handbook is the setup instructions for a church's own project. It has
+  // to name SITE_URL to tell somebody where to put it, in the same way and for
+  // the same reason as DEMO-SETUP.md. It carries no key, no hostname and no
+  // member's name, and the credential-shape scan above still applies to it.
+  'docs/HANDBOOK.md',
   'supabase/functions/invite/index.ts',
   // The handbook generators are documentation that happens to be JavaScript.
   // They teach an IT reader which variables to set and which key must never be

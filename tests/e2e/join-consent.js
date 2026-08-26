@@ -40,7 +40,23 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
   ok(await box.count() > 0, 'there is a permission checkbox');
   ok((await box.isChecked()) === false, 'it is NOT ticked by default');
   ok(await page.getByText(/Grace SDA Church/).count() > 0, 'the consent names the church');
-  ok(await page.getByText(/withdraw this at any time/i).count() > 0, 'it says the permission can be withdrawn');
+  // THIS ASSERTION USED TO DEMAND A PROMISE THE APP NO LONGER KEEPS.
+  //
+  // The consent said "I can withdraw this at any time from Settings, and my
+  // details are removed when I do", and Settings had the button behind it.
+  // Migration 0035 removed the withdrawal and the button together, because a
+  // member may correct their details but not erase the record of having
+  // changed them; their Guide and their Director see the change.
+  //
+  // So the check flips. What matters now is that the app does NOT make a
+  // promise it cannot honour, at the exact moment it asks somebody to trust
+  // it, and that what replaced it is stated instead of merely omitted.
+  ok(await page.getByText(/withdraw/i).count() === 0,
+    'the app promises no withdrawal it can no longer honour');
+  ok(await page.getByText(/keep them truthful/i).count() > 0,
+    'and states the obligation that replaced it');
+  ok(await page.getByText(/can see when I change them/i).count() > 0,
+    'and says who sees a change, which is why the withdrawal went');
 
   const join = page.getByRole('button', { name: /Join Hope Beacon/i }).first();
   ok(await join.isDisabled(), 'cannot join without ticking permission');
