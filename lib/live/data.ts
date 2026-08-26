@@ -1091,6 +1091,63 @@ export async function unshareMaterial(shareId: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// The church noticeboard.
+// ---------------------------------------------------------------------------
+//
+// Notices the whole church reads and only leadership writes. Kept apart from
+// the blog because they are different things: a blog post belongs to whoever
+// wrote it and is addressed to the people they walk with; a notice belongs to
+// the church.
+
+export interface Announcement {
+  id: string;
+  icon: string;
+  title: string;
+  body: string;
+  when_text: string;
+  is_pinned: boolean;
+  created_at: string;
+}
+
+export async function listAnnouncements(): Promise<Announcement[]> {
+  const { data, error } = await db().from('announcements')
+    .select('id, icon, title, body, when_text, is_pinned, created_at')
+    .order('is_pinned', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Announcement[];
+}
+
+export async function addAnnouncement(
+  a: { icon?: string; title: string; body?: string; whenText?: string },
+): Promise<void> {
+  const supabase = db();
+  const me_id = await uid();
+  const { data: me } = await supabase.from('profiles').select('church_id').eq('id', me_id).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+  const { error } = await supabase.from('announcements').insert({
+    church_id: me.church_id,
+    author_id: me_id,
+    icon: (a.icon || '📌').slice(0, 8),
+    title: a.title.trim(),
+    body: (a.body || '').trim(),
+    when_text: (a.whenText || '').trim(),
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** Take a notice down without deleting it, so it can go back up. */
+export async function pinAnnouncement(id: string, pinned: boolean): Promise<void> {
+  const { error } = await db().from('announcements').update({ is_pinned: pinned }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteAnnouncement(id: string): Promise<void> {
+  const { error } = await db().from('announcements').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
 // A face to put to the name.
 // ---------------------------------------------------------------------------
 //

@@ -20,6 +20,7 @@ import { roleNoun } from '@/lib/brand';
 import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
+import { LiveBillboard } from '@/components/LiveBillboard';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Something went wrong. Please try again.';
@@ -46,10 +47,9 @@ export function LiveChurchPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-extrabold text-navy">{churchName ?? 'Our church'}</h1>
-        <p className="text-gray-500">Where everyone is, and what the church is praying for.</p>
-      </div>
+      {/* THE BOARD, not a heading and two numbers. Masthead, anything waiting
+          for a Director, and the church's own notices. */}
+      <LiveBillboard churchName={churchName} />
       <LiveChurchOverview />
       {/* The board report is numbers only, and it names nobody — so it is safe
           for every role to see, not just leadership. A Guide who can see what

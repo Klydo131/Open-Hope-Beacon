@@ -29,6 +29,7 @@ import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive'
 import { LiveRecommend, LiveRecommendationsForDirector, LiveFollowUps, LiveNotes } from '@/components/LiveMinistry';
 import { LiveStudies } from '@/components/LiveStudies';
 import { LiveBulkInvite } from '@/components/LiveBulkInvite';
+import { LiveExport } from '@/components/LiveExport';
 import { Avatar, Button, Card } from '@/components/ui';
 
 const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -1365,6 +1366,9 @@ export function LiveAdminPage() {
             church's totals cannot run it. */}
         {room === 'church' && profile && <LiveGuilds me={profile} />}
         {room === 'church' && <LiveChurchPulse />}
+        {/* A church that cannot get its own member list out of the app is
+            depending on us still being here next year. */}
+        {room === 'church' && <LiveExport churchName={church?.name} />}
 
         {/* THE LIBRARY BELONGS TO DIRECTORS TOO.
             The tutorial's Director walk ends on "Stock the library", and live
