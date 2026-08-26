@@ -16,6 +16,7 @@ import { INDEXABLE } from '@/lib/site-visibility';
 import { LiveSessionProvider } from '@/lib/live/session';
 import { TutorialModeProvider } from '@/lib/tutorial';
 import { TutorialExtras } from '@/components/TutorialExtras';
+import { PlayerProvider } from '@/lib/player';
 
 export const metadata: Metadata = {
   // The name comes from lib/brand.ts so a fork changes it in one place. It also
@@ -97,9 +98,22 @@ export default function RootLayout({
           <TutorialModeProvider>
             <DemoProvider>
               <LiveSessionProvider>
-                {children}
-                <TutorialExtras />
-                <InstallPrompt />
+                {/* THE PLAYER LIVES HERE, ABOVE THE ROUTES, and that placement
+                    is the whole feature rather than tidiness.
+
+                    The small player in the right rail and the full one on the
+                    library page are two views of one thing. Held inside the
+                    app shell, as it was, the library page sat on a different
+                    route with a different provider — so starting rainfall in
+                    the rail and opening the library gave you a second, silent
+                    player, and walking back cut the sound off. A layout above
+                    both survives navigation between them, so the track keeps
+                    running while you move around the app. */}
+                <PlayerProvider>
+                  {children}
+                  <TutorialExtras />
+                  <InstallPrompt />
+                </PlayerProvider>
               </LiveSessionProvider>
             </DemoProvider>
           </TutorialModeProvider>

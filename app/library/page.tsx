@@ -12,11 +12,7 @@ import {
   putMedia,
   getBlob,
   deleteMedia,
-  typeFromMime,
   humanSize,
-  inspectPlayableMedia,
-  prepareMediaStorage,
-  LocalMediaError,
   newMediaId,
   resolutionLabel,
   type MediaMeta,
@@ -25,7 +21,9 @@ import { shareItem, blobToFile } from '@/lib/share';
 import { ShareButton } from '@/components/ShareSheet';
 import { MediaPlayer } from '@/components/MediaPlayer';
 import { Playlists } from '@/components/Playlists';
+import { PlayerPanel } from '@/components/PlayerBar';
 import { useRoom } from '@/lib/room-theme';
+import { saveFilesFromInput, savedMessage } from '@/lib/save-media';
 import { useDemo } from '@/lib/demo/store';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import { STARTER_KIT, KIT_TOPICS } from '@/lib/starter-kit';
@@ -84,57 +82,19 @@ export default function LibraryPage() {
   };
 
   const onFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // The reset happens in the `finally` at the end, NOT here. WebKit
-    // invalidates a File once its input is cleared, and every byte below is
-    // read after an await, so clearing first aborted the whole upload on Safari
-    // and iOS while working perfectly in Chromium.
-    const input = e.target;
-    const files = Array.from(input.files ?? []);
-    if (files.length === 0) return;
+    // ONE UPLOAD PATH IN THE APP. This used to be fifty lines here and the
+    // player's Vault button would have needed its own copy — including the
+    // WebKit fix that took a live Safari bug to find. It lives in
+    // lib/save-media.ts now, and both buttons call it.
     setBusy(true);
-    try {
-      await prepareMediaStorage(files.reduce((sum, file) => sum + file.size, 0));
-      const ready: Array<{
-        file: File;
-        type: MediaMeta['type'];
-        info: Pick<MediaMeta, 'width' | 'height' | 'duration'>;
-      }> = [];
-      for (const file of files) {
-        const type = typeFromMime(file.type);
-        const info = type === 'audio' || type === 'video'
-          ? await inspectPlayableMedia(file, type)
-          : {};
-        ready.push({ file, type, info });
-      }
-      for (const { file, type, info } of ready) {
-        const meta: MediaMeta = {
-          id: newMediaId(),
-          title: file.name,
-          type,
-          note: note || undefined,
-          mime: file.type,
-          size: file.size,
-          created_at: new Date().toISOString(),
-          ...info,
-        };
-        await putMedia(meta, file);
-      }
+    const result = await saveFilesFromInput(e.target, note);
+    setBusy(false);
+    if (result.saved > 0) {
       setNote('');
       await refresh();
-      flash(files.length === 1 ? 'Saved to your device' : `${files.length} files saved`);
-    } catch (error) {
-      flash(
-        error instanceof LocalMediaError
-          ? error.message
-          : 'Could not save. Your device storage may be full.',
-      );
-    } finally {
-      setBusy(false);
-      // Now that every File has been read, clearing the input is safe. This is
-      // what lets the same file be chosen twice in a row; doing it up front
-      // aborted the read on WebKit.
-      input.value = '';
     }
+    const said = savedMessage(result);
+    if (said) flash(said);
   };
 
   const addLink = async () => {
@@ -233,6 +193,28 @@ export default function LibraryPage() {
           column; a SHELF wants the room it has. This grows in steps, so a
           tablet gets a tablet's width and a desktop gets a desktop's. */}
       <main className="mx-auto max-w-3xl space-y-6 px-4 pb-6 pt-16 md:max-w-5xl lg:max-w-6xl xl:max-w-7xl xl:px-8">
+        {/* THE FULL PLAYER LIVES HERE AND NOWHERE ELSE, AND IT GOES FIRST.
+
+            It used to sit on My Journey and on the Guide's workspace, where it
+            was the largest card on a screen that is meant to be about the
+            person's next step. Two players competing for one page is not two
+            chances to press play; it is a page that has lost its subject.
+
+            So the split is by size. The right rail carries the small one in
+            every room, for the track you already started; the choosing happens
+            here, on the page that is already about media. Both drive the same
+            audio — the provider sits in the root layout — so starting something
+            here and walking back to a room keeps it playing.
+
+            First on the page, above the toolkit, because this is the control
+            somebody came to this screen to use. The toolkit is a shelf you read
+            from occasionally; the player is the thing you press. */}
+        <PlayerPanel
+          vault={items}
+          theme={theme}
+          onAddMedia={() => fileRef.current?.click()}
+        />
+
         {/* The starter toolkit — the same shelf for every account, Executive to
             anyone exploring. Real published resources, linked to the official free
             source. Beacon hosts none of them. */}

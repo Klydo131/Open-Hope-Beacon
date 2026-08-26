@@ -835,7 +835,18 @@ export function subscribeToMessages(pairingId: string, onChange: () => void) {
 // ---------------------------------------------------------------------------
 
 export type BlogVisibility = 'private' | 'published';
-export type BlogAudienceKind = 'all' | 'selected';
+/**
+ * Who a post is for.
+ *
+ *   church   — everybody in the writer's church. The noticeboard.
+ *   all      — the people the writer walks with. For a Guide that is their
+ *              Explorers; for an Explorer it is their Guide. Leaders' `all`
+ *              posts also reach their whole church, which is how the board
+ *              worked before `church` existed and is left alone so nothing
+ *              already published changes audience.
+ *   selected — named people, and nobody else.
+ */
+export type BlogAudienceKind = 'all' | 'church' | 'selected';
 
 /** A post as its author sees it: with the count, and who it was addressed to. */
 export interface MyBlogPost {
@@ -850,12 +861,21 @@ export interface MyBlogPost {
   audience_ids: string[];
 }
 
-/** A post as a reader sees it. No count, no audience — neither is their business. */
+/**
+ * A post as a reader sees it, with a name on it.
+ *
+ * The reader count stays out: that is the writer's, and a reader knowing how
+ * many others have read a post changes what the post is. Who wrote it does
+ * belong here — a noticeboard anyone may post to is unreadable without it.
+ */
 export interface FeedPost {
   id: string;
   author_id: string;
+  author_name: string;
+  author_role: Role;
   title: string;
   body: string;
+  audience: BlogAudienceKind;
   created_at: string;
 }
 
@@ -867,18 +887,19 @@ export async function listMyBlogPosts(): Promise<MyBlogPost[]> {
 }
 
 /**
- * What this caller may read. The policy decides; this asks for everything.
+ * What this caller may read, newest first, with the writer's name on each.
  *
- * A Guide's own published posts come back here too, which is why the caller
- * filters by author — a Guide's feed should show what was written FOR them,
- * not an echo of their own writing.
+ * `can_read_post` decides — the same function the table's own SELECT policy
+ * uses — so this asks for everything and gets back exactly what it is allowed.
+ *
+ * The caller's own posts come back here too. That used to be filtered out on
+ * the grounds that a Guide should see what was written FOR them; on a church
+ * noticeboard it is the opposite, because a post you wrote is part of the board
+ * everybody else is reading and leaving it out makes the board look wrong to
+ * its own author.
  */
-export async function listBlogFeed(): Promise<FeedPost[]> {
-  const { data, error } = await db()
-    .from('blog_posts')
-    .select('id, author_id, title, body, created_at')
-    .eq('visibility', 'published')
-    .order('created_at', { ascending: false });
+export async function listBlogFeed(limit = 100): Promise<FeedPost[]> {
+  const { data, error } = await db().rpc('blog_feed', { p_limit: limit });
   if (error) throw new Error(error.message);
   return (data ?? []) as FeedPost[];
 }
@@ -2198,11 +2219,21 @@ export interface ChurchPulse {
   messages_30d: number;
 }
 
+/**
+ * One entry in the church's record of who was let in, switched off or removed.
+ *
+ * `approved` and `disapproved` joined the older three in migration 0041. Before
+ * that a disapproval left no trace at all, so "how many did we turn away this
+ * quarter" had no answer — the profile simply carried a false flag and nothing
+ * said when, or who by. Approvals are recorded alongside the refusals on
+ * purpose: a log that keeps only the punishments reads like a charge sheet
+ * rather than a record of decisions.
+ */
 export interface DisciplineEntry {
   id: string;
   person_name: string;
   person_role: string;
-  action: 'suspended' | 'released' | 'removed';
+  action: 'suspended' | 'released' | 'removed' | 'approved' | 'disapproved';
   reason: string | null;
   by_name: string;
   guild_names: string[];

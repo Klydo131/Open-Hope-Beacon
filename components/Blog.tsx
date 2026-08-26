@@ -56,7 +56,7 @@ export function BlogDesk({ userId }: { userId: string }) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [audience, setAudience] = useState<BlogAudienceKind>('all');
+  const [audience, setAudience] = useState<BlogAudienceKind>('church');
   const [picked, setPicked] = useState<string[]>([]);
   const [confirming, setConfirming] = useState('');
 
@@ -78,7 +78,7 @@ export function BlogDesk({ userId }: { userId: string }) {
     db.blog_views.filter((v) => v.post_id === postId).length;
 
   const canPost = title.trim().length > 0 && body.trim().length > 0
-    && (audience === 'all' || picked.length > 0);
+    && (audience !== 'selected' || picked.length > 0);
 
   const submit = () => {
     if (!canPost) return;
@@ -139,6 +139,16 @@ export function BlogDesk({ userId }: { userId: string }) {
 
           <fieldset className="mt-3">
             <legend className="text-sm font-semibold text-navy">Who sees it</legend>
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="radio"
+                name="blog-audience"
+                checked={audience === 'church'}
+                onChange={() => setAudience('church')}
+              />
+              Everyone in the church
+              <span className="text-gray-400">(it goes on the church home screen)</span>
+            </label>
             <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
               <input
                 type="radio"
@@ -146,7 +156,7 @@ export function BlogDesk({ userId }: { userId: string }) {
                 checked={audience === 'all'}
                 onChange={() => setAudience('all')}
               />
-              Everyone I walk with
+              Only the people I walk with
               <span className="text-gray-400">
                 ({explorers.length} {explorers.length === 1 ? 'person' : 'people'}, and anyone paired with me later)
               </span>
@@ -212,7 +222,11 @@ export function BlogDesk({ userId }: { userId: string }) {
                 </span>
               ) : (
                 <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-bold text-green-800">
-                  {p.audience === 'all' ? 'EVERYONE' : 'CHOSEN PEOPLE'}
+                  {p.audience === 'church'
+                    ? 'THE WHOLE CHURCH'
+                    : p.audience === 'all'
+                      ? 'THE PEOPLE I WALK WITH'
+                      : 'CHOSEN PEOPLE'}
                 </span>
               )}
             </div>
@@ -267,7 +281,9 @@ export function BlogDesk({ userId }: { userId: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// The Explorer's side: what their Guide has published for them.
+// The reader's side: the church noticeboard, plus anything written for them
+// personally. Named for what it is now rather than for the Guide-only version
+// it started as.
 // ---------------------------------------------------------------------------
 export function BlogFeed({ userId }: { userId: string }) {
   const { db, recordBlogView } = useDemo();
@@ -286,8 +302,11 @@ export function BlogFeed({ userId }: { userId: string }) {
     () =>
       db.blog_posts.filter((p) => {
         if (p.visibility !== 'published') return false;
-        if (!myGuides.has(p.author_id)) return false;
-        if (p.audience === 'all') return true;
+        // THE NOTICEBOARD REACHES EVERYBODY, whoever wrote it. This used to
+        // require the author be one of your Guides, which is right for the two
+        // narrower audiences and wrong for the board.
+        if (p.audience === 'church') return true;
+        if (p.audience === 'all') return myGuides.has(p.author_id);
         return db.blog_audience.some((a) => a.post_id === p.id && a.ds_id === userId);
       }),
     [db.blog_posts, db.blog_audience, myGuides, userId],
@@ -303,11 +322,14 @@ export function BlogFeed({ userId }: { userId: string }) {
   if (posts.length === 0) return null;
 
   const nameOf = (id: string) =>
-    db.profiles.find((x) => x.id === id)?.full_name ?? 'Your Guide';
+    db.profiles.find((x) => x.id === id)?.full_name ?? 'Someone';
 
   return (
     <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">📖 From your Guide</h2>
+      <h2 className="text-xl font-bold text-navy">📣 Church noticeboard</h2>
+      <p className="mt-0.5 text-sm text-gray-500">
+        What people in your church have published, newest first.
+      </p>
       <div className="mt-3 space-y-4">
         {posts.map((p: BlogPost) => (
           <article key={p.id} className="rounded-xl bg-navy/5 p-4">

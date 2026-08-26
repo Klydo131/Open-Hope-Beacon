@@ -19,6 +19,7 @@ import { copyText } from '@/lib/share';
 import { Button, Card } from '@/components/ui';
 import { roleNoun } from '@/lib/brand';
 import * as live from '@/lib/live/data';
+import { LiveBlogFeed } from '@/components/LiveBlog';
 import { useLiveSession } from '@/lib/live/session';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
 import { LiveBillboard } from '@/components/LiveBillboard';
@@ -48,6 +49,12 @@ export function LiveChurchPage() {
 
   return (
     <div className="space-y-6">
+      {/* THE NOTICEBOARD IS THE FIRST THING ON HOME, above the masthead.
+          Home is where "Home" in the rail lands and where every account starts,
+          and what people write to each other is the reason to come back to it;
+          the church's own statistics are context around that, not the point of
+          the screen. It draws nothing at all when nobody has published. */}
+      <LiveBlogFeed selfId={profile.id} />
       {/* THE BOARD, not a heading and two numbers. Masthead, anything waiting
           for a Director, and the church's own notices. */}
       <LiveBillboard churchName={churchName} />

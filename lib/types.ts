@@ -252,7 +252,15 @@ export interface MaterialShare {
 // wants yesterday's note off the front page should not have to destroy it.
 // ---------------------------------------------------------------------------
 export type BlogVisibility = 'private' | 'published';
-export type BlogAudienceKind = 'all' | 'selected';
+/**
+ * Who a post is for. Mirrors the live enum (migration 0042) exactly, so the
+ * tutorial teaches the choice people actually get.
+ *
+ *   church   — everybody in the church. The noticeboard.
+ *   all      — the people the writer walks with.
+ *   selected — named people, and nobody else.
+ */
+export type BlogAudienceKind = 'all' | 'church' | 'selected';
 
 export interface BlogPost {
   id: string;

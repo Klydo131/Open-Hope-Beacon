@@ -31,7 +31,6 @@ import { LiveStudies } from '@/components/LiveStudies';
 import { LiveBulkInvite } from '@/components/LiveBulkInvite';
 import { LiveExport } from '@/components/LiveExport';
 import { LiveAnalytics } from '@/components/LiveAnalytics';
-import { PlayerPanel } from '@/components/PlayerBar';
 import { NewBadge } from '@/components/NewBadge';
 import { Avatar, Button, Card } from '@/components/ui';
 
@@ -1383,6 +1382,12 @@ export function LiveAdminPage() {
             depending on us still being here next year. */}
         {room === 'church' && <LiveAnalytics churchName={church?.name} />}
         {room === 'church' && <LiveExport churchName={church?.name} />}
+        {/* A DIRECTOR'S OWN WRITING, which is not the same thing as an
+            announcement. An announcement is the church speaking; a post is a
+            person speaking, and it can be addressed to the whole church, to the
+            people they walk with, or to named people. It lands on everybody's
+            Home through the noticeboard. */}
+        {room === 'church' && <LiveBlogDesk />}
 
         {/* THE LIBRARY BELONGS TO DIRECTORS TOO.
             The tutorial's Director walk ends on "Stock the library", and live
@@ -1392,7 +1397,6 @@ export function LiveAdminPage() {
             per-Explorer share buttons, which is right: stocking the shelf is a
             Director's job, handing a book to one person is a Guide's. */}
         {room === 'lessons' && <LiveLibraryForGuide pairings={[]} />}
-        {room === 'lessons' && <PlayerPanel />}
 
         {room === 'approvals' && (
         <Card className="p-5">
@@ -1885,6 +1889,10 @@ export function LiveGuidePage() {
       <p className="mt-1 text-room-soft">Only people paired with you appear here.</p>
       {error && <div className="mt-5"><Notice tone="error">{error}</Notice></div>}
 
+      {/* THE NOTICEBOARD, FIRST THING, same as every other role's home screen.
+          Draws nothing when nobody has published. */}
+      <div className="mt-5"><LiveBlogFeed selfId={profile?.id} /></div>
+
       {/* HOW MANY, AT WHAT LEVEL, AND HOW MANY HAVE FINISHED.
           A Guide could see a list of cards and nothing else: answering "where
           are my people up to" meant reading every card and counting. These are
@@ -1941,10 +1949,6 @@ export function LiveGuidePage() {
           files, so what arrives actually opens on their phone. */}
       <div className="mt-6">
         <LiveLibraryForGuide pairings={rows.map((r) => ({ id: r.id, ds_name: r.ds_name }))} />
-        {/* Ambience, playlists and anything the church added as audio. The rail
-            carries the same player, so starting here and walking away keeps it
-            playing. */}
-        <PlayerPanel />
       </div>
 
       {/* Named requests from their own Explorers, then the nameless wall the
@@ -2318,6 +2322,11 @@ export function LiveExplorerPage() {
         </div>
         {error && <Notice tone="error">{error}</Notice>}
 
+        {/* THE NOTICEBOARD, FIRST THING. What the church is saying comes before
+            this person's own journey furniture, on every role's home screen.
+            Draws nothing when nobody has published. */}
+        <LiveBlogFeed selfId={profile?.id} />
+
         {/* An Explorer called into a case is the person with the least standing
             in it, so their answer has to be reachable on their own home screen
             rather than somewhere they would have to be told about. It draws
@@ -2372,9 +2381,11 @@ export function LiveExplorerPage() {
             exactly that and nothing had ever called them. */}
         {pairing && <LiveMeetings pairingId={pairing.id} withName={pairing.dm_name} />}
         <LiveSharedWithMe />
-        <PlayerPanel />
         <LiveStudies />
-        <LiveBlogFeed selfId={profile?.id} />
+        {/* AN EXPLORER MAY WRITE TOO. Writing was limited to Guides and
+            leaders, so this screen offered a blog the database refused to
+            accept — see migration 0042. */}
+        <LiveBlogDesk />
         <LiveAskForPrayer />
       </div>
     </LiveAppShell>

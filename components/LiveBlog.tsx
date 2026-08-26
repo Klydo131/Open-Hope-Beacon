@@ -19,6 +19,8 @@ import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { Linked } from '@/components/Linked';
+import { roleLabel } from '@/lib/brand';
+import { useLiveSession } from '@/lib/live/session';
 
 function when(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -46,7 +48,7 @@ function Body({ text }: { text: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// The Guide's desk.
+// The writer's desk. Anybody approved in a church has one.
 // ---------------------------------------------------------------------------
 export function LiveBlogDesk() {
   const [posts, setPosts] = useState<live.MyBlogPost[] | null>(null);
@@ -54,7 +56,7 @@ export function LiveBlogDesk() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [audience, setAudience] = useState<live.BlogAudienceKind>('all');
+  const [audience, setAudience] = useState<live.BlogAudienceKind>('church');
   const [picked, setPicked] = useState<string[]>([]);
   const [confirming, setConfirming] = useState('');
   const [busy, setBusy] = useState(false);
@@ -85,7 +87,9 @@ export function LiveBlogDesk() {
     return () => { alive = false; };
   }, []);
 
-  const canPost = Boolean(title.trim() && body.trim() && (audience === 'all' || picked.length > 0));
+  const canPost = Boolean(
+    title.trim() && body.trim() && (audience !== 'selected' || picked.length > 0),
+  );
 
   const submit = async (visibility: live.BlogVisibility) => {
     if (!title.trim() || !body.trim() || busy) return;
@@ -93,7 +97,7 @@ export function LiveBlogDesk() {
     setError('');
     try {
       await live.createBlogPost({ title, body, visibility, audience, dsIds: picked });
-      setTitle(''); setBody(''); setAudience('all'); setPicked([]); setOpen(false);
+      setTitle(''); setBody(''); setAudience('church'); setPicked([]); setOpen(false);
       await load();
     } catch (cause) {
       setError(message(cause));
@@ -115,8 +119,8 @@ export function LiveBlogDesk() {
         <div>
           <h2 className="text-xl font-bold text-navy">✍️ Your blog</h2>
           <p className="text-sm text-gray-500">
-            Something said once, to everyone you walk with. They read it in their
-            own time and owe you no reply.
+            Something said once, to the whole church or to a few people. They
+            read it in their own time and owe you no reply.
           </p>
         </div>
         <Button onClick={() => setOpen((v) => !v)}>{open ? 'Close' : 'Write'}</Button>
@@ -143,19 +147,35 @@ export function LiveBlogDesk() {
             className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2"
           />
 
+          {/* THE NOTICEBOARD IS FIRST because it is what most people mean by
+              publishing. The two narrower audiences are still here, and a post
+              addressed to one of them is not on the board at all. */}
           <fieldset className="mt-3">
             <legend className="text-sm font-semibold text-navy">Who sees it</legend>
             <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" name="lblog-aud" checked={audience === 'all'} onChange={() => setAudience('all')} />
-              Everyone I walk with
-              <span className="text-gray-400">
-                ({people.length} {people.length === 1 ? 'person' : 'people'}, and anyone paired with me later)
-              </span>
+              <input type="radio" name="lblog-aud" checked={audience === 'church'} onChange={() => setAudience('church')} />
+              Everyone in the church
+              <span className="text-gray-400">(it goes on the church home screen)</span>
             </label>
             <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
-              <input type="radio" name="lblog-aud" checked={audience === 'selected'} onChange={() => setAudience('selected')} />
-              Only the people I choose
+              <input type="radio" name="lblog-aud" checked={audience === 'all'} onChange={() => setAudience('all')} />
+              Only the people I walk with
+              <span className="text-gray-400">
+                {people.length === 0
+                  ? '(whoever you are paired with)'
+                  : `(${people.length} ${people.length === 1 ? 'person' : 'people'}, and anyone paired with me later)`}
+              </span>
             </label>
+            {/* Hidden when there is nobody to choose from. An Explorer walks
+                with one Guide, so a picker with nothing in it is an option that
+                cannot be completed, sitting under a button that stays
+                disabled. */}
+            {people.length > 0 && (
+              <label className="mt-1 flex items-center gap-2 text-sm text-gray-700">
+                <input type="radio" name="lblog-aud" checked={audience === 'selected'} onChange={() => setAudience('selected')} />
+                Only the people I choose
+              </label>
+            )}
           </fieldset>
 
           {audience === 'selected' && (
@@ -198,7 +218,11 @@ export function LiveBlogDesk() {
                 <span className="rounded-full bg-gray-200 px-2.5 py-1 text-[11px] font-bold text-gray-700">DRAFT</span>
               ) : (
                 <span className="rounded-full bg-green-100 px-2.5 py-1 text-[11px] font-bold text-green-800">
-                  {p.audience === 'all' ? 'EVERYONE' : 'CHOSEN PEOPLE'}
+                  {p.audience === 'church'
+                    ? 'THE WHOLE CHURCH'
+                    : p.audience === 'all'
+                      ? 'THE PEOPLE I WALK WITH'
+                      : 'CHOSEN PEOPLE'}
                 </span>
               )}
             </div>
@@ -242,7 +266,26 @@ export function LiveBlogDesk() {
 // ---------------------------------------------------------------------------
 // The Explorer's feed.
 // ---------------------------------------------------------------------------
+/**
+ * The church noticeboard, first thing on Home.
+ *
+ * WHAT CHANGED AND WHY. This was headed "From your Guide" and quietly dropped
+ * the reader's own posts, both of which were right while a Guide was the only
+ * person who could write. Now anybody in the church can, so the heading names
+ * the board rather than one relationship, every post carries its writer, and
+ * your own posts stay in the list — a board that hides your contribution from
+ * you looks broken to the one person who knows exactly what should be on it.
+ *
+ * It renders nothing at all when the board is empty and nothing failed. An
+ * empty card at the top of Home is worse than no card: it is a permanent
+ * reminder of a thing not happening.
+ */
 export function LiveBlogFeed({ selfId }: { selfId?: string }) {
+  // The viewer's own role, because naming somebody's role is not unconditional:
+  // lib/brand.ts hides "Explorer" from viewers who have no business knowing who
+  // is at which stage. Passing the viewer through keeps the noticeboard inside
+  // that rule instead of quietly working around it.
+  const { profile } = useLiveSession();
   const [posts, setPosts] = useState<live.FeedPost[] | null>(null);
   const [error, setError] = useState('');
 
@@ -251,14 +294,12 @@ export function LiveBlogFeed({ selfId }: { selfId?: string }) {
     live.listBlogFeed()
       .then((rows) => {
         if (!alive) return;
-        // The policy already excluded everything not addressed to this person.
-        // Dropping their own posts is presentation, not access control: a Guide
-        // reading this feed should see what was written FOR them.
-        const theirs = selfId ? rows.filter((r) => r.author_id !== selfId) : rows;
-        setPosts(theirs);
+        setPosts(rows);
         // Opening the page is reading it. No button to forget to press, and the
-        // database ignores a second view from the same person.
-        theirs.forEach((r) => void live.recordBlogView(r.id));
+        // database ignores a second view from the same person. Your own post is
+        // not a read of it, so those are left out of the count.
+        rows.filter((r) => r.author_id !== selfId)
+          .forEach((r) => void live.recordBlogView(r.id));
       })
       .catch((cause) => { if (alive) { setPosts([]); setError(message(cause)); } });
     return () => { alive = false; };
@@ -269,7 +310,10 @@ export function LiveBlogFeed({ selfId }: { selfId?: string }) {
 
   return (
     <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">📖 From your Guide</h2>
+      <h2 className="text-xl font-bold text-navy">📣 Church noticeboard</h2>
+      <p className="mt-0.5 text-sm text-gray-500">
+        What people in your church have published, newest first.
+      </p>
       {error && (
         <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-200">
           {error}
@@ -279,7 +323,25 @@ export function LiveBlogFeed({ selfId }: { selfId?: string }) {
         {posts.map((p) => (
           <article key={p.id} className="rounded-xl bg-navy/5 p-4">
             <h3 className="text-lg font-bold text-navy">{p.title}</h3>
-            <p className="mt-0.5 text-xs text-gray-500">{when(p.created_at)}</p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {p.author_id === selfId ? 'You' : p.author_name}
+              {p.author_id !== selfId && profile
+                ? (() => {
+                    const label = roleLabel(p.author_role, profile.role);
+                    return label ? ` · ${label}` : '';
+                  })()
+                : ''}
+              {' · '}
+              {when(p.created_at)}
+              {/* Said plainly, because "published" means two different sizes of
+                  audience and the writer should be able to see which one they
+                  actually chose. */}
+              {p.author_id === selfId && p.audience !== 'church' && (
+                <span className="text-gray-400">
+                  {p.audience === 'all' ? ' · only the people you walk with' : ' · chosen people'}
+                </span>
+              )}
+            </p>
             <Body text={p.body} />
           </article>
         ))}
