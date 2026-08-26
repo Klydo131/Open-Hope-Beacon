@@ -512,15 +512,18 @@ export interface InviteResult {
   ok?: boolean;
   delivery?: 'email' | 'link';
   /**
-   * The join link, ALWAYS present.
+   * The join link, present ONLY when `delivery === 'link'`.
    *
-   * Not only for the failure case. Supabase builds the link in its own email
-   * from the project's Site URL, and if the app's address is not in the Redirect
-   * URLs allow-list that is silently ignored — a project on its defaults mails
-   * everybody a link to http://localhost:3000. The send reports success and the
-   * link is useless. This one is built by our own invite function from the
-   * church's own configured address, so it is correct whatever the provider
-   * dashboard says.
+   * It used to be sent on every reply, and that is what broke every invitation
+   * the app has ever sent. Producing this link mints a one-time token, and
+   * auth.users stores exactly one such token per purpose — so generating it
+   * after a successful send overwrote the token already in the recipient's
+   * inbox, and their link came back "expired or already used". The screens only
+   * ever read this field on the failure path anyway, so the destroyed token
+   * bought nothing.
+   *
+   * When the mail did not go there is no token in an inbox to protect, and this
+   * link is the only way that person gets in. That case is unchanged.
    */
   link?: string;
   /** Why it could not be emailed, in words a person can act on. */

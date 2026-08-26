@@ -415,20 +415,38 @@ async function handle(req: Request): Promise<Response> {
     }
   }
 
-  // A LINK TO PASS ON BY HAND, ALWAYS — not only when the send failed.
+  // MINT THE FALLBACK LINK ONLY WHEN THE MAIL DID NOT GO. THE RESTRICTION IS
+  // THE WHOLE POINT, AND ITS ABSENCE BROKE EVERY INVITATION THIS APP SENT.
   //
-  // The emailed link is built by Supabase from the project's Site URL, and if
-  // the app's address is not in the Redirect URLs allow-list that setting is
-  // silently ignored and the mail carries whatever Site URL says. A project
-  // still on its default sent every invited person a link to
-  // http://localhost:3000, which is a machine they do not have. The email
-  // "succeeded" and was useless, and the Director had no way to tell.
+  // This block used to run on every call, under the heading "a link to pass on
+  // by hand, ALWAYS". Here is what that actually did.
   //
-  // This link is built HERE, from SITE_URL, so it is right whatever the
-  // dashboard says. Handing it over every time costs one extra token and means
-  // a church is never stuck behind a setting only its Supabase owner can reach.
+  // auth.users has ONE confirmation_token column and ONE recovery_token column.
+  // A one-time token is not remembered alongside others; it is a single slot.
+  // inviteUserByEmail mints a token, writes it to that slot, and emails it.
+  // resetPasswordForEmail does the same for recovery. generateLink then mints a
+  // SECOND token for the same purpose and overwrites the slot -- so the token
+  // sitting in the recipient's inbox was dead before they opened the message.
+  // Clicking it returns error_code=otp_expired, and /join reports "this
+  // invitation link has expired or has already been used", correctly. Every
+  // invitation. Every person. Every time.
+  //
+  // And the link it destroyed the working token to produce was then thrown
+  // away: both screens read `link` only when `delivery === 'link'`. On the
+  // success path nothing ever displayed it. The call had no beneficiary at all.
+  //
+  // The worry behind "always" was real. Supabase builds the emailed link from
+  // the project's Site URL, and a project left on its defaults mails everybody
+  // a link to http://localhost:3000 while reporting success. But the answer to
+  // "the emailed link might be wrong" can never be "make certain the emailed
+  // link is wrong". That failure is diagnosed by checking Site URL once, not by
+  // breaking every send forever.
+  //
+  // When the mail did NOT go there is no token in anybody's inbox to protect,
+  // so minting one here costs nothing and is the only way that person gets in.
+  // That is why the fallback keeps working exactly as before.
   let joinUrl = '';
-  {
+  if (sendError) {
     let { data: link } = await admin.auth.admin.generateLink({
       type: 'invite',
       email,
@@ -475,15 +493,15 @@ async function handle(req: Request): Promise<Response> {
     });
   }
 
+  // NO `link` HERE, DELIBERATELY. The message went, and the token that went
+  // with it is the only one that may exist. Adding a link to this reply would
+  // mean minting a second token, which is precisely the bug above.
   return json({
     ok: true,
     invite_id: inviteId,
     delivery: 'email',
     via,
     resent,
-    // The Director gets it as well as the recipient. If the emailed link is
-    // wrong because Site URL is unset, this one still works.
-    link: joinUrl,
   });
 }
 

@@ -916,5 +916,71 @@ if (exists('scripts/stamp-build.mjs')) {
      'the per-deployment URL is never treated as canonical');
 }
 
+// ---------------------------------------------------------------------------
+// 23. A successful send must not mint a second token.
+//
+// This is the bug that made EVERY invitation arrive dead, and it is subtle
+// enough to be reintroduced by anybody trying to be helpful.
+//
+// auth.users holds one confirmation_token and one recovery_token. They are
+// slots, not collections. inviteUserByEmail / resetPasswordForEmail each mint a
+// token, write it to the slot, and email it. Calling generateLink afterwards
+// mints another token for the same purpose and overwrites the slot, so the
+// token already sitting in the recipient's inbox is dead on arrival and /join
+// shows "this invitation link has expired or has already been used".
+//
+// The old code did exactly that on every call, in the name of always handing
+// the Director a spare link -- a link both screens then ignored, because they
+// read it only when delivery === 'link'. It destroyed the working token for
+// nobody's benefit.
+//
+// The property, stated so it survives rewording: generateLink is reachable ONLY
+// under a send-failure branch. Negative control: moving the call back out to
+// the top level fails this.
+// ---------------------------------------------------------------------------
+if (exists('supabase/functions/invite/index.ts')) {
+  const fn = read('supabase/functions/invite/index.ts');
+
+  // Blank comments but keep line numbers, so prose about the bug cannot satisfy
+  // or trip the checks that follow. This scanner has caught its own commentary
+  // twice before.
+  const code = fn
+    .split('\n')
+    .map((line) => (/^\s*(\/\/|\*|\/\*)/.test(line) ? '' : line))
+    .join('\n');
+
+  // WHY BRACE MATCHING AND NOT lastIndexOf. The first version of this check
+  // asked whether an `if (sendError)` appeared before generateLink. It always
+  // does -- the block that rewrites the four refusal messages is one, and it
+  // sits between the send and this point. The negative control passed with the
+  // bug fully restored, which is the only reason it was caught. Enclosure is
+  // the property; proximity is not.
+  const blocks = [];
+  for (let i = code.indexOf('if (sendError)'); i !== -1; i = code.indexOf('if (sendError)', i + 1)) {
+    const open = code.indexOf('{', i);
+    if (open === -1) continue;
+    let depth = 0;
+    for (let j = open; j < code.length; j++) {
+      if (code[j] === '{') depth++;
+      else if (code[j] === '}') {
+        depth--;
+        if (depth === 0) { blocks.push([open, j]); break; }
+      }
+    }
+  }
+
+  const genIdx = code.indexOf('generateLink');
+  ok(genIdx !== -1, 'the hand-over link is still generated for the failure path');
+  ok(blocks.length > 0, 'there is at least one sendError branch to enclose it');
+  ok(blocks.some(([a, b]) => genIdx > a && genIdx < b),
+     'generateLink is enclosed by an if (sendError) block, so a delivered token is never overwritten');
+
+  // The success reply must not carry a link, because producing one requires
+  // minting the token that would kill the emailed one.
+  const successReturn = code.slice(code.lastIndexOf("delivery: 'email'"));
+  ok(!/\blink\s*:/.test(successReturn),
+     'the success reply carries no link, so no second token is ever needed');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);
