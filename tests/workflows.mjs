@@ -96,6 +96,25 @@ for (const file of files) {
     const hasUses = step.keys.includes('uses');
     const hasRun = step.keys.includes('run');
 
+    // THE ONE THAT GOT THROUGH THE SECOND TIME.
+    //
+    // keep-awake.yml carried TWO `env:` blocks in one step. YAML takes the
+    // last, so the two secrets that job exists to use were never passed to it,
+    // and GitHub rejected the file outright: a failed run against every push,
+    // named by its path because the name could not be read. It could never
+    // have gone green, secrets set or not, and the summary line said only
+    // "keep-awake failed", which reads like the database is unreachable.
+    //
+    // The step keys were already being collected right here for the uses/run
+    // check. Nothing was looking at them twice.
+    const dupes = [...new Set(step.keys.filter((k, i) => step.keys.indexOf(k) !== i))];
+    ok(
+      dupes.length === 0,
+      dupes.length
+        ? `${file}:${step.line}: a step repeats ${dupes.map((d) => `\`${d}:\``).join(', ')} — YAML keeps only the last, and GitHub rejects the file`
+        : `${file}:${step.line}: no repeated keys`,
+    );
+
     // THE ONE THAT GOT THROUGH.
     ok(
       !(hasUses && hasRun),

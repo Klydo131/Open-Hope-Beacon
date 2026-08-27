@@ -57,10 +57,14 @@ jobs:
 
     steps:
       - name: Ping the database
+        # ONE env: BLOCK. There were two, and YAML takes the last one, so the
+        # two secrets this job exists to use were never passed to it at all.
+        # GitHub rejected the file outright and posted a failed run against
+        # every push, named by its path because it could not read the name.
+        # It could never have gone green, secrets set or not.
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-        env:
           # Which repository this is running in, so the job can tell a fork
           # (nothing to keep awake) from the real one (misconfigured).
           UPSTREAM: Klydo131/Open-Hope-Beacon
