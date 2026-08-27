@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDemo } from '@/lib/demo/store';
 import { useNotificationPrefs } from '@/lib/notification-prefs';
+import { AnchoredPanel } from '@/components/AnchoredPanel';
 import type { AppNotification, Role } from '@/lib/types';
 import {
   permission as pushPermission,
@@ -52,19 +53,9 @@ export function NotificationBell() {
 
   useEffect(() => setPerm(pushPermission()), []);
 
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
+  // Tapping elsewhere and pressing Escape both close this. They used to be
+  // written here and nowhere else, so the live bell and the mode switch had
+  // neither. Both now live in AnchoredPanel, once, for every panel.
 
   useEffect(() => {
     const ids = mine.map((n) => n.id);
@@ -124,7 +115,13 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="fixed inset-x-3 top-16 z-30 overflow-hidden rounded-2xl bg-white text-navy shadow-2xl ring-1 ring-black/10 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[22rem]">
+        <AnchoredPanel
+          anchor={wrapRef}
+          onClose={() => setOpen(false)}
+          width={352}
+          label="Notifications"
+          className="text-navy"
+        >
           <div className="flex items-center justify-between border-b border-black/5 px-4 py-3">
             <span className="font-extrabold">Notifications</span>
             {unread > 0 && prefs.inApp && (
@@ -155,7 +152,7 @@ export function NotificationBell() {
               </button>
             </div>
           ) : (
-            <div className="max-h-80 overflow-y-auto">
+            <div>
               {mine.length === 0 ? (
                 <p className="px-4 py-8 text-center text-gray-400">
                   No notifications yet.
@@ -228,7 +225,7 @@ export function NotificationBell() {
               </>
             )}
           </div>
-        </div>
+        </AnchoredPanel>
       )}
     </div>
   );

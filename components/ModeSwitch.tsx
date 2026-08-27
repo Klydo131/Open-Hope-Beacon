@@ -19,14 +19,16 @@
 // which is why a deployment with no keys is told what it would take rather than
 // given a button that looks like it worked.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTutorialMode } from '@/lib/tutorial';
+import { AnchoredPanel } from '@/components/AnchoredPanel';
 
 export function ModeSwitch({ onDark = false }: { onDark?: boolean }) {
   const [open, setOpen] = useState(false);
   const { tutorial, hasDatabase, enterTutorial, leaveTutorial } = useTutorialMode();
   const router = useRouter();
+  const anchor = useRef<HTMLDivElement>(null);
 
   const go = (action: () => void) => {
     action();
@@ -38,7 +40,7 @@ export function ModeSwitch({ onDark = false }: { onDark?: boolean }) {
   };
 
   return (
-    <div className="relative shrink-0">
+    <div className="relative shrink-0" ref={anchor}>
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Switch between the live app and the tutorial"
@@ -56,7 +58,13 @@ export function ModeSwitch({ onDark = false }: { onDark?: boolean }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-72 rounded-2xl bg-white p-4 text-left shadow-2xl ring-1 ring-black/10">
+        <AnchoredPanel
+          anchor={anchor}
+          onClose={() => setOpen(false)}
+          width={288}
+          label="Live app or tutorial"
+          className="p-4"
+        >
           <p className="font-bold text-navy">
             {tutorial ? 'You are in the tutorial' : 'You are in the live app'}
           </p>
@@ -107,7 +115,7 @@ export function ModeSwitch({ onDark = false }: { onDark?: boolean }) {
               </>
             )}
           </div>
-        </div>
+        </AnchoredPanel>
       )}
     </div>
   );

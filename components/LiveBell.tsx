@@ -14,6 +14,7 @@ import type { Profile, Role } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { permission, requestPermission, showLocalNotification } from '@/lib/push';
 import { onOpenBell } from '@/lib/open-bell';
+import { AnchoredPanel } from '@/components/AnchoredPanel';
 
 
 /**
@@ -71,6 +72,8 @@ export function LiveBell({ me }: { me: Profile }) {
   const [alerts, setAlerts] = useState(true);
   const [perm, setPerm] = useState<NotificationPermission>('default');
   const router = useRouter();
+  // The panel is positioned from this, not from a breakpoint. See AnchoredPanel.
+  const anchor = useRef<HTMLDivElement>(null);
 
   /**
    * Which notifications have already been announced on this device.
@@ -178,7 +181,7 @@ export function LiveBell({ me }: { me: Profile }) {
   const unread = rows.filter((r) => !r.read_at).length;
 
   return (
-    <div className="relative shrink-0">
+    <div className="relative shrink-0" ref={anchor}>
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={unread ? `${unread} unread notifications` : 'Notifications'}
@@ -193,7 +196,12 @@ export function LiveBell({ me }: { me: Profile }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-80 rounded-2xl bg-white p-3 text-left shadow-2xl ring-1 ring-black/10">
+        <AnchoredPanel
+          anchor={anchor}
+          onClose={() => setOpen(false)}
+          label="Notifications"
+          className="p-3"
+        >
           <div className="flex items-center justify-between">
             <p className="font-bold text-navy">Notifications</p>
             {unread > 0 && (
@@ -268,7 +276,10 @@ export function LiveBell({ me }: { me: Profile }) {
             )
           )}
 
-          <div className="mt-2 max-h-80 space-y-1 overflow-y-auto">
+          {/* No max-height of its own any more. AnchoredPanel caps the whole
+              panel to what is left of the screen and scrolls it, and two nested
+              scrolling areas on a touch screen fight each other. */}
+          <div className="mt-2 space-y-1">
             {!alerts && (
               <p className="p-2 text-sm text-gray-500">
                 Alerts are switched off. Anything that happens is still here when
@@ -308,7 +319,7 @@ export function LiveBell({ me }: { me: Profile }) {
           >
             More notification settings
           </Link>
-        </div>
+        </AnchoredPanel>
       )}
     </div>
   );
