@@ -9,6 +9,7 @@ import { homeFor, useLiveSession } from '@/lib/live/session';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { Avatar, Button, Card } from '@/components/ui';
 import { LeftRail, RightRail, railGroupsFor } from '@/components/RoomRails';
+import { LiveDesk } from '@/components/LiveDesk';
 import { useRoom } from '@/lib/room-theme';
 import { LiveBell } from '@/components/LiveBell';
 import { ModeSwitch } from '@/components/ModeSwitch';
@@ -132,7 +133,6 @@ export function LiveAppShell({
   // Explorer opening it got a card explaining there was nothing there.
   const leadsChurch = profile.role === 'admin' || profile.role === 'executive';
   const groups = railGroupsFor(profile.role, {}, { mail: leadsChurch });
-  const today: { label: string; value: string }[] = [];
 
   return (
     // THE THEME PAINTS THE PAGE, WHICH IS WHAT MAKES IT A THEME.
@@ -268,7 +268,12 @@ export function LiveAppShell({
             themes={room.themes}
             prefs={room.prefs}
             update={room.update}
-            today={today}
+            // THE DESK WAS ALWAYS EMPTY. This passed a hard-coded [], so every
+            // signed-in person was told "Nothing waiting. A good place to be."
+            // whatever was actually waiting: a panel that looked like a
+            // considered empty state and had never been wired up. LiveDesk
+            // loads what is coming up and what is outstanding.
+            desk={<LiveDesk me={profile} theme={room.theme} />}
           />
         )}
       </div>

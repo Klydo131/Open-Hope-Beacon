@@ -238,6 +238,7 @@ export function RightRail({
   prefs,
   update,
   today,
+  desk,
 }: {
   role: Role;
   name: string;
@@ -246,6 +247,14 @@ export function RightRail({
   prefs: RoomPrefs;
   update: (p: Partial<RoomPrefs>) => void;
   today?: { label: string; value: string }[];
+  /**
+   * Replaces the desk card entirely.
+   *
+   * The live shell passes a real one that loads what is coming up and what is
+   * waiting; the tutorial keeps the simple list of numbers. Passing the whole
+   * card rather than its data keeps this file free of every live query.
+   */
+  desk?: React.ReactNode;
 }) {
   const seeker = role === 'ds';
 
@@ -264,7 +273,11 @@ export function RightRail({
         update={update}
       />
 
-      {seeker ? <FocusTimer theme={theme} /> : <TodayCard theme={theme} today={today} />}
+      {/* AN EXPLORER GETS THE TIMER, EVERYBODY ELSE GETS THE DESK, and that
+          split is deliberate: an Explorer has no queue of work, and giving them
+          a "waiting for you" panel would invent one. The desk is passed in when
+          the caller has a real one; the tutorial keeps the simple list. */}
+      {seeker ? <FocusTimer theme={theme} /> : (desk ?? <TodayCard theme={theme} today={today} />)}
 
       {/* THE PLAYER LIVES IN THE RAIL, on every room, because that is the
           point of it: something quiet in the background while you work. The

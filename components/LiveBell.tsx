@@ -7,9 +7,10 @@
 // SECURITY DEFINER and checks that both people are in the same church. A client
 // able to write this table directly could make the app say anything to anybody.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import * as live from '@/lib/live/data';
+import { permission, requestPermission, showLocalNotification } from '@/lib/push';
 
 export function LiveBell() {
   const [rows, setRows] = useState<live.AppNotification[]>([]);
@@ -26,9 +27,25 @@ export function LiveBell() {
   const [alerts, setAlerts] = useState(true);
   const [perm, setPerm] = useState<NotificationPermission>('default');
 
+  /**
+   * Which notifications have already been announced on this device.
+   *
+   * A ref, not state: it is read inside the poll and must not restart it.
+   * Persisted, so a reload does not re-announce the same thing, and seeded on
+   * the FIRST load without announcing anything. Without that seeding, opening
+   * the app after a quiet week fires eleven notifications at once, which
+   * teaches somebody to switch them off.
+   */
+  const announced = useRef<Set<string>>(new Set());
+  const seeded = useRef(false);
+
   useEffect(() => {
     try { setAlerts(localStorage.getItem('hb-alerts') !== 'off'); } catch { /* private mode */ }
-    if (typeof Notification !== 'undefined') setPerm(Notification.permission);
+    try {
+      const saved = JSON.parse(localStorage.getItem('hb-announced') ?? '[]');
+      if (Array.isArray(saved)) announced.current = new Set(saved as string[]);
+    } catch { /* private mode, or nothing saved */ }
+    setPerm(permission());
   }, []);
 
   const flip = (on: boolean) => {
@@ -37,13 +54,65 @@ export function LiveBell() {
   };
 
   const askDevice = async () => {
-    if (typeof Notification === 'undefined') return;
-    setPerm(await Notification.requestPermission());
+    const result = await requestPermission();
+    setPerm(result);
+    // PROVE IT WORKS, IMMEDIATELY. Somebody who taps "turn on alerts", sees a
+    // browser prompt, taps Allow and then sees nothing has no way to tell
+    // whether it worked. One notification, on the spot, is the difference
+    // between a setting and a promise.
+    if (result === 'granted') {
+      await showLocalNotification(
+        'Hope Beacon',
+        'Alerts are on for this device. This is what one looks like.',
+        '/church',
+      );
+    }
   };
 
   const load = useCallback(async () => {
-    try { setRows(await live.listNotifications()); }
-    catch { /* a bell that cannot load is not worth an error over the page */ }
+    try {
+      const next = await live.listNotifications();
+      setRows(next);
+
+      // THE POP-UP ON THE DEVICE, which is the half that was missing. The bell
+      // polled, the badge counted, and nothing ever reached the notification
+      // tray, so somebody with the app in a background tab learned about a
+      // safeguarding report the next time they happened to look.
+      const fresh = next.filter((n) => !n.read_at && !announced.current.has(n.id));
+      for (const n of fresh) announced.current.add(n.id);
+
+      if (!seeded.current) {
+        // First poll of this session: remember what is already there and
+        // announce none of it.
+        seeded.current = true;
+      } else if (fresh.length > 0) {
+        const on = (() => {
+          try { return localStorage.getItem('hb-alerts') !== 'off'; } catch { return true; }
+        })();
+        if (on && permission() === 'granted') {
+          // At most three. A person coming back to eleven unread things needs
+          // to be told, not buried; the badge carries the rest.
+          for (const n of fresh.slice(0, 3)) {
+            await showLocalNotification(n.title, n.body ?? undefined, '/church');
+          }
+          if (fresh.length > 3) {
+            await showLocalNotification(
+              'Hope Beacon',
+              `${fresh.length} things are waiting for you.`,
+              '/church',
+            );
+          }
+        }
+      }
+
+      try {
+        // Bounded, or this grows for the life of the device.
+        localStorage.setItem(
+          'hb-announced',
+          JSON.stringify([...announced.current].slice(-200)),
+        );
+      } catch { /* private mode */ }
+    } catch { /* a bell that cannot load is not worth an error over the page */ }
   }, []);
   useEffect(() => {
     void load();
@@ -113,20 +182,34 @@ export function LiveBell() {
           {/* Device alerts are the browser's to grant, not ours. Asking is the
               only thing a page may do, and once refused it may not ask again,
               so that state says where to go instead of offering a dead button. */}
-          {typeof Notification !== 'undefined' && perm !== 'granted' && (
-            perm === 'denied' ? (
+          {typeof Notification !== 'undefined' && (
+            perm === 'granted' ? (
+              // SAYING IT IS ON MATTERS AS MUCH AS THE SWITCH. The panel used
+              // to show nothing at all once permission was granted, so the only
+              // way to know device alerts were working was to wait for one.
+              <p className="mt-2 rounded-xl bg-green-50 p-2.5 text-xs font-semibold text-green-800">
+                Device alerts are on. New things pop up on this device even when
+                Beacon is in another tab.
+              </p>
+            ) : perm === 'denied' ? (
               <p className="mt-2 rounded-xl bg-gray-50 p-2.5 text-xs text-gray-600">
                 Alerts on this device are blocked by your browser. Open the padlock
                 beside the address to allow them.
               </p>
             ) : (
-              <button
-                onClick={askDevice}
-                className="tap mt-2 w-full rounded-xl px-4 text-sm font-bold text-white"
-                style={{ backgroundColor: '#1E2A4A' }}
-              >
-                Turn on device alerts
-              </button>
+              <>
+                <button
+                  onClick={askDevice}
+                  className="tap mt-2 w-full rounded-xl px-4 text-sm font-bold text-white"
+                  style={{ backgroundColor: '#1E2A4A' }}
+                >
+                  Turn on device alerts
+                </button>
+                <p className="mt-1 text-xs text-gray-500">
+                  Pops up on your phone or computer, not only in this list. Your
+                  browser asks first, and you can turn it off again here.
+                </p>
+              </>
             )
           )}
 

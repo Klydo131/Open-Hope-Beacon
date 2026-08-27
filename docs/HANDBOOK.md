@@ -299,7 +299,19 @@ Underneath, in the same period, is what the church decided about people: how man
 >
 > Both are shown because they disagree in the case that matters. One busy week after a quiet month pulls the average up; the middle week is closer to an ordinary one.
 
-Both tables download as a CSV that opens in Excel, Google Sheets, Numbers or LibreOffice, one under the other. For a board pack, use the browser's own print, which every phone and computer can already save as a PDF. Nobody's name is in either file.
+**Five ways to take the numbers with you**, and each says what it is for.
+
+| Format | Use it when | Opens in |
+| --- | --- | --- |
+| **Sheets** | You want to work on the numbers yourself. Keeps both tables and their headings. | Excel, Google Sheets, Numbers |
+| **Document** | You are sending it to somebody who will edit it. | Word, Google Docs |
+| **PDF file** | You are sending it to somebody who should not edit it. Downloads straight away. | Anything |
+| **Print** | You are handing round paper at a meeting. The dialog can also save a PDF, and lets you pick the paper. | Printer, or save as PDF |
+| **CSV** | You are feeding it into another program. | Anything at all |
+
+**Every file carries the same explanations**, not just the figures: what "active" means and does not mean, that "nothing recorded" is not the same as idle, and that removed and deleted are one number. A spreadsheet with a column headed *Active* and no definition beside it is how somebody decides that eleven of nineteen Guides are not working.
+
+Every file also carries your church's name and the date it was made, and nobody's name is in any of them.
 
 Every one of these numbers is a count. No name, no message and no prayer appears on this screen or in the file, and the part that counts messages runs inside the database and hands back only a total, so a Director reading "eleven Guides were active" is not reading anybody's conversation.
 
@@ -395,6 +407,20 @@ Home, your own screen, the library, **Publish** and **Cases**. Guides and leader
 
 **Tutorial, What's new and Feedback are cards inside Settings**, not rows in the column. They were rows for a while, put there because each had been reported as missing when it was only reachable by scrolling Settings. That fixed the wrong half: it made the column six entries long for three things somebody uses about once a month, and the column is what people look at all day. The unread mark for a new release sits on Settings itself, so it is still visible from every screen.
 
+### On the desk
+
+The right-hand column carries a panel for Guides, Directors and Executive Directors: what is **coming up**, and what is **waiting for you**.
+
+Coming up is the next three meetings, with the day and the time. Waiting for you is everything somebody is waiting on you for: unread notifications, prayer requests, people awaiting approval, Explorers with no Guide, open safeguarding reports, and Guides asking to be paired with somebody. Every line is a link to the screen that resolves it.
+
+Lines disappear when the work is done, so an empty panel means an empty desk.
+
+**Explorers get the study timer here instead.** An Explorer has no queue of work, and giving them a "waiting for you" panel would invent one.
+
+> **NOTE** · This panel used to be empty always
+>
+> It was passed a hard-coded empty list, so every signed-in person was told "Nothing waiting. A good place to be." whatever was actually waiting. It looked like a considered empty state and had never been connected to anything.
+
 ### Waiting
 
 Anywhere the app is fetching something, it shows the lighthouse mark turning with a word for what it is waiting on, rather than the word "Loading" on its own or nothing at all. A screen that is still fetching and a screen that has finished and found nothing used to look identical, so people pressed the button again.
@@ -403,7 +429,17 @@ A device set to reduce motion gets the same message without the spin.
 
 ### Notifications
 
-The bell in the header holds both the list and its switch. Alerts in the app are **on by default**. Device alerts are the browser's to grant: the panel offers to ask once, and if a browser has already refused it says where to change that rather than offering a button that would do nothing.
+The bell in the header holds both the list and its switch. Alerts in the app are **on by default**.
+
+**They pop up on the device, not only in the list.** Tap **Turn on device alerts**, allow it when the browser asks, and one appears straight away so you can see it worked. After that, anything new reaches the notification tray on your phone or computer while Beacon is open in a tab or installed, and tapping it opens the app on the right screen.
+
+At most three pop up at once. Somebody coming back to eleven unread things needs to be told, not buried, so the rest stay on the badge.
+
+> **NOTE** · What is not built
+>
+> A notification when Beacon is **completely closed** needs a push service and a signing key held on a server, which this church does not have set up. The app is ready for it: the service worker already handles a push and a tap. Until those keys exist, alerts arrive while Beacon is open in a tab or running as an installed app, which for a phone with the icon on the home screen is most of the time.
+
+Device alerts are the browser's to grant: the panel offers to ask once, and if a browser has already refused it says where to change that rather than offering a button that would do nothing. Once granted, the panel says so, because the only other way to know it worked was to wait for one.
 
 ## 6. Email, end to end
 
