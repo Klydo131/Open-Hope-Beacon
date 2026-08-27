@@ -13,9 +13,10 @@ import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { Linked } from '@/components/Linked';
+import { humanError } from '@/lib/live/errors';
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'Something went wrong.';
+  humanError(cause, 'Something went wrong.');
 
 function Err({ msg }: { msg: string }) {
   if (!msg) return null;

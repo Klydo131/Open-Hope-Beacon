@@ -37,6 +37,7 @@ import {
   downloadCsv, downloadDoc, downloadPdf, downloadSheet,
 } from '@/lib/live/report-formats';
 import type { Role } from '@/lib/types';
+import { humanError } from '@/lib/live/errors';
 
 /**
  * The five ways out, and what each is actually for.
@@ -85,7 +86,7 @@ const EXPORTS: {
 ];
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'Could not load the numbers.';
+  humanError(cause, 'Could not load the numbers.');
 
 function download(name: string, body: string, mime: string) {
   const url = URL.createObjectURL(new Blob([body], { type: mime }));

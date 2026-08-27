@@ -24,9 +24,10 @@ import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { humanError } from '@/lib/live/errors';
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'Something went wrong.';
+  humanError(cause, 'Something went wrong.');
 
 const STATUS: Record<live.PrayerStatus, { label: string; className: string }> = {
   open:     { label: 'Open',     className: 'bg-gray-100 text-gray-700' },

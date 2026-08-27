@@ -21,9 +21,10 @@ import * as live from '@/lib/live/data';
 import { STAGES as BRAND_STAGES } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { Pdf, downloadBlob } from '@/lib/pdf';
+import { humanError } from '@/lib/live/errors';
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'Something went wrong.';
+  humanError(cause, 'Something went wrong.');
 
 interface Numbers {
   guides: number;

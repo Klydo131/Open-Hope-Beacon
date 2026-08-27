@@ -38,8 +38,14 @@ const code = raw.split('\n').map((line) => {
 // ---------------------------------------------------------------------------
 ok(/grant_type=refresh_token/.test(code),
    'the client exchanges the refresh token for a new session');
-ok(/refresh_token:\s*session\.refresh_token/.test(code),
+// The request itself moved into a `spend(token)` helper when the rotation race
+// was fixed (7 below), because it is now made twice in one unlucky case. What
+// matters is unchanged and is what is checked: the token that goes first is the
+// one in storage, not a fresh Auth call.
+ok(/refresh_token:\s*(token|session\.refresh_token)\b/.test(code),
    'and sends the stored refresh token to do it');
+ok(/spend\(session\.refresh_token\)/.test(code),
+   'starting with the token this call was handed');
 
 // ---------------------------------------------------------------------------
 // 2. The data client asks for a token that will still be valid.
@@ -108,6 +114,55 @@ ok(/REFRESH_MARGIN_SECONDS/.test(code),
      'and shows the sign-in screen instead of naming the mechanism');
   ok(/visibilitychange/.test(session),
      'and coming back to the app re-checks, so a phone left overnight works');
+}
+
+// ---------------------------------------------------------------------------
+// 7. Opening the app a second way does not sign you out of both.
+// ---------------------------------------------------------------------------
+// THE BUG: a Guide's screen showing their own name with "permission denied for
+// table pairings" where the church should be. The screen had come from a link
+// in Gmail — a SECOND context, alongside the copy already installed.
+//
+// Supabase ROTATES the refresh token on every use, so a token can be spent
+// once. The in-flight promise above stops two refreshes racing inside one page;
+// it cannot stop two places. The loser got a 400, called clearBrowserSession(),
+// and destroyed the good session the winner had just written. Both contexts
+// were then signed out, while both screens carried on showing the person's
+// name — which is how a raw Postgres permission error ends up under somebody's
+// morning greeting.
+{
+  const fn = code.slice(code.indexOf('function refreshBrowserSession'));
+  const body = fn.slice(0, fn.indexOf('\n}'));
+  ok(/readBrowserSession\(\)/.test(body),
+     'a refused refresh re-reads storage before concluding anything');
+  ok(/refresh_token !== session\.refresh_token/.test(body),
+     'and notices when another context has already moved the session on');
+  ok(body.indexOf('clearBrowserSession') > body.indexOf('refresh_token !== session.refresh_token'),
+     'the session is only cleared AFTER that second chance, never before it');
+}
+
+// ---------------------------------------------------------------------------
+// 8. A session ending in THIS tab is not silent.
+// ---------------------------------------------------------------------------
+// `storage` events fire in other tabs only. So a session cleared here left the
+// provider believing everything was fine: the screen stayed drawn, with the
+// person's name on it, while every request behind it went out as nobody and
+// each card filled with "permission denied". Signed out at the network and
+// signed in on the screen is the worst of both — unusable, and not offering
+// the one action that would fix it.
+{
+  ok(/announceSignedOut/.test(code),
+     'the client announces when the stored session is gone');
+  ok(/export function onSignedOut/.test(code),
+     'and exposes a way to listen for it');
+  const token = code.slice(code.indexOf('export async function liveAccessToken'));
+  ok(/announceSignedOut\(\)/.test(token.slice(0, token.indexOf('\n}'))),
+     'a data call made with no session at all announces it too, rather than '
+     + 'going out anonymously and coming back as a Postgres permission error');
+
+  const session = readFileSync('lib/live/session.tsx', 'utf8');
+  ok(/onSignedOut\(/.test(session),
+     'and the session provider listens, so the door is shown');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

@@ -112,6 +112,43 @@ function tokenExpiry(accessToken: string): number {
 
 let refreshing: Promise<Session | null> | null = null;
 
+// ---------------------------------------------------------------------------
+// SAYING SO WHEN A SESSION ENDS.
+// ---------------------------------------------------------------------------
+//
+// THE BUG THIS EXISTS FOR, from a phone: a Guide's own screen showing their
+// name and their reminders, with "permission denied for table pairings" and
+// "permission denied for function blog_feed" printed in red where the church's
+// pairings and blogs should be.
+//
+// That is not a rules problem. `pairings` grants SELECT to `authenticated` and
+// nothing to `anon`; every one of those functions grants EXECUTE the same way.
+// A raw "permission denied for table" is Postgres saying the request arrived as
+// NOBODY. The session had been cleared underneath a screen that was already
+// drawn, so `liveAccessToken` returned null, the client sent the anon key
+// alone, and every card on the page failed in a way that reads like the church
+// forgot who this person was.
+//
+// React never found out. The provider re-checks on mount, on another tab
+// writing storage, and on the tab becoming visible again — and clearing
+// storage from THIS tab fires none of those. So the app sat there, signed out
+// at the network and signed in on the screen, which is the worst of both: the
+// person cannot use it and is not offered the one thing that would fix it.
+const SIGNED_OUT = 'beacon:signed-out';
+
+/** Announce that the stored session is gone, so the app can show the door. */
+function announceSignedOut() {
+  if (typeof window === 'undefined') return;
+  queueMicrotask(() => window.dispatchEvent(new CustomEvent(SIGNED_OUT)));
+}
+
+/** Listen for it. Returns the unsubscribe, for an effect. */
+export function onSignedOut(run: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener(SIGNED_OUT, run);
+  return () => window.removeEventListener(SIGNED_OUT, run);
+}
+
 /**
  * Trade the refresh token for a new session, at most once at a time.
  *
@@ -127,17 +164,58 @@ function refreshBrowserSession(session: Session): Promise<Session | null> {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
     if (!url || !key) return null;
-    try {
-      const res = await fetch(`${url}/auth/v1/token?grant_type=refresh_token`, {
+
+    const spend = (token: string) =>
+      fetch(`${url}/auth/v1/token?grant_type=refresh_token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', apikey: key },
-        body: JSON.stringify({ refresh_token: session.refresh_token }),
+        body: JSON.stringify({ refresh_token: token }),
       });
+
+    try {
+      let res = await spend(session.refresh_token);
+
+      // A 400 IS USUALLY A RACE, NOT AN ENDING.
+      //
+      // Supabase ROTATES the refresh token on every use, so a token can only
+      // be spent once. The in-flight promise above stops two refreshes racing
+      // inside one page — it cannot stop a SECOND PLACE the app is open. A
+      // phone with Beacon on the home screen and the same church opened from a
+      // link in Gmail is two contexts, and this is exactly the report: the
+      // screen came from a Gmail link.
+      //
+      // What happened next was the damage. The loser of that race got a 400,
+      // called clearBrowserSession(), and wiped the perfectly good session the
+      // winner had just written. So opening the app a second way signed the
+      // person out of both.
+      //
+      // The token captured at the top of this call may therefore be one
+      // version behind what is in storage right now. Re-read, and if somebody
+      // else has moved it on, that is the answer — no second request needed.
+      if (res.status === 400 || res.status === 401) {
+        const current = readBrowserSession();
+        if (current && current.refresh_token !== session.refresh_token) {
+          const now = Math.floor(Date.now() / 1000);
+          // Already fresh: another context did the work. Take it.
+          if (tokenExpiry(current.access_token) - now > REFRESH_MARGIN_SECONDS) {
+            return current;
+          }
+          // Moved on but also stale — spend the newer one, once.
+          res = await spend(current.refresh_token);
+        }
+      }
+
       if (!res.ok) {
-        // A refused refresh means the session is genuinely over: signed out
+        // Now a refused refresh does mean the session is over: signed out
         // elsewhere, or the account removed. Clearing it is what turns the
-        // next page load into the sign-in screen rather than a loop.
-        if (res.status === 400 || res.status === 401) clearBrowserSession();
+        // next page load into the sign-in screen rather than a loop — and the
+        // announcement is what stops the CURRENT page carrying on as though
+        // nothing happened, firing anonymous requests behind the person's own
+        // name. See the note on SIGNED_OUT above.
+        if (res.status === 400 || res.status === 401) {
+          clearBrowserSession();
+          announceSignedOut();
+        }
         return null;
       }
       const next = (await res.json()) as Session | null;
@@ -166,7 +244,18 @@ function refreshBrowserSession(session: Session): Promise<Session | null> {
  */
 export async function liveAccessToken(): Promise<string | null> {
   const session = readBrowserSession();
-  if (!session) return null;
+  if (!session) {
+    // A DATA CALL WITH NO SESSION IS A SIGN-OUT THE SCREEN HAS NOT HEARD ABOUT.
+    //
+    // Returning null here does not stop the request; the client sends the anon
+    // key on its own and Postgres answers "permission denied for table
+    // pairings", which is then printed in red on a page still showing the
+    // person's name. Saying so out loud is what turns that into the sign-in
+    // screen. It is safe to say often — the provider re-reads storage and does
+    // nothing if a session is there after all.
+    announceSignedOut();
+    return null;
+  }
 
   const now = Math.floor(Date.now() / 1000);
   if (tokenExpiry(session.access_token) - now > REFRESH_MARGIN_SECONDS) {

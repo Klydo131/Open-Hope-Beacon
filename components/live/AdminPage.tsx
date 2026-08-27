@@ -21,6 +21,7 @@ import { NewBadge } from '@/components/NewBadge';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { Avatar, Button, Card } from '@/components/ui';
 import { Field, Notice, SelectPerson, emailLooksValid, errorText } from '@/components/live/shared';
+import { humanError } from '@/lib/live/errors';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
@@ -385,7 +386,7 @@ export function LiveAdminPage() {
               setNotice(`${who} was removed from the church.`);
               await load();
             } catch (cause) {
-              setError(cause instanceof Error ? cause.message : 'Could not remove them.');
+              setError(humanError(cause, 'Could not remove them.'));
             }
           }}
         />

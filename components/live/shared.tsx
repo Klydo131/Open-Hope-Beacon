@@ -6,6 +6,8 @@ import type { Message, Profile } from '@/lib/types';
 import { MessageBox } from '@/components/MessageBox';
 import { Linked } from '@/components/Linked';
 import { Button, Card } from '@/components/ui';
+import { humanError } from '@/lib/live/errors';
+import { ATTACHMENT_ACCEPT } from '@/lib/live/attachments';
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
 // admin screen, both Guide screens, the Explorer's screen and every small piece
@@ -18,7 +20,7 @@ import { Button, Card } from '@/components/ui';
 
 export const emailLooksValid = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 export const errorText = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'Something went wrong. Please try again.';
+  humanError(cause, 'Something went wrong. Please try again.');
 
 export type Entry =
   | { kind: 'message'; id: string; at: string; who: string; message: Message }
@@ -103,6 +105,13 @@ export function Conversation({
             <input
               ref={fileRef}
               type="file"
+              // A PICKER THAT CAN CHOOSE A FILE THE SERVER WILL REFUSE IS A
+              // TRAP. Without this, a Guide could pick a study sheet and only
+              // find out it was not allowed after the upload came back with
+              // Supabase's own wording about mime types. See
+              // lib/live/attachments.ts — this list and the bucket's are the
+              // same list and must stay that way.
+              accept={ATTACHMENT_ACCEPT}
               className="hidden"
               aria-hidden="true"
               tabIndex={-1}

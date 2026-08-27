@@ -17,6 +17,7 @@ import * as live from '@/lib/live/data';
 import { ReportDialog } from '@/components/ReportDialog';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { humanError } from '@/lib/live/errors';
 
 const REASON_LABEL: Record<string, string> = {
   inappropriate: 'Something inappropriate was sent',
@@ -63,7 +64,7 @@ export function LiveReportControl({
             void live
               .reportPerson({ subjectId, reason, detail, pairingId })
               .catch((cause) => setError(
-                cause instanceof Error ? cause.message : 'That could not be sent.',
+                humanError(cause, 'That could not be sent.'),
               ));
           }}
         />
@@ -103,7 +104,7 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
       setReports(rows);
       setNames(Object.fromEntries(members.map((m) => [m.id, m.full_name || 'A member'])));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load reports.');
+      setError(humanError(cause, 'Could not load reports.'));
       setReports([]);
     }
   }, []);
@@ -119,7 +120,7 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
       await live.resolveReport(id, status, outcome[id]);
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not save that.');
+      setError(humanError(cause, 'Could not save that.'));
     } finally {
       setBusy('');
     }

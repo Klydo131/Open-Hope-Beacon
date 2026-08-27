@@ -44,6 +44,14 @@ export function LiveGuidePage() {
   const { profile } = useLiveSession();
   const [rows, setRows] = useState<live.PairingView[]>([]);
   const [error, setError] = useState('');
+  // LOADED, FAILED AND GENUINELY EMPTY ARE THREE DIFFERENT THINGS.
+  //
+  // `rows.length === 0` was all three at once, so a Guide with two Explorers
+  // whose pairings failed to load was told "Nobody is paired with you yet.
+  // Your Director arranges that." That sentence is not a blank screen; it is
+  // a claim about the church, and it was false, and it sent somebody to ask a
+  // Director for something they already had.
+  const [ready, setReady] = useState(false);
   // WHO HAS ASKED FOR PRAYER, on the card, before anything else.
   //
   // The requests were already on this page — but below Recommend, Follow-ups,
@@ -57,7 +65,13 @@ export function LiveGuidePage() {
   const [unprayed, setUnprayed] = useState<Record<string, number>>({});
   useEffect(() => {
     let alive = true;
-    live.listPairings().then((data) => { if (alive) setRows(data.filter((row) => row.status === 'active')); }).catch((cause) => { if (alive) setError(errorText(cause)); });
+    live.listPairings()
+      .then((data) => {
+        if (!alive) return;
+        setRows(data.filter((row) => row.status === 'active'));
+        setReady(true);
+      })
+      .catch((cause) => { if (alive) setError(errorText(cause)); });
     live.listPrayerRequests().then((requests) => {
       if (!alive) return;
       const counts: Record<string, number> = {};
@@ -87,9 +101,15 @@ export function LiveGuidePage() {
         {greeting()}{profile?.full_name ? `, ${profile.full_name.split(' ')[0]}` : ''}
       </h1>
       <p className="mt-1 text-room-soft">
-        {rows.length === 0
-          ? 'Nobody is paired with you yet. Your Director arranges that.'
-          : `You are walking with ${rows.length} ${rows.length === 1 ? 'person' : 'people'}.`}
+        {rows.length > 0
+          ? `You are walking with ${rows.length} ${rows.length === 1 ? 'person' : 'people'}.`
+          : error
+            // Say nothing about the pairings, because nothing is known about
+            // them. The Notice underneath carries what actually happened.
+            ? 'Your Explorers could not be loaded just now.'
+            : ready
+              ? 'Nobody is paired with you yet. Your Director arranges that.'
+              : 'Loading the people you walk with.'}
       </p>
       {error && <div className="mt-5"><Notice tone="error">{error}</Notice></div>}
 
@@ -162,7 +182,9 @@ export function LiveGuidePage() {
           );
         })}
       </div>
-      {rows.length === 0 && !error && <Card className="mt-6 p-6 text-center text-gray-500">No active pairing yet.</Card>}
+      {/* `ready` as well as `!error`: still fetching is not the same as nobody,
+          and this card was the second place saying so. */}
+      {rows.length === 0 && ready && !error && <Card className="mt-6 p-6 text-center text-gray-500">No active pairing yet.</Card>}
 
       {/* FOLLOW-UPS STAY. They are about the people on this list and nothing
           else, which is what this screen is for. Writing studies, stocking the

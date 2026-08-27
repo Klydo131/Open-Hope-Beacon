@@ -22,6 +22,7 @@ import { Linked } from '@/components/Linked';
 import { roleLabel, roleNoun } from '@/lib/brand';
 import { useLiveSession } from '@/lib/live/session';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { humanError } from '@/lib/live/errors';
 
 function when(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -33,7 +34,7 @@ function when(iso: string): string {
 }
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'Something went wrong.';
+  humanError(cause, 'Something went wrong.');
 
 /** Paragraphs from a plain textarea. No markdown, no HTML, nothing to escape. */
 function Body({ text }: { text: string }) {

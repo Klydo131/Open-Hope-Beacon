@@ -22,9 +22,10 @@ import { useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { stageInfo } from '@/lib/brand';
+import { humanError } from '@/lib/live/errors';
 
 function message(cause: unknown): string {
-  return cause instanceof Error ? cause.message : 'That did not work.';
+  return humanError(cause, 'That did not work.');
 }
 
 /** RFC 4180: quotes doubled, and anything with a comma or newline quoted. */

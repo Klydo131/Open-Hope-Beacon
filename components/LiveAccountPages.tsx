@@ -24,9 +24,10 @@ import type { Role } from '@/lib/types';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { WhatsNewButton } from '@/components/WhatsNew';
 import { FeedbackButton } from '@/components/Feedback';
+import { humanError } from '@/lib/live/errors';
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'Something went wrong. Please try again.';
+  humanError(cause, 'Something went wrong. Please try again.');
 
 // A distinct look per role, so a Director's profile reads differently from an
 // Explorer's at a glance.

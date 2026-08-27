@@ -24,9 +24,10 @@ import { useLiveSession } from '@/lib/live/session';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
 import { LiveBillboard } from '@/components/LiveBillboard';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { humanError } from '@/lib/live/errors';
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'Something went wrong. Please try again.';
+  humanError(cause, 'Something went wrong. Please try again.');
 
 const ago = (iso: string) => {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);

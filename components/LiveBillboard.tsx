@@ -24,9 +24,10 @@ import type { Profile } from '@/lib/types';
 import { useLiveSession } from '@/lib/live/session';
 import { Button, Card } from '@/components/ui';
 import { NAVY, GOLD } from '@/lib/brand';
+import { humanError } from '@/lib/live/errors';
 
 function message(cause: unknown): string {
-  return cause instanceof Error ? cause.message : 'That did not work.';
+  return humanError(cause, 'That did not work.');
 }
 
 function Chip({ label }: { label: string }) {

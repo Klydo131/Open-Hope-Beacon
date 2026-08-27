@@ -120,6 +120,10 @@ const staticChecks = [
   ['accounts and sessions', 'tests/accounts-and-sessions.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
+  // Runs the shipped translator over the exact strings that reached a phone:
+  // "permission denied for table pairings" and a mime type read out in full.
+  // Nothing else here looks at what a failure actually SAYS to a person.
+  ['errors are human', 'tests/errors-are-human.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

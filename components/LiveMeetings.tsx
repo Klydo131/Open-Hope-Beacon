@@ -22,6 +22,7 @@ import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { Button, Card } from '@/components/ui';
+import { humanError } from '@/lib/live/errors';
 
 /**
  * A link to a map, never an embedded one.
@@ -70,7 +71,7 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
       setError('');
     } catch (cause) {
       setRows([]);
-      setError(cause instanceof Error ? cause.message : 'Could not load meetings.');
+      setError(humanError(cause, 'Could not load meetings.'));
     }
   }, [pairingId]);
   useEffect(() => { void load(); }, [load]);
@@ -79,7 +80,7 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
     setBusy(true);
     setError('');
     try { await fn(); await load(); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'That did not work.'); }
+    catch (cause) { setError(humanError(cause, 'That did not work.')); }
     finally { setBusy(false); }
   };
 

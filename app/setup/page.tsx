@@ -24,6 +24,7 @@ import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { NAVY } from '@/lib/brand';
 import { IS_LIVE } from '@/lib/mode';
 import { supabase } from '@/lib/supabase/client';
+import { humanError } from '@/lib/live/errors';
 
 type Health =
   | { state: 'checking' }
@@ -62,7 +63,7 @@ async function probe(): Promise<Health> {
     // refusing the request before it left.
     return {
       state: 'unreachable',
-      detail: cause instanceof Error ? cause.message : 'The request did not complete.',
+      detail: humanError(cause, 'The request did not complete.'),
     };
   }
 }

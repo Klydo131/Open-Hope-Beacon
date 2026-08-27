@@ -25,6 +25,7 @@ import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { roleNoun } from '@/lib/brand';
 import type { Role } from '@/lib/types';
+import { humanError } from '@/lib/live/errors';
 
 interface Parsed {
   email: string;
@@ -109,7 +110,7 @@ export function LiveBulkInvite({ roles }: { roles: Role[] }) {
         done.push({
           email: person.email,
           ok: false,
-          detail: cause instanceof Error ? cause.message : 'Could not send',
+          detail: humanError(cause, 'Could not send'),
         });
       }
       setProgress((n) => n + 1);

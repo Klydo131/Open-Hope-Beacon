@@ -36,6 +36,7 @@ import * as live from '@/lib/live/data';
 import { roleNoun } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { humanError } from '@/lib/live/errors';
 
 export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?: () => void }) {
   const [members, setMembers] = useState<Profile[] | null>(null);
@@ -57,7 +58,7 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
       setAllowed(Object.fromEntries(verdicts));
     } catch (cause) {
       setMembers([]);
-      setError(cause instanceof Error ? cause.message : 'Could not load the members.');
+      setError(humanError(cause, 'Could not load the members.'));
     }
   }, [me.id]);
 
@@ -77,7 +78,7 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
       setReason((r) => ({ ...r, [id]: '' }));
       onCaseOpened?.();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not open the case.');
+      setError(humanError(cause, 'Could not open the case.'));
     } finally { setBusy(''); }
   };
 
@@ -99,7 +100,7 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
       setOpenFor('');
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That did not work.');
+      setError(humanError(cause, 'That did not work.'));
     } finally { setBusy(''); }
   };
 
@@ -302,7 +303,7 @@ export function LiveCourt({ me, emptyState }: {
       }
     } catch (cause) {
       setCases([]);
-      setError(cause instanceof Error ? cause.message : 'Could not load the cases.');
+      setError(humanError(cause, 'Could not load the cases.'));
     }
   }, []);
 
@@ -315,7 +316,7 @@ export function LiveCourt({ me, emptyState }: {
       const said = await live.listStatements(id);
       setStatements((s) => ({ ...s, [id]: said }));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load what was said.');
+      setError(humanError(cause, 'Could not load what was said.'));
     }
   };
 
@@ -329,7 +330,7 @@ export function LiveCourt({ me, emptyState }: {
       const said = await live.listStatements(id);
       setStatements((s) => ({ ...s, [id]: said }));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That did not send.');
+      setError(humanError(cause, 'That did not send.'));
     } finally { setBusy(''); }
   };
 
@@ -342,7 +343,7 @@ export function LiveCourt({ me, emptyState }: {
       setNotice(ok);
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That did not work.');
+      setError(humanError(cause, 'That did not work.'));
     } finally { setBusy(''); }
   };
 

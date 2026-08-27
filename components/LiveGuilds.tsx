@@ -29,6 +29,7 @@ import * as live from '@/lib/live/data';
 import { roleNoun } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { humanError } from '@/lib/live/errors';
 
 const HEALTH: Record<string, { label: string; className: string }> = {
   thriving: { label: 'Thriving', className: 'bg-green-100 text-green-900' },
@@ -71,7 +72,7 @@ export function LiveGuilds({ me }: { me: Profile }) {
       setMembers(people.filter((p) => p.role === 'dm' || p.role === 'ds'));
     } catch (cause) {
       setGuilds([]);
-      setError(cause instanceof Error ? cause.message : 'Could not load the guilds.');
+      setError(humanError(cause, 'Could not load the guilds.'));
     }
   }, []);
 
@@ -86,7 +87,7 @@ export function LiveGuilds({ me }: { me: Profile }) {
       setNotice(ok);
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'That did not work.');
+      setError(humanError(cause, 'That did not work.'));
     } finally { setBusy(''); }
   };
 
@@ -100,7 +101,7 @@ export function LiveGuilds({ me }: { me: Profile }) {
       setName(''); setDescription('');
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not make the guild.');
+      setError(humanError(cause, 'Could not make the guild.'));
     } finally { setBusy(''); }
   };
 
@@ -311,7 +312,7 @@ export function LiveChurchPulse() {
       try { setRows(await live.churchPulse()); }
       catch (cause) {
         setRows([]);
-        setError(cause instanceof Error ? cause.message : 'Could not load the numbers.');
+        setError(humanError(cause, 'Could not load the numbers.'));
       }
     })();
   }, []);

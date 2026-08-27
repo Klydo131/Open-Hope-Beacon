@@ -17,9 +17,10 @@ import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { humanError } from '@/lib/live/errors';
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'That did not work.';
+  humanError(cause, 'That did not work.');
 
 export function LiveWriteNotice() {
   const { profile } = useLiveSession();

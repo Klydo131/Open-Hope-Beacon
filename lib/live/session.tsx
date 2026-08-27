@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { readBrowserSession } from '@/lib/supabase/client';
+import { onSignedOut, readBrowserSession } from '@/lib/supabase/client';
 import * as live from '@/lib/live/data';
 import type { Profile, Role } from '@/lib/types';
 
@@ -100,6 +100,14 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
     const syncAcrossTabs = () => void load(readBrowserSession());
     window.addEventListener('storage', syncAcrossTabs);
 
+    // THE SESSION ENDING IN THIS TAB. `storage` fires in OTHER tabs only, so a
+    // session cleared here — a refresh the server refused — was invisible to
+    // this provider. The screen stayed drawn with the person's name on it
+    // while every request behind it went out as nobody, and each card filled
+    // with "permission denied for table pairings". Now the door is shown
+    // instead, which is the honest answer and the one they can act on.
+    const stopListening = onSignedOut(() => void load(readBrowserSession()));
+
     // COMING BACK TO THE APP RE-CHECKS THE SESSION.
     //
     // A phone left overnight wakes with an access token hours past its expiry.
@@ -116,6 +124,7 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
       alive = false;
       window.removeEventListener('storage', syncAcrossTabs);
       document.removeEventListener('visibilitychange', recheck);
+      stopListening();
     };
   }, []);
 

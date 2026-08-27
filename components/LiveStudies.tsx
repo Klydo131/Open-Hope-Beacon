@@ -23,9 +23,11 @@ import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { Button, Card } from '@/components/ui';
 import { Linked } from '@/components/Linked';
+import { humanError } from '@/lib/live/errors';
+import { ATTACHMENT_ACCEPT } from '@/lib/live/attachments';
 
 function message(cause: unknown): string {
-  return cause instanceof Error ? cause.message : 'That did not work.';
+  return humanError(cause, 'That did not work.');
 }
 
 function kb(bytes: number | null): string {
@@ -136,6 +138,9 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
                   Attach a file
                   <input
                     type="file"
+                    // Same list as the conversation picker and the bucket.
+                    // See lib/live/attachments.ts.
+                    accept={ATTACHMENT_ACCEPT}
                     className="hidden"
                     disabled={busy}
                     onChange={(event) => {

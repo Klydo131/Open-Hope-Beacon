@@ -15,9 +15,10 @@ import { useCallback, useEffect, useState } from 'react';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { humanError } from '@/lib/live/errors';
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'Something went wrong.';
+  humanError(cause, 'Something went wrong.');
 
 const KIND_ICON: Record<live.MaterialKind, string> = {
   link: '🔗', video: '🎬', audio: '🎧', pdf: '📄', image: '🖼️',

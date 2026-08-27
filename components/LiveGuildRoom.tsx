@@ -21,9 +21,10 @@ import { BeaconSpinner } from '@/components/BeaconLoader';
 import { NewBadge } from '@/components/NewBadge';
 import { Linked } from '@/components/Linked';
 import { MessageBox } from '@/components/MessageBox';
+import { humanError } from '@/lib/live/errors';
 
 const message = (cause: unknown) =>
-  cause instanceof Error ? cause.message : 'That did not work.';
+  humanError(cause, 'That did not work.');
 
 function Err({ msg }: { msg: string }) {
   if (!msg) return null;
