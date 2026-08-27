@@ -14,6 +14,9 @@
 // which is a way this has gone wrong in real applications.
 
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
 let bad = 0;
 const ok = (cond, msg) => {
@@ -163,6 +166,85 @@ ok(/REFRESH_MARGIN_SECONDS/.test(code),
   const session = readFileSync('lib/live/session.tsx', 'utf8');
   ok(/onSignedOut\(/.test(session),
      'and the session provider listens, so the door is shown');
+}
+
+// ---------------------------------------------------------------------------
+// 9. Tabbing away and coming back does not sign anybody out.
+// ---------------------------------------------------------------------------
+// THE REPORT: "Some of the users still experiencing getting log out when they
+// tab out to another web page or they exit the browser."
+//
+// The server was not doing it. No session on the live project carries an
+// expiry, and one had been alive for 162 hours. It was this file and the
+// provider, in three ways at once.
+{
+  const session = readFileSync('lib/live/session.tsx', 'utf8');
+  // Comments blanked out, line count kept. The note explaining this bug quotes
+  // the old rule, and without this the explanation is reported as the bug.
+  const shipped = session
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .replace(/\/\/[^\n]*/g, '');
+
+  // (a) The question is no longer asked of the error message. `invalid` and
+  //     `expired` are ordinary words: "invalid input syntax for type uuid" is a
+  //     routine database complaint and it used to END THE SESSION.
+  ok(!/\/jwt\|expired\|invalid/.test(shipped),
+     'a session is no longer ended by matching words in an error message');
+  ok(/verdictOnFailure/.test(shipped),
+     'the decision is made by one function, from whether the session is still stored');
+
+  // (b) A run nobody asked for may make things better and never worse.
+  ok(/load\(readBrowserSession\(\), true\)/.test(shipped),
+     'coming back to the tab is marked as a re-check');
+  // addEventListener specifically. Asking only for the word 'online' passed
+  // even with the listener deleted, because removeEventListener still mentions
+  // it in the cleanup: a control that cannot fail is not a control.
+  ok(/addEventListener\('online'/.test(shipped),
+     'and the network returning retries, rather than waiting for a tap on a '
+     + 'screen that has just said the account is not ready');
+}
+
+// The decision itself, run rather than read. This is the whole bug in four
+// lines, and none of it needs a browser.
+{
+  const target = pathToFileURL(path.resolve('lib/live/session-verdict.ts')).href;
+  let mod;
+  try {
+    mod = await import(target);
+  } catch (err) {
+    const strippable = /Unknown file extension|ERR_UNKNOWN_FILE_EXTENSION/.test(
+      String(err && (err.code || err.message)));
+    if (!strippable || process.env.SESSION_VERDICT_RETRY === '1') {
+      console.error('BAD could not load lib/live/session-verdict.ts on ' + process.version);
+      process.exit(1);
+    }
+    const r = spawnSync(
+      process.execPath,
+      ['--experimental-strip-types', '--no-warnings', fileURLToPath(import.meta.url)],
+      { stdio: 'inherit', env: { ...process.env, SESSION_VERDICT_RETRY: '1' } },
+    );
+    process.exit(r.status ?? 1);
+  }
+  const { verdictOnFailure } = mod;
+
+  // The one case that ends a session: the client already established, from a
+  // refusal by the server, that it is over.
+  ok(verdictOnFailure({ sessionStillStored: false, recheck: false }) === 'signed-out',
+     'a session the server refused is over');
+  ok(verdictOnFailure({ sessionStillStored: false, recheck: true }) === 'signed-out',
+     'and that is true however the load was started');
+
+  // THE REPORTED CASE. Tab away, come back, the radio is not up yet, the read
+  // fails. The session is untouched in storage, so nothing has happened.
+  ok(verdictOnFailure({ sessionStillStored: true, recheck: true }) === 'hold',
+     'a wake-up read that fails changes nothing at all');
+
+  // A person pressed something and it failed. Tell them, but do not throw away
+  // their session over it.
+  ok(verdictOnFailure({ sessionStillStored: true, recheck: false }) === 'report',
+     'a load somebody asked for reports its failure without signing them out');
+  ok(verdictOnFailure({ sessionStillStored: true, recheck: false }) !== 'signed-out',
+     'and never ends the session, whatever the error said');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
