@@ -182,7 +182,7 @@ export function LivePrayerForGuide({
   if (rows !== null && rows.length === 0 && !error && !alwaysShow) return null;
 
   return (
-    <Card className="p-5">
+    <Card id="prayer" className="p-5">
       <h2 className="text-xl font-bold text-navy">🙏 {heading ?? 'Prayer requests'}</h2>
       <p className="mt-1 text-sm text-gray-500">
         {onlyFor ? 'What they have asked you to pray for.' : 'From the people you walk with.'}

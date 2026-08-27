@@ -8,10 +8,20 @@ import { NAVY } from '@/lib/brand';
 export function Card({
   children,
   className = '',
+  id,
   'data-panel': dataPanel,
 }: {
   children: React.ReactNode;
   className?: string;
+  /**
+   * A link target.
+   *
+   * Declared for the reason the note below gives: a fixed prop list drops what
+   * it does not name, so `<Card id="prayer">` compiled fine and put no id in
+   * the DOM, and the link pointing at it landed at the top of the page. That is
+   * the same failure the note already describes, found again.
+   */
+  id?: string;
   /**
    * A stable hook for a test that needs to read ONE card rather than guessing
    * which div on the page is the right one. Declared rather than spread,
@@ -24,6 +34,7 @@ export function Card({
   return (
     <div
       className={`rounded-2xl bg-white shadow-sm ring-1 ring-black/5 ${className}`}
+      id={id}
       data-panel={dataPanel}
     >
       {children}

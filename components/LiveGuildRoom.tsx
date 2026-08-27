@@ -85,7 +85,7 @@ export function LiveAskToWalkWith() {
   };
 
   return (
-    <Card className="p-5">
+    <Card id="ask-to-walk" className="p-5">
       <h2 className="text-xl font-bold text-navy">🙋 Ask to walk with somebody</h2>
       <p className="mt-1 text-sm text-gray-500">
         Explorers nobody is walking with yet. Your Director decides who is
@@ -208,7 +208,7 @@ export function LivePairingRequestsForDirector() {
   if (rows !== null && rows.length === 0 && !error) return null;
 
   return (
-    <Card className="p-5">
+    <Card id="pairing-requests" className="p-5">
       <h2 className="text-xl font-bold text-navy">🙋 Guides asking to walk with somebody</h2>
       <p className="mt-1 text-sm text-gray-500">
         Answering yes records your decision. Make the pairing itself on the
@@ -279,7 +279,7 @@ export function LiveGuildRoom() {
   };
 
   return (
-    <Card className="p-5">
+    <Card id="guides-room" className="p-5">
       <h2 className="text-xl font-bold text-navy">☕ The Guides&rsquo; room</h2>
       <p className="mt-1 text-sm text-gray-500">
         For Guides and your Directors. Explorers cannot see this. It is not a

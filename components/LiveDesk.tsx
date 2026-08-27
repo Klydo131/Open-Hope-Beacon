@@ -29,6 +29,7 @@ import Link from 'next/link';
 import * as live from '@/lib/live/data';
 import type { Profile } from '@/lib/types';
 import type { RoomTheme } from '@/lib/room-theme';
+import { openBell } from '@/lib/open-bell';
 
 interface DeskItem {
   key: string;
@@ -37,12 +38,24 @@ interface DeskItem {
   href: string;
   /** Drawn in the accent when true: somebody is waiting on a person. */
   urgent?: boolean;
+  /**
+   * Opens the bell panel where the person already is, instead of navigating.
+   *
+   * The bell lives in the header of every screen, so there is no page to send
+   * anybody to. A link to `?bell=1` would have been a link to the screen they
+   * are already looking at, which is exactly the "it didn't go anywhere"
+   * complaint this whole pass exists to fix. A button that opens the panel is
+   * the honest version.
+   */
+  bell?: boolean;
 }
 
 interface Coming {
   key: string;
   when: string;
   what: string;
+  /** The conversation this meeting belongs to. */
+  href: string;
 }
 
 function whenLabel(iso: string): string {
@@ -76,15 +89,23 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
       leads ? live.listPairingRequests().catch(() => []) : Promise.resolve([]),
     ]);
 
+    // A MEETING LINKS TO THE CONVERSATION IT IS IN. A date on a rail that
+    // cannot be pressed makes somebody go looking for the person it is with,
+    // and the looking is where things get dropped. A Guide lands on that
+    // Explorer's page; an Explorer has one conversation, so they land on it.
     setComing(meetings.map((m) => ({
       key: m.id,
       when: whenLabel(m.starts_at),
       what: m.title?.trim() || 'A time together',
+      href: guide ? `/dm/${m.pairing_id}` : '/ds',
     })));
 
     const unread = notes.filter((n) => !n.read_at).length;
     if (unread > 0) {
-      next.push({ key: 'unread', label: 'Unread notifications', count: unread, href: '/church' });
+      // The bell is in the header on every screen, so there is no page to
+      // send somebody to. `?bell=1` opens it where they already are, which is
+      // the honest version of "go and look at your notifications".
+      next.push({ key: 'unread', label: 'Unread notifications', count: unread, href: '', bell: true });
     }
 
     if (guide || leads) {
@@ -92,7 +113,8 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
       if (waiting > 0) {
         next.push({
           key: 'prayer', label: 'Prayer requests waiting', count: waiting,
-          href: guide ? '/dm' : '/admin', urgent: true,
+          // The card itself, not the top of the page it is on.
+          href: guide ? '/dm#prayer' : '/admin?room=safeguarding', urgent: true,
         });
       }
     }
@@ -107,7 +129,7 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
       if (pending > 0) {
         next.push({
           key: 'approvals', label: 'Waiting to be approved', count: pending,
-          href: '/admin', urgent: true,
+          href: '/admin?room=approvals', urgent: true,
         });
       }
 
@@ -120,18 +142,24 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
         // has been invited into an app where nothing happens.
         next.push({
           key: 'unpaired', label: 'Waiting for a Guide', count: unpaired,
-          href: '/admin', urgent: true,
+          href: '/admin?room=pairings', urgent: true,
         });
       }
 
       const open = reports.filter((r) => r.status === 'open').length;
       if (open > 0) {
-        next.push({ key: 'reports', label: 'Safeguarding reports open', count: open, href: '/admin', urgent: true });
+        next.push({
+          key: 'reports', label: 'Safeguarding reports open', count: open,
+          href: '/admin?room=safeguarding', urgent: true,
+        });
       }
 
       const pendingAsks = asks.filter((a) => a.status === 'pending').length;
       if (pendingAsks > 0) {
-        next.push({ key: 'asks', label: 'Guides asking to pair', count: pendingAsks, href: '/office' });
+        next.push({
+          key: 'asks', label: 'Guides asking to pair', count: pendingAsks,
+          href: '/office#pairing-requests',
+        });
       }
     }
 
@@ -170,10 +198,12 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
           </p>
           <div className="mt-1 space-y-1.5">
             {coming.map((c) => (
-              <div key={c.key}>
+              <Link key={c.key} href={c.href} className="block rounded-lg py-0.5">
                 <p className="text-xs font-bold" style={{ color: theme.accent }}>{c.when}</p>
-                <p className="truncate text-sm" style={{ color: theme.ink }}>{c.what}</p>
-              </div>
+                <p className="truncate text-sm underline underline-offset-2" style={{ color: theme.ink }}>
+                  {c.what}
+                </p>
+              </Link>
             ))}
           </div>
         </div>
@@ -185,23 +215,31 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
             Waiting for you
           </p>
           <div className="mt-1 space-y-1">
-            {items.map((t) => (
-              <Link
-                key={t.key}
-                href={t.href}
-                className="flex items-baseline justify-between gap-2 rounded-lg py-1"
-              >
-                <span className="truncate text-sm underline underline-offset-2" style={{ color: theme.inkSoft }}>
-                  {t.label}
-                </span>
-                <span
-                  className="text-lg font-extrabold"
-                  style={{ color: t.urgent ? theme.accent : theme.ink }}
-                >
-                  {t.count}
-                </span>
-              </Link>
-            ))}
+            {items.map((t) => {
+              const inside = (
+                <>
+                  <span className="truncate text-sm underline underline-offset-2" style={{ color: theme.inkSoft }}>
+                    {t.label}
+                  </span>
+                  <span
+                    className="text-lg font-extrabold"
+                    style={{ color: t.urgent ? theme.accent : theme.ink }}
+                  >
+                    {t.count}
+                  </span>
+                </>
+              );
+              const shape = 'flex w-full items-baseline justify-between gap-2 rounded-lg py-1 text-left';
+              return t.bell ? (
+                <button key={t.key} type="button" className={shape} onClick={openBell}>
+                  {inside}
+                </button>
+              ) : (
+                <Link key={t.key} href={t.href} className={shape}>
+                  {inside}
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}

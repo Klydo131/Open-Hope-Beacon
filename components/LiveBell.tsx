@@ -10,9 +10,53 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import * as live from '@/lib/live/data';
+import type { Profile, Role } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 import { permission, requestPermission, showLocalNotification } from '@/lib/push';
+import { onOpenBell } from '@/lib/open-bell';
 
-export function LiveBell() {
+
+/**
+ * Where a notification actually leads.
+ *
+ * THE BUG THIS EXISTS FOR, in the reporter's words: "when I click or tap the
+ * desk type on any activities, it doesn't go to the activities I clicked, so it
+ * felt like I got scammed or I still need to look for the feature."
+ *
+ * Pressing a row in this panel used to mark it read and nothing else. It did
+ * not navigate. So the app told somebody a safeguarding report needed them,
+ * they pressed it, the bold went away, and they were left on whatever screen
+ * they had been on with no idea where to go. The tutorial's bell has routed by
+ * type since it was written; this one never did.
+ *
+ * A room is named in the query and a card in the hash, because landing at the
+ * top of a long screen is the same failure one step later.
+ */
+function routeFor(type: string, role: Role): string {
+  const leads = role === 'admin' || role === 'executive';
+  switch (type) {
+    case 'report':
+    case 'trial':
+      // Leadership judges these; anybody else was CALLED to one.
+      return leads ? '/admin?room=safeguarding' : '/cases';
+    case 'approval':
+      return leads ? '/admin?room=approvals' : '/church';
+    case 'pairing':
+      return leads ? '/admin?room=pairings' : role === 'dm' ? '/dm' : '/ds';
+    case 'prayer':
+      return role === 'dm' ? '/dm#prayer' : '/ds';
+    case 'message':
+      return role === 'dm' ? '/dm' : '/ds';
+    case 'meeting':
+      return role === 'dm' ? '/dm' : '/ds';
+    default:
+      // An unknown type is a new one somebody added without touching this. Home
+      // is where the church's own screen is, and it is never wrong.
+      return '/church';
+  }
+}
+
+export function LiveBell({ me }: { me: Profile }) {
   const [rows, setRows] = useState<live.AppNotification[]>([]);
   const [open, setOpen] = useState(false);
   // THE SWITCH LIVES WHERE THE BELL IS.
@@ -26,6 +70,7 @@ export function LiveBell() {
   // default of off is indistinguishable from a bug.
   const [alerts, setAlerts] = useState(true);
   const [perm, setPerm] = useState<NotificationPermission>('default');
+  const router = useRouter();
 
   /**
    * Which notifications have already been announced on this device.
@@ -93,7 +138,7 @@ export function LiveBell() {
           // At most three. A person coming back to eleven unread things needs
           // to be told, not buried; the badge carries the rest.
           for (const n of fresh.slice(0, 3)) {
-            await showLocalNotification(n.title, n.body ?? undefined, '/church');
+            await showLocalNotification(n.title, n.body ?? undefined, routeFor(n.type, me.role));
           }
           if (fresh.length > 3) {
             await showLocalNotification(
@@ -113,12 +158,22 @@ export function LiveBell() {
         );
       } catch { /* private mode */ }
     } catch { /* a bell that cannot load is not worth an error over the page */ }
-  }, []);
+  }, [me.role]);
   useEffect(() => {
     void load();
     const t = setInterval(() => void load(), 60_000);
     return () => clearInterval(t);
   }, [load]);
+
+  // THE DESK'S "Unread notifications" ROW ENDS HERE. It is drawn in the rail,
+  // several branches away, and the bell it means is in the header; an event is
+  // the only thing they share. Opening also loads, because the count that made
+  // somebody press it may be a minute old.
+  useEffect(() => onOpenBell(() => {
+    setOpen(true);
+    void load();
+  }), [load]);
+
 
   const unread = rows.filter((r) => !r.read_at).length;
 
@@ -229,11 +284,20 @@ export function LiveBell() {
             {alerts && rows.map((n) => (
               <button
                 key={n.id}
-                onClick={async () => { if (!n.read_at) { await live.markNotificationRead(n.id); await load(); } }}
+                onClick={async () => {
+                  // MARK IT READ, SHUT THE PANEL, AND GO. All three, in that
+                  // order. It used to do only the first, so the one thing a
+                  // person pressed a notification to reach was the one thing
+                  // pressing it did not do.
+                  setOpen(false);
+                  if (!n.read_at) { await live.markNotificationRead(n.id); void load(); }
+                  router.push(routeFor(n.type, me.role));
+                }}
                 className={`block w-full rounded-xl p-2 text-left hover:bg-gray-50 ${n.read_at ? '' : 'bg-navy/5'}`}
               >
                 <p className="text-sm font-semibold text-navy">{n.title}</p>
                 {n.body && <p className="text-xs text-gray-600">{n.body}</p>}
+                <p className="mt-0.5 text-[11px] font-semibold text-gray-400">Tap to open</p>
               </button>
             ))}
           </div>

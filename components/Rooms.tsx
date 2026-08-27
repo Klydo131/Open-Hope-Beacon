@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useUrlKey } from '@/lib/url-signal';
 
 // Rooms, not a scroll.
 //
@@ -28,13 +29,51 @@ export interface Room {
   urgent?: boolean;
 }
 
+/**
+ * Which room of a tabbed screen is open.
+ *
+ * `?room=approvals` IN THE ADDRESS WINS OVER THE REMEMBERED ONE, and that is
+ * what makes a tabbed screen linkable at all. Without it every link to this
+ * page landed on whichever tab the person last used, so "3 people waiting to be
+ * approved" opened Admin on Pairings and left somebody hunting for the thing
+ * they had just pressed. Being sent to the right building and left to find the
+ * room is the same as not being sent.
+ *
+ * The remembered room is still right for someone opening the page themselves:
+ * a Director who lives in Approvals should land there. A link is an explicit
+ * request and beats a habit.
+ */
 export function useRoom(rooms: Room[], storageKey: string): [string, (id: string) => void] {
   const first = rooms[0]?.id ?? '';
   const [room, setRoom] = useState(first);
+  // Re-read on every address change, not just on mount. The desk rail is drawn
+  // ON the admin page, so its `?room=` links are usually pressed from the very
+  // page they point at — no unmount, no re-render, and a link that did nothing.
+  const url = useUrlKey();
+  const restored = useRef(false);
 
   // Read after mount, never during render: the server has no localStorage, and
   // reading it while rendering makes the first paint disagree with the second.
   useEffect(() => {
+    let asked = '';
+    try {
+      asked = new URLSearchParams(window.location.search).get('room') ?? '';
+    } catch { /* no window, or no search */ }
+
+    if (asked && rooms.some((r) => r.id === asked)) {
+      setRoom(asked);
+      // Remember it too, so pressing the link and then coming back later lands
+      // where the person was rather than where they were three visits ago.
+      try { localStorage.setItem(storageKey, asked); } catch {}
+      return;
+    }
+
+    // The remembered room is a first impression, not a correction. Applying it
+    // on every address change would drag somebody back out of the tab they just
+    // picked by hand the moment anything else touched the URL.
+    if (restored.current) return;
+    restored.current = true;
+
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved && rooms.some((r) => r.id === saved)) setRoom(saved);
@@ -42,7 +81,7 @@ export function useRoom(rooms: Room[], storageKey: string): [string, (id: string
     // rooms is rebuilt every render; comparing ids would be the only honest
     // dependency and it does not change after mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storageKey]);
+  }, [storageKey, url]);
 
   const choose = (id: string) => {
     setRoom(id);

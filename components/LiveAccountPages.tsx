@@ -22,6 +22,8 @@ import { useLiveSession } from '@/lib/live/session';
 import { useTutorialMode } from '@/lib/tutorial';
 import type { Role } from '@/lib/types';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { WhatsNewButton } from '@/components/WhatsNew';
+import { FeedbackButton } from '@/components/Feedback';
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Something went wrong. Please try again.';
@@ -203,13 +205,57 @@ export function LiveSettingsPage() {
       {/* First, because it is the first thing somebody does on a new device,
           and because device alerts below are far more useful once the app is
           installed. */}
-      <InstallCard />
+      {/* ANCHORED, because things link here by name and used to miss.
+          The header's Install chip has always pointed at `/settings#install`,
+          and on the live app it landed at the top of this page instead — the
+          card it named was below the fold, and Apple users, who are sent here
+          precisely because Safari cannot install for them, were the ones who
+          got the top of a page and no card. The id costs nothing; not having
+          it made the chip look broken. */}
+      <div id="install" className="scroll-mt-24">
+        <InstallCard />
+      </div>
       <SourceCard />
       <NotificationCard />
       {leads && <ChurchNameCard />}
-      <TutorialCard />
+      <div id="tutorial" className="scroll-mt-24">
+        <TutorialCard />
+      </div>
+      {/* WHAT'S NEW AND FEEDBACK LIVE HERE NOW, and on the live app they did
+          not live anywhere. They were taken out of the rail — "Tutorial, What's
+          new and Feedback should all be in Settings" — and only the tutorial
+          made the journey. The sample-data Settings screen has had both since
+          the move; this one has had neither, so on a real church deployment the
+          two buttons simply ceased to exist. */}
+      <HelpCard />
       <AboutCard />
     </div>
+  );
+}
+
+/**
+ * The two buttons that came out of the rail: what changed, and how to say
+ * something about it.
+ *
+ * Both open a panel over the page rather than navigating, so they are anchored
+ * on this card — a link to `#whats-new` lands here and the button is the next
+ * thing your eye reaches.
+ */
+function HelpCard() {
+  return (
+    <Card className="p-5">
+      <div id="whats-new" className="scroll-mt-24" />
+      <div id="feedback" className="scroll-mt-24" />
+      <h2 className="mb-1 text-xl font-bold text-navy">Help and feedback</h2>
+      <p className="mb-4 text-sm text-gray-500">
+        What changed in the app recently, and a way to tell us when something is
+        wrong or missing.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <WhatsNewButton className="tap" />
+        <FeedbackButton className="tap" />
+      </div>
+    </Card>
   );
 }
 

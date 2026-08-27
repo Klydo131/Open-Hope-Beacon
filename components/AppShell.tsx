@@ -21,6 +21,8 @@ import { useIsLive } from '@/lib/tutorial';
 import { ModeSwitch } from '@/components/ModeSwitch';
 import { InstallChip } from '@/components/InstallChip';
 import { LiveAppShell, LiveUnsupported } from '@/components/LiveAppShell';
+import { useScrollToHash } from '@/lib/scroll-to-hash';
+import { useUrlKey } from '@/lib/url-signal';
 
 const NAV: Record<Role, { href: string; label: string }[]> = {
   executive: [{ href: '/admin', label: 'Admin' }],
@@ -66,6 +68,12 @@ function DemoAppShell({
   // so this sits above the guard's early return.
   const role: Role = currentUser?.role ?? 'ds';
   const { prefs, update, theme, themes } = useRoom(currentUser?.id ?? null, role);
+
+  // Land on the card a `#link` names, once it exists. The same wiring as the
+  // live shell — the Install chip points at `/settings#install` in both modes,
+  // and pressing it from Settings itself scrolls nowhere without this.
+  const url = useUrlKey();
+  useScrollToHash([url]);
 
   // Above the guard's early return for the same reason as the line before it:
   // hooks must run on every render, and putting these below the `return null`

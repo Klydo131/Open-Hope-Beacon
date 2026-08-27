@@ -13,6 +13,8 @@ import { LiveDesk } from '@/components/LiveDesk';
 import { useRoom } from '@/lib/room-theme';
 import { LiveBell } from '@/components/LiveBell';
 import { ModeSwitch } from '@/components/ModeSwitch';
+import { useScrollToHash } from '@/lib/scroll-to-hash';
+import { useUrlKey } from '@/lib/url-signal';
 
 /** One header link. Icon on a phone, icon and word once there is room. */
 /**
@@ -73,6 +75,26 @@ export function LiveAppShell({
   // and a tablet get the single column, because the page they flank is the one
   // that matters and there is no room for three.
   const room = useRoom(profile?.id ?? null, profile?.role ?? 'ds');
+
+  // LAND ON THE CARD, NOT NEAR IT. Wired once here because every live screen
+  // is inside this shell, so there is no page that can forget to do it.
+  //
+  // `#prayer`, `#ask-to-walk`, `#pairing-requests`, `#guides-room` are all
+  // cards partway down long screens whose data arrives after the first paint.
+  // A browser looking for them at navigation time finds nothing and gives up
+  // without a word, which is the whole "it doesn't go to the feature I clicked"
+  // complaint: the right page, and then abandoned on it. The hook waits for the
+  // element instead of assuming it, and gives up after about three seconds.
+  //
+  // `pathname` and `loading` between them cover the two ways the target can
+  // appear late: a different screen rendering, and this one's session
+  // resolving.
+  //
+  // `url` and not just `pathname`: pressing `/dm#prayer` while already on /dm
+  // changes the address without re-rendering anything, and the browser fires no
+  // event for it. See lib/url-signal.ts.
+  const url = useUrlKey();
+  useScrollToHash([url, loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -195,7 +217,7 @@ export function LiveAppShell({
           </nav>
 
           <ModeSwitch onDark />
-          <LiveBell />
+          <LiveBell me={profile} />
 
           <div className="hidden min-w-0 text-right sm:block">
             <p className="max-w-48 truncate text-sm font-semibold">{profile.full_name}</p>

@@ -47,6 +47,7 @@ export function LiveChurchPage() {
 
   if (!profile) return <BeaconSpinner inline label="Loading" />;
   const leads = profile.role === 'admin' || profile.role === 'executive';
+  const explorer = profile.role === 'ds';
 
   return (
     <div className="space-y-6">
@@ -62,7 +63,16 @@ export function LiveChurchPage() {
         churchName={churchName}
         between={<LiveBlogFeed selfId={profile.id} />}
       />
-      <LiveChurchOverview />
+      {/* NOT FOR EXPLORERS. Counts of Guides, Explorers, approvals and prayer
+          requests are the church looking at itself — a management view. An
+          Explorer opening this screen wants their church, not a tally of how
+          many people like them there are and how many have "graduated". It
+          reads as being counted, and it was the first thing on the page.
+
+          It is safe in the sense that matters — no names, no conversations,
+          never who wrote a prayer request — which is why it was shown to
+          everybody in the first place. Safe is not the same as theirs. */}
+      {!explorer && <LiveChurchOverview />}
       {/* The board report is numbers only, and it names nobody — so it is safe
           for every role to see, not just leadership. A Guide who can see what
           their church reports upward is a Guide who trusts the reporting. */}

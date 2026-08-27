@@ -553,3 +553,27 @@ html {
 .beacon-scroll::-webkit-scrollbar-thumb:hover {
   background-color: #9aa1ad;
 }
+
+/* ---- Landing on a linked card ----
+   Somebody who followed "3 people waiting to be approved" into the middle of a
+   long screen has to be told which card answered it. A ring for two seconds,
+   then gone: a permanent highlight would still be there tomorrow. */
+@keyframes beaconLanded {
+  0%,
+  70% {
+    box-shadow: 0 0 0 3px rgba(232, 184, 75, 0.85);
+  }
+  100% {
+    box-shadow: 0 0 0 3px rgba(232, 184, 75, 0);
+  }
+}
+.beacon-landed {
+  border-radius: 1rem;
+  animation: beaconLanded 2.2s ease-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .beacon-landed {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(232, 184, 75, 0.85);
+  }
+}
