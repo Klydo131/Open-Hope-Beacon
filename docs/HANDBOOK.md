@@ -358,13 +358,32 @@ This matters most for somebody holding an invitation. The old advice was to swit
 >
 > The fix is deployed. Those people must **delete the old icon and add it again**.
 
-### Android
+### Every other browser
 
-In Chrome, open the **⋮** menu and choose **Add to Home screen** or **Install app**. Most phones offer it by themselves after a few visits.
+**Settings asks which browser you are in and gives that browser's steps.** It guesses from the browser itself and opens on the right one, and the whole list is one tap away if the guess is wrong.
 
-### Windows, Mac and Chromebook
+| Browser | Where | What to press |
+| --- | --- | --- |
+| **Chrome** | Android, Windows, Mac, Linux, Chromebook | Phone: **⋮** then **Add to Home screen**. Computer: the install icon at the right-hand end of the address bar. |
+| **Microsoft Edge** | Android, Windows, Mac | Phone: **•••** at the bottom, then **Add to phone**. Computer: the install icon, or **•••** then **Apps** then **Install this site as an app**. |
+| **Samsung Internet** | Samsung phones and tablets | **☰** at the bottom right, then **Add page to**, then **Home screen**. |
+| **Opera** | Android, Windows, Mac | Phone: the menu, then **Add to**, then **Home screen**. Computer: the install icon in the address bar. |
+| **Brave** | Android, Windows, Mac | Phone: **⋮** then **Add to Home screen**. Computer: the install icon, or **☰** then **Install Hope Beacon**. |
+| **Vivaldi** | Android, Windows, Mac, Linux | The menu, then **Add to Home screen**. Computer: the install icon. |
+| **Firefox** | Android only | **⋮** then **Add to Home screen**. |
+| **Hola, and any other Chromium browser** | Android, Windows, Mac | Open the menu and look for **Install**, **Install app** or **Add to Home screen**. |
+| **Safari** | iPhone, iPad | **Share**, then **Add to Home Screen**. The only one that works on Apple. |
+| **Safari** | Mac | **File**, then **Add to Dock**. |
 
-In Chrome or Edge, look for the install icon at the right-hand end of the address bar: a screen with a downward arrow. In Safari on a Mac, choose **File**, then **Add to Dock**.
+> **NOTE** · Why the list ends with a catch-all rather than every name
+>
+> Hola, Kiwi, Yandex, UC, DuckDuckGo and the rest are all built on the same engine as Chrome, so they install the same way and only the wording moves. Naming every browser that exists is a list that is wrong the week after it is written; **Install** or **Add to Home screen** is what to look for in any of them.
+>
+> Two things decided that the browser is *offered as a choice* rather than detected. **Brave does not put its own name in the identifier a browser sends**, so it cannot be recognised that way at all. And searching that identifier for "Hola" matches `Le Hola`, which is a **phone model**, not a browser: a member on that handset would have been told they were using something they have never installed. Both are checked by a test.
+
+> **GOOD TO KNOW** · Firefox on a computer cannot install web apps
+>
+> Not a setting, and nothing to turn on. Use Chrome, Edge or Safari on a computer. Firefox on a phone is fine and is in the table above. The app says this plainly rather than offering steps that cannot work.
 
 ### Updates
 

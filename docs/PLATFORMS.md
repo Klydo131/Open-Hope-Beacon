@@ -16,7 +16,8 @@ worse than no document.
 | Chrome, Edge, Brave (desktop) | **Tested** | Every end-to-end walk runs in Chromium on each push. |
 | Android (Chrome) | **Tested** | `tests/e2e/mobile-devices.js` runs at Pixel 5 size with touch input and a real file attachment. |
 | iPhone and iPad (Safari) | **Expected, engine not tested** | Layout and touch are covered at iPhone size; Safari's own engine is not run here. See below. |
-| Firefox | **Expected, not tested** | No known blockers. Nothing in the app uses a Chromium-only API. |
+| Firefox | **Expected, not tested** | No known blockers. Nothing in the app uses a Chromium-only API. Firefox on a computer cannot INSTALL a web app; the app says so rather than offering steps that fail. |
+| Samsung Internet, Opera, Vivaldi, Hola and other Chromium browsers | **Install steps tested, engine not tested** | `tests/e2e/install-every-browser.js` loads Settings under each browser's real identifier and checks the steps shown are that browser's. The engine underneath is Chromium in every case, which IS tested; the shell around it is not run here. |
 | Windows / macOS / Linux | **Tested** | CI runs the full static suite on all three. |
 
 ## Building and contributing

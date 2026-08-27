@@ -22,6 +22,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button, Card } from '@/components/ui';
+import { InstallSteps } from '@/components/InstallSteps';
 import {
   OpenInSafari,
   inAppBrowser,
@@ -186,61 +187,9 @@ export function InstallCard() {
           <Button variant="ghost" className="mt-4" onClick={() => setSteps((v) => !v)}>
             {steps ? 'Hide the steps' : 'Show me how'}
           </Button>
-          {steps && <Steps platform={platform ?? 'other'} />}
+          {steps && <InstallSteps platform={platform ?? 'other'} />}
         </>
       )}
     </Card>
-  );
-}
-
-/**
- * What to press, on the device in your hand.
- *
- * Written out per platform rather than as one vague "use your browser's menu",
- * because the menu is in a different place with a different name in every one
- * of them, and a non-technical person told to "find the install option" simply
- * does not find it.
- */
-function Steps({ platform }: { platform: Platform }) {
-  if (platform === 'ios') {
-    return (
-      <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-gray-700">
-        <li>Tap the <strong>Share</strong> button, the square with an arrow coming out of it, {iosShareLocation()}.</li>
-        <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-        <li>Tap <strong>Add</strong>, top right.</li>
-        <li className="text-gray-500">It must be Safari. Chrome on an iPhone cannot install apps.</li>
-      </ol>
-    );
-  }
-  if (platform === 'mac') {
-    return (
-      <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-gray-700">
-        <li>In Safari&rsquo;s menu bar, choose <strong>File</strong>.</li>
-        <li>Choose <strong>Add to Dock</strong>.</li>
-        <li>Give it a name and press <strong>Add</strong>.</li>
-      </ol>
-    );
-  }
-  return (
-    <div className="mt-3 space-y-3 text-sm text-gray-700">
-      <div>
-        <p className="font-semibold text-navy">Android, in Chrome</p>
-        <ol className="mt-1 list-decimal space-y-1 pl-5">
-          <li>Tap the <strong>⋮</strong> menu, top right.</li>
-          <li>Tap <strong>Add to Home screen</strong> or <strong>Install app</strong>.</li>
-        </ol>
-      </div>
-      <div>
-        <p className="font-semibold text-navy">Windows or Mac, in Chrome or Edge</p>
-        <ol className="mt-1 list-decimal space-y-1 pl-5">
-          <li>Look for the <strong>install icon</strong> at the right-hand end of the address bar. It is a screen with a downward arrow.</li>
-          <li>If it is not there, open the <strong>⋮</strong> menu and choose <strong>Install Hope Beacon</strong> (sometimes under <em>Cast, save and share</em>, or <em>Apps</em>).</li>
-        </ol>
-      </div>
-      <p className="text-gray-500">
-        Firefox cannot install web apps on a computer. Use Chrome, Edge or Safari
-        for that; on Android, Firefox can add it to the home screen from its menu.
-      </p>
-    </div>
   );
 }
