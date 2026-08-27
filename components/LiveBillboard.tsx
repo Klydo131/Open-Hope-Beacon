@@ -62,13 +62,7 @@ export function LiveBillboard({ churchName, between }: {
   const [notices, setNotices] = useState<live.Announcement[] | null>(null);
   const [error, setError] = useState('');
 
-  // Writing a notice.
-  const [icon, setIcon] = useState('📌');
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-  const [whenText, setWhenText] = useState('');
   const [busy, setBusy] = useState(false);
-  const [writing, setWriting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -158,69 +152,22 @@ export function LiveBillboard({ churchName, between }: {
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xl font-bold text-room">📌 Announcements</h2>
+          {/* WRITING MOVED TO /publish. This screen is what the church has
+              said; a composer on top of it made a reader's page into a
+              writer's page for the three roles who can write. The take-down
+              controls stayed, beside the notice they act on: deleting is about
+              the thing in front of you, writing is a task you go and do. */}
           {mayPost && (
-            <Button variant="ghost" onClick={() => setWriting((v) => !v)}>
-              {writing ? 'Close' : 'Write a notice'}
-            </Button>
+            <Link href="/publish" className="text-sm font-semibold text-room underline underline-offset-2">
+              Write one →
+            </Link>
           )}
         </div>
-
-        {mayPost && writing && (
-          <Card className="mb-3 p-4">
-            <div className="grid gap-2 sm:grid-cols-[4rem_1fr]">
-              <input
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                aria-label="Icon"
-                className="rounded-xl border border-gray-300 px-3 py-2 text-center text-xl"
-              />
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Sabbath worship"
-                className="rounded-xl border border-gray-300 px-3 py-2"
-              />
-            </div>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={2}
-              placeholder="Gather with the church family for worship and study."
-              className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2"
-            />
-            <input
-              value={whenText}
-              onChange={(e) => setWhenText(e.target.value)}
-              placeholder="When? For example: This Sabbath, 9:00 AM"
-              className="mt-2 w-full rounded-xl border border-gray-300 px-3 py-2"
-            />
-            {/* SAID BEFORE THEY POST, because there is no audience to choose
-                and somebody writing a notice should know that rather than
-                assume there is one somewhere. */}
-            <p className="mt-2 text-xs text-gray-500">
-              Everybody in the church sees this. Anything for fewer people
-              belongs in a message or in Community Blogs.
-            </p>
-            <div className="mt-3">
-              <Button
-                variant="gold"
-                disabled={busy || !title.trim()}
-                onClick={() => act(async () => {
-                  await live.addAnnouncement({ icon, title, body, whenText });
-                  setTitle(''); setBody(''); setWhenText(''); setIcon('📌');
-                  setWriting(false);
-                })}
-              >
-                {busy ? 'Posting…' : 'Post it'}
-              </Button>
-            </div>
-          </Card>
-        )}
 
         {shown.length === 0 ? (
           <Card className="p-6 text-center text-gray-400">
             {mayPost
-              ? 'No notices yet. Write the first one above.'
+              ? 'No notices yet. Write the first one in Publish.'
               : 'Nothing pinned at the moment.'}
           </Card>
         ) : (

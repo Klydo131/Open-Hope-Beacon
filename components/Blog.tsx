@@ -105,7 +105,7 @@ export function BlogDesk({ userId }: { userId: string }) {
         <div>
           <h2 className="text-xl font-bold text-navy">✍️ Your blog</h2>
           <p className="text-sm text-gray-500">
-            Something said once, to everyone you walk with. They read it in their
+            Something said once, to the whole church or to a few people. They read it in their
             own time and owe you no reply.
           </p>
         </div>

@@ -159,6 +159,16 @@ A Guide writes their own. Create a series, add studies to it, attach the handout
 
 Directors keep the same control over everything, which is what running the church means. A Guide may edit and delete only what they wrote.
 
+### Publish
+
+**Everything you write for other people to read is in one room**, and every role has it. Writing used to be scattered across the screens people *read*: the blog desk sat on an Explorer's journey, on a Guide's Office and inside a Director's admin tab, and the announcement composer sat on top of the church home screen, which is the page somebody opens to find out what the church has said.
+
+Publishing is a task, and a task gets a room.
+
+An **Explorer** writes a blog post here, which the whole church reads. They cannot pin an announcement, and the screen says so and points them at the blog rather than showing them a blank space. A room that is empty for a whole role reads as broken.
+
+**Taking a notice down still happens on the church home screen**, beside the notice itself. Deleting is about the thing in front of you; writing is something you go and do.
+
 ### Announcements
 
 A notice pinned where the church will see it: an icon, a title, a line of detail, and a free-text when, because "This Sabbath, 9:00 AM" and "Every evening this week" are what a church actually writes and neither is a date. Notices come down by being taken down, not by a clock nobody set.
@@ -381,7 +391,7 @@ What somebody listens to while they read is nobody else's business, which is why
 
 ### What is in the left column
 
-Home, your own screen, the library, and **Cases**. Guides and leadership also have the **Office**. Under **You**: Profile, Mail and Settings.
+Home, your own screen, the library, **Publish** and **Cases**. Guides and leadership also have the **Office**. Under **You**: Profile, Mail and Settings.
 
 **Tutorial, What's new and Feedback are cards inside Settings**, not rows in the column. They were rows for a while, put there because each had been reported as missing when it was only reachable by scrolling Settings. That fixed the wrong half: it made the column six entries long for three things somebody uses about once a month, and the column is what people look at all day. The unread mark for a new release sits on Settings itself, so it is still visible from every screen.
 

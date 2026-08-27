@@ -12,7 +12,12 @@
 // The split is by KIND OF WORK, not by permission:
 //
 //   * a roster, a conversation, a case  -> about a person, on their own screen
-//   * numbers, exports, writing, stocking a shelf -> office work, in here
+//   * numbers, exports, stocking a shelf -> office work, in here
+//   * a blog post, an announcement -> publishing, in /publish
+//
+// Writing left this room after it arrived here: a blog post and a notice are
+// the same act for every role, including an Explorer, and this room is only for
+// people who have work to do. Publishing has a room of its own.
 //
 // Explorers do not have this room. Not because anything is hidden from them,
 // but because none of it is theirs to do: an Explorer has no roster to report
@@ -36,7 +41,6 @@ import { LiveExport } from '@/components/LiveExport';
 import { LiveBoardReport } from '@/components/LiveExecutive';
 import { LiveStudies } from '@/components/LiveStudies';
 import { LiveLibraryForGuide } from '@/components/LiveLibrary';
-import { LiveBlogDesk } from '@/components/LiveBlog';
 import { LiveRecommend } from '@/components/LiveMinistry';
 import {
   LiveAskToWalkWith, LivePairingRequestsForDirector, LiveGuildRoom,
@@ -129,8 +133,6 @@ function LiveOffice() {
           Guide with a hard week entirely alone. Directors are in it too: a
           guild whose leaders cannot hear it is not being led. */}
       <LiveGuildRoom />
-
-      <LiveBlogDesk />
     </div>
   );
 }

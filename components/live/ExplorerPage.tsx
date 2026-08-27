@@ -7,7 +7,7 @@ import * as live from '@/lib/live/data';
 import { LiveReportControl } from '@/components/LiveSafeguarding';
 import type { Message } from '@/lib/types';
 import { LiveAppShell } from '@/components/LiveAppShell';
-import { LiveBlogDesk, LiveBlogFeed } from '@/components/LiveBlog';
+import { LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer } from '@/components/LivePrayer';
 import { LiveMeetings } from '@/components/LiveMeetings';
 import { useDraft, clearDraft } from '@/lib/drafts';
@@ -183,16 +183,13 @@ export function LiveExplorerPage() {
         <LiveSharedWithMe />
         <LiveStudies />
 
-        {/* WRITE, THEN READ, THEN ASK, and that order is deliberate.
-            Your own writing first, because it is yours and it is the shorter
-            card. What everybody else wrote next. Asking for prayer last, at the
-            foot of the page, because it is the most exposed thing anybody does
-            in this app and it should not be the first thing on the screen every
-            time somebody opens their journey.
+        {/* READ, THEN ASK. Writing moved to the Publish room, which every role
+            has: this screen is somebody's journey, and their own blog desk sat
+            on it because there was nowhere else to put it.
 
-            AN EXPLORER MAY WRITE AT ALL only since migration 0042. Before that
-            this screen offered a blog the database refused to accept. */}
-        <LiveBlogDesk />
+            Asking for prayer is last, at the foot of the page, because it is
+            the most exposed thing anybody does in this app and should not be
+            the first thing on the screen every time they open their journey. */}
         <LiveBlogFeed selfId={profile?.id} />
         <LiveAskForPrayer />
       </div>

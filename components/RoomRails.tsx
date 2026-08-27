@@ -104,6 +104,12 @@ export function railGroupsFor(
   // tells somebody they are missing something.
   const office = { href: '/office', label: 'Office', icon: '🗂️' };
 
+  // PUBLISH, for every role. Writing was scattered across the screens people
+  // READ: the blog desk on an Explorer's journey, on a Guide's Office and in a
+  // Director's admin tab, and the announcement composer on top of the church
+  // home screen. Publishing is a task, and a task gets a room.
+  const publish = { href: '/publish', label: 'Publish', icon: '✍️' };
+
   if (role === 'ds') {
     return [
       {
@@ -112,6 +118,7 @@ export function railGroupsFor(
           home,
           { href: '/ds', label: 'My Journey', icon: '🎯' },
           { href: '/library', label: 'My Library', icon: '📚' },
+          publish,
           cases,
         ],
       },
@@ -127,6 +134,7 @@ export function railGroupsFor(
           home,
           { href: '/dm', label: 'My Explorers', icon: '🤝', badge: counts.seekers },
           office,
+          publish,
           { href: '/library', label: 'Resources', icon: '📚' },
           cases,
         ],
@@ -143,6 +151,7 @@ export function railGroupsFor(
         home,
         { href: '/admin', label: 'Admin', icon: '🛡️', badge: counts.approvals },
         office,
+        publish,
         { href: '/library', label: 'Resources', icon: '📚' },
         cases,
       ],
