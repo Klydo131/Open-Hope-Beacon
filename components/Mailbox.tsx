@@ -7,6 +7,7 @@ import { NAVY } from '@/lib/brand';
 import type { DemoEmail, Role } from '@/lib/types';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { safeLinkHref } from '@/lib/url';
+import { ChevronGlyph } from '@/components/Glyph';
 
 // The simulated mailbox.
 //
@@ -216,7 +217,7 @@ function Letter({
           </span>
         </span>
         <span className="shrink-0 text-2xl text-gray-300" aria-hidden>
-          {open ? '⌄' : '›'}
+          <ChevronGlyph open={open} size={18} />
         </span>
       </button>
 

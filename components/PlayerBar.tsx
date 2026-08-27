@@ -29,6 +29,10 @@ import { saveFilesFromInput, savedMessage } from '@/lib/save-media';
 const STRIP_OPEN_KEY = 'beacon.player.rail-open';
 import { Button, Card } from '@/components/ui';
 import type { RoomTheme } from '@/lib/room-theme';
+import {
+  BackGlyph, ForwardGlyph, NextGlyph, PauseGlyph, PlayGlyph, PreviousGlyph, CloseGlyph,
+  ChevronGlyph,
+} from '@/components/Glyph';
 
 function Credit({ className = '' }: { className?: string }) {
   const credit = playerCredit();
@@ -218,14 +222,14 @@ function Transport({ accent, compact = false }: { accent: string; compact?: bool
         aria-label="Back ten seconds" title="Back 10 seconds"
         className={`${ghost} ${round}`}
       >
-        ↺
+        <BackGlyph seconds={10} size={compact ? 18 : 20} />
       </button>
       <button
         type="button" disabled={!live} onClick={previous}
         aria-label="Previous track" title="Previous"
         className={`${ghost} ${round}`}
       >
-        ⏮
+        <PreviousGlyph size={compact ? 18 : 20} />
       </button>
       <button
         type="button"
@@ -239,21 +243,21 @@ function Transport({ accent, compact = false }: { accent: string; compact?: bool
         {loading ? (
           <span aria-hidden className="beacon-spinner block h-5 w-5 rounded-full border-2 border-white/40"
             style={{ borderTopColor: '#fff' }} />
-        ) : playing ? '❚❚' : '▶'}
+        ) : playing ? <PauseGlyph size={22} /> : <PlayGlyph size={22} />}
       </button>
       <button
         type="button" disabled={!hasNext} onClick={next}
         aria-label="Next track" title="Next"
         className={`${ghost} ${round}`}
       >
-        ⏭
+        <NextGlyph size={compact ? 18 : 20} />
       </button>
       <button
         type="button" disabled={!seekable} onClick={() => nudge(10)}
         aria-label="Forward ten seconds" title="Forward 10 seconds"
         className={`${ghost} ${round}`}
       >
-        ↻
+        <ForwardGlyph seconds={10} size={compact ? 18 : 20} />
       </button>
     </div>
   );
@@ -413,7 +417,7 @@ export function PlayerStrip({ theme }: { theme: RoomTheme }) {
             className="grid h-6 w-6 shrink-0 place-items-center rounded-lg text-sm leading-none"
             style={{ color: theme.inkSoft }}
           >
-            {open ? '⌄' : '⋯'}
+            {open ? <ChevronGlyph open size={16} /> : '⋯'}
           </button>
         </div>
       </div>
@@ -537,7 +541,7 @@ export function PlayerStrip({ theme }: { theme: RoomTheme }) {
                               className="shrink-0 px-2 py-1 text-xs"
                               style={{ color: theme.inkSoft }}
                             >
-                              ✕
+                              <CloseGlyph size={16} />
                             </button>
                           )}
                         </div>
@@ -562,7 +566,7 @@ export function PlayerStrip({ theme }: { theme: RoomTheme }) {
                 className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold text-white disabled:opacity-50"
                 style={{ backgroundColor: theme.accent }}
               >
-                {busy ? 'Saving…' : '⬆ Save music or video'}
+                {busy ? 'Saving…' : '⬆️ Save music or video'}
               </button>
               {note && (
                 <p className="text-xs font-semibold" style={{ color: theme.ink }}>{note}</p>
@@ -794,7 +798,7 @@ export function PlayerPanel({
                   className="tap mt-2 inline-flex items-center justify-center gap-2 rounded-xl px-5 text-lg font-semibold text-white"
                   style={{ backgroundColor: accent }}
                 >
-                  ⬆ Save music or video
+                  ⬆️ Save music or video
                 </button>
               )}
             </div>
@@ -846,7 +850,7 @@ export function PlayerPanel({
                         aria-label={`Remove ${m.title} from this device`}
                         className="shrink-0 px-3 py-1.5 text-sm text-gray-400 hover:text-red-700"
                       >
-                        ✕
+                        <CloseGlyph size={16} />
                       </button>
                     )}
                   </div>

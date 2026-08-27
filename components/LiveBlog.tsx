@@ -245,7 +245,7 @@ export function LiveBlogDesk() {
                   could open reads like failure rather than a choice. */}
               {p.visibility === 'published' && (
                 <span className="text-sm text-gray-500" title="People who opened this. Names are never shown.">
-                  👁 {p.reader_count} {p.reader_count === 1 ? 'reader' : 'readers'}
+                  👁️ {p.reader_count} {p.reader_count === 1 ? 'reader' : 'readers'}
                 </span>
               )}
               <span className="flex-1" />

@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card } from '@/components/ui';
 import { getBlob, humanSize, type MediaMeta } from '@/lib/localMedia';
 import { usePlaylists, presentTracks, type Playlist } from '@/lib/playlists';
+import { NextGlyph, PlayGlyph, PreviousGlyph } from '@/components/Glyph';
 
 type RepeatMode = 'off' | 'all' | 'one';
 
@@ -188,7 +189,7 @@ function PlaylistDetail({
       ) : (
         <>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button variant="gold" onClick={() => setIndex(0)}>▶ Play all</Button>
+            <Button variant="gold" onClick={() => setIndex(0)}><PlayGlyph size={16} className="mr-1.5" />Play all</Button>
             <Button
               variant="ghost"
               onClick={() => setShuffle((v) => !v)}
@@ -221,7 +222,7 @@ function PlaylistDetail({
                     className="min-w-0 flex-1 text-left"
                   >
                     <span className="block truncate font-semibold text-navy">
-                      {index === i && <span aria-hidden>▶ </span>}
+                      {index === i && <PlayGlyph size={14} className="mr-1" />}
                       {meta.title}
                     </span>
                     <span className="block text-xs text-gray-500">
@@ -381,11 +382,11 @@ function QueuePlayer({
         <button
           type="button" onClick={previous} disabled={total < 2}
           className="tap-sm rounded-xl bg-white/10 px-3 font-semibold hover:bg-white/20 disabled:opacity-40"
-        >⏮ Previous</button>
+        ><PreviousGlyph size={16} className="mr-1.5" />Previous</button>
         <button
           type="button" onClick={next}
           className="tap-sm rounded-xl bg-white/10 px-3 font-semibold hover:bg-white/20"
-        >Next ⏭</button>
+        >Next<NextGlyph size={16} className="ml-1.5" /></button>
         <button
           type="button" onClick={onStop}
           className="tap-sm rounded-xl bg-white/10 px-3 font-semibold hover:bg-white/20"

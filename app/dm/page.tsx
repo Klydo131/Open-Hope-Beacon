@@ -312,7 +312,7 @@ function Dashboard() {
                       <div className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs font-semibold">
                         {urgency.overdue > 0 && (
                           <span style={{ color: '#DC2626' }}>
-                            ⚠︎ {urgency.overdue} overdue
+                            ⚠️ {urgency.overdue} overdue
                           </span>
                         )}
                         {urgency.overdue === 0 && urgency.dueToday > 0 && (
@@ -341,7 +341,7 @@ function Dashboard() {
                           style={{ color: engagement.quiet ? '#B8860B' : '#9AA3B2' }}
                         >
                           {engagement.quiet
-                            ? '⚠︎ Needs check-in'
+                            ? '⚠️ Needs check-in'
                             : activeLabel(engagement.daysSince)}
                         </span>
                       </div>

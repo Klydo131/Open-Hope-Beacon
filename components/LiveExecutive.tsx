@@ -223,7 +223,8 @@ export function LiveBoardReport({ churchName }: { churchName?: string }) {
             No library for any of it. lib/pdf.ts writes the PDF by hand — PDF is
             a text format — because adding a rendering dependency to a project
             that runs on free tiers, to lay out fifteen lines, is a bad trade. */}
-        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+        {/* See LiveChurchPages: shrink-0 and flex-wrap cancel each other out. */}
+        <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto">
           <Button
             variant="ghost"
             onClick={async () => setCopied(await copyText(text) ? 'yes' : 'failed')}

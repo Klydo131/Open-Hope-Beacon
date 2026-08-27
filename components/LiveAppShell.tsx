@@ -13,6 +13,7 @@ import { LiveDesk } from '@/components/LiveDesk';
 import { useRoom } from '@/lib/room-theme';
 import { LiveBell } from '@/components/LiveBell';
 import { ModeSwitch } from '@/components/ModeSwitch';
+import { PowerGlyph } from '@/components/Glyph';
 import { useScrollToHash } from '@/lib/scroll-to-hash';
 import { useUrlKey } from '@/lib/url-signal';
 
@@ -238,7 +239,10 @@ export function LiveAppShell({
                 Sign out lives nowhere else in the app, so it stays on every
                 size — as a symbol where there is no room for the sentence. */}
             <span className="hidden text-sm font-semibold sm:inline">Sign out</span>
-            <span aria-hidden className="text-lg sm:hidden">⏻</span>
+            {/* DRAWN, NOT TYPED. This was `⏻`, U+23FB, which is not an emoji
+                and so has no guaranteed font behind it: an empty box on every
+                Android phone, and perfect on the iPhone it was written on. */}
+            <PowerGlyph size={20} className="sm:hidden" />
           </button>
         </div>
 

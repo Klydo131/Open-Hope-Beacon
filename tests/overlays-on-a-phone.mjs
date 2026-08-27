@@ -185,5 +185,32 @@ const NO_FALLBACK_POSSIBLE = ['app/global-error.tsx'];
       : 'every anchored panel is positioned by AnchoredPanel, which clamps it');
 }
 
+// ---------------------------------------------------------------------------
+// 6. Nothing asks to wrap and refuses to shrink at the same time.
+// ---------------------------------------------------------------------------
+// `flex-wrap` and `shrink-0` on the same element cancel each other out, and
+// shrink-0 wins: it pins the row at the width of all its children in one line,
+// so the row can NEVER wrap and simply runs off the side instead. It reads as
+// careful markup, which is why it survived in two places. The reported screen
+// showed an invitation with "Re-send", "Cancel", and half the word "Copy",
+// with the rest past the edge of the glass.
+{
+  const offenders = [];
+  for (const file of files) {
+    const src = readFileSync(file, 'utf8');
+    src.split('\n').forEach((line, i) => {
+      if (isComment(line)) return;
+      const cls = line.match(/className="([^"]*)"/)?.[1] ?? '';
+      if (/\bflex-wrap\b/.test(cls) && /\bshrink-0\b/.test(cls)) {
+        offenders.push(`${file}:${i + 1}`);
+      }
+    });
+  }
+  ok(offenders.length === 0,
+    offenders.length
+      ? `these ask to wrap and refuse to shrink, so they overflow instead:\n        ${offenders.join('\n        ')}`
+      : 'nothing asks to wrap while refusing to shrink');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

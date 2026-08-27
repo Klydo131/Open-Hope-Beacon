@@ -26,6 +26,7 @@
 
 import { useEffect, useState } from 'react';
 import { iosShareLocation } from '@/components/InstallPrompt';
+import { KebabGlyph, MenuGlyph } from '@/components/Glyph';
 
 export type Platform = 'auto' | 'ios' | 'mac' | 'other';
 
@@ -39,7 +40,17 @@ export interface InstallGuide {
   note?: React.ReactNode;
 }
 
-const menu = (glyph: string) => <strong>{glyph}</strong>;
+// DRAWN, NOT TYPED, for the same reason the sign-out button is. `⋮` is a maths
+// operator and `☰` is TRIGRAM FOR HEAVEN; neither is an emoji, so neither has a
+// font promised behind it. A page of install instructions whose menu symbols are
+// empty boxes is worse than no instructions: the reader believes they are
+// looking at the wrong screen.
+const menu = (glyph: string) => {
+  const icon = glyph.includes('\u2630')
+    ? <MenuGlyph size={16} className="-mb-0.5" />
+    : <KebabGlyph size={16} className="-mb-0.5" />;
+  return <strong className="whitespace-nowrap">{icon}</strong>;
+};
 
 /**
  * Every browser that can install this app, and what to press in each.

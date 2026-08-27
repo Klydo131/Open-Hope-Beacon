@@ -331,7 +331,16 @@ export function LiveMailPage() {
                         )}
                       </p>
                     </div>
-                    <span className="flex shrink-0 flex-wrap gap-2">
+{/* NOT `shrink-0`. It was, and `shrink-0` with `flex-wrap` are a
+                        contradiction: shrink-0 pins the row at the width of all
+                        its buttons in a line, so it can never wrap, and it runs
+                        off the side of a phone instead. The reported screen had
+                        Re-send, Cancel and half of "Copy address", with the rest
+                        past the edge of the glass.
+
+                        Full width below `sm`, so the buttons wrap under the
+                        address rather than fighting it for the same line. */}
+                    <span className="flex w-full flex-wrap gap-2 sm:w-auto">
                       <Button variant="gold" disabled={busy === i.id} onClick={() => resend(i)}>
                         {busy === i.id ? 'Sending…' : 'Re-send'}
                       </Button>

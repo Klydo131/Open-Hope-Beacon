@@ -27,6 +27,7 @@ import { saveFilesFromInput, savedMessage } from '@/lib/save-media';
 import { useDemo } from '@/lib/demo/store';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import { STARTER_KIT, KIT_TOPICS } from '@/lib/starter-kit';
+import { PlayGlyph } from '@/components/Glyph';
 
 const ICON: Record<string, string> = {
   pdf: '📄',
@@ -404,7 +405,7 @@ export default function LibraryPage() {
                         className="px-4 text-base"
                         onClick={() => setPlaying(playing === m.id ? null : m.id)}
                       >
-                        {playing === m.id ? 'Close' : '▶ Play'}
+                        {playing === m.id ? 'Close' : <><PlayGlyph size={14} className="mr-1" />Play</>}
                       </Button>
                     )}
                     <Button variant="gold" className="px-4 text-base" onClick={() => share(m)}>
