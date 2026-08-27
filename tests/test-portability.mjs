@@ -82,6 +82,57 @@ silent.length
   ? fail(`suites that never call process.exit: ${silent.join(', ')} — a failure would report as a pass`)
   : ok(`all ${suites.length} suites signal failure through their exit code`);
 
+// ---------------------------------------------------------------------------
+// Nothing may depend on a Unix shell.
+// ---------------------------------------------------------------------------
+// "Runs anywhere" is what this file is for, and it was only checking ports and
+// exit codes. Two suites had been RED ON EVERY WINDOWS RUN for months and
+// nobody looked, because the failure lived in CI and the summary line everybody
+// reads is printed on Linux.
+//
+//   tests/plain-words.mjs   ran `find app components ... -name '*.ts'`. On
+//     Windows `find` is a different command that searches for TEXT INSIDE
+//     files. It matched nothing, the suite read ZERO files, and its three real
+//     rules then reported "0 found" and PASSED. Green, and checking nothing.
+//   tests/ios-install.mjs   ran `spawn('npx', ...)`. npx is npx.cmd on Windows
+//     and spawn without a shell cannot find it: ENOENT, every time.
+//
+// Both had a portable answer already in the repository. scripts/run-next.mjs
+// resolves Next's own CLI and runs it under this same Node, needing no shell at
+// all, and Node walks a directory tree perfectly well by itself.
+{
+  const everywhere = [
+    ...fs.readdirSync(path.join(root, 'tests')).filter((f) => /\.(mjs|js)$/.test(f)).map((f) => path.join('tests', f)),
+    ...fs.readdirSync(e2eDir).map((f) => path.join('tests', 'e2e', f)),
+    ...fs.readdirSync(path.join(root, 'scripts')).filter((f) => /\.mjs$/.test(f)).map((f) => path.join('scripts', f)),
+  ];
+
+  // Commands that either do not exist on Windows or mean something else there.
+  const UNIX_ONLY = /\b(execSync|exec|spawnSync|spawn)\(\s*[`'"]\s*(find|grep|sed|awk|ls|rm|cp|mv|cat|which|xargs|chmod)\b/;
+  // npm and npx are .cmd files on Windows: spawn cannot find them without a
+  // shell. `shell: true`, or resolving the real binary, both fix it.
+  const BARE_NPM = /\bspawn(Sync)?\(\s*[`'"](npm|npx|yarn|pnpm)[`'"]/;
+
+  const offenders = [];
+  for (const rel of everywhere) {
+    let src;
+    try { src = fs.readFileSync(path.join(root, rel), 'utf8'); } catch { continue; }
+    const shipped = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    if (UNIX_ONLY.test(shipped)) offenders.push(`${rel} (a Unix-only command)`);
+    // Look for a `shell:` option in the CALL, not a literal `true`. The first
+    // version of this rule demanded `shell: true` and reported dev-server.mjs,
+    // which passes `shell: NEEDS_SHELL` and is correct. A rule that flags
+    // working code gets switched off, and then it protects nothing.
+    const call = shipped.match(BARE_NPM);
+    if (call && !/shell\s*:/.test(shipped.slice(call.index, call.index + 400))) {
+      offenders.push(`${rel} (spawns npm/npx with no shell, which is ENOENT on Windows)`);
+    }
+  }
+  offenders.length
+    ? fail(`these cannot run on Windows:\n    ${offenders.join('\n    ')}`)
+    : ok(`no test or script depends on a Unix shell (${everywhere.length} checked)`);
+}
+
 console.log(
   bad === 0
     ? '\nRESULT: the suites run anywhere ✓'

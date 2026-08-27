@@ -119,9 +119,19 @@ if (!(await reachable(BASE))) {
     console.log(`\nRESULT: ${bad} FAILURE(S)`);
     process.exit(1);
   }
+  // NEXT'S OWN CLI, NOT `npx`.
+  //
+  // `spawn('npx', ...)` fails on Windows with ENOENT, because npx is npx.cmd
+  // there and spawn without a shell will not find it. This suite has been
+  // failing on every Windows run for that one reason. scripts/run-next.mjs
+  // already solved it by resolving the CLI and running it under this same Node,
+  // which needs no shell on any platform.
   const { spawn } = await import('node:child_process');
-  child = spawn('npx', ['next', 'start', '-p', String(PORT)], {
+  const { createRequire } = await import('node:module');
+  const cli = createRequire(import.meta.url).resolve('next/dist/bin/next');
+  child = spawn(process.execPath, [cli, 'start', '-p', String(PORT)], {
     stdio: 'ignore', detached: false,
+    env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' },
   });
   const deadline = Date.now() + 60000;
   while (Date.now() < deadline && !(await reachable(BASE))) {

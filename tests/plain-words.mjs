@@ -19,8 +19,8 @@
 // comments are tracked across lines. It has caught its own prose twice in this
 // repository, which is exactly the false positive it is built to avoid.
 
-import { readFileSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import path from 'node:path';
 
 let bad = 0;
 const ok = (cond, msg) => {
@@ -29,9 +29,30 @@ const ok = (cond, msg) => {
 };
 
 const ROOTS = ['app', 'components', 'lib', 'supabase/functions'];
-const files = execSync(
-  `find ${ROOTS.join(' ')} \\( -name '*.ts' -o -name '*.tsx' \\) -not -path '*/node_modules/*' | sort`,
-).toString().trim().split('\n').filter(Boolean);
+
+// WALKED IN NODE, NOT SHELLED OUT TO `find`.
+//
+// This used to run `find app components lib ... -name '*.ts'`. On Windows
+// `find` is a completely different command that searches for TEXT INSIDE
+// files, so it answered "File not found - '*.ts'" and this suite read ZERO
+// files. The three rules underneath then reported "0 found" and passed, which
+// is the worst way for a test to fail: green, and checking nothing.
+//
+// The count check below is the only reason anybody ever saw it. That is what
+// that line is for, and it earned its place.
+function walk(dir) {
+  let out = [];
+  let entries;
+  try { entries = readdirSync(dir); } catch { return out; }
+  for (const name of entries) {
+    if (name === 'node_modules') continue;
+    const full = path.join(dir, name);
+    if (statSync(full).isDirectory()) out = out.concat(walk(full));
+    else if (/\.tsx?$/.test(name)) out.push(full);
+  }
+  return out;
+}
+const files = ROOTS.flatMap(walk).sort();
 
 ok(files.length > 50, `there is a tree to read (${files.length} files)`);
 
