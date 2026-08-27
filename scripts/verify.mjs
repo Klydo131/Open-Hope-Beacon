@@ -133,6 +133,9 @@ const staticChecks = [
   // sign-out button was a blank box on every Android phone and perfect on every
   // Apple one, which is why nobody reviewing it ever saw the problem.
   ['icons render everywhere', 'tests/glyphs-render-everywhere.mjs'],
+  // Turning what somebody typed into an href is an injection surface, and this
+  // field is filled in by a Guide and tapped by the Explorer they walk with.
+  ['meeting links', 'tests/meeting-links.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

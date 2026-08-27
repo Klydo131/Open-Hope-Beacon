@@ -30,6 +30,7 @@ import * as live from '@/lib/live/data';
 import type { Profile } from '@/lib/types';
 import type { RoomTheme } from '@/lib/room-theme';
 import { openBell } from '@/lib/open-bell';
+import { joinLabel, joinUrl } from '@/lib/live/meeting-link';
 
 interface DeskItem {
   key: string;
@@ -56,6 +57,14 @@ interface Coming {
   what: string;
   /** The conversation this meeting belongs to. */
   href: string;
+  /**
+   * The link to join, when it is an online meeting and one was given.
+   *
+   * ON THE DESK, not only inside the conversation. The desk is what somebody
+   * looks at with two minutes to spare, and making them open the conversation
+   * first to find the address is the errand this is meant to remove.
+   */
+  join?: string;
 }
 
 function whenLabel(iso: string): string {
@@ -98,6 +107,7 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
       when: whenLabel(m.starts_at),
       what: m.title?.trim() || 'A time together',
       href: guide ? `/dm/${m.pairing_id}` : '/ds',
+      join: joinUrl(m.mode, m.location) ?? undefined,
     })));
 
     const unread = notes.filter((n) => !n.read_at).length;
@@ -198,12 +208,29 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
           </p>
           <div className="mt-1 space-y-1.5">
             {coming.map((c) => (
-              <Link key={c.key} href={c.href} className="block rounded-lg py-0.5">
-                <p className="text-xs font-bold" style={{ color: theme.accent }}>{c.when}</p>
-                <p className="truncate text-sm underline underline-offset-2" style={{ color: theme.ink }}>
-                  {c.what}
-                </p>
-              </Link>
+              /* SIBLINGS, NOT NESTED. An <a> inside a <Link> is an anchor
+                 inside an anchor, which is invalid HTML and which browsers
+                 resolve by guessing. The join link has to be its own element. */
+              <div key={c.key} className="rounded-lg py-0.5">
+                <Link href={c.href} className="block">
+                  <p className="text-xs font-bold" style={{ color: theme.accent }}>{c.when}</p>
+                  <p className="truncate text-sm underline underline-offset-2" style={{ color: theme.ink }}>
+                    {c.what}
+                  </p>
+                </Link>
+                {c.join && (
+                  <a
+                    href={c.join}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-meeting-join
+                    className="mt-0.5 inline-block text-xs font-bold underline underline-offset-2"
+                    style={{ color: theme.accent }}
+                  >
+                    {joinLabel(c.join)}
+                  </a>
+                )}
+              </div>
             ))}
           </div>
         </div>

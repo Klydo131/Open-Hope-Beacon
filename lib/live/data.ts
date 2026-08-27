@@ -43,7 +43,7 @@ import {
 } from '@/lib/supabase/client';
 import { uuid } from '@/lib/uuid';
 import type { Session } from '@supabase/supabase-js';
-import type { Profile, Pairing, Message, Stage, Track, Role, JourneyEvent } from '@/lib/types';
+import type { Profile, Pairing, Message, Stage, Track, Role, JourneyEvent, MeetingMode } from '@/lib/types';
 
 /** Thrown when a live call is made with no database configured. */
 class NotLive extends Error {
@@ -1469,7 +1469,7 @@ export async function avatarUrl(path: string | null | undefined): Promise<string
 // and nobody else can see any of it. `in_pairing` is what enforces that, so
 // the Explorer is a full participant here rather than a spectator.
 
-export type MeetingMode = 'online' | 'in_person';
+export type { MeetingMode };
 export type MeetingStatus = 'proposed' | 'confirmed' | 'cancelled' | 'done';
 
 export interface Meeting {
@@ -1519,9 +1519,17 @@ export async function scheduleMeeting(
     title: meeting.title.trim() || 'Study time',
     starts_at: meeting.startsAt,
     mode: meeting.mode,
-    // An empty string is not a place. Stored as null so the map link and the
-    // "where" line can both simply test for absence.
-    location: meeting.mode === 'in_person' ? (meeting.location || '').trim() || null : null,
+    // KEPT FOR BOTH KINDS OF MEETING, which is what the column was always for:
+    // 0009 documents it as "a place for in person, or a joining address for
+    // online". This line said otherwise and threw the value away whenever the
+    // meeting was online, so an online meeting could never carry the one thing
+    // it needs — the link to join it. Somebody arranged a Zoom call and then
+    // had to send the link separately, in a message, which is exactly the
+    // errand arranging it on a shared card was meant to remove.
+    //
+    // An empty string is still not a place. Stored as null so the join button,
+    // the map link and the "where" line can all simply test for absence.
+    location: (meeting.location || '').trim() || null,
     notes: (meeting.notes || '').trim() || null,
     created_by: me,
   });

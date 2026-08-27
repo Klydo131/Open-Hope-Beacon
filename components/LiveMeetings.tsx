@@ -23,6 +23,8 @@ import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { Button, Card } from '@/components/ui';
 import { humanError } from '@/lib/live/errors';
+import { safeHref } from '@/lib/linkify';
+import { joinLabel, joinUrl } from '@/lib/live/meeting-link';
 
 /**
  * A link to a map, never an embedded one.
@@ -130,7 +132,7 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
             <button
               key={m}
               type="button"
-              onClick={() => setMode(m)}
+              onClick={() => { setMode(m); setLocation(''); }}
               aria-pressed={mode === m}
               className={`tap-sm rounded-xl px-3 py-2.5 text-sm font-bold ${
                 mode === m
@@ -167,6 +169,32 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
             </p>
           </div>
         )}
+
+        {/* THE JOINING LINK, which an online meeting had no way to carry.
+            The app arranged the time and then left the two of them to send the
+            Zoom link to each other in a message, which is the errand a shared
+            card was supposed to remove, and the one thing somebody is looking
+            for in the sixty seconds before a call starts.
+
+            Optional on purpose. "I will ring you at seven" is a real answer to
+            where, and it is kept and shown as written rather than refused. */}
+        {mode === 'online' && (
+          <div>
+            <input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              inputMode="url"
+              placeholder="https://zoom.us/j/1234567890"
+              aria-label="Link to join the call"
+              className="w-full rounded-xl border border-gray-300 px-3 py-2"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              {location.trim() && !safeHref(location.trim())
+                ? 'That is not a link, so it will be shown as written rather than as a button. Paste a link starting with https:// to make it one tap.'
+                : 'Paste the Zoom, Meet, Teams or Messenger link. It becomes a Join button for both of you. Leave it empty if you are ringing each other.'}
+            </p>
+          </div>
+        )}
         <div>
           <Button
             variant="gold"
@@ -192,7 +220,12 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
           <p className="text-sm text-gray-400">Nothing arranged yet.</p>
         )}
         {upcoming.map((m) => {
-          const map = mapsUrl(m.location);
+          // GATED ON MODE. `mapsUrl` was called for every meeting, which was
+          // harmless only because an online meeting could never have a
+          // location. Now that it can, an unguarded call would hand a Zoom
+          // link to Google Maps and search for it as if it were a street.
+          const map = m.mode === 'in_person' ? mapsUrl(m.location) : null;
+          const join = joinUrl(m.mode, m.location);
           const mine = m.created_by === me;
           return (
             <div key={m.id} className="rounded-xl bg-gray-50 p-4">
@@ -227,6 +260,16 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
                       📍 {m.location}
                     </p>
                   )}
+                  {/* An online meeting whose "where" is NOT a link. Somebody
+                      wrote how they are meeting rather than pasting an address,
+                      and that is worth showing exactly as they wrote it. When
+                      it IS a link the button below carries it, and repeating a
+                      long URL here would only push the row off a phone. */}
+                  {m.mode === 'online' && m.location && !join && (
+                    <p className="mt-0.5 truncate text-sm font-semibold text-navy">
+                      💻 {m.location}
+                    </p>
+                  )}
                 </div>
 
                 {/* ONE BUTTON ON THE RIGHT, and which one depends on what this
@@ -237,6 +280,20 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
                   <Button disabled={busy} onClick={() => act(() => live.confirmMeeting(m.id))}>
                     Yes, that works
                   </Button>
+                ) : join ? (
+                  /* THE ONE TAP. Named after the service where it can be told,
+                     because "Join the Zoom call" is recognised in a way that a
+                     bare link never is, and a person about to be late reads the
+                     button and not the address. */
+                  <a
+                    href={join}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-meeting-join
+                    className="tap-sm shrink-0 rounded-xl bg-navy px-4 text-sm font-bold text-white"
+                  >
+                    {joinLabel(join)}
+                  </a>
                 ) : map ? (
                   <a
                     href={map}
@@ -254,6 +311,22 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
                     of these matter far less often than confirming or finding
                     the place, and two heavy buttons per row is what made the
                     list read as a form. */}
+                {/* A proposal still waiting on the other person shows the big
+                    button as "Yes, that works", so the way in becomes a quiet
+                    link here instead. It is still there BEFORE confirming on
+                    purpose: somebody deciding whether a time works often wants
+                    to see where, or that the link is one they can open. */}
+                {m.status === 'proposed' && !mine && join && (
+                  <a
+                    href={join}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-meeting-join
+                    className="text-sm font-semibold text-navy underline underline-offset-2"
+                  >
+                    {joinLabel(join)}
+                  </a>
+                )}
                 {m.status === 'proposed' && !mine && map && (
                   <a
                     href={map}

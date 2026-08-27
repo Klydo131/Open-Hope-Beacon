@@ -8,6 +8,16 @@
 // admin; they do not sign in. Removing the union member is what makes the
 // compiler find every screen that still assumed otherwise.
 export type Role = 'executive' | 'admin' | 'dm' | 'ds';
+
+/**
+ * Online or face to face.
+ *
+ * Moved here from lib/live/data.ts, which is where it happened to be needed
+ * first. It is a domain type, and leaving it in the data-access module meant
+ * anything that merely wanted to REASON about a meeting had to import the whole
+ * Supabase client to do it.
+ */
+export type MeetingMode = 'online' | 'in_person';
 export type Stage =
   | 'create'
   | 'connect'
