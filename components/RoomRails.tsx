@@ -174,7 +174,7 @@ export function LeftRail({
   return (
     <nav
       aria-label="Workspace"
-      className="compact-ui thin-scroll sticky top-[76px] hidden max-h-[calc(100vh-96px)] w-56 shrink-0 overflow-y-auto pb-6 xl:block"
+      className="compact-ui thin-scroll sticky top-[76px] hidden max-h-[calc(100vh-96px)] w-56 shrink-0 overflow-y-auto pb-6 [max-height:calc(100dvh-96px)] xl:block"
     >
       <div className="space-y-5">
         {groups.map((g) => (
@@ -261,7 +261,7 @@ export function RightRail({
   return (
     <aside
       aria-label={seeker ? 'My room' : 'My office'}
-      className="compact-ui thin-scroll sticky top-[76px] hidden max-h-[calc(100vh-96px)] w-72 shrink-0 space-y-3 overflow-y-auto pb-6 xl:block"
+      className="compact-ui thin-scroll sticky top-[76px] hidden max-h-[calc(100vh-96px)] w-72 shrink-0 space-y-3 overflow-y-auto pb-6 [max-height:calc(100dvh-96px)] xl:block"
     >
       <RoomCard
         seeker={seeker}

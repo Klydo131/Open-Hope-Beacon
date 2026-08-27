@@ -120,7 +120,7 @@ export function BuildNotice({
       className={
         pinned
           ? 'no-print pointer-events-none fixed inset-x-0 z-[65] flex justify-end px-3'
-          : 'no-print pointer-events-none fixed bottom-3 left-3 z-[65] flex px-0'
+          : 'no-print safe-bottom pointer-events-none fixed bottom-3 left-3 z-[65] flex px-0'
       }
       style={pinned ? { top } : undefined}
       role="status"

@@ -479,7 +479,7 @@ export function InstallPrompt() {
   // Desktop: a proper card, bottom-right, impossible to read as a cookie bar.
   if (desktop) {
     return (
-      <div className="no-print fixed bottom-4 right-4 z-[66] w-[22rem] max-w-[calc(100vw-2rem)]">
+      <div className="no-print safe-bottom fixed bottom-4 right-4 z-[66] w-[22rem] max-w-[calc(100vw-2rem)]">
         <div className="animate-drop overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10">
           <div
             className="flex items-center gap-3 px-4 py-3"
@@ -614,7 +614,7 @@ export function InstallPrompt() {
   // dismissed and every later click was swallowed by the overlay. An install
   // prompt must never be able to block a dialog the person has to answer.
   return (
-    <div className="no-print fixed inset-x-0 bottom-0 z-[66] flex justify-center p-3">
+    <div className="no-print safe-bottom fixed inset-x-0 bottom-0 z-[66] flex justify-center p-3">
       <div className="animate-drop w-full max-w-md rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
         <div className="flex items-center gap-3">
           <HopeBeaconMark size={40} />

@@ -157,6 +157,105 @@ async function measure(page) {
     ok(false, 'the panel did not open for the height check');
   }
 
+  // ---- EVERY OTHER POP-UP IN THE APP -------------------------------------
+  //
+  // "Not just the bell, all of the pop ups." So this half does not name a
+  // component: it opens each overlay a person can actually reach and measures
+  // whatever `[role="dialog"]` is on the screen against the viewport. A new
+  // overlay added later is covered without anybody remembering to add it here.
+  //
+  // The rule for all of them is the same and it is not opinionated: no edge of
+  // a pop-up may be outside the screen, and if it is too tall it must scroll
+  // rather than run off the bottom.
+  const phone = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const ph = await phone.newPage();
+
+  const overlay = () => ph.evaluate(() => {
+    const el = document.querySelector('[role="dialog"], [data-anchored-panel]');
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return {
+      left: Math.round(r.left), right: Math.round(r.right),
+      top: Math.round(r.top), bottom: Math.round(r.bottom),
+      height: Math.round(r.height),
+      vw: document.documentElement.clientWidth,
+      vh: window.innerHeight,
+      // A backdrop legitimately fills the screen; what must fit is the panel
+      // inside it, so measure the deepest scrollable box when there is one.
+      inner: (() => {
+        const box = el.querySelector('.overlay-sheet, .overlay-sheet-tall');
+        if (!box) return null;
+        const b = box.getBoundingClientRect();
+        return { top: Math.round(b.top), bottom: Math.round(b.bottom), height: Math.round(b.height) };
+      })(),
+      pageWide: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    };
+  });
+
+  const fits = async (name) => {
+    const m = await overlay();
+    if (!m) { ok(false, `${name}: nothing opened`); return; }
+    ok(m.left >= 0 && m.right <= m.vw,
+      `${name}: fits sideways (${m.left} to ${m.right} of ${m.vw})`);
+    ok(!m.pageWide, `${name}: the page did not gain a sideways scroll`);
+    const box = m.inner ?? m;
+    ok(box.bottom <= m.vh + 1,
+      `${name}: ends on the screen (bottom ${box.bottom} of ${m.vh})`);
+    ok(box.height <= m.vh,
+      `${name}: is never taller than the screen (${box.height} of ${m.vh})`);
+  };
+
+  // The consent notice, which is the very first pop-up anybody ever sees.
+  await ph.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
+  await ph.waitForTimeout(1100);
+  const who = ph.getByText(/Grace Lim/i).first();
+  if (await who.count()) await who.click();
+  await ph.waitForTimeout(1700);
+  if (await ph.locator('[role="dialog"]').count()) {
+    await fits('the welcome notice');
+  }
+  const agree = ph.getByRole('button', { name: /I understand|Continue|Got it|Agree|OK/i });
+  if (await agree.count()) await agree.first().click().catch(() => {});
+  await ph.waitForTimeout(900);
+
+  // What's new, and Feedback, both of which live in Settings.
+  await ph.goto(`${BASE}/settings`, { waitUntil: 'networkidle' });
+  await ph.waitForTimeout(1400);
+
+  for (const [label, name] of [["What's new", /What.s new/i], ['Feedback', /Feedback|Tell us/i]]) {
+    const opener = ph.getByRole('button', { name }).first();
+    if (await opener.count() === 0) { ok(false, `${label}: no button to open it`); continue; }
+    await opener.click();
+    await ph.waitForTimeout(700);
+    await fits(label);
+    await ph.keyboard.press('Escape');
+    await ph.waitForTimeout(300);
+    if (await ph.locator('[role="dialog"]').count()) {
+      // Not every sheet closes on Escape; tap the backdrop instead.
+      await ph.mouse.click(8, 8);
+      await ph.waitForTimeout(400);
+    }
+  }
+
+  // The sample-data account switcher, which had the same magic 4rem the
+  // sample-data bell did.
+  const tryAccount = ph.getByRole('button', { name: /Try any account/i }).first();
+  if (await tryAccount.count()) {
+    await tryAccount.click();
+    await ph.waitForTimeout(600);
+    await fits('the account switcher');
+    await ph.keyboard.press('Escape');
+    await ph.waitForTimeout(300);
+  } else {
+    ok(false, 'the account switcher button was not found');
+  }
+
+  await phone.close();
+
   await browser.close();
   console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} BAD`);
   process.exit(bad === 0 ? 0 : 1);

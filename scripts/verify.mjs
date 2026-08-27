@@ -124,6 +124,11 @@ const staticChecks = [
   // "permission denied for table pairings" and a mime type read out in full.
   // Nothing else here looks at what a failure actually SAYS to a person.
   ['errors are human', 'tests/errors-are-human.mjs'],
+  // The two pop-up rules a browser here CANNOT check, because headless
+  // Chromium has no collapsing address bar and no home indicator: `vh` versus
+  // `dvh`, and the safe area at the bottom of a phone. Both are invisible on a
+  // Mac, which is exactly how they shipped.
+  ['pop-ups on a phone', 'tests/overlays-on-a-phone.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

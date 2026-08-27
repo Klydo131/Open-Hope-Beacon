@@ -59,7 +59,7 @@ export function FeedbackNudge({ suppressed = false }: { suppressed?: boolean }) 
 
   return (
     <div
-      className="no-print fixed inset-x-0 bottom-0 z-[70] flex justify-center p-3"
+      className="no-print safe-bottom fixed inset-x-0 bottom-0 z-[70] flex justify-center p-3"
       role="status"
     >
       <div className="animate-drop w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl ring-1 ring-black/10">

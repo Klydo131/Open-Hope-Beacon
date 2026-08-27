@@ -577,3 +577,61 @@ html {
     box-shadow: 0 0 0 3px rgba(232, 184, 75, 0.85);
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Overlays on a phone held upright.
+   ---------------------------------------------------------------------------
+   THE BUG: "all of the pop ups are not optimize for mobile and pads. No problem
+   with mac and desktop."
+
+   That last sentence is the diagnosis. `vh` and `dvh` are IDENTICAL on a
+   desktop, because a desktop window has no browser chrome that comes and goes.
+   On a phone `vh` is the LAYOUT viewport, measured as though the address bar
+   were hidden. So `max-h-[90vh]` is 90% of a taller screen than the one you are
+   looking at, and the bottom of the sheet, which is where the buttons live,
+   sits under the address bar or off the glass entirely. Scroll to reach it and
+   the bar hides, the viewport grows, and the sheet grows with it.
+
+   `dvh` is the part actually visible right now. components/live/shared.tsx has
+   said so since the message box was fixed, and was the only place in the app
+   that did: seven other overlays still measured themselves against a screen
+   that is not there.
+
+   The plain `vh` line stays first, as the fallback for anything too old to
+   know `dvh`.
+
+   The padding is the other half. A bottom sheet ends at the bottom of the
+   screen, which on any recent phone is where the home indicator is drawn, so
+   the last button sat underneath it and could not be pressed.  */
+.overlay-sheet {
+  max-height: 85vh;
+  max-height: 85dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Same rule, for an overlay that wants most of the screen rather than part of
+   it (a consent notice nobody can dismiss without reading). */
+.overlay-sheet-tall {
+  max-height: 92vh;
+  max-height: 92dvh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Anything anchored to the BOTTOM of a phone screen.
+   ---------------------------------------------------------------------------
+   The bottom strip of a modern phone is the home indicator, and it is drawn on
+   top of the page. `bottom-4` is sixteen pixels; the indicator is about
+   thirty-four. So an update toast, the feedback nudge, the install bar and the
+   tutorial's coach panel all sat underneath it: readable, half covered, and on
+   the panel's case with a button that could not be pressed because the swipe
+   gesture won.
+
+   None of it shows on a Mac. `env(safe-area-inset-bottom)` is zero there, which
+   is exactly why this stays a single class rather than a number typed into each
+   of them.
+
+   Margin, not padding: these are fixed elements positioned from the bottom, and
+   margin moves them up without changing how they are drawn. */
+.safe-bottom {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}

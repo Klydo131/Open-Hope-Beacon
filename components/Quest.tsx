@@ -356,7 +356,7 @@ export function Quest() {
     return (
       <button
         onClick={() => setDismissed(false)}
-        className="fixed bottom-4 right-4 z-[60] rounded-full px-4 py-2 text-xs font-bold shadow-lg"
+        className="safe-bottom fixed bottom-4 right-4 z-[60] rounded-full px-4 py-2 text-xs font-bold shadow-lg"
         style={{ backgroundColor: GOLD, color: NAVY }}
       >
         ✦ Resume tutorial {done < total ? `· ${done}/${total}` : ''}
@@ -400,10 +400,17 @@ export function Quest() {
 
       <aside
         ref={panelRef}
+        /* THE BOTTOM VARIANT ENDS AT THE BOTTOM OF THE GLASS, which on a
+           phone is where the home indicator is drawn. Its Next button sat
+           underneath it, and the swipe gesture wins over a tap there, so the
+           tutorial could not be advanced from that step at all. Padding rather
+           than margin, because this one is meant to reach the edge; only its
+           CONTENT has to clear the indicator. Nothing changes on a Mac, where
+           the inset is zero. */
         className={`fixed z-[60] mx-auto w-full max-w-md bg-white p-3 shadow-2xl ring-1 ring-black/10 sm:inset-x-auto sm:right-4 sm:w-96 sm:rounded-2xl sm:p-4 ${
           place === 'top'
             ? 'inset-x-0 top-0 rounded-b-2xl sm:top-4'
-            : 'inset-x-0 bottom-0 rounded-t-2xl sm:bottom-4'
+            : 'inset-x-0 bottom-0 rounded-t-2xl pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 sm:pb-4'
         }`}
         role="dialog"
         aria-label="Beacon tutorial"
@@ -477,7 +484,7 @@ export function Quest() {
             explanation that was the entire point of adding it. Height is a
             layout concern; it must not depend on how much there is to teach. */}
         {open && (
-          <div className="mt-2 max-h-[34vh] overflow-y-auto sm:max-h-[40vh]">
+          <div className="mt-2 max-h-[34vh] overflow-y-auto [max-height:34dvh] sm:max-h-[40vh] sm:[max-height:40dvh]">
             {step ? (
               <>
                 {/* Where this happens, before what to do about it. Pointing at

@@ -14,7 +14,7 @@ export function ConsentNotice() {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-3 sm:items-center">
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
+      <div className="overlay-sheet-tall w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl">
         <div className="p-6 text-white" style={{ backgroundColor: NAVY }}>
           <div className="text-3xl" aria-hidden>🤝</div>
           <h1 className="mt-2 text-2xl font-extrabold">

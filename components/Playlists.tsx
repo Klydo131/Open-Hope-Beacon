@@ -364,7 +364,7 @@ function QueuePlayer({
           <video
             ref={mediaRef as React.RefObject<HTMLVideoElement>}
             src={url} controls autoPlay onEnded={next} playsInline
-            className="mt-3 max-h-[60vh] w-full rounded-xl bg-black"
+            className="mt-3 max-h-[60vh] w-full rounded-xl bg-black [max-height:60dvh]"
           />
         ) : (
           <audio
