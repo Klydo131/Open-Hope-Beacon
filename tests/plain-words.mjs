@@ -48,7 +48,13 @@ function walk(dir) {
     if (name === 'node_modules') continue;
     const full = path.join(dir, name);
     if (statSync(full).isDirectory()) out = out.concat(walk(full));
-    else if (/\.tsx?$/.test(name)) out.push(full);
+    // FORWARD SLASHES, ALWAYS. path.join gives `lib\release-notes.ts` on
+    // Windows, and the changelog exemption below compares against
+    // 'lib/release-notes.ts'. It stopped matching, so the one file allowed to
+    // say the old word was scanned like any other and this suite failed on
+    // Windows only. Normalising here means every path in this file reads the
+    // same on every platform, in the comparisons AND in the failure messages.
+    else if (/\.tsx?$/.test(name)) out.push(full.split(path.sep).join('/'));
   }
   return out;
 }
@@ -116,6 +122,13 @@ const report = (hits, limit = 12) => {
   // cannot announce it without naming what was renamed, and a member who
   // remembers the old word is exactly who that note is for.
   const CHANGELOG = 'lib/release-notes.ts';
+
+  // THE EXEMPTION MUST ACTUALLY APPLY. It silently stopped matching on Windows
+  // and the failure that produced named a line in the changelog, which reads
+  // like the changelog is wrong rather than like the test cannot find it. An
+  // exemption nobody checks is an exemption that can rot.
+  ok(files.includes(CHANGELOG),
+     `the changelog is in the tree and its exemption applies (${CHANGELOG})`);
 
   const hits = [];
   for (const f of files) {
