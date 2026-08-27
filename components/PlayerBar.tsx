@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AMBIENCE, clock, playerCredit, usePlayer, type Track } from '@/lib/player';
 import { usePlayerLists } from '@/lib/player-lists';
-import { getBlob, humanSize, listMedia, type MediaMeta } from '@/lib/localMedia';
+import { deleteMedia, getBlob, humanSize, listMedia, type MediaMeta } from '@/lib/localMedia';
 import { saveFilesFromInput, savedMessage } from '@/lib/save-media';
 
 // Whether the rail's player is expanded. Per device, because it is a
@@ -56,7 +56,7 @@ function Credit({ className = '' }: { className?: string }) {
  * the sound off at the exact moment the design promises it will not. One URL
  * per file actually played, held for the session, is what that costs.
  */
-function useVault(supplied?: MediaMeta[]) {
+function useVault(supplied?: MediaMeta[], onChanged?: () => void) {
   const [loaded, setLoaded] = useState<MediaMeta[]>([]);
   const [opening, setOpening] = useState('');
   const made = useRef(new Map<string, string>());
@@ -117,7 +117,28 @@ function useVault(supplied?: MediaMeta[]) {
     play(track, queue);
   };
 
-  return { playable, opening, open, opened, refresh };
+  /**
+   * Take a file off this device.
+   *
+   * Stops it first if it is the thing playing. Deleting the file under a
+   * playing element leaves the element pointing at a blob that no longer
+   * exists, which on some browsers is silence and on others an error nobody
+   * asked for.
+   */
+  const remove = async (m: MediaMeta, stopIfPlaying: () => void) => {
+    stopIfPlaying();
+    const url = made.current.get(m.id);
+    if (url) { URL.revokeObjectURL(url); made.current.delete(m.id); }
+    setOpened((q) => q.filter((t) => t.id !== m.id));
+    await deleteMedia(m.id);
+    // `refresh` re-reads the device, which is what the rail needs. When a page
+    // supplied the list, that page owns it and refreshing here would do
+    // nothing, so it gets told instead.
+    await refresh();
+    onChanged?.();
+  };
+
+  return { playable, opening, open, opened, refresh, remove };
 }
 
 /** The three tabs, in the order somebody actually wants them. */
@@ -321,6 +342,7 @@ export function PlayerStrip({ theme }: { theme: RoomTheme }) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>('vault');
   const [find, setFind] = useState('');
+  const [dropping, setDropping] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -465,33 +487,60 @@ export function PlayerStrip({ theme }: { theme: RoomTheme }) {
                     const on = current?.id === m.id;
                     return (
                       <li key={m.id}>
-                        <button
-                          type="button"
-                          onClick={() => void vault.open(m, play)}
-                          className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left"
-                          style={rowStyle(on)}
-                        >
-                          <span aria-hidden>{m.type === 'video' ? '🎬' : '🎵'}</span>
-                          <span
-                            className="min-w-0 flex-1 truncate text-xs font-semibold"
-                            style={{ color: theme.ink }}
+                        <div className="flex items-center gap-1 rounded-xl" style={rowStyle(on)}>
+                          <button
+                            type="button"
+                            onClick={() => void vault.open(m, play)}
+                            className="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left"
                           >
-                            {m.title}
-                          </span>
-                          {vault.opening === m.id && (
-                            <span className="text-[10px]" style={{ color: theme.inkSoft }}>
-                              Opening…
-                            </span>
-                          )}
-                          {on && playing && (
+                            <span aria-hidden>{m.type === 'video' ? '🎬' : '🎵'}</span>
                             <span
-                              className="text-[10px] font-bold"
-                              style={{ color: theme.accent }}
+                              className="min-w-0 flex-1 truncate text-xs font-semibold"
+                              style={{ color: theme.ink }}
                             >
-                              Playing
+                              {m.title}
                             </span>
+                            {vault.opening === m.id && (
+                              <span className="text-[10px]" style={{ color: theme.inkSoft }}>
+                                Opening…
+                              </span>
+                            )}
+                            {on && playing && (
+                              <span
+                                className="text-[10px] font-bold"
+                                style={{ color: theme.accent }}
+                              >
+                                Playing
+                              </span>
+                            )}
+                          </button>
+                          {/* DELETING IS TWO TAPS AND THE SECOND ONE SAYS WHAT
+                              IT DOES. The file is on this device and nowhere
+                              else, so there is nothing to restore it from: no
+                              copy on a server, no bin. A one-tap bin icon next
+                              to a play button, on a phone, under the same
+                              thumb, is how somebody loses a recording. */}
+                          {dropping === m.id ? (
+                            <button
+                              type="button"
+                              onClick={() => { setDropping(''); void vault.remove(m, player.stop); }}
+                              className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold text-white"
+                              style={{ backgroundColor: '#B42318' }}
+                            >
+                              Delete for good
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setDropping(m.id)}
+                              aria-label={`Remove ${m.title} from this device`}
+                              className="shrink-0 px-2 py-1 text-xs"
+                              style={{ color: theme.inkSoft }}
+                            >
+                              ✕
+                            </button>
                           )}
-                        </button>
+                        </div>
                       </li>
                     );
                   })}
@@ -622,18 +671,27 @@ export function PlayerPanel({
   vault = [],
   theme,
   onAddMedia,
+  onVaultChanged,
 }: {
   /** The person's own files, saved on this device. Empty everywhere but /library. */
   vault?: MediaMeta[];
   theme?: RoomTheme;
   /** Sends somebody with an empty vault to the upload control on the page. */
   onAddMedia?: () => void;
+  /**
+   * Told when a file is deleted from here.
+   *
+   * The page that supplied `vault` owns that list, so this player cannot
+   * refresh it: without this, deleting a file removes it from the device and
+   * leaves it on screen until a reload.
+   */
+  onVaultChanged?: () => void;
 }) {
   const player = usePlayer();
   const lists = usePlayerLists();
   // Same hook the rail uses, so both sizes read one list and share one object
   // URL per file rather than making a second copy of every track.
-  const shelf = useVault(vault);
+  const shelf = useVault(vault, onVaultChanged);
   // ALWAYS OPENS ON THE VAULT, even when the vault is empty. Opening on
   // Ambience when there is nothing saved hides the existence of the vault from
   // exactly the person who has not used it yet; its empty state is the thing
@@ -642,6 +700,7 @@ export function PlayerPanel({
   const [newName, setNewName] = useState('');
   const [openList, setOpenList] = useState('');
   const [find, setFind] = useState('');
+  const [dropping, setDropping] = useState('');
   if (!player) return null;
   const { current, playing, play } = player;
 
@@ -748,26 +807,49 @@ export function PlayerPanel({
               {foundVault.map((m) => {
                 const on = current?.id === m.id;
                 return (
-                  <button
+                  <div
                     key={m.id}
-                    type="button"
-                    onClick={() => void shelf.open(m, play)}
-                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${
-                      on ? 'bg-gray-100' : 'hover:bg-gray-50'
-                    }`}
+                    className={`flex items-center gap-2 rounded-xl ${on ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
                   >
-                    <span aria-hidden className="text-lg">{m.type === 'video' ? '🎬' : '🎵'}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold text-navy">
-                        {m.title}
+                    <button
+                      type="button"
+                      onClick={() => void shelf.open(m, play)}
+                      className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left"
+                    >
+                      <span aria-hidden className="text-lg">{m.type === 'video' ? '🎬' : '🎵'}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-navy">
+                          {m.title}
+                        </span>
+                        <span className="block text-xs text-gray-500">{humanSize(m.size)}</span>
                       </span>
-                      <span className="block text-xs text-gray-500">{humanSize(m.size)}</span>
-                    </span>
-                    {shelf.opening === m.id && <span className="text-xs text-gray-500">Opening…</span>}
-                    {on && playing && (
-                      <span className="text-xs font-bold" style={{ color: accent }}>Playing</span>
+                      {shelf.opening === m.id && <span className="text-xs text-gray-500">Opening…</span>}
+                      {on && playing && (
+                        <span className="text-xs font-bold" style={{ color: accent }}>Playing</span>
+                      )}
+                    </button>
+                    {/* Two taps, and the second one names what happens. The file
+                        lives on this device and nowhere else: nothing restores
+                        it. See the rail's copy of this for the longer note. */}
+                    {dropping === m.id ? (
+                      <button
+                        type="button"
+                        onClick={() => { setDropping(''); void shelf.remove(m, player.stop); }}
+                        className="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white"
+                      >
+                        Delete for good
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setDropping(m.id)}
+                        aria-label={`Remove ${m.title} from this device`}
+                        className="shrink-0 px-3 py-1.5 text-sm text-gray-400 hover:text-red-700"
+                      >
+                        ✕
+                      </button>
                     )}
-                  </button>
+                  </div>
                 );
               })}
             </div>

@@ -32,7 +32,57 @@ import * as an from '@/lib/live/analytics';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { roleNoun } from '@/lib/brand';
+import { buildReport, type Report } from '@/lib/live/report';
+import {
+  downloadCsv, downloadDoc, downloadPdf, downloadSheet,
+} from '@/lib/live/report-formats';
 import type { Role } from '@/lib/types';
+
+/**
+ * The five ways out, and what each is actually for.
+ *
+ * ORDERED BY HOW OFTEN A CHURCH WANTS THEM, not by format family. A pastor
+ * reaches for the spreadsheet and the print dialog constantly and for CSV
+ * about once, and putting the two file-for-a-machine formats first is how a
+ * list of five becomes a thing people scan past.
+ */
+const EXPORTS: {
+  key: string; icon: string; label: string; blurb: string; opens: string;
+  run: (r: Report) => void;
+}[] = [
+  {
+    key: 'sheet', icon: '📊', label: 'Sheets',
+    blurb: 'Both tables with their headings, ready to sort and chart.',
+    opens: 'Excel · Google Sheets · Numbers',
+    run: downloadSheet,
+  },
+  {
+    key: 'doc', icon: '📄', label: 'Document',
+    blurb: 'The whole report as prose and tables, still editable.',
+    opens: 'Word · Google Docs',
+    run: downloadDoc,
+  },
+  {
+    key: 'pdf', icon: '📕', label: 'PDF file',
+    blurb: 'A fixed report nobody can change by accident. Downloads straight away.',
+    opens: 'Any device',
+    run: downloadPdf,
+  },
+  {
+    key: 'print', icon: '🖨️', label: 'Print',
+    blurb: 'Your own print dialog, where you pick the paper. It can save a PDF too.',
+    opens: 'Printer · Save as PDF',
+    // Not a download: this hands the page to the browser, which is the only way
+    // somebody gets to choose margins and paper size.
+    run: () => window.print(),
+  },
+  {
+    key: 'csv', icon: '🔢', label: 'CSV',
+    blurb: 'Plain text, for feeding into another program.',
+    opens: 'Anything at all',
+    run: downloadCsv,
+  },
+];
 
 const message = (cause: unknown) =>
   cause instanceof Error ? cause.message : 'Could not load the numbers.';
@@ -252,6 +302,34 @@ export function LiveAnalytics({ churchName }: { churchName?: string }) {
   }, []);
 
   useEffect(() => { void loadArrivals(grain); }, [grain, loadArrivals]);
+
+  /**
+   * The report every format renders.
+   *
+   * Built from exactly what the screen is showing, so a file can never
+   * disagree with the page somebody was looking at when they pressed the
+   * button. Null until the numbers have loaded, which is what disables the
+   * buttons rather than producing an empty file.
+   */
+  const report = useMemo(() => {
+    if (!arr || !slices || !head) return null;
+    return buildReport({
+      church: churchName,
+      headline: head,
+      activity: slices.map((s) => ({
+        role: roleNoun(s.role),
+        windowLabel: s.windowLabel,
+        approved: s.approved,
+        active: s.active,
+        inactive: s.inactive,
+        suspended: s.suspended,
+      })),
+      grainLabel: an.GRAINS.find((g) => g.key === arr.grain)?.label ?? 'Weekly',
+      arrivalLabels: arr.labels,
+      arrivals: arr.panels.map((p) => ({ label: p.label, points: p.points, total: p.total })),
+      departures: gone ?? undefined,
+    });
+  }, [arr, slices, head, gone, churchName]);
 
   const csv = useMemo(() => {
     if (!arr || !slices) return '';
@@ -505,32 +583,55 @@ export function LiveAnalytics({ churchName }: { churchName?: string }) {
       </Card>
 
       {/* ------------------------------------------------------------------ */}
+      {/* FIVE FORMATS, AND EACH ONE SAYS WHAT IT IS FOR.
+          Two buttons labelled CSV and Print made somebody choose between a file
+          they cannot read and a dialog. These are the five things a church
+          actually does with numbers, and the difference between "print as PDF"
+          and "PDF" is real: one gives you the paper dialog, the other hands you
+          a file.
+
+          EVERY FORMAT CARRIES THE SAME NOTES, which is the whole reason the
+          report is described once in lib/live/report.ts rather than written
+          five times. A spreadsheet with a column headed "Active" and no
+          definition beside it is how somebody decides that eleven of nineteen
+          Guides are not working. */}
       <Card className="p-5">
         <h3 className="text-lg font-bold text-navy">Take it with you</h3>
         <p className="mt-1 text-sm text-gray-500">
-          The same numbers, in a file you can open in Excel or Google Sheets, or
-          print for a board meeting.
+          The same numbers, with the same explanations, in whichever form you
+          need. Every file carries your church&rsquo;s name, the date it was
+          made, and what each figure means. Nobody&rsquo;s name is in any of
+          them.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button
-            variant="gold"
-            disabled={!csv}
-            onClick={() => download(
-              `${(churchName || 'church').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-numbers.csv`,
-              csv, 'text/csv;charset=utf-8')}
-          >
-            Download as CSV
-          </Button>
-          {/* PRINT RATHER THAN A GENERATED PDF. Every browser and every phone
-              can print to PDF, and the print dialog lets somebody choose the
-              paper and the margins. A PDF we generate would be one fixed
-              layout, and one more thing to keep looking right. */}
-          <Button variant="ghost" onClick={() => window.print()}>Print or save as PDF</Button>
+
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {EXPORTS.map((x) => (
+            <button
+              key={x.key}
+              type="button"
+              disabled={!report}
+              onClick={() => report && x.run(report)}
+              className="rounded-xl bg-gray-50 p-4 text-left transition hover:bg-gray-100 disabled:opacity-50"
+            >
+              <p className="font-bold text-navy">{x.icon} {x.label}</p>
+              <p className="mt-0.5 text-xs text-gray-500">{x.blurb}</p>
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                {x.opens}
+              </p>
+            </button>
+          ))}
         </div>
-        <p className="mt-3 text-xs text-gray-500">
-          The CSV opens in Excel, Google Sheets, Numbers and LibreOffice. Both
-          tables are in it, one under the other. Nobody&rsquo;s name is in it.
-        </p>
+
+        <div className="mt-4 rounded-xl bg-gray-50 p-4">
+          <p className="text-sm font-bold text-navy">Which one do I want?</p>
+          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-600">
+            <li><strong>Working on the numbers yourself?</strong> Sheets. It keeps both tables and the headings.</li>
+            <li><strong>Sending it to somebody who will edit it?</strong> Document.</li>
+            <li><strong>Sending it to somebody who should not edit it?</strong> PDF.</li>
+            <li><strong>Feeding it into another program?</strong> CSV.</li>
+            <li><strong>Handing round paper at a meeting?</strong> Print.</li>
+          </ul>
+        </div>
       </Card>
     </div>
   );

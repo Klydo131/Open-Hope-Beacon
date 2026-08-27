@@ -16,9 +16,25 @@ function esc(s: string): string {
 const n = (x: number) => (+x).toFixed(2);
 
 export class Pdf {
+  /** Finished pages. The current one is `ops`. */
+  private pages: string[][] = [];
   private ops: string[] = [];
   readonly W = 595; // A4 points
   readonly H = 842;
+
+  /**
+   * Start a new page.
+   *
+   * MULTI-PAGE WAS ADDED WHEN A REPORT NEEDED IT. This wrote a single A4 page,
+   * which was right for the one-number board summary it was built for and wrong
+   * the moment anything with two tables in it wanted a PDF: the overflow simply
+   * fell off the bottom of the sheet, silently, which is the worst way for a
+   * report to be wrong.
+   */
+  page() {
+    this.pages.push(this.ops);
+    this.ops = [];
+  }
 
   // x/y are measured from the TOP-LEFT for convenience; converted internally.
   text(
@@ -44,15 +60,30 @@ export class Pdf {
   }
 
   blob(): Blob {
-    const content = this.ops.join('\n');
+    const sheets = [...this.pages, this.ops].filter((p, i, all) => p.length > 0 || all.length === 1);
+    const streams = sheets.map((ops) => ops.join('\n'));
+
+    // OBJECT NUMBERING, WRITTEN OUT because it is the part that breaks silently.
+    // 1 catalog, 2 pages, 3 and 4 the fonts, then one page object and one
+    // content stream per sheet. A wrong number here produces a file that some
+    // readers open and others refuse, which is worse than one that fails
+    // everywhere.
+    const firstPage = 5;
+    const pageObjNum = (i: number) => firstPage + i * 2;
+    const contentObjNum = (i: number) => firstPage + i * 2 + 1;
+
     const objs = [
       '<< /Type /Catalog /Pages 2 0 R >>',
-      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-      `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${this.W} ${this.H}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>`,
+      `<< /Type /Pages /Kids [${sheets.map((_, i) => `${pageObjNum(i)} 0 R`).join(' ')}] /Count ${sheets.length} >>`,
       '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
       '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>',
-      `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
     ];
+    sheets.forEach((_, i) => {
+      objs.push(
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${this.W} ${this.H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObjNum(i)} 0 R >>`,
+      );
+      objs.push(`<< /Length ${streams[i].length} >>\nstream\n${streams[i]}\nendstream`);
+    });
 
     let pdf = '%PDF-1.4\n';
     const offsets: number[] = [];

@@ -213,6 +213,7 @@ export default function LibraryPage() {
           vault={items}
           theme={theme}
           onAddMedia={() => fileRef.current?.click()}
+          onVaultChanged={() => void refresh()}
         />
 
         {/* The starter toolkit — the same shelf for every account, Executive to
