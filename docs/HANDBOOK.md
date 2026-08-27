@@ -219,6 +219,26 @@ Follow-ups and prayer requests stayed on the Guide's roster, because they are ab
 
 **Explorers do not have this room**, and not because anything is hidden from them. None of it is theirs to do: no roster to report on, no shelf to stock, nobody to write studies for. A room that would be empty for them tells them they are missing something.
 
+#### Asking to walk with somebody
+
+A Guide can see the Explorers nobody is walking with yet, and press **I have room** with an optional note. It goes to the Directors.
+
+**It puts your name forward; it does not make the pairing.** A Director still creates it on the Pairings screen, where the limit of five is checked. A button that quietly created a relationship from a list of requests is how somebody ends up with six people.
+
+**The Explorer is never told they were asked for.** Being wanted and not chosen is not something anybody should have to read about themselves.
+
+> **NOTE** · This widens what a Guide can see, on purpose
+>
+> A Guide can normally read exactly two accounts: their own and the Explorer they walk with. You cannot ask to walk with somebody you cannot name, so a Guide now sees the **name** of any Explorer in their church who is waiting. Nothing else comes with it: no birthday, no contact details, no stage, no messages, no prayer requests, no notes.
+
+#### The Guides' room
+
+A place for Guides and their Directors to talk to each other. Explorers cannot see it. Every conversation in the rest of the app is one Guide with one Explorer, which is right for that relationship and leaves a Guide with a hard week entirely alone.
+
+> **CAUTION** · A room, not private messages
+>
+> Everybody in the room reads everything in it, and that is what makes it safe to have rather than a limitation. Guide-to-Guide direct messages would be a second private channel with no oversight, in an app whose whole design is that private conversation happens in one place and can be reported. Anyone can delete their own message; Directors can delete any.
+
 ### Cases
 
 **Cases have a room of their own**, in the left column on every screen, for every role. A case is a formal proceeding about a person, sometimes about the person reading it, and it used to be a card partway down a dashboard: easy to scroll past on the one day it mattered, and sitting in the same visual rank as a study plan.
@@ -226,6 +246,8 @@ Follow-ups and prayer requests stayed on the Guide's roster, because they are ab
 The link is always there, whether or not anything is open. A link that comes and goes is one nobody trusts is there, and its absence on a quiet day looks the same as it being broken. When there is nothing, the room says so.
 
 An **Explorer** has the room too, and that matters most. An Explorer called into a case is the person in it with the least standing, and their answer has to be findable without anybody having to tell them where to look. They can write in it even while suspended: suspending somebody pending a hearing must not take away their side of it.
+
+On a Guide's **Care** tab for one Explorer, prayer requests are always shown, even when there are none. The card used to disappear when empty, so the tab held only private notes and read as though a Guide could not see prayer requests at all.
 
 A Director judging a case still works through it in **Admin → Safeguarding**, beside the reports the cases came from. That is a different job from answering one, and the screen tells the two apart by itself.
 

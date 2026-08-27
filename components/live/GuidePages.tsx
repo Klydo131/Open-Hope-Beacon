@@ -547,6 +547,7 @@ export function LiveConversationPage() {
                   front of them. The tab carries a count so it is never silent
                   about one waiting. */}
               <LivePrayerForGuide
+                alwaysShow
                 onlyFor={pairing.ds_id}
                 nameFor={() => pairing.ds_name}
                 heading={`What ${pairing.ds_name.split(' ')[0]} has asked prayer for`}

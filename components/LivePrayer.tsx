@@ -139,8 +139,19 @@ export function LivePrayerForGuide({
   nameFor,
   onlyFor,
   heading,
+  alwaysShow = false,
 }: {
   nameFor?: (dsId: string) => string;
+  /**
+   * Draw the card even when there is nothing in it.
+   *
+   * Nothing, by default: an empty prayer panel on a dashboard is furniture. On
+   * the Care tab it is the opposite. That tab exists to hold this, and when the
+   * card vanished the tab showed only "Your private notes" and read as though a
+   * Guide cannot see prayer requests at all, which is the exact complaint this
+   * component was written to answer.
+   */
+  alwaysShow?: boolean;
   /**
    * Narrow the list to one Explorer.
    *
@@ -168,7 +179,7 @@ export function LivePrayerForGuide({
   }, [onlyFor]);
   useEffect(() => { void load(); }, [load]);
 
-  if (rows !== null && rows.length === 0 && !error) return null;
+  if (rows !== null && rows.length === 0 && !error && !alwaysShow) return null;
 
   return (
     <Card className="p-5">
@@ -177,6 +188,13 @@ export function LivePrayerForGuide({
         {onlyFor ? 'What they have asked you to pray for.' : 'From the people you walk with.'}
       </p>
       <Err msg={error} />
+      {rows !== null && rows.length === 0 && !error && (
+        <p className="mt-3 rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
+          Nothing asked for yet. When they ask, it appears here and nowhere
+          else: a prayer request goes to their Guide and to nobody else in
+          the church.
+        </p>
+      )}
       <div className="mt-3 space-y-2">
         {rows === null && <BeaconSpinner inline label="Loading" className="mt-2" />}
         {rows?.map((r) => (

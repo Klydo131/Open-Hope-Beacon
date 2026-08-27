@@ -38,6 +38,9 @@ import { LiveStudies } from '@/components/LiveStudies';
 import { LiveLibraryForGuide } from '@/components/LiveLibrary';
 import { LiveBlogDesk } from '@/components/LiveBlog';
 import { LiveRecommend } from '@/components/LiveMinistry';
+import {
+  LiveAskToWalkWith, LivePairingRequestsForDirector, LiveGuildRoom,
+} from '@/components/LiveGuildRoom';
 import { Analytics } from '@/components/DemoAnalytics';
 import { LessonSeriesLibrary } from '@/components/LessonSeriesLibrary';
 import type { Role } from '@/lib/types';
@@ -109,9 +112,23 @@ function LiveOffice() {
       <LiveStudies canWrite />
       <LiveLibraryForGuide pairings={pairings} />
 
+      {/* ASKING TO WALK WITH SOMEBODY. A Guide could recommend a NEW person for
+          an invitation and could do nothing at all about an Explorer already in
+          the church and waiting. The screen showing who is unpaired belonged to
+          the Director, so the people with room to carry somebody had no way to
+          say so. */}
+      {isGuide && <LiveAskToWalkWith />}
+      {leads && <LivePairingRequestsForDirector />}
+
       {/* Recommending somebody for a role is office work too, and it was only
           on the Guide's roster before. */}
       {isGuide && <LiveRecommend />}
+
+      {/* THE GUIDES' ROOM. Every conversation surface in this app is one Guide
+          with one Explorer, which is right for that relationship and leaves a
+          Guide with a hard week entirely alone. Directors are in it too: a
+          guild whose leaders cannot hear it is not being led. */}
+      <LiveGuildRoom />
 
       <LiveBlogDesk />
     </div>

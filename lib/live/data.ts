@@ -764,6 +764,151 @@ export async function churchActivity(days: number): Promise<RoleActivity[]> {
   return (data ?? []) as RoleActivity[];
 }
 
+// ---------------------------------------------------------------------------
+// A Guide asks to walk with somebody, and the Guides talk to each other.
+// See migration 0046.
+// ---------------------------------------------------------------------------
+
+/** An Explorer nobody is walking with yet, for the Guide who has room. */
+export interface UnpairedExplorer {
+  id: string;
+  full_name: string;
+  signup_completed_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Who is waiting.
+ *
+ * AN RPC, AND THE FIRST VERSION OF THIS WAS WRONG. It computed the answer here
+ * from listMembers() and listPairings(), on the assumption that a Guide could
+ * already read both. A Guide can read exactly TWO profiles: their own and the
+ * Explorer they walk with. So this returned an empty list to the only people it
+ * was built for, and the panel would have shipped looking like a feature that
+ * does nothing.
+ *
+ * Migration 0047 answers it in the database instead, returning a name and an id
+ * and nothing else. That does widen what a Guide can see, deliberately: you
+ * cannot ask to walk with somebody you cannot name.
+ */
+export async function unpairedExplorers(): Promise<UnpairedExplorer[]> {
+  const { data, error } = await db().rpc('unpaired_explorers');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as UnpairedExplorer[];
+}
+
+export interface PairingRequest {
+  id: string;
+  guide_id: string;
+  ds_id: string;
+  note: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+}
+
+/**
+ * The Guide's own asks, or every ask in the church for a Director.
+ *
+ * One query for both, because the policy already decides which rows come back
+ * and a second query filtered in the app would be a second answer that can
+ * disagree with the first.
+ */
+export async function listPairingRequests(): Promise<PairingRequest[]> {
+  const { data, error } = await db()
+    .from('pairing_requests')
+    .select('id, guide_id, ds_id, note, status, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PairingRequest[];
+}
+
+/** Ask a Director to pair you with this Explorer. Never creates the pairing. */
+export async function askToWalkWith(dsId: string, note = ''): Promise<void> {
+  const supabase = db();
+  const me_id = await uid();
+  const { data: me } = await supabase
+    .from('profiles').select('church_id').eq('id', me_id).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+  const { error } = await supabase.from('pairing_requests').insert({
+    church_id: me.church_id,
+    guide_id: me_id,
+    ds_id: dsId,
+    note: note.trim(),
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** A Guide takes back their own ask. */
+export async function withdrawPairingRequest(id: string): Promise<void> {
+  const { error } = await db().from('pairing_requests').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * A Director answers.
+ *
+ * Answering "yes" does NOT create the pairing. The Director still makes it on
+ * the pairings screen, where the cap of five is enforced, and where they are
+ * looking at everything else about that Guide. A button that silently created
+ * a relationship from a list of requests is how somebody ends up with six.
+ */
+export async function decidePairingRequest(
+  id: string,
+  status: 'accepted' | 'declined',
+): Promise<void> {
+  const me_id = await uid();
+  const { error } = await db().from('pairing_requests')
+    .update({ status, decided_by: me_id, decided_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/** Names for the Guides' room and the pairing requests, for people in the room. */
+export interface GuideRoomPerson { id: string; full_name: string; role: Role }
+
+export async function guideRoomPeople(): Promise<GuideRoomPerson[]> {
+  const { data, error } = await db().rpc('guide_room_people');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as GuideRoomPerson[];
+}
+
+export interface GuideRoomMessage {
+  id: string;
+  author_id: string | null;
+  body: string;
+  created_at: string;
+}
+
+/** The Guides' room, oldest last so it reads like a conversation. */
+export async function listGuideRoom(limit = 200): Promise<GuideRoomMessage[]> {
+  const { data, error } = await db()
+    .from('guide_room_messages')
+    .select('id, author_id, body, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as GuideRoomMessage[]).reverse();
+}
+
+export async function postToGuideRoom(body: string): Promise<void> {
+  const supabase = db();
+  const me_id = await uid();
+  const { data: me } = await supabase
+    .from('profiles').select('church_id').eq('id', me_id).maybeSingle();
+  if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+  const { error } = await supabase.from('guide_room_messages').insert({
+    church_id: me.church_id,
+    author_id: me_id,
+    body: body.trim(),
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteGuideRoomMessage(id: string): Promise<void> {
+  const { error } = await db().from('guide_room_messages').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function listJourneyEvents(limit = 2000): Promise<JourneyEvent[]> {
   const { data, error } = await db()
     .from('journey_events')

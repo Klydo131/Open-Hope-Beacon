@@ -83,8 +83,12 @@ export function ActiveBars({ slices, role }: { slices: an.ActivitySlice[]; role:
     ?? { windowLabel: w.label, days: w.days, role, approved: 0, active: 0, inactive: 0, suspended: 0 });
 
   const W = 320;
-  const H = 190;
-  const PAD = { top: 12, right: 8, bottom: 30, left: 30 };
+  const H = 200;
+  // TOP PADDING IS FOR THE NUMBER, not for looks. The tallest bar is the whole
+  // roll, so it reaches the ceiling exactly, and the count sits above it: with
+  // 12px of headroom the digits were drawn off the top of the canvas and
+  // clipped in half. 30 leaves room for an 11px label and its ascenders.
+  const PAD = { top: 30, right: 8, bottom: 30, left: 30 };
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
   const top = Math.max(1, ...mine.map((m) => m.approved));
@@ -161,8 +165,11 @@ export function ArrivalPanel({ panel, labels, peak }: {
   panel: an.ArrivalPanel; labels: string[]; peak: number;
 }) {
   const W = 320;
-  const H = 130;
-  const PAD = { top: 14, right: 8, bottom: 22, left: 26 };
+  const H = 140;
+  // Room for the value printed above the tallest bar. Same clipping as the
+  // chart above: at the peak the bar reaches the ceiling and the number does
+  // not fit in what is left.
+  const PAD = { top: 24, right: 8, bottom: 22, left: 26 };
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
   const band = plotW / Math.max(1, panel.points.length);
