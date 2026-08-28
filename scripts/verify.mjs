@@ -142,6 +142,10 @@ const staticChecks = [
   ['told on arrival', 'tests/notified-on-arrival.mjs'],
   // The most damaging button on a screen must never be the most inviting one.
   ['destructive is discouraged', 'tests/destructive-is-discouraged.mjs'],
+  // Whether an Explorer can see that their Guide is a person, and — the half
+  // that can bite — whether the query that shows them stays inside the columns
+  // the Guide chose to publish.
+  ['the Guide is a person', 'tests/the-guide-is-a-person.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

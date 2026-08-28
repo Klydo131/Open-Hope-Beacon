@@ -120,6 +120,34 @@ export function LiveGuidePage() {
           nothing pinned, so an ordinary day costs them no space. */}
       <div className="mt-6"><LiveAnnouncements hideWhenEmpty /></div>
 
+      {/* THE EXPLORER'S SCREEN NOW SHOWS YOUR FACE, so it matters that there
+          is one. An Explorer is handed a stranger's name by an app and has to
+          decide whether anybody is really on the other end; their home screen
+          draws the Guide's picture, city and interests for exactly that
+          reason. Of twenty-six Guides in the live church, one had a photo and
+          none had chosen an icon, so for almost everybody that card would draw
+          two initials on a navy circle and prove nothing.
+
+          It goes away the moment either one is set, and an icon is a single
+          tap, so this is a prompt that can be answered rather than a banner
+          that lives here. */}
+      {profile && !profile.photo_path && !profile.avatar && (
+        <Card className="mt-4 p-4">
+          <p className="font-bold text-navy">Put a face to your name</p>
+          <p className="mt-1 text-sm text-gray-500">
+            The people you walk with see your picture on their home screen. A
+            photo or one of the icons is enough; it tells them a real person is
+            reading what they write.
+          </p>
+          <Link
+            href="/profile"
+            className="tap-sm mt-3 inline-flex items-center rounded-xl bg-gray-100 px-4 text-sm font-bold text-navy hover:bg-gray-200"
+          >
+            Add your picture
+          </Link>
+        </Card>
+      )}
+
       {/* HOW MANY, AT WHAT LEVEL, AND HOW MANY HAVE FINISHED.
           A Guide could see a list of cards and nothing else: answering "where
           are my people up to" meant reading every card and counting. These are

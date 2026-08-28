@@ -5,7 +5,7 @@ import { NAVY } from '@/lib/brand';
 import { useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { LiveReportControl } from '@/components/LiveSafeguarding';
-import type { Message } from '@/lib/types';
+import type { Message, Profile } from '@/lib/types';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer } from '@/components/LivePrayer';
@@ -13,7 +13,7 @@ import { LiveMeetings } from '@/components/LiveMeetings';
 import { useDraft, clearDraft } from '@/lib/drafts';
 import { LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveStudies } from '@/components/LiveStudies';
-import { Card } from '@/components/ui';
+import { Avatar, Card } from '@/components/ui';
 import { Conversation, Notice, errorText } from '@/components/live/shared';
 import { LiveAnnouncements } from '@/components/LiveAnnouncements';
 
@@ -127,13 +127,7 @@ export function LiveExplorerPage() {
             whole design says the journey is a relationship, and then the page
             opened on a list of everybody else's posts. The Guide's name goes
             above the blogs here. */}
-        {pairing && (
-          <Card className="p-5">
-            <p className="text-sm text-gray-500">Walking with you</p>
-            <p className="mt-1 text-xl font-bold text-navy">{pairing.dm_name}</p>
-            <p className="mt-2 text-sm text-gray-500">Only you and your Guide can read this conversation.</p>
-          </Card>
-        )}
+        {pairing && <GuideCard pairing={pairing} />}
 
         {/* THE CHURCH, BETWEEN THE PERSON AND THE TALKING. An Explorer opens
             this screen looking for their Guide, so the name stays first. What
@@ -203,6 +197,91 @@ export function LiveExplorerPage() {
         <LiveAskForPrayer />
       </div>
     </LiveAppShell>
+  );
+}
+
+/**
+ * THE GUIDE IS A PERSON, AND THE SCREEN HAS TO SAY SO.
+ *
+ * This card was a name on a line. An Explorer arriving at an app that pairs
+ * them with a stranger has no way to tell, from a name alone, whether anybody
+ * is on the other end — and the one thing this whole product rests on is that
+ * they believe somebody is. A face, a city and what that person cares about
+ * turn "your Guide" into someone they could recognise in a room.
+ *
+ * WHAT IT SHOWS IS WHAT THE GUIDE WROTE ABOUT THEMSELVES. Picture, city, work
+ * and interests are all fields a Guide filled in on their own profile knowing
+ * their church and the people they walk with would read them. No birthday, no
+ * contact details, no journey stage, nothing anybody else recorded about them.
+ * The short column list in `pairedProfile` is the enforcement; this component
+ * could not render more than that if it tried.
+ *
+ * It draws the name first and fills the rest in when it arrives, so a slow
+ * network shows a name instead of a spinner. If the profile read fails the
+ * card stays exactly as it was before this existed — a name and the privacy
+ * line — because a broken picture is worse than no picture.
+ */
+function GuideCard({ pairing }: { pairing: live.MyPairing }) {
+  const [guide, setGuide] = useState<Profile | null>(null);
+  const [photo, setPhoto] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    void live
+      .pairedProfile(pairing.dm_id)
+      .then((found) => { if (alive) setGuide(found); })
+      // Silent on purpose: the name above is already on the screen and is the
+      // part that matters. An error banner here would be about our plumbing,
+      // not about anything the Explorer can act on.
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [pairing.dm_id]);
+
+  // Signed at render time, never stored — a stored signed URL expires and
+  // becomes a broken picture with nothing to explain it.
+  const photoPath = guide?.photo_path;
+  useEffect(() => {
+    let alive = true;
+    void live.avatarUrl(photoPath).then((url) => { if (alive) setPhoto(url); }).catch(() => {});
+    return () => { alive = false; };
+  }, [photoPath]);
+
+  const topics = (guide?.topics_of_interest ?? []).filter(Boolean).slice(0, 6);
+  const place = [guide?.city_of_residence, guide?.work_industry].filter(Boolean).join(' \u00b7 ');
+
+  return (
+    <Card className="p-5">
+      <p className="text-sm text-gray-500">Walking with you</p>
+      {/* Wraps rather than shrinks: at 320px a 64px circle and a long name do
+          not fit on one line, and a squashed face reads as a placeholder. */}
+      <div className="mt-2 flex flex-wrap items-center gap-4">
+        <Avatar
+          name={pairing.dm_name}
+          size={64}
+          photo={photo || undefined}
+          avatar={guide?.avatar}
+        />
+        <div className="min-w-0">
+          <p className="text-xl font-bold text-navy">{pairing.dm_name}</p>
+          <p className="text-sm text-gray-500">Your Guide{place && <> &middot; {place}</>}</p>
+        </div>
+      </div>
+
+      {topics.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm text-gray-500">Cares about</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {topics.map((topic) => (
+              <span key={topic} className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-navy">
+                {topic}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="mt-4 text-sm text-gray-500">Only you and your Guide can read this conversation.</p>
+    </Card>
   );
 }
 

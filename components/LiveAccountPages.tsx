@@ -51,6 +51,16 @@ export function LiveProfilePage() {
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  // The banner drew initials even for somebody who had uploaded a photo, with
+  // that same photo showing in the picker directly beneath it. Signed at
+  // render time, never stored, for the reason given on the picker below.
+  const [face, setFace] = useState('');
+  const photoPath = profile?.photo_path;
+  useEffect(() => {
+    let alive = true;
+    void live.avatarUrl(photoPath).then((u) => { if (alive) setFace(u); }).catch(() => {});
+    return () => { alive = false; };
+  }, [photoPath]);
 
   // Filled once the profile arrives. Without the guard an empty form renders
   // first and then jumps, and anything typed in that moment is lost.
@@ -107,7 +117,15 @@ export function LiveProfilePage() {
     <div className="space-y-6">
       <div className="rounded-2xl p-6 text-white" style={{ backgroundColor: style.bg }}>
         <div className="flex items-center gap-4">
-          <Avatar name={profile.full_name || 'You'} size={72} />
+          {/* onDark: the fallback circle is navy, which all but vanishes
+              against the navy banner an Executive Director sees. */}
+          <Avatar
+            name={profile.full_name || 'You'}
+            size={72}
+            photo={face || undefined}
+            avatar={profile.avatar}
+            onDark
+          />
           <div className="min-w-0">
             <h1 className="truncate text-3xl font-extrabold">
               {profile.full_name || session?.user.email || 'You'}

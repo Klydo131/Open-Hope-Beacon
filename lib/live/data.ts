@@ -1469,6 +1469,39 @@ export async function uploadAvatar(file: File): Promise<string> {
 }
 
 /**
+ * The person you walk with, so they can be seen rather than only named.
+ *
+ * THE ASK: "Explorer must see the Guide's profile and image so that the
+ * Explorer is aware the Guide is not a robot but a real person."
+ *
+ * The Explorer's screen showed the Guide's NAME and nothing else. Everything
+ * else about that screen says the journey is a relationship; the one place the
+ * other person appeared was a line of text, which is what a system sounds like
+ * rather than somebody who agreed to walk with you.
+ *
+ * THE COLUMN LIST IS THE ACCESS CONTROL, and it is deliberately short. The
+ * policy (profiles_read_paired, migration 0001) would return the whole row: an
+ * Explorer may read their Guide's profile and the Guide may read theirs. That
+ * is the right rule and it is not a reason to put every field on a screen.
+ * Named here are only things a person chose to say about themselves. Not their
+ * birthday, not their contact details, nothing the church recorded ABOUT them
+ * rather than something they wrote.
+ *
+ * Returns null rather than throwing when there is nobody: an Explorer waiting
+ * to be paired is an ordinary state, not an error.
+ */
+export async function pairedProfile(id: string | null | undefined): Promise<Profile | null> {
+  if (!id) return null;
+  const { data, error } = await db()
+    .from('profiles')
+    .select('id, role, full_name, avatar, photo_path, topics_of_interest, city_of_residence, work_industry, preferred_language')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as Profile) ?? null;
+}
+
+/**
  * A URL that will load for the next hour, or '' when there is no picture.
  * Called at render time rather than stored, for the reason above.
  */
