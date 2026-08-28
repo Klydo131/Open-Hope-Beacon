@@ -22,6 +22,7 @@ import { BeaconSpinner } from '@/components/BeaconLoader';
 import { Avatar, Button, Card } from '@/components/ui';
 import { Field, Notice, SelectPerson, emailLooksValid, errorText } from '@/components/live/shared';
 import { humanError } from '@/lib/live/errors';
+import { LiveAnnouncements } from '@/components/LiveAnnouncements';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
@@ -362,6 +363,17 @@ export function LiveAdminPage() {
 
         {error && <Notice tone="error">{error}</Notice>}
         {notice && <Notice tone="success">{notice}</Notice>}
+
+        {/* FIRST CONTENT, AND STILL BELOW THE TABS. The tabs do not move, for
+            the reason written above them: put anything above them and the way
+            around the building shifts on exactly the days a Director can least
+            afford to go looking.
+
+            Above the safeguarding alert on an ordinary day, because it draws
+            nothing when there is nothing pinned — and below it on the rare day
+            something is open, which is the right way round. A pinned notice
+            must never sit on top of a report somebody has made. */}
+        <LiveAnnouncements hideWhenEmpty />
 
         {/* ABOVE THE ADMIN WORK, NOT BELOW IT. A safeguarding report that sits
             under invitations and pairings gets read at the pace of invitations

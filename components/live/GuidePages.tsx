@@ -21,6 +21,7 @@ import { NewBadge } from '@/components/NewBadge';
 import { Avatar, Button, Card, Tabs } from '@/components/ui';
 import { JourneyPath } from '@/components/JourneyPath';
 import { Conversation, Notice, errorText } from '@/components/live/shared';
+import { LiveAnnouncements } from '@/components/LiveAnnouncements';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
@@ -112,6 +113,12 @@ export function LiveGuidePage() {
               : 'Loading the people you walk with.'}
       </p>
       {error && <div className="mt-5"><Notice tone="error">{error}</Notice></div>}
+
+      {/* FIRST ON THE DASHBOARD, under the greeting that names the page. A
+          Guide is the person a church most needs to reach: they carry the
+          notices to the people they walk with. It draws nothing when there is
+          nothing pinned, so an ordinary day costs them no space. */}
+      <div className="mt-6"><LiveAnnouncements hideWhenEmpty /></div>
 
       {/* HOW MANY, AT WHAT LEVEL, AND HOW MANY HAVE FINISHED.
           A Guide could see a list of cards and nothing else: answering "where

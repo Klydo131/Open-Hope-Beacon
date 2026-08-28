@@ -15,6 +15,7 @@ import { LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveStudies } from '@/components/LiveStudies';
 import { Card } from '@/components/ui';
 import { Conversation, Notice, errorText } from '@/components/live/shared';
+import { LiveAnnouncements } from '@/components/LiveAnnouncements';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
@@ -133,6 +134,14 @@ export function LiveExplorerPage() {
             <p className="mt-2 text-sm text-gray-500">Only you and your Guide can read this conversation.</p>
           </Card>
         )}
+
+        {/* THE CHURCH, BETWEEN THE PERSON AND THE TALKING. An Explorer opens
+            this screen looking for their Guide, so the name stays first. What
+            the church has pinned comes next, above the conversation: it is the
+            one thing on here that did not come from the two of them, and below
+            the thread nobody would ever scroll to it. Draws nothing when
+            there is nothing pinned. */}
+        <LiveAnnouncements hideWhenEmpty />
 
         {/* Cases moved to their own room, /cases, in the rail on every screen.
             An Explorer called into one is the person in it with the least
