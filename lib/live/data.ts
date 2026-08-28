@@ -1173,6 +1173,8 @@ export interface PrayerRequestRow {
   share_with_church: boolean;
   status: PrayerStatus;
   created_at: string;
+  /** When a Guide said they were praying for this. Null until one does. */
+  praying_at: string | null;
 }
 
 /** A request as the congregation sees it. No name, no id of the person. */
@@ -1211,7 +1213,7 @@ export async function addPrayerRequest(body: string, shareWithChurch: boolean): 
 export async function listPrayerRequests(): Promise<PrayerRequestRow[]> {
   const { data, error } = await db()
     .from('prayer_requests')
-    .select('id, ds_id, body, share_with_church, status, created_at')
+    .select('id, ds_id, body, share_with_church, status, created_at, praying_at')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as PrayerRequestRow[];
@@ -1227,6 +1229,28 @@ export async function listPrayerWall(): Promise<WallEntry[]> {
 /** Either side may move the status; only the author owns the words. */
 export async function setPrayerStatus(id: string, status: PrayerStatus): Promise<void> {
   const { error } = await db().from('prayer_requests').update({ status }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * A Guide says they are praying for this, and the Explorer is told.
+ *
+ * ONE CALL, AND IT DOES NOT SEND THE MESSAGE. The message is sent by a trigger
+ * on the row (migration 0049), because a client that updates and then notifies
+ * is a client that can forget the second half — or a second client, added
+ * later, that never knew there was one. Telling the person is not a step
+ * somebody remembers here; it is what changing the status means.
+ *
+ * Pressing it more than once is harmless: the trigger only fires on the move
+ * INTO praying, so a Guide who taps twice does not send two messages. Proved
+ * against the live database rather than assumed.
+ */
+export async function markPrayingFor(id: string): Promise<void> {
+  const { error } = await db()
+    .from('prayer_requests')
+    .update({ status: 'praying' })
+    .eq('id', id)
+    .neq('status', 'praying');
   if (error) throw new Error(error.message);
 }
 

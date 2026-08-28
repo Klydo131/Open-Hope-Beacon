@@ -40,7 +40,10 @@ export function Chat({ pairingId }: { pairingId: string }) {
   // for one person can never appear in the box open to another.
   const [text, setText] = useDraft(pairingId);
   const [reporting, setReporting] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const newestEl = useRef<HTMLDivElement>(null);
+  /** Whether the reader is at the bottom now. A ref, so scrolling is free. */
+  const following = useRef(true);
+  const lastId = useRef<string>('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   // mediaFor applies the rule; this screen never filters db.pairing_media
@@ -65,9 +68,40 @@ export function Chat({ pairingId }: { pairingId: string }) {
     })),
   ].sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
 
+  const newest = timeline[timeline.length - 1];
+  const newestKey = newest ? `${newest.kind}-${newest.id}` : '';
+  const newestIsMine = newest?.who === userId;
+
+  // FOLLOW THE NEWEST MESSAGE, and get two things right that this did not.
+  //
+  // 1. THE REF GOES ON THE MESSAGE, NOT ON A MARKER AFTER IT. `bottomRef` was
+  //    a zero-height <div> at the end of the list. Once the thread is scrolled
+  //    to its bottom that marker sits ON the bottom edge and is itself visible,
+  //    so nothing is judged to need moving while the message above it is off
+  //    the screen entirely.
+  //
+  // 2. `block: 'nearest'`, NOT THE DEFAULT. With no block option scrollIntoView
+  //    uses 'start', which puts the marker at the TOP of every scrolling
+  //    ancestor -- pushing the whole conversation up and out of view. Measured
+  //    on a 412x780 phone: the message just sent at -131 to -36, above the top
+  //    of the window. 'nearest' moves each scrollport by the least it can.
+  //
+  // 3. A READER IS NOT YANKED. Following on every length change interrupted
+  //    somebody who had scrolled up to find what was said last week. Your own
+  //    message always follows; somebody else's only if you were already at the
+  //    bottom.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [timeline.length]);
+    if (!newestKey || newestKey === lastId.current) return;
+    const first = lastId.current === '';
+    lastId.current = newestKey;
+    if (first || newestIsMine || following.current) {
+      newestEl.current?.scrollIntoView({
+        block: 'nearest',
+        behavior: first ? 'auto' : 'smooth',
+      });
+      following.current = true;
+    }
+  }, [newestKey, newestIsMine]);
 
   // Reading the thread is what marks it read — on open, and again whenever a
   // message lands while it is on screen. markMessagesRead is a no-op when
@@ -101,14 +135,21 @@ export function Chat({ pairingId }: { pairingId: string }) {
 
   return (
     <div className="flex h-[26rem] flex-col rounded-2xl bg-white ring-1 ring-black/5">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+      <div
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          following.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+        }}
+        className="flex-1 space-y-3 overflow-y-auto p-4"
+      >
         {timeline.length === 0 && (
           <p className="mt-8 text-center text-gray-400">
             No messages yet. Say hello.
           </p>
         )}
-        {timeline.map((entry) => {
+        {timeline.map((entry, index) => {
           const mine = entry.who === userId;
+          const isNewest = index === timeline.length - 1;
           return (
             <div
               key={`${entry.kind}-${entry.id}`}
@@ -116,6 +157,7 @@ export function Chat({ pairingId }: { pairingId: string }) {
               // against the order things were actually sent. A plain div, so
               // the attribute reaches the DOM — Button would have dropped it.
               data-chat-entry={entry.kind}
+              ref={isNewest ? newestEl : undefined}
               className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}
             >
               {entry.kind === 'message' ? (
@@ -147,7 +189,6 @@ export function Chat({ pairingId }: { pairingId: string }) {
             </div>
           );
         })}
-        <div ref={bottomRef} />
       </div>
 
       {/*

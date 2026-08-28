@@ -113,6 +113,28 @@ export function LiveAskForPrayer() {
               <p className="flex-1 text-sm text-gray-700">{r.body}</p>
               <Chip status={r.status} />
             </div>
+
+            {/* THE WHOLE REASON THE OTHER HALF EXISTS.
+                Asking for prayer is the most exposed thing anybody does in this
+                app, and the answer to it used to be nothing at all: the words
+                sat there exactly as they were written, however carefully the
+                Guide had read them. A chip saying "Praying" is a status; this
+                is a person. It says who, and it says when, because "somebody is
+                praying about my mother" is worth knowing the date of. */}
+            {r.status === 'praying' && (
+              <p className="mt-2 rounded-xl bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900">
+                🙏 Your Guide is praying for this
+                {r.praying_at && (
+                  <span className="font-normal text-blue-800">
+                    {' · '}
+                    {new Date(r.praying_at).toLocaleDateString([], {
+                      day: 'numeric', month: 'short',
+                    })}
+                  </span>
+                )}
+              </p>
+            )}
+
             <div className="mt-2 flex items-center gap-3">
               <span className="flex-1" />
               <button
@@ -169,6 +191,7 @@ export function LivePrayerForGuide({
 }) {
   const [rows, setRows] = useState<live.PrayerRequestRow[] | null>(null);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -206,13 +229,50 @@ export function LivePrayerForGuide({
                 <p className="mt-0.5 text-sm text-gray-700">{r.body}</p>
               </div>
             </div>
-            {/* THE STATUS BUTTONS ARE GONE, AND THAT IS THE POINT.
-                "Mark praying" and "Mark answered" asked a Guide to file
-                somebody's mother's illness under a workflow state. Prayer is
-                not a ticket queue, and a request sitting on "open" made it look
-                like one that had been ignored. What a Guide does with this is
-                pray, and then talk to the person in the conversation directly
-                above. */}
+            {/* ONE CONTROL, AND IT IS NOT A WORKFLOW STATE.
+                "Mark praying" and "Mark answered" were both removed from here
+                once, and the reasoning was right: they asked a Guide to file
+                somebody's mother's illness under a status, and prayer is not a
+                ticket queue. What was actually wrong with them is that the
+                status they set was for the GUIDE'S OWN LIST. Nobody was told.
+
+                So the person who had written down the most exposed thing they
+                had, and pressed send, saw their words sitting there exactly as
+                they left them — which from where they stand is indistinguishable
+                from nobody having looked.
+
+                This is the opposite of a queue. It says one thing to one person,
+                and that person is the one who asked. There is still no "mark
+                answered": whether a prayer was answered is not a Guide's to
+                record. */}
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              {r.status === 'praying' ? (
+                <p className="text-sm font-semibold text-blue-800">
+                  🙏 You told {(nameFor?.(r.ds_id) ?? 'them').split(' ')[0]} you are praying
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  disabled={busy === r.id}
+                  data-praying-for={r.id}
+                  onClick={async () => {
+                    setBusy(r.id);
+                    setError('');
+                    try {
+                      await live.markPrayingFor(r.id);
+                      await load();
+                    } catch (cause) {
+                      setError(message(cause));
+                    } finally {
+                      setBusy('');
+                    }
+                  }}
+                  className="tap-sm rounded-xl bg-navy px-4 text-sm font-bold text-white disabled:opacity-40"
+                >
+                  {busy === r.id ? 'Telling them…' : '🙏 I am praying for this'}
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

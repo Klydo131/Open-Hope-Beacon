@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as live from '@/lib/live/data';
 import type { Message, Profile } from '@/lib/types';
 import { MessageBox } from '@/components/MessageBox';
@@ -52,6 +52,44 @@ export function Conversation({
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // THE THREAD OPENS ON THE NEWEST MESSAGE, AND FOLLOWS THE ONE YOU JUST SENT.
+  //
+  // THE BUG: "when I message, it should always track to the latest." There was
+  // no scrolling code here at all. The thread is a fixed-height box with
+  // `overflow-y-auto`, so it opened at scroll position ZERO — the oldest
+  // message in the conversation — and stayed there. Sending appended the new
+  // message below the fold, out of sight. The screenshot shows the reply half
+  // cut off behind the composer.
+  //
+  // On a short conversation nothing looks wrong, which is why it survived: you
+  // only meet it once there is more history than fits.
+  const box = useRef<HTMLDivElement>(null);
+  // A ref on the NEWEST MESSAGE — not on a marker after it.
+  //
+  // The first attempt put a zero-height marker at the end of the list, and it
+  // failed in a way worth writing down: after the box scrolls to its bottom the
+  // marker sits ON the bottom edge, at window y≈19, which IS inside the window.
+  // `block: 'nearest'` then correctly decides nothing needs to move, while the
+  // ninety-five-pixel message directly above it is entirely off the top. The
+  // thing that must be visible is the message, so the ref goes on the message.
+  //
+  // THERE ARE TWO SCROLLPORTS, and fixing only one leaves the bug in place.
+  // Scrolling the thread box to its bottom is not enough: focusing the composer
+  // scrolls the PAGE down to reveal it, and the composer sits below the thread,
+  // so the thread is pushed almost entirely above the top of the window.
+  // Measured on a 412x780 phone: the page at 1177 of 1355, and the thread box
+  // occupying -257 to 19 — nineteen pixels of a conversation.
+  //
+  // `scrollIntoView({ block: 'nearest' })` on a marker at the end walks EVERY
+  // scrolling ancestor and moves each by the least it can. One call, both
+  // scrollports, and nothing moves that did not have to.
+  const newestEl = useRef<HTMLDivElement>(null);
+  const landed = useRef(false);
+  // Whether the reader is at the bottom RIGHT NOW, kept in a ref so watching it
+  // does not re-render on every scroll event.
+  const following = useRef(true);
+  const lastId = useRef<string>('');
+
   const timeline: Entry[] = [
     ...messages.map((m): Entry => ({
       kind: 'message', id: m.id, at: m.created_at, who: m.sender_id, message: m,
@@ -61,6 +99,43 @@ export function Conversation({
     })),
   ].sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
 
+  const newest = timeline[timeline.length - 1];
+  const newestKey = newest ? `${newest.kind}-${newest.id}` : '';
+  const newestIsMine = newest?.who === myId;
+
+  // ARRIVING. `useLayoutEffect` and no animation: you should simply BE at the
+  // bottom when the thread appears, the way opening any messaging app works.
+  // Smoothly scrolling a page you have only just seen is a page that moves
+  // under you.
+  useLayoutEffect(() => {
+    if (landed.current || timeline.length === 0) return;
+    const el = box.current;
+    if (el) el.scrollTop = el.scrollHeight;
+    newestEl.current?.scrollIntoView({ block: 'nearest' });
+    landed.current = true;
+    lastId.current = newestKey;
+  }, [timeline.length, newestKey]);
+
+  // SOMETHING NEW. Two different cases, and conflating them is the usual bug:
+  //
+  //   YOU sent it        -> always follow. You pressed send; the thing you
+  //                         wrote must be the thing you see.
+  //   SOMEBODY ELSE did  -> follow only if you were already at the bottom.
+  //                         Yanking a reader who has scrolled up to find what
+  //                         was said last Tuesday is worse than not scrolling.
+  useEffect(() => {
+    const el = box.current;
+    if (!el || !newestKey || newestKey === lastId.current) return;
+    lastId.current = newestKey;
+    if (newestIsMine || following.current) {
+      const behavior = landed.current ? 'smooth' : 'auto';
+      el.scrollTo({ top: el.scrollHeight, behavior });
+      // The page as well, because the composer taking focus drags it away.
+      newestEl.current?.scrollIntoView({ block: 'nearest', behavior });
+      following.current = true;
+    }
+  }, [newestKey, newestIsMine]);
+
   return (
     <Card className="overflow-hidden">
       {/* `dvh`, not `vh`. `vh` is the layout viewport, which does not shrink
@@ -68,12 +143,27 @@ export function Conversation({
           height and the message you had just written sat underneath the
           keyboard. `dvh` is the part actually visible. The plain `vh` line
           stays underneath it for anything too old to know `dvh`. */}
-      <div className="max-h-[55vh] min-h-72 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-5 [max-height:55dvh]">
+      <div
+        ref={box}
+        onScroll={() => {
+          const el = box.current;
+          if (!el) return;
+          // A little slack. Sub-pixel heights and a rubber-band bounce on iOS
+          // both mean scrollTop rarely lands exactly on the maximum.
+          following.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+        }}
+        className="max-h-[55vh] min-h-72 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-5 [max-height:55dvh]"
+      >
         {timeline.length === 0 && <p className="py-16 text-center text-gray-400">Start with a welcome.</p>}
-        {timeline.map((entry) => {
+        {timeline.map((entry, index) => {
           const mine = entry.who === myId;
+          const isNewest = index === timeline.length - 1;
           return (
-            <div key={`${entry.kind}-${entry.id}`} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+            <div
+              key={`${entry.kind}-${entry.id}`}
+              ref={isNewest ? newestEl : undefined}
+              className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
+            >
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${mine ? 'bg-navy text-white' : 'bg-gray-100 text-gray-800'}`}>
                 {entry.kind === 'message' ? (
                   <p className="whitespace-pre-wrap break-words">
