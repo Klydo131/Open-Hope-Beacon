@@ -14,6 +14,7 @@ import type { Profile, Role } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { permission, requestPermission, showLocalNotification } from '@/lib/push';
 import { onOpenBell } from '@/lib/open-bell';
+import { planAnnouncement } from '@/lib/live/announce-plan';
 import { AnchoredPanel } from '@/components/AnchoredPanel';
 
 
@@ -79,12 +80,17 @@ export function LiveBell({ me }: { me: Profile }) {
    * Which notifications have already been announced on this device.
    *
    * A ref, not state: it is read inside the poll and must not restart it.
-   * Persisted, so a reload does not re-announce the same thing, and seeded on
-   * the FIRST load without announcing anything. Without that seeding, opening
-   * the app after a quiet week fires eleven notifications at once, which
-   * teaches somebody to switch them off.
+   * PERSISTED, and that is what makes announcing on arrival safe: the same
+   * unread items are announced once per device however many times the app is
+   * opened, so signing in five times with the same three things waiting gives
+   * one pop-up rather than five.
+   *
+   * This used to seed on the first load and announce NOTHING, to stop a quiet
+   * week firing eleven pop-ups at once. The eleven were the problem, not the
+   * telling — see the note in `load`.
    */
   const announced = useRef<Set<string>>(new Set());
+  /** False until the first poll finishes: "have they just arrived?" */
   const seeded = useRef(false);
 
   useEffect(() => {
@@ -129,29 +135,40 @@ export function LiveBell({ me }: { me: Profile }) {
       const fresh = next.filter((n) => !n.read_at && !announced.current.has(n.id));
       for (const n of fresh) announced.current.add(n.id);
 
-      if (!seeded.current) {
-        // First poll of this session: remember what is already there and
-        // announce none of it.
-        seeded.current = true;
-      } else if (fresh.length > 0) {
-        const on = (() => {
-          try { return localStorage.getItem('hb-alerts') !== 'off'; } catch { return true; }
-        })();
-        if (on && permission() === 'granted') {
-          // At most three. A person coming back to eleven unread things needs
-          // to be told, not buried; the badge carries the rest.
-          for (const n of fresh.slice(0, 3)) {
-            await showLocalNotification(n.title, n.body ?? undefined, routeFor(n.type, me.role));
-          }
-          if (fresh.length > 3) {
-            await showLocalNotification(
-              'Hope Beacon',
-              `${fresh.length} things are waiting for you.`,
-              '/church',
-            );
-          }
-        }
+      const alerts = (() => {
+        try { return localStorage.getItem('hb-alerts') !== 'off'; } catch { return true; }
+      })();
+      const arriving = !seeded.current;
+      seeded.current = true;
+
+      // WHAT to pop up is decided in lib/live/announce-plan.ts, so the counting
+      // can be run in a test rather than read. The failure here is somebody
+      // buried under eleven pop-ups, or told nothing at all when a safeguarding
+      // report was waiting, and neither shows up until it happens to a person.
+      const plan = planAnnouncement(fresh, {
+        arriving,
+        alerts,
+        allowed: permission() === 'granted',
+      });
+      const summary = async (count: number) => showLocalNotification(
+        'Hope Beacon', `${count} things are waiting for you.`, '/church',
+      );
+      const single = async (n: live.AppNotification) => showLocalNotification(
+        n.title, n.body ?? undefined, routeFor(n.type, me.role),
+      );
+
+      if (plan.kind === 'one') await single(plan.item as live.AppNotification);
+      else if (plan.kind === 'summary') await summary(plan.count);
+      else if (plan.kind === 'each') {
+        for (const n of plan.items) await single(n as live.AppNotification);
+        if (plan.heldBack > 0) await summary(plan.items.length + plan.heldBack);
       }
+
+      // NOTE ON NOT NAGGING, because this is the half that makes the above
+      // safe. `announced` is persisted, so the same unread items are announced
+      // ONCE per device however many times the app is opened. Signing in five
+      // times with the same three things waiting gives one pop-up, not five;
+      // something new since last time gives another.
 
       try {
         // Bounded, or this grows for the life of the device.
@@ -165,7 +182,26 @@ export function LiveBell({ me }: { me: Profile }) {
   useEffect(() => {
     void load();
     const t = setInterval(() => void load(), 60_000);
-    return () => clearInterval(t);
+
+    // COMING BACK ONLINE IS A MOMENT WORTH CHECKING. Anything that happened
+    // while the device had no signal is waiting on the server, and without this
+    // the person hears about it whenever the next sixty-second tick lands —
+    // which on a phone that has been asleep may be a good deal later.
+    const backOnline = () => void load();
+    window.addEventListener('online', backOnline);
+
+    // And coming back to the tab, so the badge is never stale in front of
+    // somebody who is looking straight at it.
+    const recheck = () => {
+      if (document.visibilityState === 'visible') void load();
+    };
+    document.addEventListener('visibilitychange', recheck);
+
+    return () => {
+      clearInterval(t);
+      window.removeEventListener('online', backOnline);
+      document.removeEventListener('visibilitychange', recheck);
+    };
   }, [load]);
 
   // THE DESK'S "Unread notifications" ROW ENDS HERE. It is drawn in the rail,

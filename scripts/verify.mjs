@@ -136,6 +136,10 @@ const staticChecks = [
   // Turning what somebody typed into an href is an injection surface, and this
   // field is filled in by a Guide and tapped by the Explorer they walk with.
   ['meeting links', 'tests/meeting-links.mjs'],
+  // Whether somebody signing in with things waiting is told, and whether they
+  // are buried when they are. Neither is reachable from a browser here: pop-ups
+  // need a granted permission, a service worker and a device.
+  ['told on arrival', 'tests/notified-on-arrival.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:
