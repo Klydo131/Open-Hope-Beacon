@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { AppShell } from '@/components/AppShell';
-import { Avatar, Badge, Card, EmptyState } from '@/components/ui';
+import { Avatar, Badge, Button, Card, EmptyState } from '@/components/ui';
 import { STAGES, stageInfo, trackColor } from '@/lib/brand';
 import { emitQuest } from '@/lib/quest';
 import {
@@ -357,7 +357,14 @@ function Dashboard() {
                     </div>
                   </Link>
                   <div className="flex justify-end px-4 pb-3">
-                    <button
+                    {/* THE SHARED DANGER BUTTON, not a hand-rolled red one.
+                        This was a raw <button> with red classes and small
+                        padding, and it still rendered at 56px — every button
+                        in the app has a 56px floor in globals.css, so padding
+                        cannot make one smaller. It was the full height of an
+                        ordinary control while looking like it was not. */}
+                    <Button
+                      variant="danger"
                       onClick={() => {
                         if (
                           confirm(
@@ -366,10 +373,9 @@ function Dashboard() {
                         )
                           kickMember(ds!.id);
                       }}
-                      className="rounded-xl bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-100"
                     >
                       Remove Explorer
-                    </button>
+                    </Button>
                   </div>
                 </Card>
               );

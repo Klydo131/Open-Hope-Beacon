@@ -64,7 +64,7 @@ export function Attachment({
         <button
           type="button"
           onClick={onRemove}
-          className="ml-2 underline hover:text-gray-600"
+          className="ml-2 font-semibold text-red-700 underline hover:text-red-800"
         >
           Remove
         </button>

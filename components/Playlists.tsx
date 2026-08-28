@@ -175,7 +175,7 @@ function PlaylistDetail({
           className="tap min-w-0 flex-1 rounded-xl bg-gray-100 px-3 font-bold text-navy outline-none focus:ring-2 focus:ring-gold"
         />
         {!confirmDelete ? (
-          <Button variant="ghost" onClick={() => setConfirmDelete(true)}>Delete</Button>
+          <Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete</Button>
         ) : (
           <>
             <Button variant="ghost" onClick={onDelete}>Really delete</Button>

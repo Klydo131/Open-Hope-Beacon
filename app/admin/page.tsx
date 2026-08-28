@@ -455,15 +455,18 @@ function Approvals() {
             >
               {t('approve')}
             </Button>
-            <button
+            {/* The shared danger button: red AND smaller. This was already
+                red, and still the full 56px of an ordinary control, because
+                every button in the app has that floor in globals.css. */}
+            <Button
+              variant="danger"
               onClick={() => {
                 if (confirm(`Disapprove ${p.full_name}? Their sign-up will be removed.`))
                   disapproveMember(p.id);
               }}
-              className="tap rounded-xl bg-red-50 px-4 text-sm font-semibold text-red-600 hover:bg-red-100"
             >
               Disapprove
-            </button>
+            </Button>
           </div>
         </Card>
       ))}
@@ -601,7 +604,8 @@ function Pairing() {
                     )}
                   </div>
                   {removable && (
-                    <button
+                    <Button
+                      variant="danger"
                       onClick={() => {
                         if (
                           confirm(
@@ -610,10 +614,9 @@ function Pairing() {
                         )
                           kickMember(m.id);
                       }}
-                      className="rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100"
                     >
                       Remove
-                    </button>
+                    </Button>
                   )}
                 </div>
               );

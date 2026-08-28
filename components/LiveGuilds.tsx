@@ -266,7 +266,7 @@ export function LiveGuilds({ me }: { me: Profile }) {
                     </div>
 
                     <div className="mt-4 border-t border-black/5 pt-3">
-                      <Button variant="ghost" disabled={busy === `del-${g.id}`}
+                      <Button variant="danger" disabled={busy === `del-${g.id}`}
                               onClick={() => {
                                 if (!confirm(`Delete the guild “${g.name}”? The people in it are not affected.`)) return;
                                 void run(`del-${g.id}`, () => live.deleteGuild(g.id),

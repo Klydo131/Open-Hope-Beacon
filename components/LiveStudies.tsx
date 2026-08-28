@@ -60,7 +60,7 @@ function FileRow({ file, canRemove, onRemove }: {
       </button>
       <span className="text-xs text-gray-400">{kb(file.size_bytes)}</span>
       {canRemove && (
-        <button type="button" onClick={onRemove} className="text-xs text-gray-400 underline">
+        <button type="button" onClick={onRemove} className="text-xs font-semibold text-red-700 underline">
           Remove
         </button>
       )}
@@ -161,7 +161,7 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
                   type="button"
                   disabled={busy}
                   onClick={() => void act(() => live.deleteLesson(lesson.id))}
-                  className="text-xs text-gray-400 underline"
+                  className="text-xs font-semibold text-red-700 underline"
                 >
                   Delete study
                 </button>
@@ -321,7 +321,7 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
                             type="button"
                             disabled={busy}
                             onClick={() => void act(() => live.deleteLessonSeries(s.id))}
-                            className="text-xs text-gray-400 underline"
+                            className="text-xs font-semibold text-red-700 underline"
                           >
                             Delete
                           </button>

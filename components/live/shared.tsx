@@ -292,7 +292,7 @@ export function LiveAttachment({
         {onRemove && (
           <>
             {' · '}
-            <button type="button" onClick={onRemove} className="underline underline-offset-2">Remove</button>
+            <button type="button" onClick={onRemove} className="font-semibold text-red-700 underline underline-offset-2">Remove</button>
           </>
         )}
       </span>

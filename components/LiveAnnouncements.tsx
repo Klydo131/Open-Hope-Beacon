@@ -113,7 +113,7 @@ export function LiveAnnouncements({
                     type="button"
                     disabled={busy}
                     onClick={() => void act(() => live.deleteAnnouncement(n.id))}
-                    className="text-xs text-gray-400 underline"
+                    className="text-xs font-semibold text-red-700 underline"
                   >
                     Delete
                   </button>

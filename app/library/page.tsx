@@ -430,9 +430,15 @@ export default function LibraryPage() {
                         Download
                       </button>
                     )}
+                    {/* GREY WAS THE WRONG COLOUR FOR THIS. Deleting a saved
+                        file was drawn in the same muted grey as a caption,
+                        beside a navy Download. The one irreversible control on
+                        the row was the quietest thing on it, which is not the
+                        same as being discouraged: it was simply easy to miss
+                        and just as easy to hit. Red says what it does. */}
                     <button
                       onClick={() => remove(m)}
-                      className="rounded-xl px-3 py-2 text-sm font-semibold text-gray-400 underline"
+                      className="rounded-xl px-3 py-2 text-sm font-bold text-red-700 underline"
                     >
                       Delete
                     </button>

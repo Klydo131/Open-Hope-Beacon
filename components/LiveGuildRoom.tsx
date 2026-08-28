@@ -314,7 +314,7 @@ export function LiveGuildRoom() {
                     <button
                       type="button"
                       onClick={() => void live.deleteGuideRoomMessage(m.id).then(load)}
-                      className="ml-auto text-xs text-gray-400 underline"
+                      className="ml-auto text-xs font-semibold text-red-700 underline"
                     >
                       Delete
                     </button>

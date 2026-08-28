@@ -919,7 +919,7 @@ export function PlayerPanel({
                   <button
                     type="button"
                     onClick={() => lists.remove(list.id)}
-                    className="text-xs text-gray-400 underline"
+                    className="text-xs font-semibold text-red-700 underline"
                   >
                     Delete
                   </button>
@@ -947,7 +947,7 @@ export function PlayerPanel({
                         <button
                           type="button"
                           onClick={() => lists.removeFrom(list.id, t.id)}
-                          className="text-xs text-gray-400 underline"
+                          className="text-xs font-semibold text-red-700 underline"
                         >
                           Remove
                         </button>

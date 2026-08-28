@@ -257,7 +257,7 @@ export function LiveBlogDesk() {
               </Button>
               {confirming === p.id ? (
                 <>
-                  <Button variant="ghost" disabled={busy} onClick={() => { setConfirming(''); void act(() => live.deleteBlogPost(p.id)); }}>
+                  <Button variant="danger" disabled={busy} onClick={() => { setConfirming(''); void act(() => live.deleteBlogPost(p.id)); }}>
                     Delete for good
                   </Button>
                   <Button variant="ghost" onClick={() => setConfirming('')}>Keep</Button>
@@ -265,7 +265,7 @@ export function LiveBlogDesk() {
               ) : (
                 // Two steps: deleting takes the post and its readers with it and
                 // there is no undo.
-                <Button variant="ghost" onClick={() => setConfirming(p.id)}>Delete</Button>
+                <Button variant="danger" onClick={() => setConfirming(p.id)}>Delete</Button>
               )}
             </div>
           </article>

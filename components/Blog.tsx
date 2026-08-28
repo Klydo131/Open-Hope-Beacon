@@ -253,7 +253,7 @@ export function BlogDesk({ userId }: { userId: string }) {
               {confirming === p.id ? (
                 <>
                   <Button
-                    variant="ghost"
+                    variant="danger"
                     onClick={() => {
                       deleteBlogPost(p.id);
                       setConfirming('');
@@ -268,7 +268,7 @@ export function BlogDesk({ userId }: { userId: string }) {
               ) : (
                 // Two steps, because deleting takes the post and its readers
                 // with it and there is no undo.
-                <Button variant="ghost" onClick={() => setConfirming(p.id)}>
+                <Button variant="danger" onClick={() => setConfirming(p.id)}>
                   Delete
                 </Button>
               )}

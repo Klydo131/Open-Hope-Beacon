@@ -642,16 +642,14 @@ export function LiveAdminPage() {
                   <span className="text-sm text-gray-500">{picked.length} selected</span>
                   <div className="ml-auto flex flex-wrap gap-2">
                     <Button
-                      variant="ghost"
-                      className="text-red-700"
+                      variant="danger"
                       disabled={busy === 'bulk'}
                       onClick={() => setBulkAsk('disapprove')}
                     >
                       Disapprove selected
                     </Button>
                     <Button
-                      variant="ghost"
-                      className="text-red-700"
+                      variant="danger"
                       disabled={busy === 'bulk'}
                       onClick={() => setBulkAsk('delete')}
                     >
@@ -768,16 +766,14 @@ export function LiveAdminPage() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
-                      variant="ghost"
-                      className="text-red-700"
+                      variant="danger"
                       onClick={() => void disapprove(member)}
                       disabled={busy === member.id}
                     >
                       Disapprove
                     </Button>
                     <Button
-                      variant="ghost"
-                      className="text-red-700"
+                      variant="danger"
                       onClick={() => setConfirmDelete(confirmDelete === member.id ? '' : member.id)}
                       disabled={busy === member.id}
                     >
@@ -876,13 +872,31 @@ export function LiveAdminPage() {
                 <span className="text-gray-400">walking with</span>
                 <span className="font-semibold text-navy">{pairing.ds_name}</span>
                 <MinorBadge person={{ birthday: pairing.ds_birthday, guardian_consent_at: pairing.ds_guardian_consent_at }} />
-                <span className="ml-auto rounded-full bg-white px-3 py-1 font-semibold text-gray-600">{stageInfo(pairing.journey_stage).label}</span>
+                {/* THIS IS A STATUS, NOT A BUTTON, and it was read as one.
+                    It shows where the Explorer is on the journey, and the
+                    second stage is called "Connect" — so a grey pill reading
+                    "Connect" sat immediately beside a large button reading
+                    "Disconnect" and the pair looked like a choice. It was
+                    reported as exactly that: "Connect should be bigger and
+                    green".
+
+                    Now it says what it is, and wears the stage's own colour
+                    rather than the neutral grey every chip in the app shares. */}
+                <span
+                  className="ml-auto rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide"
+                  style={{
+                    color: stageInfo(pairing.journey_stage).color,
+                    backgroundColor: `${stageInfo(pairing.journey_stage).color}1A`,
+                  }}
+                >
+                  Stage · {stageInfo(pairing.journey_stage).label}
+                </span>
                 {/* UNPAIR. A pairing could be made and never unmade, so a wrong
                     one could only be corrected in SQL. Archiving rather than
                     deleting keeps the conversation history intact -- the two
                     people simply stop being connected. */}
                 <Button
-                  variant="ghost"
+                  variant="danger"
                   disabled={busy === `unpair-${pairing.id}`}
                   onClick={() => {
                     if (!confirm(

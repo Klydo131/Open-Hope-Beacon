@@ -140,6 +140,8 @@ const staticChecks = [
   // are buried when they are. Neither is reachable from a browser here: pop-ups
   // need a granted permission, a service worker and a device.
   ['told on arrival', 'tests/notified-on-arrival.mjs'],
+  // The most damaging button on a screen must never be the most inviting one.
+  ['destructive is discouraged', 'tests/destructive-is-discouraged.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

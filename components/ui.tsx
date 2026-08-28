@@ -61,7 +61,7 @@ export function Button({
 }: {
   children: React.ReactNode;
   onClick?: () => void;
-  variant?: 'primary' | 'ghost' | 'gold';
+  variant?: 'primary' | 'ghost' | 'gold' | 'danger';
   type?: 'button' | 'submit';
   disabled?: boolean;
   className?: string;
@@ -71,17 +71,38 @@ export function Button({
     primary: 'text-white',
     gold: 'text-navy',
     ghost: 'bg-white text-navy ring-1 ring-navy/20',
+    // DELIBERATELY THE SMALLEST AND THE ONLY RED ONE.
+    //
+    // Disconnecting two people, or removing somebody from the church, is a
+    // thing a Director should be able to do and should almost never want to.
+    // It used to be a plain `ghost` button: the same size and the same weight
+    // as everything else on the row, which is how a screen tells you an action
+    // is ordinary. The reported version was worse still — it looked LARGER
+    // than the text beside it, so the most destructive control on the page was
+    // also the most inviting.
+    //
+    // Smaller and red, on white rather than filled: red on white reads as a
+    // warning, and a filled red block reads as a call to action. Nothing else
+    // in the app is red, so the colour means exactly one thing.
+    danger: 'bg-white text-red-700 ring-1 ring-red-300 hover:bg-red-50',
   };
   const bg =
     variant === 'primary' ? NAVY : variant === 'gold' ? '#E8B84B' : undefined;
+  // A destructive button is smaller than an ordinary one: 44px against 56, and
+  // the text a size down. Still comfortably above the 44px minimum for a touch
+  // target — discouraged is not the same as hard to press.
+  const size = variant === 'danger'
+    ? 'tap-sm px-4 text-sm font-bold'
+    : 'tap px-5 text-lg font-semibold';
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled}
       data-quest={dataQuest}
+      data-danger={variant === 'danger' ? '' : undefined}
       style={bg ? { backgroundColor: bg } : undefined}
-      className={`tap inline-flex items-center justify-center gap-2 rounded-xl px-5 text-lg font-semibold transition active:scale-[0.98] disabled:opacity-40 ${styles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl transition active:scale-[0.98] disabled:opacity-40 ${size} ${styles[variant]} ${className}`}
     >
       {children}
     </button>

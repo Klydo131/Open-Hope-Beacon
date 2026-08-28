@@ -184,7 +184,7 @@ export function LiveFollowUps({ pairings }: { pairings: { id: string; ds_name: s
                 {nameOf(r.pairing_id)}{r.due_on ? ` · due ${r.due_on}` : ''}
               </p>
             </div>
-            <button onClick={() => act(() => live.deleteFollowUp(r.id))} className="text-xs text-gray-400 underline">
+            <button onClick={() => act(() => live.deleteFollowUp(r.id))} className="text-xs font-semibold text-red-700 underline">
               Remove
             </button>
           </div>
@@ -227,7 +227,7 @@ export function LiveNotes({ pairingId }: { pairingId: string }) {
         {rows?.map((n) => (
           <div key={n.id} className="rounded-xl bg-gray-50 p-3">
             <p className="whitespace-pre-wrap text-sm text-gray-700">{n.body}</p>
-            <button onClick={() => act(() => live.deleteNote(n.id))} className="mt-1 text-xs text-gray-400 underline">
+            <button onClick={() => act(() => live.deleteNote(n.id))} className="mt-1 text-xs font-semibold text-red-700 underline">
               Delete
             </button>
           </div>
