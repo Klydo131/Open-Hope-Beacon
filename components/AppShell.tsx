@@ -233,6 +233,40 @@ function DemoAppShell({
             >
               <span aria-hidden>📚</span>
             </Link>
+            {/* OFFICE, PUBLISH AND CASES, which were on the rails and nowhere
+                else below `xl`. Same gap the church link had, recorded in the
+                note above it, and the same cause: rooms added after this strip
+                was written and never added to it. A Guide writes their own
+                lesson studies in the Office, so on a phone they could not.
+
+                The strip scrolls, so length is not the constraint it once was.
+                Explorers get no Office: none of the work in it is theirs. */}
+            {currentUser.role !== 'ds' && (
+              <Link
+                href="/office"
+                aria-label="Office"
+                title="Office"
+                className="tap-sm grid shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20"
+              >
+                <span aria-hidden>🗂️</span>
+              </Link>
+            )}
+            <Link
+              href="/publish"
+              aria-label="Publish"
+              title="Publish"
+              className="tap-sm grid shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20"
+            >
+              <span aria-hidden>✍️</span>
+            </Link>
+            <Link
+              href="/cases"
+              aria-label="Cases"
+              title="Cases"
+              className="tap-sm grid shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20"
+            >
+              <span aria-hidden>⚖️</span>
+            </Link>
             <Link
               href="/mail"
               aria-label="Mail"

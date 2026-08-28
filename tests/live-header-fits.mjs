@@ -63,5 +63,44 @@ ok(/@supports not \(overflow: clip\)/.test(css),
 ok(/@supports not \(overflow: clip\)\s*\{\s*html\s*\{\s*overflow-x:\s*hidden/s.test(css),
    'the fallback puts `hidden` on html, not body, so sticky headers keep sticking');
 
+// ---------------------------------------------------------------------------
+// EVERY ROOM ON THE RAILS IS ALSO IN THE HEADER.
+// ---------------------------------------------------------------------------
+// THE BUG THIS EXISTS FOR: "I need the lesson study editing features for guides
+// to make their own lesson studies too, not just in mac or desktop."
+//
+// A Guide writes their own studies in the Office. The Office is on the rails,
+// and the rails are `xl:block` — hidden below 1280px. So on every phone and
+// every tablet the header row was the whole of the navigation, and it listed
+// Church, Library, Profile and Settings. Office, Publish and Cases were rooms
+// added after that list was written and never added to it.
+//
+// Nothing about the feature was missing; the door was. And nothing could have
+// caught it, because the two lists are written in different files and neither
+// knows the other exists. This is that check.
+{
+  const rails = readFileSync('components/RoomRails.tsx', 'utf8');
+
+  // The rooms the rail offers, taken from its own link definitions.
+  const railRooms = new Set(
+    [...rails.matchAll(/href:\s*'(\/[a-z]+)'/g)].map((m) => m[1]),
+  );
+  // The rail's own dashboards are role-specific and the header reaches them
+  // through its Home link, which uses homeFor(role).
+  for (const own of ['/ds', '/dm', '/admin']) railRooms.delete(own);
+
+  const headerRooms = new Set(
+    [...shell.slice(shell.indexOf('const SECTIONS'), shell.indexOf('function ShellLink'))
+      .matchAll(/href:\s*'(\/[a-z]+)'/g)].map((m) => m[1]),
+  );
+
+  const missing = [...railRooms].filter((r) => !headerRooms.has(r));
+  ok(missing.length === 0,
+    missing.length
+      ? `these rooms are on the rails and NOT in the header, so they cannot be `
+        + `reached on a phone or a tablet: ${missing.join(', ')}`
+      : `every room on the rails is in the header too (${railRooms.size} rooms)`);
+}
+
 console.log(`\n${bad === 0 ? 'RESULT: ALL OK' : `RESULT: ${bad} FAILED`}`);
 process.exit(bad === 0 ? 0 : 1);

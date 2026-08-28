@@ -32,9 +32,33 @@ import { useUrlKey } from '@/lib/url-signal';
 // apology for existing, on every screen, for most of the church.
 //
 // The route still refuses them on its own; this only stops advertising it.
+// EVERY ROOM THIS ROLE HAS, because below `xl` this header is the ONLY way
+// around the app.
+//
+// THE BUG: "I need the lesson study editing features for guides to make their
+// own lesson studies too, not just in mac or desktop."
+//
+// A Guide writes their own studies in the Office. The Office is on the rails —
+// and the rails are `xl:block`, hidden below 1280px. This list was the entire
+// navigation on every phone and tablet, and it held Church, Library, Profile
+// and Settings. So the Office was reachable on a Mac and reachable nowhere
+// else, along with Publish and Cases, all three of them rooms added after this
+// list was written and never added to it.
+//
+// Nothing about the feature was missing. The door was.
+//
+// The row scrolls inside itself (`overflow-x-auto` below), which is why a
+// longer list is safe — see the note on that element.
 const SECTIONS = (role: Role) => [
   { href: '/church',   icon: '⛪', label: 'Church' },
+  // Not for Explorers: none of the work in it is theirs to do, and an empty
+  // room tells somebody they are missing something. Same rule as the rail.
+  ...(role !== 'ds'
+    ? [{ href: '/office', icon: '🗂️', label: 'Office' }]
+    : []),
+  { href: '/publish',  icon: '✍️', label: 'Publish' },
   { href: '/library',  icon: '📚', label: 'Library' },
+  { href: '/cases',    icon: '⚖️', label: 'Cases' },
   ...(role === 'admin' || role === 'executive'
     ? [{ href: '/mail', icon: '✉️', label: 'Mail' }]
     : []),
