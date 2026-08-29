@@ -137,14 +137,21 @@ export function Conversation({
   }, [newestKey, newestIsMine]);
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden" data-live-conversation>
       {/* `dvh`, not `vh`. `vh` is the layout viewport, which does not shrink
           when a phone's on-screen keyboard opens — so the thread kept its full
           height and the message you had just written sat underneath the
           keyboard. `dvh` is the part actually visible. The plain `vh` line
-          stays underneath it for anything too old to know `dvh`. */}
+          stays underneath it for anything too old to know `dvh`.
+
+          A phone also reaches this card after the header, the relationship
+          card and the tabs. Its former 18rem minimum left the composer just
+          below the glass even in a one-message conversation. The 12rem phone
+          minimum keeps the Send control in reach; `sm` restores the roomier
+          thread used by tablets and desktops. */}
       <div
         ref={box}
+        data-live-thread
         onScroll={() => {
           const el = box.current;
           if (!el) return;
@@ -152,7 +159,7 @@ export function Conversation({
           // both mean scrollTop rarely lands exactly on the maximum.
           following.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
         }}
-        className="max-h-[55vh] min-h-72 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-5 [max-height:55dvh]"
+        className="max-h-[55vh] min-h-48 space-y-3 overflow-y-auto overscroll-contain p-4 sm:min-h-72 sm:p-5 [max-height:55dvh]"
       >
         {timeline.length === 0 && <p className="py-16 text-center text-gray-400">Start with a welcome.</p>}
         {timeline.map((entry, index) => {
@@ -189,7 +196,11 @@ export function Conversation({
         <p className="border-t border-black/5 bg-red-50 px-4 py-2 text-sm text-red-800">{attachError}</p>
       )}
 
-      <form onSubmit={send} className="flex items-end gap-2 border-t border-black/5 p-3 sm:p-4">
+      <form
+        onSubmit={send}
+        data-live-composer
+        className="flex items-end gap-1.5 border-t border-black/5 p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:gap-2 sm:p-4 sm:pb-4"
+      >
         {onAttach && (
           <>
             <input

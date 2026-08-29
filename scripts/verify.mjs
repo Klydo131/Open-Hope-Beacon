@@ -154,6 +154,7 @@ const staticChecks = [
   // whole page scroll sideways — what iOS users saw as an empty strip down the
   // right of every screen.
   ['live header fits a phone', 'tests/live-header-fits.mjs'],
+  ['live conversations fit phones and tablets', 'tests/live-conversation-mobile.mjs'],
   ['workflow files', 'tests/workflows.mjs'],
   // Boots `npm run dev` and looks at the page. Everything else in this list
   // tests the PRODUCTION build, which is how a blank `npm run dev` — the very
