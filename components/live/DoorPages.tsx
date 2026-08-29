@@ -579,6 +579,11 @@ export function LiveJoinPage() {
         // exact shape the data client expects, by us, here.
         saveBrowserSession(data.session);
 
+        // An account that already existed before the invitation receives a
+        // recovery link, not a second auth-user insert. Claim its matching
+        // invitation before reading the profile so it reaches the same
+        // church-scoped approval queue as every other invitee.
+        await live.claimMyPendingInvitation();
         const mine = await live.getMyProfile();
         if (!alive) return;
         setEmail(data.session.user.email ?? '');
@@ -974,4 +979,3 @@ function JoinField({
     </label>
   );
 }
-

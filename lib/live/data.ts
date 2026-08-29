@@ -323,6 +323,23 @@ export async function finishMySignup(): Promise<void> {
 }
 
 /**
+ * Attach an invitation that was sent after this account already existed.
+ *
+ * `inviteUserByEmail` creates a new auth row, which normally lets
+ * `handle_new_user` copy the invitation's church and role into the profile.
+ * An already-created, unassigned account follows the recovery-email path
+ * instead, so that trigger does not run again. The database function is
+ * deliberately narrower than a general profile update: it can only fill the
+ * current caller's unassigned, still-unapproved profile from an active invite
+ * to that caller's verified account email.
+ */
+export async function claimMyPendingInvitation(): Promise<boolean> {
+  const { data, error } = await db().rpc('claim_my_pending_invitation');
+  if (error) throw new Error(error.message);
+  return data === true;
+}
+
+/**
  * Withdraw an invitation that has not been accepted.
  *
  * There was no way to take one back. An invitation sent to the wrong address,

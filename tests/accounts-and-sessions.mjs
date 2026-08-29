@@ -73,6 +73,34 @@ const ADMIN = liveScreens();
 const DATA = 'lib/live/data.ts';
 
 // ---------------------------------------------------------------------------
+// 0. A recovery invitation still reaches its church's approval queue.
+// ---------------------------------------------------------------------------
+{
+  const dataCode = code(DATA);
+  const doorCode = code('components/live/DoorPages.tsx');
+  const migrations = readdirSync('supabase/migrations').filter((f) => f.endsWith('.sql')).sort();
+  const defining = migrations.filter((f) =>
+    /create or replace function public\.claim_my_pending_invitation/.test(read(`supabase/migrations/${f}`)));
+
+  ok(/rpc\(\s*['"]claim_my_pending_invitation['"]\s*\)/.test(dataCode),
+     'an existing unassigned account can claim only its own invitation');
+  ok(/await live\.claimMyPendingInvitation\(\);[\s\S]{0,500}const mine = await live\.getMyProfile\(\);/.test(doorCode),
+     'the join flow claims a recovery invitation before deciding whether the account is pending');
+  ok(defining.length > 0,
+     'claim_my_pending_invitation is defined in a database migration');
+
+  const latest = read(`supabase/migrations/${defining[defining.length - 1]}`);
+  ok(/p\.church_id is null[\s\S]*p\.is_approved is false/.test(latest),
+     'the repair only fills an unassigned, unapproved profile');
+  ok(/join auth\.users u[\s\S]*lower\(btrim\(i\.email\)\) = lower\(btrim\(u\.email\)\)/.test(latest),
+     'the repair binds the profile only to an invitation sent to that account email');
+  ok(/old\.church_id is null[\s\S]*i\.church_id = new\.church_id[\s\S]*i\.role = new\.role/.test(latest),
+     'the profile trigger allows no self-assignment beyond the exact pending invitation');
+  ok(/revoke all on function public\.claim_my_pending_invitation\(\) from public, anon;[\s\S]*grant execute on function public\.claim_my_pending_invitation\(\) to authenticated;/.test(latest),
+     'the invitation claim function is unavailable to anonymous callers');
+}
+
+// ---------------------------------------------------------------------------
 // 1. Deleting an account frees the email address.
 // ---------------------------------------------------------------------------
 // THE BUG THIS EXISTS FOR. Deleting a member used to mean deleting their row in
