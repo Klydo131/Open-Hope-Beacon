@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NAVY } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
@@ -405,6 +405,8 @@ export function LiveJoinPage() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const passwordInput = useRef<HTMLInputElement>(null);
+  const confirmInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [donePending, setDonePending] = useState(false);
   const [error, setError] = useState('');
@@ -442,6 +444,18 @@ export function LiveJoinPage() {
   const setExtraField =
     (key: keyof typeof extra) => (event: React.ChangeEvent<HTMLInputElement>) =>
       setExtra((prev) => ({ ...prev, [key]: event.target.value }));
+
+  // Safari and password managers may fill a field directly, without a React
+  // change event. Reading the inputs as well as state means the password the
+  // person can see on screen is the one we validate and save. It also makes
+  // the Show password control safe immediately after a browser suggestion.
+  const readPasswordFields = () => {
+    const chosen = passwordInput.current?.value ?? password;
+    const confirmation = confirmInput.current?.value ?? confirm;
+    if (chosen !== password) setPassword(chosen);
+    if (confirmation !== confirm) setConfirm(confirmation);
+    return { chosen, confirmation };
+  };
 
   useEffect(() => {
     let alive = true;
@@ -614,11 +628,12 @@ export function LiveJoinPage() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (password.length < 10) {
+    const { chosen: chosenPassword, confirmation } = readPasswordFields();
+    if (chosenPassword.length < 10) {
       setError('Use at least 10 characters.');
       return;
     }
-    if (password !== confirm) {
+    if (chosenPassword !== confirmation) {
       setError('The passwords do not match.');
       return;
     }
@@ -638,7 +653,7 @@ export function LiveJoinPage() {
     setError('');
     try {
       const { error: passwordError } = await client.auth.updateUser({
-        password,
+        password: chosenPassword,
         data: name.trim() ? { full_name: name.trim() } : undefined,
       });
       if (passwordError) throw passwordError;
@@ -813,27 +828,49 @@ export function LiveJoinPage() {
                 </label>
               )}
 
+              <div id="new-password-help" className="rounded-xl bg-sky-50 p-4 text-sm leading-relaxed text-slate-700 ring-1 ring-sky-100">
+                <p className="font-semibold text-navy">Choose a password only you know.</p>
+                <p className="mt-1">
+                  On iPhone, iPad, or Mac, Safari may offer a strong password. That suggestion comes from your device,
+                  not Hope Beacon. You can use it or type a password of your own.
+                </p>
+                <p className="mt-1">
+                  After it fills, use <strong>Show password</strong> to check it before saving. The confirmation must match.
+                </p>
+              </div>
+
               <label className="block">
                 <span className="text-sm font-semibold text-gray-600">
                   {recovery ? 'New password' : 'Choose a password'}
                 </span>
                 <div className="relative mt-1">
                   <input
+                    ref={passwordInput}
+                    id="new-password"
+                    name="new-password"
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="new-password"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     minLength={10}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
-                    className="tap w-full rounded-xl bg-gray-100 pl-4 pr-12 text-lg outline-none focus:ring-2 focus:ring-gold"
+                    onInput={(event) => setPassword(event.currentTarget.value)}
+                    aria-describedby="new-password-help"
+                    className="tap w-full rounded-xl bg-gray-100 pl-4 pr-14 text-lg outline-none focus:ring-2 focus:ring-gold"
                     required
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((v) => !v)}
+                    onClick={() => {
+                      readPasswordFields();
+                      setShowPassword((v) => !v);
+                    }}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute inset-y-0 right-0 grid w-12 place-items-center text-gray-500"
+                    className="absolute inset-y-0 right-0 grid w-14 place-items-center text-xs font-bold text-navy underline"
                   >
-                    {showPassword ? '🙈' : '👁️'}
+                    {showPassword ? 'Hide' : 'Show'}
                   </button>
                 </div>
                 <span className="mt-1 block text-xs text-gray-400">At least 10 characters.</span>
@@ -842,11 +879,19 @@ export function LiveJoinPage() {
               <label className="block">
                 <span className="text-sm font-semibold text-gray-600">Confirm password</span>
                 <input
+                  ref={confirmInput}
+                  id="confirm-password"
+                  name="confirm-password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   minLength={10}
                   value={confirm}
                   onChange={(event) => setConfirm(event.target.value)}
+                  onInput={(event) => setConfirm(event.currentTarget.value)}
+                  aria-describedby="new-password-help"
                   className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-lg outline-none focus:ring-2 focus:ring-gold"
                   required
                 />

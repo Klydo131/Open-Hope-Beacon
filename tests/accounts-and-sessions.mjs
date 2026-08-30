@@ -101,6 +101,34 @@ const DATA = 'lib/live/data.ts';
 }
 
 // ---------------------------------------------------------------------------
+// 0b. A browser-suggested password remains the invited person's choice.
+// ---------------------------------------------------------------------------
+// Safari may fill a new-password field directly, without firing the React
+// change event that normally copies the value into component state. The app
+// must retain that value before either revealing or saving it. Turning off
+// autocomplete would only make Apple devices less secure, so the correct fix
+// keeps the platform password manager and reads the actual inputs as a backup.
+{
+  const doorCode = code('components/live/DoorPages.tsx');
+
+  ok(/useRef/.test(doorCode) && /passwordInput/.test(doorCode) && /confirmInput/.test(doorCode),
+     'the invitation password inputs retain browser-filled values');
+  ok(/const\s+readPasswordFields[\s\S]*passwordInput\.current\?\.value[\s\S]*confirmInput\.current\?\.value/.test(doorCode),
+     'the form reads the actual password inputs as well as React state');
+  ok(/const\s*\{\s*chosen:\s*chosenPassword,\s*confirmation\s*\}\s*=\s*readPasswordFields\(\)/.test(doorCode)
+     && /password:\s*chosenPassword/.test(doorCode),
+     'the exact password the person entered is validated and saved');
+  ok(/onClick=\{\(\) => \{[\s\S]{0,120}readPasswordFields\(\);[\s\S]{0,120}setShowPassword/.test(doorCode),
+     'Show password first preserves a Safari-generated value');
+  ok(/showPassword\s*\?\s*'Hide'\s*:\s*'Show'/.test(doorCode),
+     'the password visibility control uses clear words instead of an icon alone');
+  ok((doorCode.match(/autoComplete="new-password"/g) || []).length === 2,
+     'both password fields keep the browser new-password hint');
+  ok(/suggestion comes from your device,[\s\S]*not Hope Beacon/.test(doorCode),
+     'the invitation screen explains that the app never generates a password');
+}
+
+// ---------------------------------------------------------------------------
 // 1. Deleting an account frees the email address.
 // ---------------------------------------------------------------------------
 // THE BUG THIS EXISTS FOR. Deleting a member used to mean deleting their row in
