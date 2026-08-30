@@ -37,11 +37,12 @@ ok(/icon="🏠"\s+label="Home"|label="Home"/.test(shell),
 ok(/overflow-x-auto/.test(shell),
    'the section nav scrolls within itself rather than widening the page');
 
-// 3. The sections must not sit in the account row below `lg`.
-ok(/hidden shrink-0 items-center gap-1 lg:flex/.test(shell),
-   'the inline section nav is hidden below lg, where there is no room for it');
-ok(/lg:hidden/.test(shell),
-   'a separate section row exists for phones and small tablets');
+// 3. The room links do not compete with the account controls. Below `xl` they
+//    have a separate scrolling row; at `xl`, the left rail takes over.
+ok((shell.match(/aria-label="Sections"/g) ?? []).length === 1,
+   'the account row does not repeat the complete room navigation');
+ok(/overflow-x-auto[^\n]*xl:hidden/.test(shell),
+   'the separate room row stays available until the desktop rail appears');
 
 // 4. "Sign out" is the widest single word in that row and it lives nowhere else
 //    in the app, so it must survive as a symbol rather than be dropped.

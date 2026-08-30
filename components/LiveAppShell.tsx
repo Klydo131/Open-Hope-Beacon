@@ -19,9 +19,10 @@ import { useUrlKey } from '@/lib/url-signal';
 
 /** One header link. Icon on a phone, icon and word once there is room. */
 /**
- * The sections, in one place because they are rendered twice — inline from `lg`
- * up, and on their own scrolling row below it. Two hand-maintained copies of
- * the same list is how one of them ends up missing a page.
+ * The sections live in one scrolling header row below `xl`. At `xl`, the left
+ * room rail is visible and becomes the desktop navigation, so repeating every
+ * room beside the account controls only crowds out the brand, LIVE state,
+ * notification bell and member name.
  */
 // MAIL IS FOR LEADERSHIP ONLY, and it used to be for everybody.
 //
@@ -228,22 +229,6 @@ export function LiveAppShell({
             </div>
           </Link>
 
-          {/* THE REST OF THE APP.
-              These pages existed and worked in live mode all along — the live
-              shell simply did not link to any of them, while the demo shell
-              linked to them all. So a signed-in member could reach their
-              dashboard and nothing else. The pages were never missing; the door
-              was.
-
-              From `lg` up they sit inline. Below that they move to their own
-              row underneath, because they cannot fit beside everything else —
-              see the comment on that row. */}
-          <nav className="hidden shrink-0 items-center gap-1 lg:flex" aria-label="Sections">
-            {SECTIONS(profile.role).map((s) => (
-              <ShellLink key={s.href} href={s.href} icon={s.icon} label={s.label} />
-            ))}
-          </nav>
-
           <ModeSwitch onDark />
           <LiveBell me={profile} />
 
@@ -273,7 +258,7 @@ export function LiveAppShell({
           </button>
         </div>
 
-        {/* THE SAME LINKS, ON THEIR OWN ROW, BELOW `lg`.
+        {/* THE ROOM LINKS, ON THEIR OWN ROW, BELOW `xl`.
             //
             All of this used to be one row. On a 390px iPhone that row needed
             about 600px — six 44px controls, an avatar, and a "Sign out" button,
@@ -283,14 +268,15 @@ export function LiveAppShell({
             and that strip was the empty part of it.
 
             It scrolls inside itself (`overflow-x-auto`) rather than pushing the
-            page, so even a longer list of sections can never do this again.
+            page, so even a longer list of sections can never do this again. At
+            `xl`, the left room rail appears and this duplicate row disappears.
 
             HOME IS FIRST, and it is new. The header logo has always linked
             home, but a logo does not read as a button to somebody who has never
             used the app — several people had no way back to where they started
             and no reason to think the picture was one. */}
         <nav
-          className="thin-scroll mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-3 pb-2 sm:px-4 lg:hidden"
+          className="thin-scroll mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-3 pb-2 sm:px-4 xl:hidden"
           aria-label="Sections"
         >
           <ShellLink href={homeFor(profile.role)} icon="🏠" label="Home" />
