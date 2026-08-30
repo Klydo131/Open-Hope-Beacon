@@ -76,11 +76,18 @@ export function LiveAskForPrayer() {
   };
 
   return (
-    <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">🙏 Ask for prayer</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        This goes to the Guide walking with you, and to nobody else.
-      </p>
+    <Card className="overflow-hidden p-0">
+      <div className="border-b border-rose-700/10 bg-gradient-to-r from-rose-50 via-white to-amber-50 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-600 text-2xl shadow-sm">🙏</span>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-rose-700">Prayer</p>
+            <h2 className="mt-0.5 text-2xl font-extrabold text-navy">You do not have to carry it alone.</h2>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">Your request goes only to the Guide walking with you.</p>
+          </div>
+        </div>
+      </div>
+      <div className="p-5 sm:p-6">
       <Err msg={error} />
 
       <textarea
@@ -88,7 +95,7 @@ export function LiveAskForPrayer() {
         onChange={(e) => setBody(e.target.value)}
         rows={3}
         placeholder="What would you like prayer for?"
-        className="mt-3 w-full rounded-xl border border-gray-300 px-3 py-2"
+        className="mt-4 w-full rounded-2xl bg-slate-50 px-4 py-3 text-base text-navy ring-1 ring-navy/10 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-rose-500"
       />
       {/* THE CHOICE TO BROADCAST IS GONE, and the request now goes to one
           person: the Guide walking with them.
@@ -108,7 +115,7 @@ export function LiveAskForPrayer() {
           <p className="text-sm text-gray-400">Nothing yet. You can ask for anything.</p>
         )}
         {mine?.map((r) => (
-          <div key={r.id} className="rounded-xl bg-gray-50 p-3">
+          <div key={r.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-navy/5">
             <div className="flex items-start gap-2">
               <p className="flex-1 text-sm text-gray-700">{r.body}</p>
               <Chip status={r.status} />
@@ -150,6 +157,7 @@ export function LiveAskForPrayer() {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </Card>
   );
@@ -206,11 +214,20 @@ export function LivePrayerForGuide({
   if (rows !== null && rows.length === 0 && !error && !alwaysShow) return null;
 
   return (
-    <Card id="prayer" className="p-5">
-      <h2 className="text-xl font-bold text-navy">🙏 {heading ?? 'Prayer requests'}</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        {onlyFor ? 'What they have asked you to pray for.' : 'From the people you walk with.'}
-      </p>
+    <Card id="prayer" className="overflow-hidden p-0">
+      <div className="border-b border-teal-800/10 bg-gradient-to-r from-teal-50 via-white to-sky-50 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-700 text-2xl shadow-sm">🙏</span>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-teal-700">Prayer</p>
+            <h2 className="mt-0.5 text-2xl font-extrabold text-navy">{heading ?? 'Prayer requests'}</h2>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">
+              {onlyFor ? 'What they have asked you to pray for.' : 'From the people you walk with.'}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="p-5 sm:p-6">
       <Err msg={error} />
       {rows !== null && rows.length === 0 && !error && (
         <p className="mt-3 rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
@@ -222,7 +239,7 @@ export function LivePrayerForGuide({
       <div className="mt-3 space-y-2">
         {rows === null && <BeaconSpinner inline label="Loading" className="mt-2" />}
         {rows?.map((r) => (
-          <div key={r.id} className="rounded-xl bg-gray-50 p-3">
+          <div key={r.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-navy/5">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-navy">{nameFor?.(r.ds_id) ?? 'An Explorer'}</p>
@@ -276,6 +293,7 @@ export function LivePrayerForGuide({
           </div>
         ))}
       </div>
+      </div>
     </Card>
   );
 }
@@ -299,19 +317,27 @@ export function LivePrayerWall() {
   if (rows.length === 0 && !error) return null;
 
   return (
-    <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">🙏 Prayer wall</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        Requests the church has been asked to pray for. Nobody&rsquo;s name is shown.
-      </p>
+    <Card className="overflow-hidden p-0">
+      <div className="border-b border-rose-700/10 bg-gradient-to-r from-rose-50 via-white to-amber-50 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-600 text-2xl shadow-sm">🙏</span>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-rose-700">Church prayer</p>
+            <h2 className="mt-0.5 text-2xl font-extrabold text-navy">Prayer wall</h2>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">Requests the church has been asked to pray for. Nobody&rsquo;s name is shown.</p>
+          </div>
+        </div>
+      </div>
+      <div className="p-5 sm:p-6">
       <Err msg={error} />
       <div className="mt-3 space-y-2">
         {rows.map((r) => (
-          <div key={r.id} className="flex items-start gap-2 rounded-xl bg-gray-50 p-3">
+          <div key={r.id} className="flex items-start gap-2 rounded-2xl bg-slate-50 p-4 ring-1 ring-navy/5">
             <p className="flex-1 text-sm text-gray-700">{r.body}</p>
             <Chip status={r.status} />
           </div>
         ))}
+      </div>
       </div>
     </Card>
   );

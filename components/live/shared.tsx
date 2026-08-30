@@ -138,6 +138,13 @@ export function Conversation({
 
   return (
     <Card className="overflow-hidden" data-live-conversation>
+      <div className="flex items-center gap-3 border-b border-teal-800/10 bg-gradient-to-r from-teal-50 via-white to-sky-50 px-4 py-3 sm:px-5">
+        <span aria-hidden className="grid h-10 w-10 place-items-center rounded-2xl bg-teal-700 text-lg shadow-sm">💬</span>
+        <div className="min-w-0">
+          <h2 className="font-extrabold text-navy">Private conversation</h2>
+          <p className="text-sm text-gray-600">Only the two people walking together can read this.</p>
+        </div>
+      </div>
       {/* `dvh`, not `vh`. `vh` is the layout viewport, which does not shrink
           when a phone's on-screen keyboard opens — so the thread kept its full
           height and the message you had just written sat underneath the
@@ -159,7 +166,9 @@ export function Conversation({
           // both mean scrollTop rarely lands exactly on the maximum.
           following.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
         }}
-        className="max-h-[55vh] min-h-48 space-y-3 overflow-y-auto overscroll-contain p-4 sm:min-h-72 sm:p-5 [max-height:55dvh]"
+        aria-live="polite"
+        aria-label="Conversation messages"
+        className="max-h-[55vh] min-h-48 space-y-3 overflow-y-auto overscroll-contain bg-slate-50 p-4 sm:min-h-72 sm:p-5 [max-height:55dvh]"
       >
         {timeline.length === 0 && <p className="py-16 text-center text-gray-400">Start with a welcome.</p>}
         {timeline.map((entry, index) => {
@@ -171,7 +180,7 @@ export function Conversation({
               ref={isNewest ? newestEl : undefined}
               className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${mine ? 'bg-navy text-white' : 'bg-gray-100 text-gray-800'}`}>
+              <div className={`max-w-[88%] rounded-2xl px-4 py-3 shadow-sm ${mine ? 'rounded-br-md bg-navy text-white' : 'rounded-bl-md bg-white text-gray-800 ring-1 ring-navy/5'}`}>
                 {entry.kind === 'message' ? (
                   <p className="whitespace-pre-wrap break-words">
                     <Linked text={entry.message.body} />
@@ -199,7 +208,7 @@ export function Conversation({
       <form
         onSubmit={send}
         data-live-composer
-        className="flex items-end gap-1.5 border-t border-black/5 p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:gap-2 sm:p-4 sm:pb-4"
+        className="flex items-end gap-1.5 border-t border-navy/10 bg-white p-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:gap-2 sm:p-4 sm:pb-4"
       >
         {onAttach && (
           <>

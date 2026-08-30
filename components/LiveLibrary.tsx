@@ -35,15 +35,15 @@ function Err({ msg }: { msg: string }) {
 
 function Item({ m, children }: { m: live.Material; children?: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-gray-50 p-3">
-      <div className="flex items-start gap-2">
-        <span aria-hidden className="text-lg">{KIND_ICON[m.kind]}</span>
+    <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-navy/5">
+      <div className="flex items-start gap-3">
+        <span aria-hidden className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-xl shadow-sm">{KIND_ICON[m.kind]}</span>
         <div className="min-w-0 flex-1">
           <a
             href={m.external_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="font-semibold text-navy underline"
+            className="font-bold text-navy underline underline-offset-2"
           >
             {m.title}
           </a>
@@ -97,34 +97,37 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
   };
 
   return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-navy">📚 Church library</h2>
-          <p className="text-sm text-gray-500">
-            Links your church can send anybody. A link opens on any device.
-          </p>
+    <Card className="overflow-hidden p-0">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-teal-800/10 bg-gradient-to-r from-teal-50 via-white to-sky-50 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-700 text-2xl shadow-sm">📚</span>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-teal-700">Church library</p>
+            <h2 className="mt-0.5 text-2xl font-extrabold text-navy">Share a helpful next step.</h2>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">Links your church can send anybody. A link opens on any device.</p>
+          </div>
         </div>
-        <Button onClick={() => setOpen((v) => !v)}>{open ? 'Close' : 'Add'}</Button>
+        <Button onClick={() => setOpen((v) => !v)}>{open ? 'Close' : 'Add a resource'}</Button>
       </div>
+      <div className="p-5 sm:p-6">
 
       <Err msg={error} />
       {flash && <p className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{flash}</p>}
 
       {open && (
-        <div className="mt-4 rounded-xl bg-navy/5 p-4">
+        <div className="mt-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-navy/5">
           <label className="block text-sm font-semibold text-navy" htmlFor="mat-title">What is it called</label>
           <input id="mat-title" value={title} onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+            className="tap mt-1 w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600" />
 
           <label className="mt-3 block text-sm font-semibold text-navy" htmlFor="mat-url">Address</label>
           <input id="mat-url" value={url} onChange={(e) => setUrl(e.target.value)}
             placeholder="https://…"
-            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2" />
+            className="tap mt-1 w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600" />
 
           <label className="mt-3 block text-sm font-semibold text-navy" htmlFor="mat-kind">Kind</label>
           <select id="mat-kind" value={kind} onChange={(e) => setKind(e.target.value as live.MaterialKind)}
-            className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2">
+            className="tap mt-1 w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600">
             <option value="link">Link</option>
             <option value="video">Video</option>
             <option value="audio">Audio or music</option>
@@ -159,6 +162,7 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
           </Item>
         ))}
       </div>
+      </div>
     </Card>
   );
 }
@@ -182,12 +186,22 @@ export function LiveSharedWithMe() {
   if (items.length === 0 && !error) return null;
 
   return (
-    <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">📚 Shared with you</h2>
-      <p className="mt-1 text-sm text-gray-500">From your Guide, for whenever you want it.</p>
+    <Card className="overflow-hidden p-0">
+      <div className="border-b border-blue-800/10 bg-gradient-to-r from-sky-50 via-white to-teal-50 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-700 text-2xl shadow-sm">📚</span>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-700">Your library</p>
+            <h2 className="mt-0.5 text-2xl font-extrabold text-navy">Shared with you</h2>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">From your Guide, for whenever you want it.</p>
+          </div>
+        </div>
+      </div>
+      <div className="p-5 sm:p-6">
       <Err msg={error} />
       <div className="mt-3 space-y-2">
         {items.map((m) => <Item key={m.id} m={m} />)}
+      </div>
       </div>
     </Card>
   );

@@ -95,30 +95,41 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
       && new Date(m.starts_at).getTime() > Date.now() - 60 * 60 * 1000);
 
   return (
-    <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">📅 Meetings</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        Arrange a call or a time to study together.
-        {withName ? ` You and ${withName} both see this.` : ' You both see this.'}
-      </p>
+    <Card className="overflow-hidden p-0">
+      <div className="border-b border-teal-800/10 bg-gradient-to-r from-teal-50 via-white to-sky-50 p-5 sm:p-6">
+        <div className="flex flex-wrap items-start gap-3">
+          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-700 text-2xl shadow-sm">📅</span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-teal-700">Meet-ups</p>
+            <h2 className="mt-0.5 text-2xl font-extrabold text-navy">Make time to connect.</h2>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">
+              Propose an online call or an in-person meet-up.
+              {withName ? ` You and ${withName} both see every detail.` : ' You both see every detail.'}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="p-5 sm:p-6">
 
       {error && (
         <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">{error}</p>
       )}
 
-      <div className="mt-3 grid gap-2">
+      <div className="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-3 sm:p-4">
+        <p className="text-sm font-bold text-navy">Plan a meet-up</p>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="What is it about?"
-          className="rounded-xl border border-gray-300 px-3 py-2"
+          aria-label="What the meet-up is about"
+          className="tap w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
         />
         <input
           type="datetime-local"
           value={startsAt}
           onChange={(e) => setStartsAt(e.target.value)}
           aria-label="When"
-          className="rounded-xl border border-gray-300 px-3 py-2"
+          className="tap w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
         />
 
         {/* TWO BUTTONS, NOT A DROPDOWN, and that is the whole reason the
@@ -161,7 +172,7 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Church cafe, 12 Rizal St, Cavite"
               aria-label="Where you are meeting"
-              className="w-full rounded-xl border border-gray-300 px-3 py-2"
+              className="tap w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
             />
             <p className="mt-1 text-xs text-gray-500">
               A place and a street. It becomes an Open in Maps button for both
@@ -186,7 +197,7 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
               inputMode="url"
               placeholder="https://zoom.us/j/1234567890"
               aria-label="Link to join the call"
-              className="w-full rounded-xl border border-gray-300 px-3 py-2"
+              className="tap w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
             />
             <p className="mt-1 text-xs text-gray-500">
               {location.trim() && !safeHref(location.trim())
@@ -215,7 +226,12 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
           you: what it is on the left, the one thing to do on the right. The
           previous version stacked four separate controls under every meeting
           and read as a form rather than a list. */}
-      <div className="mt-4 space-y-2">
+      <div className="mt-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="text-lg font-extrabold text-navy">Upcoming meet-ups</h3>
+          {upcoming.length > 0 && <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-bold text-teal-700">{upcoming.length}</span>}
+        </div>
+        <div className="space-y-3">
         {rows !== null && upcoming.length === 0 && (
           <p className="text-sm text-gray-400">Nothing arranged yet.</p>
         )}
@@ -228,7 +244,7 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
           const join = joinUrl(m.mode, m.location);
           const mine = m.created_by === me;
           return (
-            <div key={m.id} className="rounded-xl bg-gray-50 p-4">
+            <div key={m.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-navy/5">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -349,6 +365,8 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
             </div>
           );
         })}
+        </div>
+      </div>
       </div>
     </Card>
   );

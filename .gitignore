@@ -43,6 +43,7 @@ tsconfig.tsbuildinfo
 # scratch notes, exports, a local copy of somebody's real data.
 /private/
 /scratch/
+/.ui-check/
 
 # Generated handbooks (build output)
 docs/handbook/*.docx

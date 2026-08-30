@@ -232,29 +232,38 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
   }, {});
 
   return (
-    <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">📖 Lesson studies</h2>
-      <p className="mt-1 text-sm text-gray-500">
-        {canWrite
-          ? 'Write your own studies, attach the handouts you already use, and publish them for your church.'
-          : 'Open a series to read the studies in it and anything attached.'}
-      </p>
+    <Card className="overflow-hidden p-0">
+      <div className="border-b border-blue-800/10 bg-gradient-to-r from-sky-50 via-white to-teal-50 p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-700 text-2xl shadow-sm">📖</span>
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-700">Lesson study</p>
+            <h2 className="mt-0.5 text-2xl font-extrabold text-navy">Read, reflect, and grow together.</h2>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">
+              {canWrite
+                ? 'Write your own studies, attach the handouts you already use, and publish them for your church.'
+                : 'Open a series to read the studies in it and anything attached.'}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="p-5 sm:p-6">
 
       {error && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">{error}</p>}
 
       {canWrite && (
-        <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+        <div className="mt-5 grid gap-2 rounded-2xl bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto] sm:p-4">
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="New series title"
-            className="rounded-xl border border-gray-300 px-3 py-2"
+            className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
           />
           <input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="Area of interest"
-            className="rounded-xl border border-gray-300 px-3 py-2"
+            className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
           />
           <Button
             disabled={busy || !title.trim()}
@@ -275,17 +284,17 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
           A list of short items wants less air, not more: the grouping does the
           separating, and the padding only has to stop the text touching the
           edge. */}
-      <div className="mt-3 space-y-3">
+      <div className="mt-6 space-y-4">
         {rows?.length === 0 && <p className="text-sm text-gray-400">No series yet.</p>}
         {Object.entries(byTopic).map(([t, list]) => (
           <div key={t}>
-            <h3 className="text-xs font-bold uppercase tracking-wide text-gray-400">{t}</h3>
-            <div className="mt-1.5 space-y-1.5">
+            <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-teal-700">{t}</h3>
+            <div className="mt-2 space-y-2">
               {list.map((s) => {
                 const mine = !!profile && s.author_id === profile.id;
                 const opened = open === s.id;
                 return (
-                  <div key={s.id} className="rounded-xl bg-gray-50 px-4 py-2.5">
+                  <div key={s.id} className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-navy/5">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       {/* THE WHOLE ROW OPENS IT. The complaint was that a
                           series could not be clicked at all. The chevron says
@@ -340,6 +349,7 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </Card>
   );
