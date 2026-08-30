@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const migration = read('supabase/migrations/20260830120000_security_audit_and_guild_activity.sql');
+const auditIdFix = read('supabase/migrations/20260830230607_qualify_security_audit_profile_id.sql');
 const board = read('components/LiveGuildActivity.tsx');
 const audit = read('components/LiveSecurityAudit.tsx');
 const shell = read('components/LiveAppShell.tsx');
@@ -37,6 +38,8 @@ ok(/me\.role = 'executive' and event\.subject_role = 'admin'/.test(migration),
    'only an Executive Director audit feed includes Director subjects');
 ok(/from public\.profiles as profile\s+where profile\.id = \(select auth\.uid\(\)\)/.test(migration),
    'the audit function qualifies the profile id instead of colliding with its returned id column');
+ok(/from public\.profiles as profile\s+where profile\.id = \(select auth\.uid\(\)\)/.test(auditIdFix),
+   'the production correction migration keeps the qualified profile lookup');
 ok(!/from public\.messages/.test(migration) && !/from public\.pairing_media/.test(migration),
    'the audit ledger never copies direct-message or attachment content');
 
