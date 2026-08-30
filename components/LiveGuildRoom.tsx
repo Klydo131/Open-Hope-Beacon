@@ -251,7 +251,7 @@ export function LiveGuildRoom() {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const foot = useRef<HTMLDivElement | null>(null);
+  const thread = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -268,8 +268,13 @@ export function LiveGuildRoom() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  // Newest last, so the room scrolls to where the conversation is.
-  useEffect(() => { foot.current?.scrollIntoView({ block: 'nearest' }); }, [rows?.length]);
+  // Newest last, so the room opens at the current conversation. Scroll only
+  // this message box: scrollIntoView also walks the page and used to pull the
+  // whole Office down to the Guides' Room whenever its messages finished loading.
+  useEffect(() => {
+    const box = thread.current;
+    if (box) box.scrollTop = box.scrollHeight;
+  }, [rows?.length]);
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,7 +297,10 @@ export function LiveGuildRoom() {
       {rows === null ? (
         <BeaconSpinner inline label="Loading" className="mt-4" />
       ) : (
-        <div className="beacon-scroll mt-4 max-h-[26rem] space-y-2 overflow-y-auto overscroll-contain pr-1">
+        <div
+          ref={thread}
+          className="beacon-scroll mt-4 max-h-[26rem] space-y-2 overflow-y-auto overscroll-contain pr-1"
+        >
           {rows.length === 0 && (
             <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
               Nobody has said anything yet. Carrying people is hard work and
@@ -326,7 +334,6 @@ export function LiveGuildRoom() {
               </div>
             );
           })}
-          <div ref={foot} />
         </div>
       )}
 

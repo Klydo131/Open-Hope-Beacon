@@ -11,6 +11,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const migration = read('supabase/migrations/20260830120000_security_audit_and_guild_activity.sql');
 const auditIdFix = read('supabase/migrations/20260830230607_qualify_security_audit_profile_id.sql');
 const board = read('components/LiveGuildActivity.tsx');
+const guideRoom = read('components/LiveGuildRoom.tsx');
 const audit = read('components/LiveSecurityAudit.tsx');
 const shell = read('components/LiveAppShell.tsx');
 const admin = read('components/live/AdminPage.tsx');
@@ -52,6 +53,8 @@ ok(/me\.role in \('dm', 'ds'\)/.test(migration),
    'only Guides and Explorers may use Guild activity at the database boundary');
 ok(/post_to_guild/.test(migration) && /toggle_guild_amen/.test(migration),
    'Guild activity has both a share action and a low-risk group response');
+ok(/box\.scrollTop = box\.scrollHeight/.test(guideRoom) && !/scrollIntoView/.test(guideRoom.replace(/\/\/[^\n]*/g, '')),
+   'the Guides room scrolls its own thread without pulling the Office page downward');
 
 ok(/filter\(\(guild\) => guild\.i_am_in_it\)/.test(board),
    'the Guild page lists only the signed-in member’s Guilds');
