@@ -62,20 +62,19 @@ ok(!/author_id|\.members/.test(board),
    'the Guild page has no roster or author-id rendering path');
 ok(/break-words/.test(board) && /break-words/.test(audit),
    'long pasted text or names cannot widen the Guild or audit cards on phones');
-ok(/Security audit room/.test(audit) && /private\s+conversations or files/.test(audit),
-   'the audit UI explains that private content is outside the room');
+ok(/Security audit/.test(audit) && /private\s+conversations or files/.test(audit),
+   'the Admin security audit explains that private content is outside the feed');
 ok(/role === 'dm' \|\| role === 'ds'/.test(shell) && /href: '\/guilds'/.test(shell)
-   && /label: 'Guild Room'/.test(shell) && /admin\?room=security/.test(shell)
-   && /label: 'Security Audit Room'/.test(shell),
-   'the live header exposes a direct Guild Room or Security Audit door for every role');
+   && /label: 'Guild Room'/.test(shell) && !/admin\?room=security/.test(shell),
+   'the live header exposes Guild activity without duplicating Admin security');
 ok(/const MEMBERS: Role\[\] = \['dm', 'ds'\]/.test(guildPage),
    'the Guild route does not admit leadership accounts');
 ok(/id: 'security'/.test(admin) && /LiveSecurityAudit/.test(admin),
    'the Director and Executive Director admin screen has a Security room');
 const rails = read('components/RoomRails.tsx');
 ok(/title: 'My Rooms'/.test(rails) && /label: 'Guild Room'/.test(rails)
-   && /label: 'Security Audit Room'/.test(rails),
-   'the sidebar is labelled My Rooms and lists each role’s room directly');
+   && !/label: 'Security Audit Room'/.test(rails),
+   'the sidebar keeps Guild Room and avoids a duplicate Admin security door');
 
 console.log(failures === 0 ? '\nAll security audit and Guild checks passed.' : `\n${failures} failed.`);
 process.exit(failures === 0 ? 0 : 1);

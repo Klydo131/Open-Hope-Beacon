@@ -53,9 +53,9 @@ export function LiveSecurityAudit() {
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-navy">🔐 Security audit room</h2>
+          <h2 className="text-xl font-bold text-navy">🔐 Security audit</h2>
           <p className="mt-1 max-w-2xl text-sm text-gray-500">
-            A leadership-issued invitation is the account gate. This room records
+            A leadership-issued invitation is the account gate. This section records
             profile changes, safeguarding reports, and account actions; not private
             conversations or files.
           </p>

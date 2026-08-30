@@ -60,7 +60,7 @@ for (const role of ROLES) {
   // to use and how the app arrives on their device.
   ok(html.includes('Safari on iPhone or iPad') && html.includes('Other browsers'),
      `${role}: gives separate Safari and other-browser install steps`);
-  ok(html.includes('Using the app') && (html.includes('Guild Room') || html.includes('Security Audit Room')),
+  ok(html.includes('Using the app') && (html.includes('Guild Room') || (html.includes('Admin') && html.includes('Security'))),
      `${role}: explains how to return and use the right room after joining`);
   ok(html.indexOf('Safari on iPhone or iPad') < html.indexOf('Accept your invitation'),
      `${role}: places install help before the invitation link`);

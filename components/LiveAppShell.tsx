@@ -54,7 +54,7 @@ const SECTIONS = (role: Role) => [
   { href: '/church',   icon: '⛪', label: 'Church' },
   ...(role === 'dm' || role === 'ds'
     ? [{ href: '/guilds', icon: '🧩', label: 'Guild Room' }]
-    : [{ href: '/admin?room=security', icon: '🔐', label: 'Security Audit Room' }]),
+    : []),
   // Not for Explorers: none of the work in it is theirs to do, and an empty
   // room tells somebody they are missing something. Same rule as the rail.
   ...(role !== 'ds'

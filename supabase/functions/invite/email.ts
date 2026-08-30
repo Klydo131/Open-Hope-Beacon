@@ -148,7 +148,7 @@ export function inviteHtml(
   const app = esc(appUrl);
   const roomUse = role === 'dm' || role === 'ds'
     ? 'Open the <strong>Guild Room</strong> for group activity, then use the other rooms for your own journey or the people you walk with.'
-    : 'Open the <strong>Security Audit Room</strong> to review account activity, then use Admin for approvals, people, and church work.';
+    : 'Open <strong>Admin</strong>, then choose <strong>Security</strong> to review account activity. Admin also holds approvals, people, and church work.';
 
   const steps = copy.steps
     .map(([head, rest], i) => `

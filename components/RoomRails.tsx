@@ -109,11 +109,10 @@ export function railGroupsFor(
   // Director's admin tab, and the announcement composer on top of the church
   // home screen. Publishing is a task, and a task gets a room.
   const publish = { href: '/publish', label: 'Publish', icon: '✍️' };
-  // The sidebar is the room list. Keep each destination visible as its own
-  // door: a Guide/Explorer goes to the Guild Room, while leadership goes to
-  // the Security Audit Room. The routes/RPCs still enforce who may enter.
+  // Guides and Explorers share Guild activity in its own room. Leadership's
+  // security audit stays inside Admin, so it does not need a duplicate door in
+  // the room list.
   const guildRoom = { href: '/guilds', label: 'Guild Room', icon: '🧩' };
-  const securityAuditRoom = { href: '/admin?room=security', label: 'Security Audit Room', icon: '🔐' };
 
   if (role === 'ds') {
     return [
@@ -156,7 +155,6 @@ export function railGroupsFor(
       title: 'My Rooms',
       links: [
         home,
-        securityAuditRoom,
         { href: '/admin', label: 'Admin', icon: '🛡️', badge: counts.approvals },
         office,
         publish,
