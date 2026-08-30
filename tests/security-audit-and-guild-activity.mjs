@@ -35,6 +35,8 @@ ok(/event\.subject_role in \('dm', 'ds'\)/.test(migration),
    'a Director audit feed is limited to Guide and Explorer subjects');
 ok(/me\.role = 'executive' and event\.subject_role = 'admin'/.test(migration),
    'only an Executive Director audit feed includes Director subjects');
+ok(/from public\.profiles as profile\s+where profile\.id = \(select auth\.uid\(\)\)/.test(migration),
+   'the audit function qualifies the profile id instead of colliding with its returned id column');
 ok(!/from public\.messages/.test(migration) && !/from public\.pairing_media/.test(migration),
    'the audit ledger never copies direct-message or attachment content');
 

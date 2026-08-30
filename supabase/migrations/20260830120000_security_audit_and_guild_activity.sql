@@ -202,7 +202,10 @@ declare
   me public.profiles%rowtype;
   row_limit integer := greatest(1, least(coalesce(p_limit, 100), 200));
 begin
-  select * into me from public.profiles where id = (select auth.uid());
+  select profile.*
+  into me
+  from public.profiles as profile
+  where profile.id = (select auth.uid());
   if me.id is null or not me.is_approved or me.role not in ('admin', 'executive') then
     raise exception 'Only church leadership may open the security audit room.' using errcode = '42501';
   end if;
