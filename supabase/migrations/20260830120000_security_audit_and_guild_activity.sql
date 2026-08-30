@@ -153,7 +153,8 @@ begin
   end;
   event_severity := case new.action
     when 'removed' then 'urgent'
-    when 'suspended', 'disapproved' then 'review'
+    when 'suspended' then 'review'
+    when 'disapproved' then 'review'
     else 'info'
   end;
   event_summary := case new.action
