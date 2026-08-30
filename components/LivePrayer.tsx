@@ -31,7 +31,7 @@ const message = (cause: unknown) =>
 
 const STATUS: Record<live.PrayerStatus, { label: string; className: string }> = {
   open:     { label: 'Open',     className: 'bg-gray-100 text-gray-700' },
-  praying:  { label: 'Praying',  className: 'bg-blue-100 text-blue-800' },
+  praying:  { label: 'Praying',  className: 'bg-teal-100 text-teal-800' },
   answered: { label: 'Answered', className: 'bg-green-100 text-green-800' },
 };
 
@@ -77,11 +77,11 @@ export function LiveAskForPrayer() {
 
   return (
     <Card className="overflow-hidden p-0">
-      <div className="border-b border-rose-700/10 bg-gradient-to-r from-rose-50 via-white to-amber-50 p-5 sm:p-6">
+      <div className="border-b border-emerald-700/10 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-5 sm:p-6">
         <div className="flex items-start gap-3">
-          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-600 text-2xl shadow-sm">🙏</span>
+          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-600 text-2xl shadow-sm">🙏</span>
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-rose-700">Prayer</p>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-800">Prayer</p>
             <h2 className="mt-0.5 text-2xl font-extrabold text-navy">You do not have to carry it alone.</h2>
             <p className="mt-1 text-sm leading-relaxed text-gray-600">Your request goes only to the Guide walking with you.</p>
           </div>
@@ -95,7 +95,7 @@ export function LiveAskForPrayer() {
         onChange={(e) => setBody(e.target.value)}
         rows={3}
         placeholder="What would you like prayer for?"
-        className="mt-4 w-full rounded-2xl bg-slate-50 px-4 py-3 text-base text-navy ring-1 ring-navy/10 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-rose-500"
+        className="mt-4 w-full rounded-2xl bg-slate-50 px-4 py-3 text-base text-navy ring-1 ring-emerald-700/15 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-emerald-500"
       />
       {/* THE CHOICE TO BROADCAST IS GONE, and the request now goes to one
           person: the Guide walking with them.
@@ -129,10 +129,10 @@ export function LiveAskForPrayer() {
                 is a person. It says who, and it says when, because "somebody is
                 praying about my mother" is worth knowing the date of. */}
             {r.status === 'praying' && (
-              <p className="mt-2 rounded-xl bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900">
+              <p className="mt-2 rounded-xl bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-900 ring-1 ring-teal-700/10">
                 🙏 Your Guide is praying for this
                 {r.praying_at && (
-                  <span className="font-normal text-blue-800">
+                  <span className="font-normal text-teal-800">
                     {' · '}
                     {new Date(r.praying_at).toLocaleDateString([], {
                       day: 'numeric', month: 'short',
@@ -264,7 +264,7 @@ export function LivePrayerForGuide({
                 record. */}
             <div className="mt-2 flex flex-wrap items-center gap-3">
               {r.status === 'praying' ? (
-                <p className="text-sm font-semibold text-blue-800">
+                <p className="text-sm font-semibold text-teal-800">
                   🙏 You told {(nameFor?.(r.ds_id) ?? 'them').split(' ')[0]} you are praying
                 </p>
               ) : (
@@ -318,11 +318,11 @@ export function LivePrayerWall() {
 
   return (
     <Card className="overflow-hidden p-0">
-      <div className="border-b border-rose-700/10 bg-gradient-to-r from-rose-50 via-white to-amber-50 p-5 sm:p-6">
+      <div className="border-b border-emerald-700/10 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-5 sm:p-6">
         <div className="flex items-start gap-3">
-          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-rose-600 text-2xl shadow-sm">🙏</span>
+          <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-600 text-2xl shadow-sm">🙏</span>
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-rose-700">Church prayer</p>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-800">Church prayer</p>
             <h2 className="mt-0.5 text-2xl font-extrabold text-navy">Prayer wall</h2>
             <p className="mt-1 text-sm leading-relaxed text-gray-600">Requests the church has been asked to pray for. Nobody&rsquo;s name is shown.</p>
           </div>
