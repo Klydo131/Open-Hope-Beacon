@@ -39,6 +39,7 @@ const ROLES = ['ds', 'dm', 'admin', 'executive'];
 // wrong address in a place nobody thinks to look. Any absolute URL proves the
 // same property here.
 const URL_ = 'https://church.example.org/join?token_hash=abc123&type=invite';
+const APP_URL = 'https://church.example.org';
 const CHURCH = 'Open Hope Beacon Demo Church';
 
 // ---------------------------------------------------------------------------
@@ -46,13 +47,29 @@ const CHURCH = 'Open Hope Beacon Demo Church';
 // ---------------------------------------------------------------------------
 const bodies = {};
 for (const role of ROLES) {
-  const html = inviteHtml(role, CHURCH, URL_);
+  const html = inviteHtml(role, CHURCH, URL_, APP_URL);
   bodies[role] = html;
   ok(typeof html === 'string' && html.length > 800, `${role}: renders a real message`);
 
   // The link twice: a button that will not render is a dead end, a URL is not.
   const hrefs = (html.match(/href="https:\/\/church\.example\.org[^"]*"/g) || []).length;
   ok(hrefs >= 2, `${role}: the join link appears as both a button and copyable text`);
+
+  // The install/use guidance must come before the one-time invitation. A
+  // recipient should not trigger an account link before knowing which browser
+  // to use and how the app arrives on their device.
+  ok(html.includes('Safari on iPhone or iPad') && html.includes('Other browsers'),
+     `${role}: gives separate Safari and other-browser install steps`);
+  ok(html.includes('Using the app') && (html.includes('Guild Room') || html.includes('Security Audit Room')),
+     `${role}: explains how to return and use the right room after joining`);
+  ok(html.indexOf('Safari on iPhone or iPad') < html.indexOf('Accept your invitation'),
+     `${role}: places install help before the invitation link`);
+  const invitationButton = html.lastIndexOf('Accept your invitation');
+  const fallback = html.lastIndexOf('If the button does not work');
+  ok(invitationButton >= 0 && invitationButton < fallback
+     && html.slice(fallback).includes('token_hash=abc123'),
+     `${role}: keeps the fallback invitation URL at the bottom`);
+  ok(html.includes(`href="${APP_URL}"`), `${role}: install links use the ordinary app address, never the one-time link`);
 
   ok(html.includes(CHURCH), `${role}: names the church`);
   ok(html.includes(roleWord(role)), `${role}: says which role they were invited as`);
@@ -85,7 +102,7 @@ ok(subjects.every((s) => s && s.length > 8), 'no subject is empty or a stub');
 // churches.name is set by an Executive Director, so it is not attacker-supplied
 // in the usual sense -- but it is user input reaching an HTML document, and the
 // cost of being wrong is a broken or hostile email sent to a congregation.
-const nasty = inviteHtml('ds', 'St <script>alert(1)</script> "Mary" & Co', URL_);
+const nasty = inviteHtml('ds', 'St <script>alert(1)</script> "Mary" & Co', URL_, APP_URL);
 ok(!nasty.includes('<script>'), 'a church name cannot inject a tag');
 ok(nasty.includes('&lt;script&gt;'), 'the angle brackets are escaped rather than dropped');
 ok(nasty.includes('&quot;Mary&quot;') && nasty.includes('&amp; Co'),
@@ -96,7 +113,7 @@ ok(nasty.includes('&quot;Mary&quot;') && nasty.includes('&amp; Co'),
 // ---------------------------------------------------------------------------
 // A church row with no name is a real state during setup, and "  has invited
 // you" is the kind of thing that ships because nobody rendered the blank case.
-const blank = inviteHtml('ds', '', URL_);
+const blank = inviteHtml('ds', '', URL_, APP_URL);
 ok(blank.includes('Your church'), 'a missing church name falls back to readable words');
 ok(!/>\s*has invited you/.test(blank.replace(/<strong[^>]*>[^<]*<\/strong>/g, 'X')),
    'and never leaves a sentence starting mid-air');

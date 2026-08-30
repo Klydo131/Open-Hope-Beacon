@@ -108,9 +108,9 @@ export function LiveGuildActivity() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-3xl font-extrabold text-room">🧩 Guild activity</h1>
+        <h1 className="text-3xl font-extrabold text-room">🧩 Guild Room</h1>
         <p className="mt-1 text-room-soft">
-          Encourage, study, pray, and care together without turning your guild into a public church roster.
+          Your Guild activity: encourage, study, pray, and care together without turning your guild into a public church roster.
         </p>
       </div>
 

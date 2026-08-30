@@ -392,7 +392,7 @@ async function handle(req: Request): Promise<Response> {
 
       const asRole = role as InviteRole;
       const ROLE_WORD: Record<string, string> = {
-        admin: 'Director', dm: 'Guide', ds: 'Explorer',
+        admin: 'Director', executive: 'Executive Director', dm: 'Guide', ds: 'Explorer',
       };
 
       const payload: Record<string, unknown> = {
@@ -418,7 +418,7 @@ async function handle(req: Request): Promise<Response> {
         // invitations to one person came to read as one invitation and one
         // blank message. Three roles, three subjects, no collapsing.
         payload.subject = subjectFor(asRole);
-        payload.htmlContent = inviteHtml(asRole, churchName, joinUrl);
+        payload.htmlContent = inviteHtml(asRole, churchName, joinUrl, site);
       }
 
       try {

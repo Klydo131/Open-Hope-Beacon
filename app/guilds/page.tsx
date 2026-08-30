@@ -14,10 +14,10 @@ const MEMBERS: Role[] = ['dm', 'ds'];
 function DemoGuilds() {
   return (
     <Card className="p-5">
-      <h1 className="text-2xl font-extrabold text-navy">🧩 Guild activity</h1>
+      <h1 className="text-2xl font-extrabold text-navy">🧩 Guild Room</h1>
       <p className="mt-2 text-gray-600">
-        Guild activity is available in your live church workspace. It keeps group
-        participation separate from the sample tutorial data.
+        Your Guild activity is available in your live church workspace. It keeps
+        group participation separate from the sample tutorial data.
       </p>
     </Card>
   );

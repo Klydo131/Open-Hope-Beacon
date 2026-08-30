@@ -131,18 +131,24 @@ export function roleWord(role: InviteRole): string {
 }
 
 /**
- * The finished message. `joinUrl` is the one-time link and appears twice: once
- * as the button and once as copyable text, because a button that will not
- * render is a dead end and a URL never is.
+ * The finished message. `appUrl` is the ordinary public home, used for the
+ * install instructions. `joinUrl` is a one-time account link and stays in the
+ * final invitation section so a recipient does not accept it before they have
+ * read how to install and use Hope Beacon.
  */
 export function inviteHtml(
   role: InviteRole,
   churchName: string,
   joinUrl: string,
+  appUrl: string,
 ): string {
   const copy = ROLE_COPY[role];
   const church = esc(churchName || 'Your church');
   const url = esc(joinUrl);
+  const app = esc(appUrl);
+  const roomUse = role === 'dm' || role === 'ds'
+    ? 'Open the <strong>Guild Room</strong> for group activity, then use the other rooms for your own journey or the people you walk with.'
+    : 'Open the <strong>Security Audit Room</strong> to review account activity, then use Admin for approvals, people, and church work.';
 
   const steps = copy.steps
     .map(([head, rest], i) => `
@@ -180,12 +186,6 @@ export function inviteHtml(
             </td></tr>
           </table>
 
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 26px 0;">
-            <tr><td align="center" bgcolor="#1E2A4A" style="border-radius:8px;">
-              <a href="${url}" style="display:inline-block;padding:15px 34px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Accept your invitation</a>
-            </td></tr>
-          </table>
-
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6FA;border-radius:10px;margin:0 0 26px 0;">
             <tr><td style="padding:20px 22px;font-family:Helvetica,Arial,sans-serif;">
               <p style="margin:0 0 14px 0;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">What happens next</p>
@@ -194,16 +194,53 @@ export function inviteHtml(
             </td></tr>
           </table>
 
-          <p style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#5B6472;">If the button does not work, copy this address into your browser:</p>
-          <p style="margin:0 0 26px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;word-break:break-all;">
-            <a href="${url}" style="color:#2F80ED;text-decoration:underline;">${url}</a>
-          </p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #DCE5F2;border-radius:10px;margin:0 0 20px 0;">
+            <tr><td style="padding:20px 22px;font-family:Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 8px 0;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Before you accept: install Hope Beacon</p>
+              <p style="margin:0 0 16px 0;font-size:15px;line-height:1.55;color:#22272F;">Install the app on the device you plan to use, then return to this email and accept the invitation at the bottom.</p>
+
+              <p style="margin:0 0 6px 0;font-size:15px;line-height:1.5;color:#1E2A4A;"><strong>Safari on iPhone or iPad</strong></p>
+              <ol style="margin:0 0 16px 20px;padding:0;font-size:15px;line-height:1.55;color:#22272F;">
+                <li>Open <a href="${app}" style="color:#2F80ED;text-decoration:underline;">Hope Beacon</a> in Safari.</li>
+                <li>Tap <strong>Share</strong>, then choose <strong>Add to Home Screen</strong>.</li>
+                <li>Tap <strong>Add</strong>. Open Hope Beacon from its new icon, then return here.</li>
+              </ol>
+
+              <p style="margin:0 0 6px 0;font-size:15px;line-height:1.5;color:#1E2A4A;"><strong>Other browsers</strong></p>
+              <ol style="margin:0 0 8px 20px;padding:0;font-size:15px;line-height:1.55;color:#22272F;">
+                <li>Open <a href="${app}" style="color:#2F80ED;text-decoration:underline;">Hope Beacon</a> in the browser you use.</li>
+                <li>Open the browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>; the exact words vary by browser.</li>
+                <li>Use the new Hope Beacon icon to open the app.</li>
+              </ol>
+              <p style="margin:0;font-size:13px;line-height:1.5;color:#5B6472;">On iPhone and iPad, use Safari for the install steps above. Other iOS browsers can open Hope Beacon, but Safari is the reliable way to add it to your Home Screen.</p>
+            </td></tr>
+          </table>
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6FA;border-radius:10px;margin:0 0 26px 0;">
+            <tr><td style="padding:20px 22px;font-family:Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 8px 0;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Using the app</p>
+              <p style="margin:0 0 8px 0;font-size:15px;line-height:1.55;color:#22272F;">After you accept, choose your own password and finish your account. Sign in through the Hope Beacon icon whenever you return.</p>
+              <p style="margin:0;font-size:15px;line-height:1.55;color:#22272F;">${roomUse}</p>
+            </td></tr>
+          </table>
 
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-left:3px solid #E8B84B;background-color:#FFFBF0;border-radius:0 8px 8px 0;">
             <tr><td style="padding:14px 18px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#5B4A1E;">
               This link works <strong>once</strong>, and only the most recent invitation works. If your church sends another, use the newest email. Open it on the device you want to use Hope&nbsp;Beacon on.
             </td></tr>
           </table>
+
+          <p style="margin:24px 0 10px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Your invitation</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;">
+            <tr><td align="center" bgcolor="#1E2A4A" style="border-radius:8px;">
+              <a href="${url}" style="display:inline-block;padding:15px 34px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Accept your invitation</a>
+            </td></tr>
+          </table>
+
+          <p style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#5B6472;">If the button does not work, copy this address into the same browser:</p>
+          <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;word-break:break-all;">
+            <a href="${url}" style="color:#2F80ED;text-decoration:underline;">${url}</a>
+          </p>
 
         </td></tr>
       </table>
