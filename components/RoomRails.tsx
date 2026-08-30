@@ -109,6 +109,7 @@ export function railGroupsFor(
   // Director's admin tab, and the announcement composer on top of the church
   // home screen. Publishing is a task, and a task gets a room.
   const publish = { href: '/publish', label: 'Publish', icon: '✍️' };
+  const guilds = { href: '/guilds', label: 'Guilds', icon: '🧩' };
 
   if (role === 'ds') {
     return [
@@ -117,6 +118,7 @@ export function railGroupsFor(
         links: [
           home,
           { href: '/ds', label: 'My Journey', icon: '🎯' },
+          guilds,
           { href: '/library', label: 'My Library', icon: '📚' },
           publish,
           cases,
@@ -133,6 +135,7 @@ export function railGroupsFor(
         links: [
           home,
           { href: '/dm', label: 'My Explorers', icon: '🤝', badge: counts.seekers },
+          guilds,
           office,
           publish,
           { href: '/library', label: 'Resources', icon: '📚' },

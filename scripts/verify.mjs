@@ -108,6 +108,7 @@ const staticChecks = [
   ['auto-update policy', 'tests/auto-update-policy.mjs'],
   ['analytics over time', 'tests/analytics-trend.mjs'],
   ['security invariants', 'tests/security-invariants.mjs'],
+  ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing
   // rules are checked as rules, not as rendered output.

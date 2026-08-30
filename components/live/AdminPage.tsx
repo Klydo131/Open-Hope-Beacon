@@ -10,6 +10,7 @@ import * as live from '@/lib/live/data';
 import { LiveReportsForDirector } from '@/components/LiveSafeguarding';
 import { LiveTrialRoom, LiveCourt } from '@/components/LiveTrialRoom';
 import { LiveGuilds, LiveChurchPulse } from '@/components/LiveGuilds';
+import { LiveSecurityAudit } from '@/components/LiveSecurityAudit';
 import type { Profile, Role } from '@/lib/types';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveLibraryForGuide } from '@/components/LiveLibrary';
@@ -137,6 +138,7 @@ export function LiveAdminPage() {
     ...(isExec ? [{ id: 'directors', label: 'Directors', badge: directors.length }] : []),
     { id: 'lessons', label: 'Lessons' },
     { id: 'safeguarding', label: 'Safeguarding' },
+    { id: 'security', label: 'Security' },
     { id: 'church', label: 'Church' },
   ];
   // Stored per role, so a Director and an Executive keep their own places.
@@ -439,6 +441,8 @@ export function LiveAdminPage() {
             }}
           />
         )}
+
+        {room === 'security' && <LiveSecurityAudit />}
 
         {/* Guilds and the church-wide numbers. Both are a Director's job as
             much as an Executive's -- a Director who cannot see their own

@@ -238,6 +238,33 @@ export async function listProfileChanges(personId: string, limit = 20): Promise<
   return (data ?? []) as ProfileChange[];
 }
 
+// Security audit events are deliberately served by an RPC rather than by a
+// table query. The database returns only the role-scoped, content-free summary
+// a Director or Executive Director is allowed to review.
+export interface SecurityAuditEvent {
+  id: string;
+  subject_name: string;
+  subject_role: Role;
+  event_type:
+    | 'profile_change'
+    | 'identity_change'
+    | 'safeguarding_report'
+    | 'account_suspended'
+    | 'account_restored'
+    | 'account_removed'
+    | 'approval_changed';
+  severity: 'info' | 'review' | 'urgent';
+  summary: string;
+  actor_label: string;
+  occurred_at: string;
+}
+
+export async function securityAuditFeed(limit = 100): Promise<SecurityAuditEvent[]> {
+  const { data, error } = await db().rpc('security_audit_feed', { p_limit: limit });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as SecurityAuditEvent[];
+}
+
 // withdrawMyConsent() was here, and is gone on purpose. It called
 // withdraw_my_consent(), which migration 0035 drops.
 //
@@ -2434,6 +2461,55 @@ export async function removeFromGuild(guildId: string, personId: string): Promis
   });
   if (error) throw new Error(error.message);
   return String(data ?? 'Something went wrong.');
+}
+
+export type GuildActivityKind = 'encouragement' | 'study' | 'prayer' | 'care';
+
+export interface GuildActivityPost {
+  id: string;
+  kind: GuildActivityKind;
+  body: string;
+  author_label: string;
+  is_mine: boolean;
+  amen_count: number;
+  i_amen: boolean;
+  created_at: string;
+}
+
+/** A Guild board contains no roster or member identifiers. */
+export async function listGuildActivity(guildId: string, limit = 100): Promise<GuildActivityPost[]> {
+  const { data, error } = await db().rpc('list_guild_activity', {
+    p_guild: guildId,
+    p_limit: limit,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as GuildActivityPost[];
+}
+
+export async function postToGuild(
+  guildId: string,
+  kind: GuildActivityKind,
+  body: string,
+): Promise<string> {
+  const { data, error } = await db().rpc('post_to_guild', {
+    p_guild: guildId,
+    p_kind: kind,
+    p_body: body,
+  });
+  if (error) throw new Error(error.message);
+  return String(data);
+}
+
+export async function toggleGuildAmen(postId: string): Promise<boolean> {
+  const { data, error } = await db().rpc('toggle_guild_amen', { p_post: postId });
+  if (error) throw new Error(error.message);
+  return Boolean(data);
+}
+
+export async function deleteMyGuildPost(postId: string): Promise<boolean> {
+  const { data, error } = await db().rpc('delete_my_guild_post', { p_post: postId });
+  if (error) throw new Error(error.message);
+  return Boolean(data);
 }
 
 // ---------------------------------------------------------------------------

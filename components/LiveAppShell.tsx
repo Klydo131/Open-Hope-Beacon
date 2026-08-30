@@ -51,6 +51,9 @@ import { useUrlKey } from '@/lib/url-signal';
 // longer list is safe — see the note on that element.
 const SECTIONS = (role: Role) => [
   { href: '/church',   icon: '⛪', label: 'Church' },
+  ...(role === 'dm' || role === 'ds'
+    ? [{ href: '/guilds', icon: '🧩', label: 'Guilds' }]
+    : []),
   // Not for Explorers: none of the work in it is theirs to do, and an empty
   // room tells somebody they are missing something. Same rule as the rail.
   ...(role !== 'ds'

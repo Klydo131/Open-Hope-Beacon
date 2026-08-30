@@ -1,0 +1,234 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import * as live from '@/lib/live/data';
+import { BeaconSpinner } from '@/components/BeaconLoader';
+import { Button, Card } from '@/components/ui';
+import { humanError } from '@/lib/live/errors';
+
+const KIND: Record<live.GuildActivityKind, { label: string; icon: string; prompt: string }> = {
+  encouragement: { label: 'Encouragement', icon: '💛', prompt: 'Share an encouragement with the guild.' },
+  study: { label: 'Study note', icon: '📖', prompt: 'Share a thought or question from your study.' },
+  prayer: { label: 'Prayer', icon: '🙏', prompt: 'Share a prayer or a prayer request.' },
+  care: { label: 'Care', icon: '🤝', prompt: 'Share a practical way the guild can care for someone.' },
+};
+
+function when(iso: string) {
+  return new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+/**
+ * A group board, not a second direct-message system. The API deliberately
+ * returns labels and reaction counts only; Explorer membership and profile IDs
+ * never reach the browser through this feature.
+ */
+export function LiveGuildActivity() {
+  const [guilds, setGuilds] = useState<live.Guild[] | null>(null);
+  const [guildId, setGuildId] = useState('');
+  const [posts, setPosts] = useState<live.GuildActivityPost[] | null>(null);
+  const [kind, setKind] = useState<live.GuildActivityKind>('encouragement');
+  const [body, setBody] = useState('');
+  const [busy, setBusy] = useState('');
+  const [error, setError] = useState('');
+
+  const loadGuilds = useCallback(async () => {
+    try {
+      const rows = (await live.listGuilds()).filter((guild) => guild.i_am_in_it);
+      setGuilds(rows);
+      setGuildId((current) => rows.some((guild) => guild.id === current) ? current : (rows[0]?.id ?? ''));
+      setError('');
+    } catch (cause) {
+      setGuilds([]);
+      setError(humanError(cause, 'Could not load your guilds.'));
+    }
+  }, []);
+
+  const loadPosts = useCallback(async () => {
+    if (!guildId) {
+      setPosts([]);
+      return;
+    }
+    try {
+      setPosts(await live.listGuildActivity(guildId));
+      setError('');
+    } catch (cause) {
+      setPosts([]);
+      setError(humanError(cause, 'Could not load the guild activity.'));
+    }
+  }, [guildId]);
+
+  useEffect(() => { void loadGuilds(); }, [loadGuilds]);
+  useEffect(() => { void loadPosts(); }, [loadPosts]);
+
+  const post = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!guildId || !body.trim() || busy) return;
+    setBusy('post');
+    setError('');
+    try {
+      await live.postToGuild(guildId, kind, body.trim());
+      setBody('');
+      await loadPosts();
+    } catch (cause) {
+      setError(humanError(cause, 'That could not be shared with your guild.'));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const toggleAmen = async (id: string) => {
+    setBusy(id);
+    setError('');
+    try {
+      await live.toggleGuildAmen(id);
+      await loadPosts();
+    } catch (cause) {
+      setError(humanError(cause, 'That response could not be saved.'));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const deleteMine = async (id: string) => {
+    setBusy(id);
+    setError('');
+    try {
+      await live.deleteMyGuildPost(id);
+      await loadPosts();
+    } catch (cause) {
+      setError(humanError(cause, 'That activity could not be removed.'));
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const selected = (guilds ?? []).find((guild) => guild.id === guildId);
+  const currentKind = KIND[kind];
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-3xl font-extrabold text-room">🧩 Guild activity</h1>
+        <p className="mt-1 text-room-soft">
+          Encourage, study, pray, and care together without turning your guild into a public church roster.
+        </p>
+      </div>
+
+      <Card className="p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-navy">Your guild board</h2>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500">
+              This is group activity, not a private conversation. Other members see what you post,
+              but the board never shows an Explorer roster or profile identifiers.
+            </p>
+          </div>
+          <Button variant="ghost" onClick={() => { void loadGuilds(); void loadPosts(); }}>
+            Refresh
+          </Button>
+        </div>
+
+        {error && <p className="mt-3 break-words rounded-xl bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">{error}</p>}
+
+        {guilds === null ? (
+          <BeaconSpinner inline label="Finding your guilds" className="mt-4" />
+        ) : guilds.length === 0 ? (
+          <p className="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-600">
+            You are not in a guild yet. Ask a Director to add you to one.
+          </p>
+        ) : (
+          <>
+            <label className="mt-4 block max-w-md">
+              <span className="text-sm font-semibold text-navy">Guild</span>
+              <select
+                value={guildId}
+                onChange={(event) => setGuildId(event.target.value)}
+                className="tap mt-1 w-full rounded-xl bg-white px-3 py-2 text-base outline-none ring-1 ring-gray-300 focus:ring-2 focus:ring-gold"
+              >
+                {guilds.map((guild) => (
+                  <option key={guild.id} value={guild.id}>{guild.name}</option>
+                ))}
+              </select>
+            </label>
+
+            {selected?.description && <p className="mt-2 break-words text-sm text-gray-600">{selected.description}</p>}
+
+            <form onSubmit={post} className="mt-5 rounded-xl bg-gray-50 p-4 ring-1 ring-black/5">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Kind of activity">
+                {(Object.keys(KIND) as live.GuildActivityKind[]).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={kind === key}
+                    onClick={() => setKind(key)}
+                    className={`tap-sm rounded-full px-3 py-2 text-sm font-bold ring-1 ${
+                      kind === key ? 'bg-navy text-white ring-navy' : 'bg-white text-navy ring-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    {KIND[key].icon} {KIND[key].label}
+                  </button>
+                ))}
+              </div>
+              <label className="mt-3 block">
+                <span className="text-sm font-semibold text-navy">{currentKind.label}</span>
+                <textarea
+                  value={body}
+                  onChange={(event) => setBody(event.target.value)}
+                  rows={4}
+                  maxLength={1000}
+                  placeholder={currentKind.prompt}
+                  className="mt-1 w-full rounded-xl bg-white p-3 text-base outline-none ring-1 ring-gray-300 focus:ring-2 focus:ring-gold"
+                />
+                <span className="mt-1 block text-right text-xs text-gray-500">{body.length}/1000</span>
+              </label>
+              <div className="mt-2">
+                <Button type="submit" variant="gold" disabled={busy === 'post' || !body.trim()}>
+                  {busy === 'post' ? 'Sharing…' : 'Share with the guild'}
+                </Button>
+              </div>
+            </form>
+
+            {posts === null ? (
+              <BeaconSpinner inline label="Loading activity" className="mt-5" />
+            ) : posts.length === 0 ? (
+              <p className="mt-5 rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
+                Nothing has been shared yet. An encouragement or a study thought is a good first step.
+              </p>
+            ) : (
+              <ul className="mt-5 space-y-3">
+                {posts.map((entry) => (
+                  <li key={entry.id} className="rounded-xl bg-white p-4 ring-1 ring-black/10">
+                    <div className="flex flex-wrap items-start gap-2">
+                      <span aria-hidden className="text-lg">{KIND[entry.kind].icon}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-navy">
+                          {KIND[entry.kind].label} <span className="font-normal text-gray-500">· {entry.author_label}</span>
+                        </p>
+                        <p className="mt-1 break-words whitespace-pre-wrap text-[15px] leading-relaxed text-gray-700">{entry.body}</p>
+                        <p className="mt-2 text-xs text-gray-500">{when(entry.created_at)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        disabled={busy === entry.id}
+                        onClick={() => void toggleAmen(entry.id)}
+                      >
+                        {entry.i_amen ? '🙏 Remove amen' : '🙏 Amen'} {entry.amen_count > 0 ? `· ${entry.amen_count}` : ''}
+                      </Button>
+                      {entry.is_mine && (
+                        <Button variant="ghost" disabled={busy === entry.id} onClick={() => void deleteMine(entry.id)}>
+                          Delete my post
+                        </Button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}
