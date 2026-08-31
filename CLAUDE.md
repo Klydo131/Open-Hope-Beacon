@@ -1,9 +1,9 @@
 # CLAUDE.md — Open Hope Beacon
 
-Claude and Codex work from one map. The brief — the two halves of the app, the
-product rules that outrank a request, how authorisation works, migrations, the
-verify gate, the phone rules and the two-agent protocol — is
-[`AGENTS.md`](./AGENTS.md). **Read that first.**
+Claude and Codex work from one map. The brief is [`AGENTS.md`](./AGENTS.md):
+the two halves of the app, the product rules that outrank a request, how
+authorisation works, migrations, the verify gate, the phone rules and the
+protocol for two agents sharing one branch. **Read that first.**
 
 This file adds only what is specific to a Claude session.
 
@@ -24,9 +24,9 @@ This file adds only what is specific to a Claude session.
 - No reach to the deploy platform, so "it is deployed" is never a claim this
   session is entitled to make.
 
-Say plainly which of the two happened — done, or blocked. A constraint hit is
-not a design decision made, and the fallback's reasoning belongs in a separate
-sentence from the reason you had to fall back.
+Say plainly which happened: done, or blocked. Hitting a constraint is not the
+same as making a design decision, and the reasoning behind a fallback belongs in
+a different sentence from the reason you had to fall back at all.
 
 ## The repository is public
 

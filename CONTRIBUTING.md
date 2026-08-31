@@ -127,7 +127,8 @@ it, somebody whose job it is to look and who is notified by name, and a record
 that outlives the person it describes. `reports` has no delete policy at all,
 deliberately — a safeguarding record that can be made to disappear is not a
 record. A group board shipped here without any of the three, and the fix is
-worth reading before you add a second one: `tests/a-way-out-of-the-guild-room.mjs`.
+worth reading before you build another room like it:
+`tests/a-way-out-of-the-guild-room.mjs`.
 
 ---
 

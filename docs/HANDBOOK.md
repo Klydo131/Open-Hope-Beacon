@@ -106,11 +106,11 @@ Raising it is a decision, not a drift. Five is the number the design is built ar
 
 An Explorer's screen opens with the person walking with them: their picture, their name, their city and what they said they care about. All of it is what that Guide typed on their own profile.
 
-It was a name on a line, and everything else on that screen is generated (the greeting, the stages, the notices), so a name in the same typeface as the rest proved nothing. Somebody handed a stranger's name by an app has no way to tell whether anybody is really on the other end, and the whole product rests on them believing there is.
+It was a name on a line, and everything else on that screen is generated (the greeting, the stages, the notices), so a name in the same typeface as the rest proved nothing. Somebody who has been handed a stranger's name by an app has no way to tell whether anybody is really on the other end, and the whole product rests on them believing there is.
 
 > **IMPORTANT** · Ask your Guides to set a picture
 >
-> Almost none had one. Where there is no photograph and no icon the card falls back to two initials on a coloured circle, which is exactly the problem it was built to solve. A Guide's own screen now asks them for one and stops asking the moment either is set. An icon is a single tap, on **Profile**.
+> Almost none have one. Where there is no photograph and no icon the card falls back to two initials on a coloured circle, which is exactly the problem it was built to solve. A Guide's own screen now asks them for one and stops asking the moment either is set. An icon is a single tap, on **Profile**.
 
 Nothing else about the Guide reaches the Explorer: no birthday, no contact details, nothing anybody else recorded about them.
 
@@ -143,7 +143,7 @@ Delete asks a second time in the row itself rather than through a browser pop-up
 
 **The dangerous buttons are smaller and red, and they are the only red in the app.** Delete, Remove, Disconnect and Disapprove are drawn one size down from an ordinary button, in red on white rather than filled. They are still a full touch target, because discouraged is not the same as fiddly, but they no longer look like the thing to press.
 
-This came from a Director's report: Disconnect was larger than the thing beside it and read as the more inviting of the two. The thing beside it was not a button at all: *Connect* is the name of the second stage of the journey. The screen now says **Stage · Connect** in that stage's own colour, and a status can no longer be mistaken for an action.
+A Director asked for this. Disconnect was larger than the thing beside it and read as the more inviting of the two. The thing beside it was not a button at all: *Connect* is the name of the second stage of the journey. The screen now says **Stage · Connect** in that stage's own colour, and a status can no longer be mistaken for an action.
 
 Both presses of a two-step removal are red: the first says the path is dangerous, the second is the act itself. That was backwards in one place, where the harmless first press was red and the irreversible confirmation was grey.
 
@@ -171,7 +171,7 @@ A Guide and an Explorer arrange a time together on the same card, and both see i
 >
 > An embedded map needs a Google Maps key, which means a billing account and a key that reaches every browser in the congregation. A link costs nothing, needs no account of ours, and opens the app people already use.
 
-**Online asks for the link, and turns it into a button.** Paste a Zoom, Meet, Teams, Whereby, Jitsi, Messenger or Skype address and the card shows **Join on Zoom**, named after whichever service it recognises, so the person tapping it knows what is about to open. Anything else it does not recognise still works and simply reads **Join the meeting**.
+**Online asks for the link, and turns it into a button.** Paste a Zoom, Meet, Teams, Whereby, Jitsi, Messenger or Skype address and the card shows **Join on Zoom**, named after whichever service it recognises, so the person tapping it knows what is about to open. An address it does not recognise still works, and reads **Join the meeting**.
 
 Before this, an online meeting had a title and a time and nowhere to put the address, so the link went into the conversation as a message and slid up out of sight, and the older the meeting, the further up it had gone.
 
@@ -185,13 +185,13 @@ An Explorer asks for prayer on their own screen, at the foot of it. It goes to t
 
 **The Guide presses "I'm praying" and the Explorer is told.** Not that the request was read, and not the words of it: the Explorer sees *"Your Guide is praying for this"* with the date, on their own copy of the request.
 
-That date matters more than it looks. "Somebody is praying about my mother" is worth knowing the day of, and an Explorer who wrote something hard and saw nothing change had no way to tell whether anybody had seen it at all.
+The date is not decoration. "Somebody is praying about my mother" is worth knowing the day of, and an Explorer who wrote something hard and saw nothing change had no way to tell whether anybody had seen it at all.
 
 > **NOTE** · What the notice does not carry
 >
-> The Explorer's own words are never repeated back to them in the notice, and nothing about the request leaves the two of them. A Guide pressing the button for their own request is ignored rather than sending them a message about themselves.
+> The Explorer's own words are never repeated back to them in the notice, and nothing about the request leaves the two of them. If the person pressing the button is the person who asked, nothing is sent at all: nobody is notified about themselves.
 
-A Guide's own screen puts the requests waiting on them at the top, before the roster, with a mark on each Explorer who has one open. The mark clears when they press it, which is what keeps it worth reading rather than permanent furniture.
+A Guide's own screen puts the requests waiting for them at the top, before the roster, with a mark on each Explorer who has one open. The mark clears when they press it, which is what keeps it worth reading instead of becoming permanent furniture.
 
 ### Lesson studies
 
@@ -199,7 +199,7 @@ A Guide writes their own. Create a series, add studies to it, attach the handout
 
 Directors keep the same control over everything, which is what running the church means. A Guide may edit and delete only what they wrote.
 
-**This works on a phone, and for a while it did not.** The writing desk is in the Office, the Office was only ever linked from the left column, and the left column does not exist below the width of a laptop. So a Guide on a phone or an iPad held upright could read studies and never write one, with nothing on screen to suggest the room existed. Three rooms were in that state (Office, Publish and Cases) and the fix was to put them in the header row that a phone actually has. There is a check now that fails the build if a room is added to one list and not the other.
+**This works on a phone, and for a while it did not.** The writing desk is in the Office, the Office was only ever linked from the left column, and the left column does not exist below the width of a laptop. So a Guide on a phone or an iPad held upright could read studies but never write one, with nothing on screen to suggest the room existed. Three rooms were in that state (Office, Publish and Cases) and the fix was to put them in the header row that a phone actually has. There is a check now that fails the build if a room is added to one list and not the other.
 
 ### Publish
 
@@ -226,7 +226,7 @@ A notice pinned where the church will see it: an icon, a title, a line of detail
 **Where a notice appears depends on whose screen it is**, because the two jobs are different:
 
 - **Guides, Directors and Executive Directors** see notices first, under the greeting. Their job is the church, and a Guide in particular carries the notices onward to the people they walk with.
-- **An Explorer** sees them after their Guide's card and before the conversation. An Explorer opening their journey is looking for their person, not for the church; putting the church's notices above that answered a question they had not asked. Below the conversation nobody would ever have scrolled to them.
+- **An Explorer** sees them after their Guide's card and before the conversation. An Explorer opening their journey is looking for their person, not for the church; putting the church's notices above that answered a question they had not asked. Put below the conversation, they would never have been scrolled to at all.
 
 Nothing is drawn at all when nothing is pinned, so an ordinary day costs no space on any screen.
 
@@ -264,22 +264,22 @@ On an Explorer's **My Journey**, the first thing on the screen is their Guide's 
 
 Everybody in the church can see that a guild called *Palawan Campus* exists. **Who is in it is visible to Guides and leadership only**, because handing an Explorer a list of the other Explorers would turn a set of private relationships into a public roster of everybody being discipled here.
 
-The **Guild Room** is that group's shared board: Guides and the Explorers in it, together. Four kinds of thing go on it: an **encouragement**, a **study note**, a **prayer**, or a way the guild can **care** for somebody. Anyone in the guild can say *Amen* to any of them.
+The **Guild Room** is that group's shared board: Guides and the Explorers in it, together. Four kinds of thing go on it: an **encouragement**, a **study note**, a **prayer**, or a way the guild can **care** for somebody. Anyone in the guild can say *Amen* to a post.
 
-**It shows no names.** A post is signed *You*, *A Guide*, or *A fellow Explorer*, and nothing else. The board never publishes who is in the guild, which is the point of having it: a group can talk without the room becoming a roster of everybody's Explorers.
+**It shows no names.** A post is signed *You*, *A Guide*, or *A fellow Explorer*, and nothing else. The board never publishes who is in the guild, which is what makes the room worth having: a group can talk without it becoming a roster of everybody's Explorers.
 
 **Directors and Executive Directors are not in it.** A group talking honestly is what the room is for, and a Director reading over their shoulder is a different product. Guild membership itself is still managed by a Director, from the Church room.
 
 **Anybody can report a post, and a Director can take it down.** That is the one way leadership sees into the room, and it opens only when somebody reports something:
 
-- **Report this post** sits under every post that is not your own. It does not ask who wrote it, because you do not know and should not be told; the app resolves that itself and never shows you the name.
+- **Report this post** sits under every post that is not your own. It does not ask who wrote it, because you do not know and should not be told. The app works that out on its own and never shows you the name.
 - The report lands in the same **Safeguarding** queue as everything else, and every Director is notified.
 - **What the post said is copied into the report.** If the person who wrote it deletes it afterwards, which is exactly what somebody who has just been reported does, the Director still reads the words.
 - A Director can **delete the post**, and that removal is written into the security audit before the post goes, so it cannot be lost.
 
 > **CAUTION** · This room shipped without any of that
 >
-> For a day the board had no report control, no way for a Director to see in, and nothing anyone but the author could delete. Explorers are in these guilds and some Explorers are children. Every other place in Beacon where one person can be hurt by another has the same three things on the same screen: a way to report it, somebody whose job it is to look, and a record that outlives the person it describes. **Apply that test to any new room before it ships, not after.**
+> For a day the board had no way to report a post, no way for a Director to see in, and nobody but the author could delete anything. Explorers are in these guilds and some Explorers are children. Every other place in Beacon where one person can be hurt by another has the same three things on the same screen: a way to report it, somebody whose job it is to look, and a record that outlives the person it describes. **Apply that test to any new room before it ships, not after.**
 
 ### Undoing a step
 
@@ -343,7 +343,7 @@ Anybody can report a conversation. When they do:
 - The reporter's name is visible to Directors, because a Director cannot support them or tell a genuine concern from a grudge without it.
 - Reports are never deleted, whatever is decided.
 
-**A post on a guild board is reported the same way** and arrives in the same queue, marked *Guild Room post*, with the text of it quoted underneath. The Director can close the report as usual and can also **delete the post**. That take-down is leadership of that church only, and it is recorded in the security audit.
+**A post on a guild board is reported the same way** and arrives in the same queue, marked *Guild Room post*, with the post quoted underneath. The Director can close the report as usual and can also **delete the post**. Only leadership of that church can take a post down, and the removal is recorded in the security audit.
 
 The quoted text is a copy taken when the report was made, so it is still there after the post is gone, including when the author deleted it themselves.
 
@@ -553,13 +553,13 @@ Lines disappear when the work is done, so an empty panel means an empty desk.
 
 Every panel that opens over the page (the bell, the account menu, the player's menu, the share sheet, the install card) is measured against the screen the phone actually has, and is pinned inside it.
 
-Three things were wrong and all three only showed up in portrait:
+Three things were wrong, and all three showed up only in portrait:
 
 - **A panel was measured against the wrong screen.** The unit used for "most of the height" is the page's idea of the viewport, which on a phone is the height with the address bar hidden. Held upright, a panel asking for 90% of that was taller than the screen and its bottom was unreachable.
 - **A panel anchored to a button near the right edge ran off the side**, because it was positioned from that button rather than clamped to the screen. In landscape there was room and nobody saw it.
 - **Anything pinned to the bottom sat under the home indicator** on a modern iPhone, which reserves about 34 points that a fixed offset knows nothing about.
 
-They are all one component now, so a new panel gets the behaviour rather than having to remember it.
+They are all one component now, so a new panel gets the behaviour instead of somebody having to remember it.
 
 ### Waiting
 
@@ -640,7 +640,7 @@ Worth understanding, because almost every email failure has been a misunderstand
 
 ### What the invitation actually says now
 
-The message leads with **how to install Hope Beacon**, in Safari on an iPhone or iPad and in any other browser elsewhere, and the **Accept your invitation** link is at the foot of it rather than at the top.
+The message leads with **how to install Hope Beacon**, with the steps for Safari on an iPhone or iPad and the steps for any other browser, and the **Accept your invitation** link sits at the foot of it rather than at the top.
 
 That order is deliberate. The link is one-time: opening it, glancing at a sign-in screen on a browser they will not keep using, and closing it again is how somebody burns their invitation before they have the app. Reading how to install first, then accepting, is the path that works.
 
@@ -781,7 +781,7 @@ Every privacy promise this app makes is kept by the database, not by the screens
 | Only an approved, unsuspended member can publish a post. | The write rule on the posts table, which also pins the author to whoever is signed in and the church to their own. |
 | A Director may take down any post in their church. | The delete rule, scoped to churches that Director actually leads. |
 | Counting messages never exposes one. | The counting runs inside the database and returns totals. No message, and no name, ever leaves it. |
-| Only members of a guild can read or write its board. | A definer function that checks membership and raises otherwise. The tables themselves grant nothing to anybody. |
+| Only members of a guild can read or write its board. | A definer function that checks membership and refuses anybody else. The tables themselves grant nothing to anybody. |
 | A guild board never publishes who is in the guild. | The function returns *You*, *A Guide* or *A fellow Explorer*, and no identifier at all. |
 | Reporting a guild post never reveals its author. | The browser sends a post, not a person. The author is resolved inside the database and never returned. |
 | A reported post survives being deleted. | Its text is copied into the report when the report is made. |
@@ -809,7 +809,7 @@ So a removed person kept a working login that resolved to nothing, and their ema
 
 The early files are numbered `0001` to `0049`. Everything since is named `YYYYMMDDHHMMSS_`, and new ones must be too.
 
-This is not tidiness. Migrations run in filename order, and `0050_` sorts **before** `20260829…`. A migration numbered today would run before the tables it depends on: nothing at all would happen on a machine where the database already exists, and a fresh one would fail. There is a check that refuses a `00NN_` file above the closed series.
+This is not tidiness. Migrations run in filename order, and `0050_` sorts **before** `20260829…`. A migration numbered today would run before the tables it depends on. On a machine where the database already exists nothing at all would happen; a database built from scratch would fail. There is a check that refuses a `00NN_` file above the closed series.
 
 Two more things about migrations, both learned here:
 
@@ -849,7 +849,7 @@ Two scheduled jobs live in the repository. Both are free on a public repository,
 | A Guide cannot take another Explorer | They are at the church's limit, five by default. | Pair with another Guide, recruit one, or raise the limit in Church settings. Do not raise it to solve a shortage of Guides. |
 | The whole left column is invisible on a dark theme | Fixed on 26 August 2026. The page background was not being themed, so light text landed on a light page. | Nothing to do. |
 | A Guide cannot be given another Explorer | They already have five. The database refuses a sixth. | Pair with a different Guide, or recruit one. Do not raise the cap to solve a shortage of Guides. |
-| "permission denied for table *something*" | **Not** a permissions rule that needs loosening. Those return no rows; they do not raise. This means the request reached the database with nobody signed in. | Sign out and back in. If it keeps happening, it is the session, not the rule. See the row below. |
+| "permission denied for table *something*" | **Not** a permissions rule that needs loosening. A rule that refuses somebody shows them nothing; it does not produce this message. This one means the request reached the database with nobody signed in. | Sign out and back in. If it keeps happening, it is the session, not the rule. See the row below. |
 | Signed out after switching tabs, or after opening the app on a second device | Fixed on 28 August 2026. Two copies of the app raced to renew the same session, the loser was told no, and it threw the good session away rather than looking again. | Nothing to do. Signing in now lasts until somebody signs out on that device. |
 | A blank box where an icon should be, on an Android phone | Fixed on 28 August 2026, and again on 31 August. A character that looks like an emoji but comes from a symbol block is drawn only if the phone's font happens to include it. Apple's does; Android's does not. | Nothing to do. Controls are drawn as pictures now, and a check refuses the characters. |
 | A pop-up runs off the bottom or the side, but only in portrait | Fixed on 28 August 2026. | Nothing to do. |
@@ -900,7 +900,7 @@ Read this section before making a change. It states what is true, what must stay
 5. Nothing in the update path may clear the browser's stored session.
 6. Text a member reads carries no em dashes, calls a Guide a Guide, and does not reach for the cadences a machine reaches for.
 7. `select('*')` never appears in `lib/live/data.ts`. The column list is the access control: it is what stands between a birthday and an Explorer's browser, and the return type must have no field for what you did not ask for.
-8. Every room where one person can be hurt by another carries all three of: a way to report it on the same screen, somebody notified by name whose job it is to look, and a record that outlives the person. Reports have no delete policy at all, deliberately.
+8. Every room where one person can be hurt by another carries all three: a way to report it on the same screen, somebody notified by name whose job it is to look, and a record that outlives the person. Reports have no delete policy at all, deliberately.
 9. A control drawn from Miscellaneous Technical or Geometric Shapes is a blank box on Android. Controls are inline SVG in `components/Glyph.tsx`. Emoji are fine; those blocks are not.
 10. `dvh` for anything measured against a phone's screen, with a `vh` line beneath it for old browsers, and `env(safe-area-inset-bottom)` on anything pinned to the bottom.
 
@@ -926,7 +926,7 @@ CI runs the same command on **Ubuntu, macOS and Windows**. A green run on Linux 
 - **Presenting a blocked network as a design choice.** If something could not be done, say that plainly, then give the reasoning for the fallback separately.
 - **Calling unverified work verified.** Pushing is not deploying, and deploying is not observing. Say which of the three happened.
 - **Grepping the output of a script for "FAIL" only.** A script that crashed before printing anything looked exactly like a pass.
-- **Writing a rule as a list of the cases that existed that day.** The destructive-button check held eight exact button labels, so the ninth was never looked at; its label reader allowed only letters and spaces, so every confirmation that names a person, which is what the presses that actually carry out a removal look like, was invisible to it. Match the thing, not the list.
+- **Writing a rule as a list of the cases that existed that day.** The destructive-button check held eight exact button labels, so the ninth was never looked at; its label reader allowed only letters and spaces, so every confirmation that names a person was invisible to it, and those are exactly the presses that carry out a removal. Match the thing, not the list.
 - **Shipping a room before asking who is protected in it.** The guild board went out with no report route, no leadership visibility and no way for anyone but the author to delete a post, in a room that includes children. Nothing about it looked wrong on screen.
 - **Trusting a filename.** The version a migration is recorded under in the database is not the name of the file it came from, and a `00NN_` name added today sorts before every timestamped one.
 - **Editing a migration that had already run.** It changes nothing in the database and makes a fresh environment differ from production. Add a corrective migration.
@@ -941,9 +941,9 @@ Stated plainly, because a plan that hides its gaps is worse than no plan.
 | The iPhone install fix on real Safari | The missing tag is confirmed in the built page. It has not been tested on a physical iPhone. |
 | A restored backup | The job runs and its failure paths are tested. No restore has ever been performed. |
 | Non-English wording | Eleven translations still use the old words for Explorer and Guide. Whether those names translate at all is a decision per language. |
-| Four end-to-end tests | Failing in the guided tutorial, on both browser engines, from before this work started. Two of them say the tutorial's spotlight lands on nothing. Diagnose before demonstrating the tutorial. |
+| Four end-to-end tests | Failing in the guided tutorial, on both browser engines, since before this work started. Two of them say the tutorial's spotlight lands on nothing. Diagnose before demonstrating the tutorial. |
 | Creating a new church without a developer | Possible in the database, not yet possible from a screen. |
-| Bulk invitations | **Built**, both stages: pasting a list, and dragging a spreadsheet onto the screen. Suggested pairing after a batch is the part still to do. |
+| Bulk invitations | **Built**: pasting a list, and dragging a spreadsheet onto the screen. Suggested pairing after a batch is the part still to do. |
 | Safari and iOS behaviour | Checked at iPhone sizes in Chromium, which is not WebKit. Nothing in this app has been seen running on a physical iPhone. |
 | A picture on most Guides' profiles | Almost none have set one, so the card meant to show an Explorer a real person falls back to initials. The app asks them; somebody has to follow it up. |
 | Guild boards in use | The room, the report route and the take-down are built and were proved against the live database. Nothing has yet been posted on one by a real member. |
