@@ -28,6 +28,28 @@
 // its own permissions, in the database rather than in this file. Moving a card
 // cannot grant anybody anything, which is the point of putting the rules where
 // they are.
+//
+// SUBROOMS, BECAUSE A ROOM IS NOT A SCROLL.
+//
+// Reported by the owner, with a drawing: a room is a folder and a subroom is a
+// folder inside it. "I want the user to just click or tap the subrooms so they
+// can just go to their destination and not scroll down tirelessly. If I pick
+// the Lesson studies subroom, I will automatically go there and create my own
+// Lesson studies, not scroll down and find it."
+//
+// He was right, and this room was the worst offender in the app. It held nine
+// panels stacked down one page. A Guide who came here to write a study passed
+// their numbers, the shelf, two pairing cards and a recommendation form on the
+// way, every single time, and on a phone that is most of a minute of thumb.
+//
+// The mechanism is the one the Director's screen has used since it was split
+// into rooms: `useRoom` remembers where you were, `?room=` in the address wins
+// over the memory so a link can still send you somewhere exact, and the strip
+// scrolls sideways inside itself on a narrow phone. Nothing here is new
+// invention; the Office simply never got it.
+//
+// ONE PANEL LIVES IN EXACTLY ONE SUBROOM. A panel that appears in two is a
+// panel somebody will look for in the third.
 
 import { useEffect, useState } from 'react';
 import { AppShell } from '@/components/AppShell';
@@ -36,6 +58,7 @@ import { useLiveSession } from '@/lib/live/session';
 import { useIsLive } from '@/lib/tutorial';
 import * as live from '@/lib/live/data';
 import { Card } from '@/components/ui';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { LiveAnalytics } from '@/components/LiveAnalytics';
 import { LiveExport } from '@/components/LiveExport';
 import { LiveBoardReport } from '@/components/LiveExecutive';
@@ -65,6 +88,7 @@ function LiveOffice() {
   const { profile } = useLiveSession();
   const [churchName, setChurchName] = useState<string>();
   const [pairings, setPairings] = useState<{ id: string; ds_name: string }[]>([]);
+  const [waitingAsks, setWaitingAsks] = useState(0);
 
   useEffect(() => {
     live.myChurch().then((c) => setChurchName(c?.name ?? undefined)).catch(() => {});
@@ -86,8 +110,67 @@ function LiveOffice() {
     return () => { alive = false; };
   }, [isGuide]);
 
+  // THE BADGE IS THE REASON THE TAB IS WORTH READING. Without a count, a
+  // Director has to open Pairing requests to find out whether anybody is
+  // waiting, which is the scrolling problem again with an extra tap on top.
+  const leads = profile?.role === 'admin' || profile?.role === 'executive';
+  useEffect(() => {
+    if (!leads) return;
+    let alive = true;
+    live.listPairingRequests()
+      .then((rows) => {
+        if (alive) setWaitingAsks(rows.filter((r) => r.status === 'pending').length);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [leads]);
+
+  // The subrooms, in the order each role actually needs them. A Guide opens
+  // this room to write; leadership opens it to read the numbers.
+  const rooms: Room[] = profile?.role === 'dm'
+    ? [
+      { id: 'studies', label: '📖 Lesson studies' },
+      { id: 'library', label: '📚 Resources' },
+      { id: 'guild', label: '💬 Guides\u2019 room' },
+      { id: 'people', label: '🤝 Put a name forward' },
+      { id: 'numbers', label: '📈 Numbers' },
+    ]
+    : [
+      { id: 'numbers', label: '📈 Numbers' },
+      { id: 'reports', label: '🖨️ Reports' },
+      { id: 'studies', label: '📖 Lesson studies' },
+      { id: 'library', label: '📚 Library' },
+      { id: 'people', label: '🤝 Pairing requests', badge: waitingAsks, urgent: waitingAsks > 0 },
+      { id: 'guild', label: '💬 Guides\u2019 room' },
+    ];
+
+  // Remembered per role, like the Director's screen: a Guide who lives in
+  // Lesson studies should land there tomorrow, and a Director's habit is their
+  // own rather than everybody's.
+  const [room, chooseRoom] = useRoom(rooms, `beacon:office-room:${profile?.role ?? 'none'}`);
+
+  // THE OLD DEEP LINK STILL HAS TO ARRIVE SOMEWHERE. The desk rail pointed at
+  // `/office#pairing-requests` and that card now lives inside a subroom, so the
+  // hash would land on a panel that is not drawn. The link itself has been
+  // changed to `?room=people`, but an open tab or a stale install can still be
+  // holding the old address, and sending somebody to a room with no card in it
+  // is exactly the complaint this whole feature came from.
+  useEffect(() => {
+    let hash = '';
+    try { hash = window.location.hash.replace('#', ''); } catch {}
+    const forHash: Record<string, string> = {
+      'pairing-requests': 'people',
+      studies: 'studies',
+      library: 'library',
+    };
+    const wanted = forHash[hash];
+    if (wanted && rooms.some((r) => r.id === wanted)) chooseRoom(wanted);
+    // Only on arrival. Re-running would drag somebody out of a tab they picked
+    // by hand while the hash was still sitting in the address bar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.role]);
+
   if (!profile) return null;
-  const leads = profile.role === 'admin' || profile.role === 'executive';
 
   return (
     <div className="space-y-5">
@@ -99,40 +182,57 @@ function LiveOffice() {
         }
       />
 
-      {/* THE NUMBERS FIRST. They are the reason somebody opens this room on a
-          Tuesday morning, and everything below is a thing you do rather than a
-          thing you read. */}
-      <LiveAnalytics churchName={churchName} />
+      <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
 
-      {leads && <LiveBoardReport churchName={churchName} />}
-      {leads && <LiveExport churchName={churchName} />}
+      {/* THE NUMBERS. They are the reason leadership opens this room on a
+          Tuesday morning, which is why they are the first subroom for a
+          Director and the last for a Guide: a Guide comes here to write. */}
+      {room === 'numbers' && <LiveAnalytics churchName={churchName} />}
+
+      {/* Printing for a board meeting and downloading the figures are the same
+          errand, so they share a subroom rather than each taking a tab. */}
+      {room === 'reports' && leads && (
+        <>
+          <LiveBoardReport churchName={churchName} />
+          <LiveExport churchName={churchName} />
+        </>
+      )}
 
       {/* WRITING AND STOCKING, for everyone who has this room. A Guide writing
           a study and a Director writing one are the same act, and the database
           has said so since migration 0038. Passing the Guide's own pairings
           gives them the share-with-one-person buttons; leadership gets
           add-and-publish, which is right: stocking the shelf is a Director's
-          job, handing a book to one person is a Guide's. */}
-      <LiveStudies canWrite />
-      <LiveLibraryForGuide pairings={pairings} />
+          job, handing a book to one person is a Guide's.
 
-      {/* ASKING TO WALK WITH SOMEBODY. A Guide could recommend a NEW person for
-          an invitation and could do nothing at all about an Explorer already in
-          the church and waiting. The screen showing who is unpaired belonged to
-          the Director, so the people with room to carry somebody had no way to
-          say so. */}
-      {isGuide && <LiveAskToWalkWith />}
-      {leads && <LivePairingRequestsForDirector />}
+          These are two subrooms rather than one. "Write a study" and "stock the
+          shelf" are different errands, and the shelf is long. */}
+      {room === 'studies' && <LiveStudies canWrite />}
+      {room === 'library' && <LiveLibraryForGuide pairings={pairings} />}
 
-      {/* Recommending somebody for a role is office work too, and it was only
-          on the Guide's roster before. */}
-      {isGuide && <LiveRecommend />}
+      {/* PUTTING A NAME FORWARD, whichever direction it goes.
+          A Guide could recommend a NEW person for an invitation and could do
+          nothing at all about an Explorer already in the church and waiting.
+          The screen showing who is unpaired belonged to the Director, so the
+          people with room to carry somebody had no way to say so. Both acts are
+          the same errand from the two ends, so they share a subroom. */}
+      {room === 'people' && (
+        <>
+          {isGuide && <LiveAskToWalkWith />}
+          {isGuide && <LiveRecommend />}
+          {leads && <LivePairingRequestsForDirector />}
+        </>
+      )}
 
       {/* THE GUIDES' ROOM. Every conversation surface in this app is one Guide
           with one Explorer, which is right for that relationship and leaves a
           Guide with a hard week entirely alone. Directors are in it too: a
-          guild whose leaders cannot hear it is not being led. */}
-      <LiveGuildRoom />
+          guild whose leaders cannot hear it is not being led.
+
+          It is a subroom of its own because it is a conversation: it scrolls
+          inside itself and had no business sitting at the bottom of a page that
+          also scrolls. */}
+      {room === 'guild' && <LiveGuildRoom />}
     </div>
   );
 }
@@ -149,19 +249,33 @@ function LiveOffice() {
  * every screen, and the practice is in reading the room rather than the figures.
  */
 function DemoOffice() {
+  // PARITY IN SHAPE, NOT JUST IN CONTENT. Somebody who learns the job here and
+  // then signs in should find the same room with the same strip across the top.
+  // A tutorial that teaches one long page and a live app that has subrooms
+  // teaches the shape of the app wrong, which is the whole reason this file
+  // carries a demo half at all.
+  const rooms: Room[] = [
+    { id: 'numbers', label: '📈 Numbers' },
+    { id: 'studies', label: '📖 Lesson studies' },
+  ];
+  const [room, chooseRoom] = useRoom(rooms, 'beacon:office-room:demo');
+
   return (
     <div className="space-y-5">
       <Heading subtitle="The numbers, and the shelf you stock. Sample data." />
-      <Card className="p-5">
-        <h2 className="text-xl font-bold text-navy">📈 How the church is going</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Invented numbers, for practice. The live office shows your own.
-        </p>
-        <div className="mt-4">
-          <Analytics />
-        </div>
-      </Card>
-      <LessonSeriesLibrary />
+      <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
+      {room === 'numbers' && (
+        <Card className="p-5">
+          <h2 className="text-xl font-bold text-navy">📈 How the church is going</h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Invented numbers, for practice. The live office shows your own.
+          </p>
+          <div className="mt-4">
+            <Analytics />
+          </div>
+        </Card>
+      )}
+      {room === 'studies' && <LessonSeriesLibrary />}
     </div>
   );
 }

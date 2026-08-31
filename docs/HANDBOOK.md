@@ -291,9 +291,27 @@ The screen a Guide lands on opens with their own figures: how many Explorers the
 
 **Graduated** means reached Commission: walked the whole journey and now sent to walk with somebody else. It is the number the whole design exists to produce.
 
-### The Office
+### The Office, and what a subroom is
 
 Guides, Directors and Executive Directors have an **Office**, in the left column on every screen. It holds the work: the numbers, the downloads, the studies you write and the shelf you stock.
+
+**A room is a folder, and a subroom is a folder inside it.** Open the Office and a row of subrooms sits across the top; tap one and you are in it. Nothing else is drawn, so there is nothing to scroll past.
+
+| A Guide's subrooms | A Director's subrooms |
+| --- | --- |
+| Lesson studies, Resources, Guides' room, Put a name forward, Numbers | Numbers, Reports, Lesson studies, Library, Pairing requests, Guides' room |
+
+Three things about it are worth knowing:
+
+- **It opens where your work is.** A Guide lands on Lesson studies, because writing is what a Guide comes here to do. A Director lands on the numbers.
+- **It remembers where you were.** Somebody who lives in Lesson studies lands there tomorrow, and a Director's habit is their own rather than everybody's.
+- **A link still beats the habit.** *Guides asking to pair* on the desk opens the Office already on Pairing requests, whichever subroom you were last in. Being sent to the right room and left to find the shelf is the same as not being sent.
+
+The count beside **Pairing requests** is how many Guides are waiting on an answer. Without it a Director has to open the subroom to find out whether there is anything in it, which is the scrolling problem again with a tap on top.
+
+> **NOTE** · Why this room needed it most
+>
+> It held nine panels down one page. A Guide who came here to write a study passed their numbers, the shelf, two pairing cards and a recommendation form on the way, every single time, and on a phone that is most of a minute of thumb. The Director's screen has worked in rooms since it was split up; the Office simply never got the same treatment.
 
 The split is by kind of work rather than by rank. A roster, a conversation, a case is about a person, and lives on that person's screen. Numbers, exports, writing and stocking a shelf are office work, and live here. Before this, a Guide's roster carried study-writing, library-stocking and a blog desk underneath the list of five people they walk with, and a Director's analytics sat three clicks inside an admin tab. The people screens were four screens long and the tools were hard to find.
 

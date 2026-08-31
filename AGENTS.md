@@ -92,6 +92,21 @@ post, a message, a file) copy the content into the report at the moment it is
 reported. Otherwise the obvious move is to post, get reported, delete, and leave
 the Director opening a report about nothing.
 
+**A room is a folder; a subroom is a folder inside it.** A screen with more than
+about four panels on it is a scroll, and a scroll is how somebody stops finding
+the tool they came for. `components/Rooms.tsx` is the mechanism and it is
+already written: `useRoom` remembers the subroom per role, `?room=` in the
+address beats the memory so a link can still send somebody somewhere exact, and
+the strip scrolls sideways inside itself on a phone. The Admin screen and the
+Office both use it.
+
+Two rules when you add one. **A panel lives in exactly one subroom**: one that
+appears in two is in neither, as far as the person hunting for it is concerned.
+And **the first subroom is what the room is for**: `useRoom` opens it when there
+is nothing remembered, so a Guide's Office opens on Lesson studies and a
+Director's opens on the numbers. `tests/rooms-and-subrooms.mjs` holds both,
+plus the rule that every link naming a subroom names one that exists.
+
 ---
 
 ## 3. Authorisation lives in the database

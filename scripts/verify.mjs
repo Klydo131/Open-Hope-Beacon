@@ -151,6 +151,10 @@ const staticChecks = [
   // than one person, and some of that group are children. Whether there is a
   // way out of it, and whether it is still not surveilled.
   ['a way out of the guild room', 'tests/a-way-out-of-the-guild-room.mjs'],
+  // A room is a folder and a subroom is a folder inside it. Whether every
+  // panel in the Office is in exactly one subroom, and whether the links that
+  // point into it name subrooms that exist.
+  ['rooms and subrooms', 'tests/rooms-and-subrooms.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

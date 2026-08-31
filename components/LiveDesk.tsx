@@ -168,7 +168,10 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
       if (pendingAsks > 0) {
         next.push({
           key: 'asks', label: 'Guides asking to pair', count: pendingAsks,
-          href: '/office#pairing-requests',
+          // `?room=` rather than `#`, now that the Office has subrooms: a hash
+          // points at a card, and a card that is in a subroom nobody has opened
+          // is not on the page to point at.
+          href: '/office?room=people',
         });
       }
     }
