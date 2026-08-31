@@ -113,6 +113,25 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
 
   const nameOf = (id: string) => names[id] ?? 'Someone who has left';
 
+  // Taking a reported guild post down. The board itself stays shut to
+  // leadership — a group talking honestly is what that room is for — so this
+  // reaches exactly one post: the one somebody reported. The report keeps its
+  // copy of the text afterwards, which is why the quote below still reads
+  // once the post is gone.
+  const takeDown = async (report: live.LiveReport) => {
+    if (!report.guild_post_id) return;
+    setBusy(report.id);
+    setError('');
+    try {
+      await live.removeGuildPost(report.guild_post_id);
+      await load();
+    } catch (cause) {
+      setError(humanError(cause, 'That post could not be removed.'));
+    } finally {
+      setBusy('');
+    }
+  };
+
   const decide = async (id: string, status: 'actioned' | 'dismissed') => {
     setBusy(id);
     setError('');
@@ -172,10 +191,21 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
               <li key={r.id} className="rounded-xl bg-red-50 p-4 ring-1 ring-red-200">
                 <p className="font-bold text-navy">
                   {nameOf(r.reporter_id)} reported {nameOf(r.subject_id)}
+                  {r.guild_post_body !== null && <span className="font-normal text-gray-600"> · Guild Room post</span>}
                 </p>
                 <p className="mt-0.5 text-sm font-semibold text-red-800">
                   {REASON_LABEL[r.reason] ?? r.reason}
                 </p>
+                {/* WHAT WAS ACTUALLY WRITTEN. Copied into the report when it
+                    was reported, so it is still here after the post is taken
+                    down — or after its author deletes it, which is the obvious
+                    move for somebody who has just been reported. A Director
+                    who cannot see what was said cannot decide anything. */}
+                {r.guild_post_body !== null && (
+                  <blockquote className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-white p-3 text-gray-700 ring-1 ring-red-200">
+                    {r.guild_post_body}
+                  </blockquote>
+                )}
                 {r.detail && (
                   <p className="mt-2 whitespace-pre-wrap rounded-lg bg-white p-3 text-gray-700">{r.detail}</p>
                 )}
@@ -198,9 +228,14 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
                   <Button variant="ghost" disabled={busy === r.id} onClick={() => decide(r.id, 'dismissed')}>
                     Nothing to answer
                   </Button>
+                  {r.guild_post_id && (
+                    <Button variant="danger" disabled={busy === r.id} onClick={() => void takeDown(r)}>
+                      Delete the post
+                    </Button>
+                  )}
                   {onRemove && (
                     <Button
-                      variant="gold"
+                      variant="danger"
                       disabled={busy === r.id}
                       onClick={async () => {
                         // Closed in the same press. Doing the two separately

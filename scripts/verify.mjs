@@ -147,6 +147,10 @@ const staticChecks = [
   // that can bite — whether the query that shows them stays inside the columns
   // the Guide chose to publish.
   ['the Guide is a person', 'tests/the-guide-is-a-person.mjs'],
+  // The guild board is the one room where a message reaches a group rather
+  // than one person, and some of that group are children. Whether there is a
+  // way out of it, and whether it is still not surveilled.
+  ['a way out of the guild room', 'tests/a-way-out-of-the-guild-room.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

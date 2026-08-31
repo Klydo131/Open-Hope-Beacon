@@ -172,3 +172,40 @@ export function KebabGlyph(props: GlyphProps) {
     </Svg>
   );
 }
+
+/**
+ * A search field's magnifier.
+ *
+ * The library's search box used `⌕` U+2315, which is the same trap as the
+ * power symbol above: Miscellaneous Technical, drawn by Apple's system font
+ * and by nothing on Android. It is the label on the one control that makes a
+ * long list usable, so it cannot be a character somebody's phone might not
+ * have.
+ */
+export function SearchGlyph(props: GlyphProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M16.2 16.2L21 21" />
+    </Svg>
+  );
+}
+
+/**
+ * Saved, or not saved. One shape, filled or hollow.
+ *
+ * It was a pair of characters, `♥` and `♡`, and they are not a pair: the solid
+ * one has an emoji form that Android reaches for, the hollow one does not. So
+ * saving something swapped a thin outline for a fat red emoji of a different
+ * size. Same path, `fill` toggled, is the same heart in both states.
+ */
+export function HeartGlyph({ filled = false, ...props }: GlyphProps & { filled?: boolean }) {
+  return (
+    <Svg {...props}>
+      <path
+        d="M12 20s-7-4.4-7-9.2A4.1 4.1 0 0 1 12 8a4.1 4.1 0 0 1 7 2.8C19 15.6 12 20 12 20z"
+        fill={filled ? 'currentColor' : 'none'}
+      />
+    </Svg>
+  );
+}

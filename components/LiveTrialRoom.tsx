@@ -144,12 +144,12 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
                           onClick={() => void act(m.id, 'restore', m.full_name)}>
                     Lift the suspension
                   </Button>
-                  <Button variant="ghost" disabled={busy === m.id}
+                  <Button variant="danger" disabled={busy === m.id}
                           onClick={() => setOpenFor(openFor === `rm-${m.id}` ? '' : `rm-${m.id}`)}>
                     Remove from the church
                   </Button>
                   {openFor === `rm-${m.id}` && (
-                    <Button variant="ghost" disabled={busy === m.id}
+                    <Button variant="danger" disabled={busy === m.id}
                             onClick={() => void act(m.id, 'remove', m.full_name)}>
                       Yes, remove {m.full_name}
                     </Button>
@@ -213,7 +213,7 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
                       {/* Removal is deliberately the second press, and never the
                           default. It cannot be undone, and a Director reaching
                           for it in anger is the case this guard exists for. */}
-                      <Button variant="ghost" disabled={busy === m.id}
+                      <Button variant="danger" disabled={busy === m.id}
                               onClick={() => setOpenFor(`rm-${m.id}`)}>
                         Remove instead
                       </Button>
@@ -228,7 +228,7 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
                       Their conversations go with them.
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <Button variant="ghost" disabled={busy === m.id}
+                      <Button variant="danger" disabled={busy === m.id}
                               onClick={() => void act(m.id, 'remove', m.full_name)}>
                         Yes, remove them
                       </Button>
@@ -472,7 +472,7 @@ export function LiveCourt({ me, emptyState }: {
                           'They are suspended. Their account is switched off until a Director lifts it.')}>
                   Suspend them
                 </Button>
-                <Button variant="ghost" disabled={busy === c.id}
+                <Button variant="danger" disabled={busy === c.id}
                         onClick={() => setOpenCase(`rm-${c.id}`)}>
                   Remove instead
                 </Button>
@@ -504,7 +504,7 @@ export function LiveCourt({ me, emptyState }: {
             Remove {c.subject_name} from the church? This cannot be undone.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Button variant="ghost" disabled={busy === c.id}
+            <Button variant="danger" disabled={busy === c.id}
                     onClick={() => void run(c.id, () => live.closeTrial(c.id, 'removed', note[c.id]),
                       `${c.subject_name} has been removed from the church.`)}>
               Yes, remove them

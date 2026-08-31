@@ -178,7 +178,7 @@ function PlaylistDetail({
           <Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete</Button>
         ) : (
           <>
-            <Button variant="ghost" onClick={onDelete}>Really delete</Button>
+            <Button variant="danger" onClick={onDelete}>Really delete</Button>
             <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Keep</Button>
           </>
         )}

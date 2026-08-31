@@ -566,7 +566,7 @@ export function LiveFacePicker() {
               onClick={() => void act(() => live.updateMyProfile({ photo_path: null }))}
               className="tap-sm rounded-xl px-3 py-2 text-sm font-semibold text-gray-500 underline"
             >
-              Remove photo
+              Use my icon instead
             </button>
           )}
         </div>

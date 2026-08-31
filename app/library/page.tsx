@@ -21,6 +21,7 @@ import {
 import { shareItem, blobToFile } from '@/lib/share';
 import { ShareButton } from '@/components/ShareSheet';
 import { MediaPlayer } from '@/components/MediaPlayer';
+import { HeartGlyph, SearchGlyph } from '@/components/Glyph';
 import { Playlists } from '@/components/Playlists';
 import { PlayerPanel } from '@/components/PlayerBar';
 import { useRoom } from '@/lib/room-theme';
@@ -114,7 +115,7 @@ function ResourceCard({
             saved ? 'bg-rose-50 text-rose-600' : 'bg-gray-50 text-navy hover:bg-sky-50'
           }`}
         >
-          {saved ? '♥' : '♡'}
+          <HeartGlyph filled={saved} size={18} />
         </button>
       </div>
       <p className="mt-3 flex-1 text-sm leading-relaxed text-gray-600">{item.description}</p>
@@ -411,7 +412,7 @@ export default function LibraryPage() {
 
           <label className="relative block">
             <span className="sr-only">Search library resources</span>
-            <span aria-hidden className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg">⌕</span>
+            <SearchGlyph size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}

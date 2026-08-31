@@ -5,6 +5,8 @@ import * as live from '@/lib/live/data';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { Button, Card } from '@/components/ui';
 import { humanError } from '@/lib/live/errors';
+import { ReportDialog } from '@/components/ReportDialog';
+import type { ReportReason } from '@/lib/types';
 
 const KIND: Record<live.GuildActivityKind, { label: string; icon: string; prompt: string }> = {
   encouragement: { label: 'Encouragement', icon: '💛', prompt: 'Share an encouragement with the guild.' },
@@ -30,6 +32,9 @@ export function LiveGuildActivity() {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  // The id of the post whose report dialog is open, or ''. One at a time: this
+  // is not a control anybody should be halfway through twice.
+  const [reporting, setReporting] = useState('');
 
   const loadGuilds = useCallback(async () => {
     try {
@@ -87,6 +92,15 @@ export function LiveGuildActivity() {
     } finally {
       setBusy('');
     }
+  };
+
+  const report = (id: string, reason: ReportReason, detail: string) => {
+    // Not awaited, for the same reason the conversation's report control does
+    // not await: the dialog has already said it is done, and a spinner after
+    // the hardest button in the app is a cruelty. A failure surfaces above.
+    void live
+      .reportGuildPost(id, reason, detail)
+      .catch((cause) => setError(humanError(cause, 'That report could not be sent.')));
   };
 
   const deleteMine = async (id: string) => {
@@ -216,12 +230,41 @@ export function LiveGuildActivity() {
                       >
                         {entry.i_amen ? '🙏 Remove amen' : '🙏 Amen'} {entry.amen_count > 0 ? `· ${entry.amen_count}` : ''}
                       </Button>
-                      {entry.is_mine && (
-                        <Button variant="ghost" disabled={busy === entry.id} onClick={() => void deleteMine(entry.id)}>
+                      {entry.is_mine ? (
+                        <Button variant="danger" disabled={busy === entry.id} onClick={() => void deleteMine(entry.id)}>
                           Delete my post
                         </Button>
+                      ) : (
+                        /* THE WAY OUT OF THIS ROOM. A board where one person
+                           can reach a whole group, some of whom are children,
+                           had no way to say a post was wrong: only its author
+                           could remove it, and leadership cannot see in here
+                           at all. Every other place in Beacon where somebody
+                           can be hurt has this control on the same screen as
+                           the thing that hurt them, and so does this one now.
+
+                           A plain link rather than a button, and away from
+                           Amen, so it is findable without hunting and never
+                           hit by a thumb aiming at something else. */
+                        <button
+                          type="button"
+                          onClick={() => setReporting(reporting === entry.id ? '' : entry.id)}
+                          className="tap-sm px-2 text-sm text-gray-400 underline underline-offset-2 hover:text-red-600"
+                        >
+                          Report this post
+                        </button>
                       )}
                     </div>
+                    {reporting === entry.id && (
+                      <div className="mt-3">
+                        <ReportDialog
+                          subjectName="this post"
+                          hiddenSubject
+                          onCancel={() => setReporting('')}
+                          onSubmit={(reason, detail) => report(entry.id, reason, detail)}
+                        />
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>

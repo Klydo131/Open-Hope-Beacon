@@ -2001,6 +2001,10 @@ export interface LiveReport {
   decided_by: string | null;
   decided_at: string | null;
   outcome: string | null;
+  /** Set when the report is about a post on a guild board. */
+  guild_post_id: string | null;
+  /** What that post said when it was reported, kept even if the post is gone. */
+  guild_post_body: string | null;
 }
 
 /**
@@ -2040,7 +2044,7 @@ export async function reportPerson(args: {
 export async function listReports(): Promise<LiveReport[]> {
   const { data, error } = await db()
     .from('reports')
-    .select('id, reporter_id, subject_id, pairing_id, reason, detail, status, created_at, decided_by, decided_at, outcome')
+    .select('id, reporter_id, subject_id, pairing_id, reason, detail, status, created_at, decided_by, decided_at, outcome, guild_post_id, guild_post_body')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []) as LiveReport[];
@@ -2508,6 +2512,48 @@ export async function toggleGuildAmen(postId: string): Promise<boolean> {
 
 export async function deleteMyGuildPost(postId: string): Promise<boolean> {
   const { data, error } = await db().rpc('delete_my_guild_post', { p_post: postId });
+  if (error) throw new Error(error.message);
+  return Boolean(data);
+}
+
+/**
+ * Report a post on the guild board.
+ *
+ * NO SUBJECT ARGUMENT, and that is the point. The board shows "A Guide" and
+ * "A fellow Explorer" rather than names, so the person reporting genuinely
+ * does not know whose post it is and must not be asked to name them. The post
+ * id is all the browser sends; the function resolves the author, files it into
+ * the same `reports` table the pairing conversation uses, and never returns
+ * the name.
+ *
+ * It also copies the post's text into the report. A post can be deleted by its
+ * author a moment after it is reported, and without the copy a Director would
+ * open a report about nothing.
+ */
+export async function reportGuildPost(
+  postId: string,
+  reason: ReportReason,
+  detail?: string,
+): Promise<string> {
+  const { data, error } = await db().rpc('report_guild_post', {
+    p_post: postId,
+    p_reason: reason,
+    p_detail: detail?.trim() || null,
+  });
+  if (error) throw new Error(error.message);
+  return String(data);
+}
+
+/**
+ * Take a guild post down. Church leadership only.
+ *
+ * The board itself stays closed to leadership — a group talking honestly is
+ * what the room is for. This reaches one post, the one somebody reported, and
+ * writes a `guild_post_removed` row into the security audit ledger before the
+ * delete rather than after it.
+ */
+export async function removeGuildPost(postId: string): Promise<boolean> {
+  const { data, error } = await db().rpc('remove_guild_post', { p_post: postId });
   if (error) throw new Error(error.message);
   return Boolean(data);
 }

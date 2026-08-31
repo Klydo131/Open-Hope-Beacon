@@ -85,7 +85,15 @@ const stripComments = (src) => src
 // The words a person reads on the button. If it says Delete, Remove, Disconnect
 // or Disapprove and it is a <Button>, it is destructive and must look it.
 {
-  const WORDS = /^(Delete|Delete selected|Delete for good|Delete this guild|Remove|Disconnect|Disapprove|Disapprove selected)$/;
+  // ANY LABEL CONTAINING ONE OF THESE WORDS, not a list of the exact labels
+  // that existed when this was written.
+  //
+  // It WAS that list. A new group board then shipped a button reading "Delete
+  // my post", which is destructive, is drawn as an ordinary ghost button, and
+  // was never checked — because "Delete my post" was not one of the eight
+  // strings the rule knew. A rule that has to be edited every time somebody
+  // writes a new label is a rule that is out of date the moment it passes.
+  const WORDS = /\b(Delete|Remove|Disconnect|Disapprove|Erase|Wipe|Revoke)\b/i;
   const offenders = [];
   for (const file of files) {
     const src = stripComments(readFileSync(file, 'utf8'));
@@ -103,10 +111,16 @@ const stripComments = (src) => src
     // only looked at the shared component. It rendered at 56px anyway: every
     // button in the app has a 56px floor in globals.css, so padding cannot make
     // one smaller. Only tap-sm can, and only the danger variant sets it.
-    for (const m of src.matchAll(/>\s*([A-Za-z][A-Za-z ]*?)\s*<\/(Button|button)>/g)) {
-      const label = m[1].trim();
+    // PUNCTUATION AND INTERPOLATION COUNT. The first version of this only
+    // matched labels made of letters and spaces, so `Yes, remove them` and
+    // `Yes, remove {m.full_name}` — the two buttons in the trial room that
+    // actually carry out the removal — were invisible to it. The label the
+    // person reads is not always a bare word, and the most dangerous ones
+    // never are: they name the person.
+    for (const m of src.matchAll(/>([^<>]{1,90})<\/(Button|button)>/g)) {
+      const label = m[1].replace(/\{[^{}]*\}/g, ' ').replace(/\s+/g, ' ').trim();
       const tag = m[2];
-      if (!WORDS.test(label)) continue;
+      if (!label || !WORDS.test(label)) continue;
       const opening = src.lastIndexOf(`<${tag}`, m.index);
       if (opening === -1) continue;
       const props = src.slice(opening, m.index);

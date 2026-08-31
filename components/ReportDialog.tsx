@@ -53,10 +53,19 @@ const REASONS: { value: ReportReason; label: string; hint: string }[] = [
 
 export function ReportDialog({
   subjectName,
+  hiddenSubject = false,
   onCancel,
   onSubmit,
 }: {
   subjectName: string;
+  /**
+   * The guild board shows "A Guide" and "A fellow Explorer" instead of names,
+   * so the person reporting a post there genuinely does not know whose it is.
+   * Every sentence below names the subject, and "Melody is not told" turns
+   * into "this post is not told" if it is left alone. With this set, the
+   * copy talks about whoever wrote it instead.
+   */
+  hiddenSubject?: boolean;
   onCancel: () => void;
   onSubmit: (reason: ReportReason, detail: string) => void;
 }) {
@@ -69,11 +78,14 @@ export function ReportDialog({
       <Card className="p-5 ring-2 ring-green-300">
         <h3 className="text-lg font-bold text-navy">Reported. Thank you.</h3>
         <p className="mt-2 text-gray-700">
-          Your church&rsquo;s Directors have been told. {subjectName} has not,
+          Your church&rsquo;s Directors have been told.{' '}
+          {hiddenSubject ? 'Whoever wrote it has not been' : `${subjectName} has not`},
           and will not be.
         </p>
         <p className="mt-2 text-sm text-gray-600">
-          You do not have to keep talking to them while this is looked at.
+          {hiddenSubject
+            ? 'A Director can take the post down. You do not have to look at it again.'
+            : 'You do not have to keep talking to them while this is looked at.'}
         </p>
         <Button variant="ghost" className="mt-4" onClick={onCancel}>
           Close
@@ -89,9 +101,10 @@ export function ReportDialog({
       {/* Before anything is asked for. This is the sentence that decides
           whether a frightened person goes through with it. */}
       <p className="mt-2 rounded-xl bg-blue-50 p-3 text-sm text-blue-900 ring-1 ring-blue-200">
-        This goes to your church&rsquo;s Directors. <strong>{subjectName} is
-        not told</strong>. No message, no notification, nothing they could
-        notice.
+        This goes to your church&rsquo;s Directors.{' '}
+        <strong>
+          {hiddenSubject ? 'Whoever wrote it is not told' : `${subjectName} is not told`}
+        </strong>. No message, no notification, nothing they could notice.
       </p>
 
       <fieldset className="mt-4">
