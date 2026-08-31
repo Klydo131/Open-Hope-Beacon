@@ -29,6 +29,24 @@ const strip = (s) => s.replace(/--[^\n]*/g, '');
 
 ok(files.length > 0, `there are migrations to check (${files.length})`);
 
+// ------------------------------------------------------------------ naming --
+// THE `00NN_` SERIES IS CLOSED AT 0049. Everything since is a timestamp, and it
+// has to stay that way, because this list is sorted by filename and nothing
+// else: `0050_` sorts BEFORE `20260829…`, so a migration numbered today would
+// run before the tables it depends on. On a machine where the database already
+// exists nothing happens; on a fresh one the build dies, which is the worst
+// place to find out.
+{
+  const late = files.filter((f) => /^00(?:[5-9]\d)_/.test(f));
+  ok(late.length === 0,
+     late.length
+       ? `these keep the old 00NN_ numbering and will sort before the timestamped `
+         + `migrations they depend on — rename them YYYYMMDDHHMMSS_: ${late.join(', ')}`
+       : 'no migration uses a 00NN_ number above the closed 0049 series');
+  ok(files.some((f) => /^\d{14}_/.test(f)),
+     'and the timestamped series is the one in use');
+}
+
 // ---------------------------------------------------------------- ordering --
 // A file may not call a function that a LATER file is the first to create.
 const createdIn = new Map();

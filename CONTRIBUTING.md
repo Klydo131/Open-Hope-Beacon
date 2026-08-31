@@ -18,6 +18,13 @@ npm run dev            # http://localhost:3000
 That is the whole setup. No `.env` to fill in, no database, no account, no seed
 script. Sample people and sample activity are already there.
 
+That is the **sample side**, which is the whole app for anybody exploring it.
+There is a second half — the signed-in app, which talks to a Supabase project —
+and it needs credentials nobody outside a running church has. Everything under
+`lib/live/`, `components/live/` and `supabase/` belongs to that half. If you are
+changing it, read [AGENTS.md](./AGENTS.md) first: it is the working brief for
+the app's two halves, its product rules and how its authorisation is arranged.
+
 Requires **Node 22 or newer** and nothing else. Some tests import TypeScript
 directly and rely on Node's native type stripping, so there is no build step
 between the code that ships and the code that is checked.
@@ -74,7 +81,12 @@ not "does it work" but "will the next person understand why it is like that".
 ### Guardrails are tests, not agreements
 
 If a rule matters, there is a file in `tests/` that fails when it is broken.
-Four of them hold the promises this project makes about itself:
+`npm run verify` runs all of them — typecheck, build and every guardrail — and
+CI runs the same command on Ubuntu, macOS and Windows, so a green run on Linux
+alone is not a green build. `scripts/verify.mjs` is the list, each entry with a
+line saying why it is there.
+
+Four of them hold the oldest promises this project makes about itself:
 
 | File | Refuses |
 |---|---|
@@ -99,7 +111,7 @@ stay installable on a cheap phone and auditable by one person in an afternoon.
 A pull request adding a dependency should say what it replaces and why the
 fifteen lines it saves are worth it.
 
-### Two product rules that outrank convenience
+### Three product rules that outrank convenience
 
 **An Explorer never sees their own journey stage.** A stage is a note the church
 keeps to organise its work, not a label to show a human being about themselves.
@@ -109,6 +121,14 @@ keeps to organise its work, not a label to show a human being about themselves.
 anywhere that shows a pastor somebody's conversation, and adding one would
 change what this app is. If you think it needs one, open an issue first.
 
+**Any room where one person can hurt another has a way out of it.** Three
+things, on the same screen as the harm: a way for the person harmed to report
+it, somebody whose job it is to look and who is notified by name, and a record
+that outlives the person it describes. `reports` has no delete policy at all,
+deliberately — a safeguarding record that can be made to disappear is not a
+record. A group board shipped here without any of the three, and the fix is
+worth reading before you add a second one: `tests/a-way-out-of-the-guild-room.mjs`.
+
 ---
 
 ## Where things are
@@ -117,9 +137,13 @@ change what this app is. If you think it needs one, open an issue first.
 |---|---|
 | `app/` | Routes. One folder per screen, Next.js App Router. |
 | `components/` | Everything visual. No data fetching. |
-| `lib/demo/store.tsx` | The store: every piece of state, every action. |
+| `components/live/` | The signed-in screens: door, admin, guide, explorer. |
+| `lib/demo/store.tsx` | The sample store: every piece of state, every action. |
 | `lib/demo/seed.ts` | The sample church. |
+| `lib/live/data.ts` | Every call the signed-in app makes to the database. Nothing else talks to it. |
+| `lib/live/session.tsx` | Who is signed in, and the rules for deciding they are not. |
 | `lib/backend/` | The seam where a real backend plugs in. |
+| `supabase/migrations/` | The database, in order. Timestamp filenames — see AGENTS.md. |
 | `lib/brand.ts` | The app's name and colours. Change here, nowhere else. |
 | `lib/quest.ts` | The guided walks, one per role. |
 | `lib/types.ts` | Every shape in the app, in one file. |
