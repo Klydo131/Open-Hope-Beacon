@@ -105,8 +105,19 @@ const readDb = (page) => page.evaluate(() => {
   await page.waitForTimeout(1600);
   await page.screenshot({ path: `${OUT}/rec-join.png` });
 
-  const nameField = page.locator('input').first();
+  const nameField = page.locator('input[type="text"], input:not([type])').first();
   if (await nameField.count()) { await nameField.fill(NAME); await page.waitForTimeout(300); }
+
+  // Tick consent, because the button is disabled until it is.
+  //
+  // The form gained a permission box — deliberately never pre-ticked, since "a
+  // box that arrives already ticked is not consent, it is a default somebody
+  // failed to notice". This suite kept filling only the name and then waited
+  // for a button that could never become enabled, which Playwright reports as a
+  // 30-second timeout rather than as the missing step it is.
+  const consent = page.locator('input[type="checkbox"]').first();
+  if (await consent.count()) { await consent.check().catch(() => {}); await page.waitForTimeout(300); }
+
   const finish = page.getByRole('button', { name: /join|finish|create|continue|sign up/i }).last();
   ok(await finish.count() > 0, 'the join page offers a way to finish');
   await finish.click();

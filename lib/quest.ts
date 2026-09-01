@@ -351,6 +351,13 @@ const DS_STEPS: QuestStep[] = [
     title: 'Open a lesson',
     hint: 'Tap the highlighted lesson to open it. Mark it done when you have finished, in your own time.',
     target: 'ds-lesson',
+    // A target inside a room the person has not opened is not on the screen at
+    // all, so the spotlight has nothing to land on. Falling back to the room's
+    // own tab points at the thing that reveals it, which is exactly what the
+    // Guide's steps already do with `tab-talk`.
+    fallbacks: [
+      { target: 'room-study', hint: 'Open Study. Your lessons are kept in there.' },
+    ],
     route: '/ds',
     routeLabel: 'Go to My Journey',
     events: ['beacon:ds-lesson'],
@@ -363,6 +370,9 @@ const DS_STEPS: QuestStep[] = [
     title: 'Ask for prayer',
     hint: 'Write what is on your heart and tap the highlighted button. Your Guide will see it.',
     target: 'ds-prayer',
+    fallbacks: [
+      { target: 'room-prayer', hint: 'Open Prayer. That is where you write your request.' },
+    ],
     route: '/ds',
     routeLabel: 'Go to My Journey',
     events: ['beacon:ds-prayer'],

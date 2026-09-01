@@ -145,6 +145,11 @@ export function RoomTabs({
             role="tab"
             aria-selected={on}
             data-room={r.id}
+            // So the tutorial can point at a room the way it already points at a
+            // tab. A step whose target lives inside a room that is not open finds
+            // nothing at all, and the spotlight lands on empty screen — which is
+            // what happened to the Explorer's "Open a lesson" the day rooms landed.
+            data-quest={`room-${r.id}`}
             onClick={() => onChoose(r.id)}
             className={`tap-sm flex shrink-0 items-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
               on ? 'text-white shadow' : 'bg-white text-navy ring-1 ring-black/5 hover:bg-gray-50'

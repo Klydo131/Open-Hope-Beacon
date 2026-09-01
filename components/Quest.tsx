@@ -98,6 +98,13 @@ export function Quest() {
   // the panel moves too — and when neither edge has room it shrinks to a bar.
   const [place, setPlace] = useState<'bottom' | 'top' | 'mini'>('bottom');
   const placedFor = useRef<string>('');
+  // How many times we have tried to bring THIS target into view. Bounded, so
+  // a target that genuinely cannot be reached stops asking. See the retry
+  // below for why one attempt is not enough.
+  const placeTries = useRef<{ key: string; n: number }>({ key: '', n: 0 });
+  // Whether we have already slid this target in from the side. Separate from
+  // the vertical latch because the two axes fail independently.
+  const slidFor = useRef<string>('');
   const panelRef = useRef<HTMLElement | null>(null);
   // The target is on this screen but scrolled out of sight. Drawing a ring at
   // coordinates nobody can see is how the tutorial ended up saying "tap the
@@ -221,17 +228,54 @@ export function Quest() {
       // card in the bottom-right, so a target entirely to its left never
       // conflicts and needs no vertical reservation at all.
       const sameColumn = !pnl || (r.left < pnl.right && r.right > pnl.left);
-      const reserve = sameColumn ? hExp + 12 : 12;
-      const bandBottom = vh - reserve;
-      const band = bandBottom - top;
+
+      // Reserve the space the panel is ACTUALLY occupying, on the side it is
+      // actually on.
+      //
+      // The panel has two homes, chosen further down from where the target
+      // ends up: the bottom normally, the top when the target sits high. This
+      // reserved the bottom either way, so whenever it was at the top the band
+      // was measured from the header down to a line 380px above the floor —
+      // the region the panel itself was covering. The target was then scrolled
+      // to the middle of that, which is to say scrolled underneath the panel,
+      // and the one-shot below spent itself doing it.
+      const panelAtTop = !!pnl && sameColumn && place === 'top';
+      const bandTop = panelAtTop ? Math.max(top, (pnl as DOMRect).bottom + 12) : top;
+      const bandBottom = sameColumn && !panelAtTop ? vh - (hExp + 12) : vh - 12;
+      const band = bandBottom - bandTop;
 
       // Try to place the target inside the clear band, once per target. Keyed
       // on the step AND which element, so revealing a tab re-places the control
       // that just appeared.
       const placeKey = `${step.id}:${key}`;
+
+      // Bring it in from the side before worrying about up and down.
+      //
+      // The room strip scrolls sideways inside itself, so a tab can be entirely
+      // real, visible to `isVisible`, and still sit past the right edge of a
+      // phone. Vertical scrolling cannot reach it. The ring was drawn at x=413
+      // on a 412px screen — off the side of the world, pointing at nothing —
+      // and every check here measures only top and bottom, so nothing noticed.
+      //
+      // `inline: 'nearest'` slides the strip the shortest distance that brings
+      // the tab into view; `block: 'nearest'` keeps it from also yanking the
+      // page up or down, which the placement below is responsible for. Once per
+      // target, so a strip that cannot move does not retry forever.
+      if (slidFor.current !== placeKey) {
+        const vw = document.documentElement.clientWidth;
+        if (r.right > vw - 4 || r.left < 4) {
+          slidFor.current = placeKey;
+          el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+          return; // re-measure next tick, once it has slid
+        }
+      }
       if (!pinned && placedFor.current !== placeKey && band > 40) {
         placedFor.current = placeKey;
-        const wantTop = r.height >= band ? top : top + (band - r.height) / 2;
+        placeTries.current = {
+          key: placeKey,
+          n: (placeTries.current.key === placeKey ? placeTries.current.n : 0) + 1,
+        };
+        const wantTop = r.height >= band ? bandTop : bandTop + (band - r.height) / 2;
         const delta = r.top - wantTop;
         if (Math.abs(delta) > 6 && canScroll(delta)) {
           window.scrollBy({ top: delta, behavior: 'smooth' });
@@ -265,6 +309,28 @@ export function Quest() {
       else if (r.top > vh - 4) setOffScreen('below');
       else setOffScreen(null);
 
+      // A placement that left the target off screen is not a placement.
+      //
+      // The conversation scrolls itself to the newest message a moment AFTER
+      // the ring is placed, which pushes the composer back below the fold. The
+      // drift correction below deliberately ignores a target that is fully off
+      // screen, because being dragged around by the app is worse than not
+      // finding a button — but that rule is about where the PERSON scrolled to,
+      // and here it is the page that moved on its own. The one-shot latch then
+      // held: the ring stayed hidden, and the panel went on saying "type in the
+      // highlighted box" with nothing highlighted. That was the Explorer's very
+      // first step and the Guide's "Send a message", on a phone, which is where
+      // this gets demonstrated.
+      //
+      // So the latch only sticks once the target has actually been seen. Capped
+      // at three, because a target that cannot be brought into view must stop
+      // fighting the page and let the panel offer its "show me" instead.
+      if (!pinned && (r.bottom < top + 4 || r.top > vh - 4)
+          && placedFor.current === placeKey
+          && placeTries.current.key === placeKey && placeTries.current.n < 3) {
+        placedFor.current = '';
+      }
+
       // Placement is not a one-shot. Other things move the page afterwards:
       // the chat scrolls itself to the newest message, a tab panel changes
       // height, and the target can drift back under the sticky header or under
@@ -278,7 +344,7 @@ export function Quest() {
         (r.top < top - 2 ||
         (sameColumn && place !== 'mini' && pnl && r.bottom > pnl.top && r.top < pnl.bottom));
       if (drifted && band > 40) {
-        const wantTop = r.height >= band ? top : top + (band - r.height) / 2;
+        const wantTop = r.height >= band ? bandTop : bandTop + (band - r.height) / 2;
         const delta = r.top - wantTop;
         if (Math.abs(delta) > 8 && canScroll(delta)) {
           window.scrollBy({ top: delta, behavior: 'smooth' });

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { LATEST_NOTE_ID } from '@/lib/release-notes';
-import { BUILD_ID, BUILD_TIME } from '@/lib/build-info';
+import { BUILD_ID, BUILD_TIME, CANONICAL_HOSTS } from '@/lib/build-info';
 import { resolveMinBuildTime } from '@/lib/min-build.mjs';
 
 // The build the SERVER is currently running, as plain JSON.
@@ -30,6 +30,15 @@ export function GET() {
       // the value this deployment is actually configured with.
       minBuildTime: resolveMinBuildTime(process.env.BEACON_MIN_BUILD_TIME, BUILD_TIME),
       latestNote: LATEST_NOTE_ID,
+      // The addresses this build considers its real home, baked in at build
+      // time by scripts/stamp-build.mjs. Empty means none was configured, and
+      // the frozen-copy warning is inert: an installed copy on a dead address
+      // has nothing to compare itself against and will never be told.
+      //
+      // Reported here because there was no way to check it. Setting
+      // CANONICAL_HOST only takes effect at the NEXT build, so "did the
+      // redeploy pick it up?" was a question nobody could answer from outside.
+      canonicalHosts: CANONICAL_HOSTS,
     },
     {
       headers: {

@@ -64,6 +64,34 @@ async function open(browser, { standalone, path }) {
 }
 
 (async () => {
+  // This suite needs a build that KNOWS its real address, and is then served
+  // from a different one. That is a build-time fact — CANONICAL_HOST is baked
+  // in by scripts/stamp-build.mjs — so an ordinary `npm run build` produces an
+  // app where the warning is inert and every assertion below fails.
+  //
+  // It failed that way in every CI run, because the runner starts one plain
+  // server and passes no environment. A check that can never pass is not a
+  // check; it is a red line people learn to scroll past. So it says what it
+  // needs and stands down, and still runs in full when set up properly:
+  //
+  //   CANONICAL_HOST=localhost:4396 npm run build
+  //   node scripts/run-next.mjs start -p 4395
+  //   node tests/e2e/frozen-copy.js 4395
+  try {
+    const res = await fetch(`${BASE}/version.json`);
+    const hosts = (await res.json()).canonicalHosts;
+    if (!Array.isArray(hosts) || hosts.length === 0) {
+      console.log('SKIP frozen-copy: this build has no CANONICAL_HOST, so the');
+      console.log('     frozen-address warning cannot fire. See the header for how');
+      console.log('     to build and run it.');
+      console.log('\nRESULT: SKIPPED');
+      process.exit(0);
+    }
+  } catch {
+    // If the endpoint cannot be read, fall through and let the real assertions
+    // report whatever is actually wrong.
+  }
+
   const browser = await chromium.launch(launchOptions);
 
   if (MODE === 'frozen') {
