@@ -2,7 +2,7 @@
 
 Everything needed to run Open Hope Beacon, move it to a new project, and keep it working. Written for the people who run a church, and for the AI tools that will be asked to continue the work.
 
-**Version:** 1 September 2026 · **Applies to:** migrations through `20260831060000` · **Licence:** AGPL-3.0 · **Source:** `github.com/Klydo131/Open-Hope-Beacon`
+**Version:** 1 September 2026 (evening) · **Applies to:** migrations through `20260901140000` · **Licence:** AGPL-3.0 · **Source:** `github.com/Klydo131/Open-Hope-Beacon`
 
 > **NOTE** · How to read this
 >
@@ -11,6 +11,8 @@ Everything needed to run Open Hope Beacon, move it to a new project, and keep it
 > **Setting the app up, or moving it?** Parts 6 to 12. Follow them in order; each one checks the one before it.
 >
 > **An AI tool picking this up?** Part 13 is written for you and states the invariants you must not break.
+>
+> **Handing this to a member rather than an administrator?** Give them `HOW-TO-USE` instead. It is the same app explained in pictures, phone-shaped, with nothing in it about databases or deployment.
 
 1. [What the app is](#1-what-the-app-is)
 2. [The four roles](#2-the-four-roles)
@@ -59,6 +61,18 @@ A person's role is chosen when they are approved, and it decides everything they
 > **NOTE** · The Head Executive Director
 >
 > One account is the root of authority. It cannot be suspended or removed by anybody, including itself, so a church can never lock itself out of its own app. Guard the password for that account the way you would guard the keys to the building.
+
+### What an Explorer's shelf opens with
+
+The starter shelf is the same twenty resources for everybody, but an Explorer is shown eight of them first, in this order:
+
+> A Bible they can read on a phone · Jesus 101 · The Desire of Ages · Steps to Christ · BibleProject · Discover Bible Guides · What Seventh-day Adventists Believe · Sabbath School this quarter
+
+**One doctrinal page, deliberately.** Somebody deciding whether to follow Jesus is not helped by being handed the twenty-eight fundamental beliefs and the full prophetic history on their first day, and the Guide walking with them is the right way to meet the rest.
+
+Nothing is hidden. The Great Controversy, the collected writings of Ellen G. White, the quarterly archive and the General Conference publications are all still in the shelf for everyone else, and for an Explorer the moment they go looking. What changed is only what is put in front of somebody first.
+
+The shelf is a constant in `lib/starter-kit.ts`, not a table, so it costs no storage and no query. `tests/the-explorer-starts-with-jesus.mjs` keeps the short list short. The twenty links point at other people's websites, so `links.yml` checks weekly that every one of them still opens.
 
 ## 3. The journey
 
@@ -925,6 +939,22 @@ Two scheduled jobs live in the repository. Both are free on a public repository,
 >
 > **Never let an unencrypted dump reach the repository.** Files attached to a job on a public repository can be downloaded by anyone on the internet. Encrypt before upload, or do not produce the file.
 
+### The signed-out role holds nothing
+
+Supabase gives the anonymous role every privilege on every new table, and Row Level Security is what takes it back. An audit on 1 September found thirteen policies written with no `TO` clause, which means they applied to everybody including a visitor who has not signed in, and about twenty tables still carrying the default grant.
+
+**Nothing was leaking.** Every table was probed as that role and every one returned nothing, because each of those policies compares something against `auth.uid()`, which is empty when nobody is signed in. But that is safety by arithmetic rather than by design: the anonymous key ships inside the JavaScript that every visitor downloads, and the next policy written as `using (is_published)` would have opened its table to the internet while looking perfectly reasonable in review.
+
+So the signed-out role now holds no table privilege at all, every policy names the roles it is for, and an event trigger takes the grants off any table created from now on, in the same way one already locks down new functions. A new table arrives with Row Level Security on and no grants.
+
+### The bytes get the same boundary as the rows
+
+Two storage rules matched on the folder name alone, so any signed-in account could list and download every lesson file and every avatar in the instance, whatever church it belonged to. The table describing those files was correctly scoped by church the whole time; only the files were not. Both are now scoped through `can_access_church`, which still lets an Executive Director see the churches they oversee.
+
+> **IMPORTANT** · A deleted account and its pictures
+>
+> Deleting a row from `storage.objects` does **not** delete the image. Supabase refuses direct deletes from that table on purpose, because the row is only metadata and removing it strands the file rather than removing it. A first attempt at this shipped as a database trigger, which could never have worked and reported success anyway. Clearing somebody's files has to go through the Storage API, from the app, **before** the account is deleted, because afterwards nothing can say which church the files belonged to.
+
 ## 10. What it costs
 
 Worked out from the live systems rather than estimated, and it produced two
@@ -1100,10 +1130,12 @@ Stated plainly, because a plan that hides its gaps is worse than no plan.
 | The iPhone install fix on real Safari | The missing tag is confirmed in the built page. It has not been tested on a physical iPhone. |
 | A restored backup | The job runs and its failure paths are tested. No restore has ever been performed. |
 | Non-English wording | Eleven translations still use the old words for Explorer and Guide. Whether those names translate at all is a decision per language. |
-| Four end-to-end tests | Failing in the guided tutorial, on both browser engines, since before this work started. Two of them say the tutorial's spotlight lands on nothing. Diagnose before demonstrating the tutorial. |
+| The guided tutorial | **Fixed.** The spotlight really was landing on nothing, on a phone, for the Guide's and the Explorer's walks: the panel reserved its clear space on the wrong side, a placement that left the target off screen still counted as done, and the ring could be drawn past the right edge of a 412px screen. All four walks now finish at 393, 412, 768 and 1280 wide. |
+| The tutorial at 375px | The Executive Director's walk still mis-points at one step, and only at iPhone SE width. Director, Guide and Explorer pass at every size. |
+| Three photographs of deleted people | Three avatars belong to accounts that no longer exist. No rule can reach them, so no user can see them, and no rule can delete them either. They need removing from the Storage dashboard by hand. |
 | Creating a new church without a developer | Possible in the database, not yet possible from a screen. |
 | Bulk invitations | **Built**: pasting a list, and dragging a spreadsheet onto the screen. Suggested pairing after a batch is the part still to do. |
-| Safari and iOS behaviour | Checked at iPhone sizes in Chromium, which is not WebKit. Nothing in this app has been seen running on a physical iPhone. |
+| Safari and iOS behaviour | Checked at iPhone sizes in Chromium, which is not WebKit. WebKit itself is covered by `safari.yml`, which runs every suite on a real macOS machine on each push. Nothing in this app has been seen running on a physical iPhone. |
 | A picture on most Guides' profiles | Almost none have set one, so the card meant to show an Explorer a real person falls back to initials. The app asks them; somebody has to follow it up. |
 | Guild boards in use | The room, the report route and the take-down are built and were proved against the live database. Nothing has yet been posted on one by a real member. |
 | The one-tap Safari handoff on a real device | Tested against simulated iPhone browsers. Never run on a physical iPhone. |
