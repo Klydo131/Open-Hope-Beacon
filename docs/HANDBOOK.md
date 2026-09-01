@@ -2,7 +2,7 @@
 
 Everything needed to run Open Hope Beacon, move it to a new project, and keep it working. Written for the people who run a church, and for the AI tools that will be asked to continue the work.
 
-**Version:** 31 August 2026 · **Applies to:** migrations through `20260831060000` · **Licence:** AGPL-3.0 · **Source:** `github.com/Klydo131/Open-Hope-Beacon`
+**Version:** 1 September 2026 · **Applies to:** migrations through `20260831060000` · **Licence:** AGPL-3.0 · **Source:** `github.com/Klydo131/Open-Hope-Beacon`
 
 > **NOTE** · How to read this
 >
@@ -291,9 +291,7 @@ The screen a Guide lands on opens with their own figures: how many Explorers the
 
 **Graduated** means reached Commission: walked the whole journey and now sent to walk with somebody else. It is the number the whole design exists to produce.
 
-### Rooms, and what a subroom is
-
-Guides, Directors and Executive Directors have an **Office**, in the left column on every screen. It holds the work: the numbers, the downloads, the studies you write and the shelf you stock.
+### Rooms and subrooms
 
 **A room is a folder, and a subroom is a folder inside it.** Open a room and a row of subrooms sits across the top; tap one and you are in it. Nothing else is drawn, so there is nothing to scroll past.
 
@@ -310,7 +308,9 @@ Six rooms work this way now. Measured on a phone, with the sample church in them
 
 Publish, Cases, the Guild Room, Mail and Profile are left alone. They are one or two screens and mostly one thing; a row of choices above a single card is furniture, not navigation.
 
-The Office in particular:
+### The Office
+
+Guides, Directors and Executive Directors have an **Office**, in the left column on every screen. It holds the work: the numbers, the downloads, the studies you write and the shelf you stock. Its subrooms are:
 
 | A Guide's subrooms | A Director's subrooms |
 | --- | --- |
@@ -559,6 +559,8 @@ What somebody listens to while they read is nobody else's business, which is why
 ### What is in the left column
 
 Home, your own screen, the **Guild Room**, the library, **Publish** and **Cases**. Guides and leadership also have the **Office**. Under **You**: Profile, Mail and Settings.
+
+Six of those rooms have **subrooms** inside them, offered as a row across the top when you open one. See *Rooms and subrooms* in Part 4.
 
 > **IMPORTANT** · On a phone there is no left column
 >
@@ -897,6 +899,8 @@ Two scheduled jobs live in the repository. Both are free on a public repository,
 | A blank box where an icon should be, on an Android phone | Fixed on 28 August 2026, and again on 31 August. A character that looks like an emoji but comes from a symbol block is drawn only if the phone's font happens to include it. Apple's does; Android's does not. | Nothing to do. Controls are drawn as pictures now, and a check refuses the characters. |
 | A pop-up runs off the bottom or the side, but only in portrait | Fixed on 28 August 2026. | Nothing to do. |
 | An invitation was accepted but the person never appeared in Approvals | Fixed on 29 August 2026. Somebody who already had an account got a recovery link instead of an invitation link, and a recovery link does not carry the church and role across. They existed with no church, visible to nobody. | Nothing to do for new ones. Anybody already stuck in that state was repaired when the fix was applied. |
+| A card I used to scroll to has disappeared | Nothing was removed. Six rooms now open in folders, and the card is in one of them: the row of choices is across the top of the room. | Tap the folder it belongs to. The room remembers your choice, so it will open there next time. |
+| A link took me to a room but not to the card I pressed for | Fixed on 31 August 2026. Links that pointed at a card by name were pointing at something a folder might not be drawing. | Nothing to do. Those links now name the folder as well, and old ones are translated. |
 | A study cannot be written on a phone or an iPad | Fixed on 28 August 2026. The Office was reachable only from the left column, which does not exist below laptop width. | Nothing to do. Office, Publish and Cases are in the header row on every size. |
 
 ### Where the code lives
@@ -946,6 +950,8 @@ Read this section before making a change. It states what is true, what must stay
 8. Every room where one person can be hurt by another carries all three: a way to report it on the same screen, somebody notified by name whose job it is to look, and a record that outlives the person. Reports have no delete policy at all, deliberately.
 9. A control drawn from Miscellaneous Technical or Geometric Shapes is a blank box on Android. Controls are inline SVG in `components/Glyph.tsx`. Emoji are fine; those blocks are not.
 10. `dvh` for anything measured against a phone's screen, with a `vh` line beneath it for old browsers, and `env(safe-area-inset-bottom)` on anything pinned to the bottom.
+11. A panel lives in exactly one subroom, and the first subroom in the list is what the room is for, because that is the one that opens when nothing is remembered. Never move an Explorer's report control out of the folder holding the conversation, and never put a Guide's church notices inside a folder.
+12. One full-screen waiting state, `BeaconSplash`, drawing the app's own mark. A second one written next to the screen that needs it is how this app ended up with three.
 
 ### Prove it before you claim it
 
