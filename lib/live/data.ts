@@ -42,6 +42,7 @@ import {
   supabaseAuth,
 } from '@/lib/supabase/client';
 import { uuid } from '@/lib/uuid';
+import { shrinkImage } from '@/lib/live/shrink-image';
 import type { Session } from '@supabase/supabase-js';
 import type { Profile, Pairing, Message, Stage, Track, Role, JourneyEvent, MeetingMode } from '@/lib/types';
 
@@ -1544,7 +1545,12 @@ export async function deleteAnnouncement(id: string): Promise<void> {
 const AVATAR_BUCKET = 'pairing-media';
 
 /** Upload a picture and return the path to store on the profile. */
-export async function uploadAvatar(file: File): Promise<string> {
+export async function uploadAvatar(chosen: File): Promise<string> {
+  // The same treatment as a conversation photo, and for the same two reasons:
+  // an avatar is shown at most 72 pixels across, and a picture somebody takes
+  // of themselves is the one most likely to be carrying their home
+  // coordinates.
+  const file = await shrinkImage(chosen);
   if (!file.type.startsWith('image/')) throw new Error('That is not a picture.');
   if (file.size > 5 * 1024 * 1024) throw new Error('That picture is over 5 MB. Try a smaller one.');
   const me = await uid();
@@ -2173,8 +2179,18 @@ export async function listPairingFiles(pairingId: string): Promise<PairingFile[]
  * carry spaces, accents and occasionally somebody's full name; the title is
  * kept in the row, where it belongs.
  */
-export async function sendPairingFile(pairingId: string, file: File): Promise<PairingFile> {
+export async function sendPairingFile(pairingId: string, original: File): Promise<PairingFile> {
   const client = db();
+
+  // SHRUNK BEFORE IT IS MEASURED, so a 4 MB photo from a phone camera is not
+  // refused for being over a limit it does not need to be over. Fifteen of the
+  // sixteen files a real church had sent each other were photographs averaging
+  // 2.3 MB, and a conversation shows them a few hundred pixels wide.
+  //
+  // It also drops the EXIF, which is where a phone writes the coordinates the
+  // picture was taken at. Sending a photo of a Bible page to your Guide should
+  // not tell them where you live.
+  const file = await shrinkImage(original);
   // uid() reads the session this app verified server-side and stored itself.
   // Asking Supabase Auth again would be a second round trip for something
   // already known, and tests/security-invariants.mjs forbids it by name — it
@@ -2184,7 +2200,7 @@ export async function sendPairingFile(pairingId: string, file: File): Promise<Pa
   if (file.size > MAX_ATTACHMENT_BYTES) {
     throw new Error(
       `That file is ${Math.round(file.size / 1024 / 1024)} MB. The limit is 10 MB. `
-      + 'try a photo rather than a video, or share a link instead.',
+      + 'Try a photo rather than a video, or share a link instead.',
     );
   }
 

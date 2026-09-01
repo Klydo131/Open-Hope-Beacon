@@ -42,6 +42,19 @@ export function SourceCard() {
           wrong, and what happens next.
         </p>
       </div>
+      {/* BESIDE THE CONDUCT POLICY, not buried in a footer. What is collected
+          and who can see it is the other half of the same question somebody is
+          asking when they open this card, and a privacy notice nobody can find
+          is the same as not having one. */}
+      <div className="mt-3 rounded-xl bg-gray-50 p-3 ring-1 ring-gray-200">
+        <Link href="/privacy" className="font-semibold text-navy underline underline-offset-4">
+          What we do with what you tell us →
+        </Link>
+        <p className="mt-1 text-sm text-gray-600">
+          What is collected, who can see it, how long it is kept, and how to ask
+          for a copy or ask for it to be deleted.
+        </p>
+      </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <a

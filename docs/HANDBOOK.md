@@ -8,9 +8,9 @@ Everything needed to run Open Hope Beacon, move it to a new project, and keep it
 >
 > **Running a church?** Parts 1 to 5 are yours. They assume no technical knowledge and nothing needs installing.
 >
-> **Setting the app up, or moving it?** Parts 6 to 10. Follow them in order; each one checks the one before it.
+> **Setting the app up, or moving it?** Parts 6 to 11. Follow them in order; each one checks the one before it.
 >
-> **An AI tool picking this up?** Part 11 is written for you and states the invariants you must not break.
+> **An AI tool picking this up?** Part 12 is written for you and states the invariants you must not break.
 
 1. [What the app is](#1-what-the-app-is)
 2. [The four roles](#2-the-four-roles)
@@ -21,9 +21,10 @@ Everything needed to run Open Hope Beacon, move it to a new project, and keep it
 7. [Moving to a new project](#7-moving-to-a-new-project)
 8. [Every setting, in one place](#8-every-setting-in-one-place)
 9. [The database and its rules](#9-the-database-and-its-rules)
-10. [When something breaks](#10-when-something-breaks)
-11. [For an AI tool continuing this](#11-for-an-ai-tool-continuing-this)
-12. [What is not finished](#12-what-is-not-finished)
+10. [Data protection](#10-data-protection)
+11. [When something breaks](#11-when-something-breaks)
+12. [For an AI tool continuing this](#12-for-an-ai-tool-continuing-this)
+13. [What is not finished](#13-what-is-not-finished)
 
 ## 1. What the app is
 
@@ -888,6 +889,18 @@ Two more things about migrations, both learned here:
 - **Never edit one that has already been applied.** Editing the file changes nothing in the database and quietly makes a fresh environment differ from production. Add a corrective migration instead. (Editing one that failed on a syntax error and never ran is fine, because nothing has it yet.)
 - **The version recorded in the database does not match the filename.** Migrations applied through the tooling are stamped with the time they were applied. Do not read the two as if they line up; check whether the objects exist instead.
 
+### Photographs, and what they carry
+
+A photo from a phone is two to four megabytes, and a conversation shows it a few hundred pixels wide. Every one of those megabytes is paid for twice, once to store and again on **every single view**, because a private file is fetched through a fresh signed link that no cache will keep.
+
+So a photo is made smaller before it is sent: sixteen hundred pixels on its longest edge, which nobody can tell apart on the screen it is read on. Measured in a real browser on a real 4032-pixel photograph: **82% smaller**. Fifteen of the sixteen files a real church had sent each other were photographs averaging 2.3 MB, so this is most of the storage bill and most of the traffic.
+
+> **IMPORTANT** · It also removes where the picture was taken
+>
+> A phone writes the exact coordinates into a photograph, usually somebody's home. Sending a picture of a Bible page to a Guide should not tell them where you live. Re-drawing the image keeps the pixels and drops every tag, so the privacy fix and the saving are the same line of code. The conversation says so above the message box, and so does the privacy notice.
+
+**Files in the library never reach a server at all.** The library holds links; a file saved under *On this device* is passed from one phone to the other through the phone's own share sheet. Files in a **conversation** do reach the server, because the two people are rarely holding their phones at the same moment and the file has to wait somewhere. That is the honest line between the two.
+
 ### Backups
 
 Two scheduled jobs live in the repository. Both are free on a public repository, and both need their secrets set before they do anything:
@@ -901,7 +914,26 @@ Two scheduled jobs live in the repository. Both are free on a public repository,
 >
 > **Never let an unencrypted dump reach the repository.** Files attached to a job on a public repository can be downloaded by anyone on the internet. Encrypt before upload, or do not produce the file.
 
-## 10. When something breaks
+## 10. Data protection
+
+Somebody will eventually ask what the law requires of a church running this, and the answer starts with one fact.
+
+**This app holds sensitive personal information.** Under the Philippine Data Privacy Act (RA 10173) a person's **age**, **marital status** and **religious affiliation** are all sensitive, and this app records a birthday, a life status, and the whole of somebody's participation in a church. Membership is a religious affiliation, so every row is sensitive whether the column looks it or not.
+
+That raises the standard in four ways: consent has to be **express** rather than implied, a **Data Protection Officer** is expected, the church must **register with the National Privacy Commission** once it passes a thousand members, and the penalties for getting it wrong are higher.
+
+**[docs/DATA-PROTECTION.md](./DATA-PROTECTION.md) is the map**: every table that holds anything about a person, why it is there, who can read it, how long it stays, and which company holds it. It also lists what is still missing, and the list is the point of the document.
+
+The two largest gaps today:
+
+1. **The privacy notice is a draft.** `/privacy` in the app is written and reachable from Settings, with the church's name, the DPO's contact, the hosting region and the retention periods marked as blanks. They cannot be guessed, and a notice with a plausible wrong name on it is worse than one that admits it is unfinished.
+2. **A member cannot get a copy of their own data.** Both laws give them the right to ask, and there is no screen that answers it. It is the next thing to build.
+
+> **CAUTION** · This is the factual half, not a legal opinion
+>
+> An engineer can say what the app collects and who can see it. Whether that satisfies a regulator is a question for a lawyer, and neither the document nor this section is legal advice. What they do is give a lawyer the map they cannot produce themselves.
+
+## 11. When something breaks
 
 | What you see | What it usually is | What to do |
 | --- | --- | --- |
@@ -951,7 +983,7 @@ All of those live screens were one file of three thousand lines called `LiveCore
 >
 > They read `components/LiveCorePages.tsx` by name, so when the screens moved, ten assertions stopped testing anything while still reporting nothing wrong. One of them was a safeguarding placement check. They read every live screen now, so the next move cannot switch them off. **A check pinned to a file name is a check a refactor can silently delete.**
 
-## 11. For an AI tool continuing this
+## 12. For an AI tool continuing this
 
 Read this section before making a change. It states what is true, what must stay true, and the mistakes already made here so they are not made twice.
 
@@ -1008,7 +1040,7 @@ CI runs the same command on **Ubuntu, macOS and Windows**. A green run on Linux 
 - **Trusting a filename.** The version a migration is recorded under in the database is not the name of the file it came from, and a `00NN_` name added today sorts before every timestamped one.
 - **Editing a migration that had already run.** It changes nothing in the database and makes a fresh environment differ from production. Add a corrective migration.
 
-## 12. What is not finished
+## 13. What is not finished
 
 Stated plainly, because a plan that hides its gaps is worse than no plan.
 

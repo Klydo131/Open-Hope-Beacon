@@ -162,6 +162,9 @@ const staticChecks = [
   // afterwards, and who may stop somebody. Each rank watches the rank below it
   // and no further down.
   ['the library is shared and watched', 'tests/the-library-is-shared-and-watched.mjs'],
+  // The claims a privacy notice makes have to stay true in the code. Nothing
+  // breaks when they drift, which is exactly why they need a check.
+  ['data protection', 'tests/data-protection.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

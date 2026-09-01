@@ -205,6 +205,20 @@ export function Conversation({
         <p className="border-t border-black/5 bg-red-50 px-4 py-2 text-sm text-red-800">{attachError}</p>
       )}
 
+      {/* SAID ONCE, WHERE THE DECISION IS MADE. A photo from a phone camera is
+          two to four megabytes and this app runs on a free plan that pays for
+          every one of them twice, to store and again on every view. It is made
+          smaller before it is sent, which nobody can see on a phone screen, and
+          the location tag the camera wrote into it is dropped along the way.
+          People should be told both, and told here rather than in a policy
+          nobody opens. */}
+      {onAttach && (
+        <p className="border-t border-black/5 bg-slate-50 px-4 py-2 text-xs leading-relaxed text-gray-500">
+          Photos are made smaller before they are sent, and the location your camera
+          recorded is removed. Up to 10 MB each. For anything larger, share a link.
+        </p>
+      )}
+
       <form
         onSubmit={send}
         data-live-composer
