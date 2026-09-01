@@ -14,7 +14,7 @@
 //   npm run build && node scripts/run-next.mjs start -p 4381
 //   node tests/e2e/prayer.js 4381
 
-const { chromium, launchOptions } = require('./_playwright');
+const { chromium, launchOptions, openRoom } = require('./_playwright');
 const PORT = process.argv[2] || '4381';
 const BASE = `http://localhost:${PORT}`;
 
@@ -47,6 +47,10 @@ const REQUEST = 'Please pray for my mother, she is unwell.';
   await page.waitForTimeout(1500);
 
   ok(await page.getByText('🙏 Prayer').count() > 0, 'the Explorer has a prayer card');
+
+  // Prayer is a room now, not a stretch of the same scroll, so the card is not
+  // rendered until its tab is the chosen one.
+  await openRoom(page, /Prayer/i);
 
   const box = page.locator('textarea[placeholder*="pray with you"]');
   ok(await box.count() > 0, 'there is somewhere to write the request');

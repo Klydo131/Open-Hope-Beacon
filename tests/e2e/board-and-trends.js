@@ -82,7 +82,11 @@ async function openAnalytics(page) {
   // said "Missionary" and "Admin" two renames after both were retired, and
   // passed the whole time because the front door had not been updated either.
   // A test and a screen agreeing on the wrong thing is not a passing test.
-  for (const role of ['Support', 'Guide', 'Explorer']) {
+  // …and it happened AGAIN, to this very line. It read 'Support', a name the
+  // app retired when Admin became Director. The picker offers Executive
+  // Director, Director, Guide and Explorer, and has for some time. A comment
+  // warning about stale role names is not a defence against stale role names.
+  for (const role of ['Executive Director', 'Director', 'Guide', 'Explorer']) {
     ok(new RegExp(`\\b${role}\\b`).test(text), `${role} is still offered`);
   }
 

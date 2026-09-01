@@ -96,12 +96,35 @@ async function signInAs(page, who) {
 
   const moved = await page.evaluate(() => {
     const el = document.getElementById('tutorial');
-    return { y: window.scrollY, top: el ? Math.round(el.getBoundingClientRect().top) : null };
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    return {
+      y: window.scrollY,
+      top: el ? Math.round(el.getBoundingClientRect().top) : null,
+      atBottom: Math.abs(window.scrollY - max) < 4,
+      maxScroll: Math.round(max),
+    };
   });
+
   ok(moved.y !== deep, `a bare pushState still moved the page (${deep} to ${moved.y})`);
+  // WHAT THIS IS ACTUALLY FOR: you press a link and arrive AT the card, rather
+  // than at the top of a long page hunting for it. The old form of this check
+  // said "within 160px of the top", which was the same thing back when every
+  // screen was one long scroll.
+  //
+  // Rooms changed the geometry, not the behaviour. #tutorial opens the Help
+  // room, and that room is 46px taller than the window — so the page scrolls to
+  // its absolute bottom and the card still sits 247px down, because that is as
+  // high as it can physically go. Demanding 160 there is demanding the page be
+  // longer than it is.
+  //
+  // So: the card must be on screen, and the page must have gone as far toward
+  // it as it can. That fails for the bug this guards (nothing moved, card off
+  // screen) and passes for a short room, which is the point.
+  const onScreen = moved.top !== null && moved.top >= 0 && moved.top < 700;
   ok(
-    moved.top !== null && Math.abs(moved.top) < 160,
-    `and landed on the tutorial card (${moved.top}px from the top)`,
+    onScreen && (Math.abs(moved.top) < 160 || moved.atBottom),
+    `and landed on the tutorial card (${moved.top}px from the top, ` +
+      `page ${moved.atBottom ? 'scrolled as far as it goes' : 'has room left'})`,
   );
 
   // ---- 3. A TARGET THAT IS NOT THERE YET ---------------------------------

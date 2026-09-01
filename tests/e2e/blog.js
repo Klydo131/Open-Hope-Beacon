@@ -10,7 +10,7 @@
 // Points 3 and 4 are where a blog quietly goes wrong. A draft that leaks is a
 // privacy failure with a friendly face, and a counter that ticks up when the
 // writer re-reads their own post flatters them with their own attention.
-const { chromium, launchOptions } = require('./_playwright');
+const { chromium, launchOptions, openRoom } = require('./_playwright');
 const BASE = `http://localhost:${process.argv[2] || '3100'}`;
 const OUT = process.env.E2E_OUT ||
   require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'beacon-blog-'));
@@ -39,6 +39,10 @@ const BODY = 'A short note for this week.\n\nSecond paragraph, so the renderer h
   await signInAs(page, 'Maria Santos');
   await page.goto(`${BASE}/dm`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
+
+  // Writing lives in its own room now, so the desk is not rendered until
+  // that tab is chosen.
+  await openRoom(page, /Write/i);
 
   const desk = page.getByText(/Your blog/i).first();
   ok(await desk.count() > 0, 'the Guide has a blog desk on their dashboard');
@@ -73,6 +77,9 @@ const BODY = 'A short note for this week.\n\nSecond paragraph, so the renderer h
   // The heading names the THING, not one relationship. It was "From your
   // Guide", which stopped being true the moment anybody in the church could
   // publish (migration 0042).
+  // The reader's side sits in the Church room.
+  await openRoom(page, /Church/i);
+
   ok(await page.getByText(/Community Blogs/i).count() > 0, 'the Explorer sees Community Blogs');
   // And a board that anyone may post to is unreadable without a name on each
   // post, so check the writer is actually printed rather than only the title.

@@ -14,7 +14,7 @@
 //
 // It also checks the in-person meeting map link, because that lives one tab away
 // and a suite that has already signed in as a missionary may as well.
-const { chromium, launchOptions } = require('./_playwright');
+const { chromium, launchOptions, openRoom } = require('./_playwright');
 
 const PORT = process.argv[2] || '4001';
 const BASE = `http://localhost:${PORT}`;
@@ -170,6 +170,9 @@ const bodyText = (page) => page.locator('body').innerText();
   ok(await signInAs(page, 'John Reyes'), 'a seeker can sign in');
   await page.goto(`${BASE}/ds`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1500);
+
+  // Lesson studies live in the Study room, not on one long scroll.
+  await openRoom(page, /Study/i);
 
   // Read THIS series' card, not the whole page.
   //

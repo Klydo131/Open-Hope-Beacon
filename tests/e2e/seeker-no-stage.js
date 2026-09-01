@@ -1,6 +1,6 @@
 // Phase 2 verification: walk every screen a seeker can reach and prove no
 // stage label appears anywhere in the rendered text.
-const { chromium, launchOptions } = require('./_playwright');
+const { chromium, launchOptions, openRoom } = require('./_playwright');
 const BASE = `http://localhost:${process.argv[2] || '3100'}`;
 const STAGES = ['Create', 'Connect', 'Care', 'Call', 'Cultivate', 'Commission'];
 let bad = 0; const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); };
@@ -48,6 +48,8 @@ let bad = 0; const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'B
   if (await pastor.count()) {
     await pastor.click(); await page.waitForTimeout(1800);
     await page.goto(`${BASE}/church`, { waitUntil: 'networkidle' }); await page.waitForTimeout(1400);
+    // The chart lives in the numbers room now, not on the church home scroll.
+    await openRoom(page, /numbers/i);
     const t = await page.locator('body').innerText();
     const seen = STAGES.filter(s => new RegExp(`\\b${s}\\b`).test(t));
     ok(seen.length >= 4, `admin still sees the stage chart (found ${seen.join(',') || 'none'})`);

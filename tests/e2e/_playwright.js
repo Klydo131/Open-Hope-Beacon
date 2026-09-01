@@ -87,6 +87,39 @@ const EXECUTABLE =
       (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined)
     : undefined;
 
+/**
+ * Choose a room or subroom before looking for what it holds.
+ *
+ * Several long scrolling pages became tabbed folders. A card that used to be
+ * reachable by scrolling is now rendered only while its tab is the chosen one,
+ * so a suite that goes straight to the card times out on a page where the
+ * feature is working perfectly. That is what happened to thirteen suites the
+ * day rooms landed: the app was fine and the tests were describing the old
+ * shape of it.
+ *
+ * Deliberately tolerant. A page with no tabs, a tab that is already selected,
+ * and a label that does not exist are all a quiet no-op, so a caller never has
+ * to know which pages were converted and which were left alone. It returns
+ * whether it actually clicked, for the rare suite that wants to assert on that.
+ *
+ * Matches on the accessible tab role rather than on text, because the labels
+ * carry emoji and a bare getByText finds the TAB when the suite meant the CARD
+ * — which is exactly how the prayer suite passed its first assertion and then
+ * timed out on its second.
+ */
+async function openRoom(page, label) {
+  try {
+    const tab = page.getByRole('tab', { name: label }).first();
+    if ((await tab.count()) === 0) return false;
+    if ((await tab.getAttribute('aria-selected')) === 'true') return true;
+    await tab.click({ timeout: 5000 });
+    await page.waitForTimeout(400);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 module.exports = {
   // The selected engine. Named `chromium` because twenty-five suites already
   // destructure that name, and renaming them all to prove a point would be a
@@ -103,4 +136,5 @@ module.exports = {
   // Suites pass this into launch()/launchPersistentContext() so the browser
   // lookup is decided in one place rather than repeated in every file.
   launchOptions: EXECUTABLE ? { executablePath: EXECUTABLE } : {},
+  openRoom,
 };
