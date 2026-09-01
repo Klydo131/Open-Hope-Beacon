@@ -172,6 +172,9 @@ const staticChecks = [
   // had done this correctly for months and the live one had not, which is the
   // parity rule this project keeps writing down and keeps breaking.
   ['a picture looks like a picture', 'tests/a-picture-looks-like-a-picture.mjs'],
+  // The documents that get printed and handed to people have to render. A bold
+  // phrase that wrapped inside a bullet went out with its asterisks showing.
+  ['printed docs render', 'tests/printed-docs-render.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

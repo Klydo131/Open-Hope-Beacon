@@ -229,8 +229,31 @@ function render(markdown) {
     if (bullet || numbered) {
       const want = bullet ? 'ul' : 'ol';
       if (list.open !== want) { closeList(list); html.push(`<${want}>`); list.open = want; }
-      html.push(`<li>${inline((bullet || numbered)[1])}</li>`);
+
+      // A LIST ITEM CAN RUN OVER SEVERAL LINES, and this used to render only
+      // the first of them through the inline pass. So `**Pause` on one line and
+      // `project**` on the next came out with the asterisks still in it, in
+      // print, where the whole point of the document is that somebody reads it.
+      //
+      // Paragraphs had always been joined before the inline pass a few lines
+      // below; list items had not, and nobody noticed because the handbook
+      // happens never to wrap a bold phrase inside a bullet. Two of the newer
+      // documents did, and it went out looking like that.
+      //
+      // A continuation line is an indented line that is not itself a new item
+      // and not a blank, which is what Markdown means by one.
+      const parts = [(bullet || numbered)[1]];
       i += 1;
+      while (
+        i < lines.length
+        && lines[i].trim()
+        && /^\s+\S/.test(lines[i])
+        && !/^\s*([-*]\s|\d+\.\s)/.test(lines[i])
+      ) {
+        parts.push(lines[i].trim());
+        i += 1;
+      }
+      html.push(`<li>${inline(parts.join(' '))}</li>`);
       continue;
     }
 
