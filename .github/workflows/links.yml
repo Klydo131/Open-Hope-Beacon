@@ -14,7 +14,15 @@
 #
 # Second, and more important: somebody else's website being down for ten minutes
 # must never block a merge. This is a report on the world, not a gate on the code.
-# So it runs on a schedule, and by hand when somebody reports a dead link.
+# So it runs on a schedule, by hand when somebody reports a dead link, and on any
+# push that touches the shelf itself.
+#
+# THAT LAST TRIGGER EXISTS BECAUSE OF A REAL FAILURE. Eight resources were added
+# to the shelf from this sandbox, which has no route to the open internet, so not
+# one of the addresses could be opened before it shipped. Four of the eight were
+# wrong. The church found out when an Explorer tapped Jesus 101 and got nothing.
+# A plausible-looking address is not a checked one, and the only machine in this
+# project that can tell the difference is the CI runner.
 #
 # It needs no repository secrets, so it runs unchanged on a fork.
 
@@ -26,6 +34,13 @@ on:
     # and twenty requests a week is a courtesy to the publishers.
     - cron: '17 5 * * 1'
   workflow_dispatch:
+  push:
+    # Only when the shelf or the checker changes. A push that touches neither
+    # cannot have broken a link, and the publishers do not need the traffic.
+    paths:
+      - 'lib/starter-kit.ts'
+      - 'scripts/check-links.mjs'
+      - '.github/workflows/links.yml'
 
 permissions:
   contents: read

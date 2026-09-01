@@ -19,6 +19,19 @@ import type { Material } from './types';
 
 const ADDED = '2026-07-29T00:00:00.000Z';
 
+// EVERY ADDRESS IN HERE MUST BE OPENED BEFORE IT IS COMMITTED.
+//
+// Eight resources were added on 1 September from a sandbox with no route to the
+// open internet, so not one of the addresses could be opened. Four of the eight
+// were wrong, and a church member found them: `www.jesus101.tv` (the site has no
+// `www.`), `media3` for The Desire of Ages (it is on `media2`, and the subdomain
+// differs per book), `vop.com` (Voice of Prophecy is `voiceofprophecy.com`), and
+// `youth.adventist.org` (Youth Ministries is `gcyouthministries.org`).
+//
+// A plausible-looking address is not a checked one. `links.yml` now runs on
+// every push that touches this file, so a wrong address is caught by CI within
+// a minute instead of by an Explorer on their first day.
+
 export const STARTER_KIT: Material[] = [
   // ---- The Bible ----
   {
@@ -174,7 +187,7 @@ export const STARTER_KIT: Material[] = [
     description:
       'Short studies and broadcasts about Jesus, from the Gospels outward. Made for people who are meeting him for the first time.',
     type: 'link',
-    external_url: 'https://www.jesus101.tv/',
+    external_url: 'https://jesus101.tv/',
     topics: ['Jesus', 'New believer', 'Devotional'],
     is_published: true,
     created_at: ADDED,
@@ -185,7 +198,7 @@ export const STARTER_KIT: Material[] = [
     description:
       'The life of Christ, told from beginning to end. The best-loved of her books, and the one to read before The Great Controversy. Public domain.',
     type: 'pdf',
-    external_url: 'https://media3.egwwritings.org/pdf/en_DA.pdf',
+    external_url: 'https://media2.egwwritings.org/pdf/en_DA.pdf',
     topics: ['Jesus', 'Ellen G. White', 'Devotional', 'New believer'],
     is_published: true,
     created_at: ADDED,
@@ -207,7 +220,7 @@ export const STARTER_KIT: Material[] = [
     description:
       'A free guided course through the Bible, one short lesson at a time, at your own pace. Voice of Prophecy.',
     type: 'link',
-    external_url: 'https://www.vop.com/',
+    external_url: 'https://www.voiceofprophecy.com/study/discover',
     topics: ['Bible study', 'New believer', 'Youth'],
     is_published: true,
     created_at: ADDED,
@@ -251,7 +264,7 @@ export const STARTER_KIT: Material[] = [
     description:
       'What young Adventists are doing around the world, and how to join in locally.',
     type: 'link',
-    external_url: 'https://youth.adventist.org/',
+    external_url: 'https://www.gcyouthministries.org/',
     topics: ['Youth', 'Church'],
     is_published: true,
     created_at: ADDED,
