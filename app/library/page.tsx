@@ -34,7 +34,7 @@ import { useRoom } from '@/lib/room-theme';
 import { saveFilesFromInput, savedMessage } from '@/lib/save-media';
 import { useDemo } from '@/lib/demo/store';
 import { homeFor, useLiveSession } from '@/lib/live/session';
-import { STARTER_KIT } from '@/lib/starter-kit';
+import { STARTER_KIT, starterKitFor } from '@/lib/starter-kit';
 import type { Material } from '@/lib/types';
 import { PlayGlyph } from '@/components/Glyph';
 
@@ -240,6 +240,11 @@ export default function LibraryPage() {
   const { profile } = useLiveSession();
   const backHome = profile ? homeFor(profile.role) : currentUser ? DEMO_HOME[currentUser.role] : '/';
 
+  // What this person's shelf opens with. An Explorer gets a short, Jesus-first
+  // list; everybody else gets the whole kit. Works on both halves, because the
+  // live session and the demo store answer the same question about who is here.
+  const kit = starterKitFor(profile?.role ?? currentUser?.role);
+
   const [ready, setReady] = useState(false);
   const [items, setItems] = useState<MediaMeta[]>([]);
   const [linkTitle, setLinkTitle] = useState('');
@@ -365,7 +370,7 @@ export default function LibraryPage() {
   };
 
   const term = query.trim().toLowerCase();
-  const resources = STARTER_KIT.filter((item) =>
+  const resources = kit.filter((item) =>
     matchesFilter(item, filter, favoriteIds) &&
     (!term || [item.title, item.description, ...item.topics].join(' ').toLowerCase().includes(term)),
   );
@@ -411,7 +416,7 @@ export default function LibraryPage() {
           </div>
           <div className="grid grid-cols-2 gap-3 self-end">
             <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-sm">
-              <p className="text-2xl font-extrabold">{STARTER_KIT.length}</p>
+              <p className="text-2xl font-extrabold">{kit.length}</p>
               <p className="mt-1 text-sm text-white/75">Published resources</p>
             </div>
             <div className="rounded-2xl bg-white/10 p-4 backdrop-blur-sm">
@@ -448,7 +453,7 @@ export default function LibraryPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {LIBRARY_FILTERS.map((option) => {
               const active = option.key === filter;
-              const count = STARTER_KIT.filter((item) => matchesFilter(item, option.key, favoriteIds)).length;
+              const count = kit.filter((item) => matchesFilter(item, option.key, favoriteIds)).length;
               return (
                 <button
                   key={option.key}

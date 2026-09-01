@@ -114,6 +114,11 @@ const staticChecks = [
   // internet. Sweeps every migration rather than a list of tables somebody
   // remembered to add — which is how it caught three the audit had missed.
   ['the signed-out role', 'tests/the-signed-out-role.mjs'],
+  // What an Explorer's shelf opens with. The kit is shown to everybody, and it
+  // grew into a twenty-item reference shelf that opened with three Bibles and
+  // closed with a lesson archive. That is a filing cabinet, not a welcome, so
+  // an Explorer now gets a short Jesus-first list -- and this keeps it short.
+  ['the Explorer starts with Jesus', 'tests/the-explorer-starts-with-jesus.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing
