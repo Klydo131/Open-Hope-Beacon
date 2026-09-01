@@ -8,9 +8,9 @@ Everything needed to run Open Hope Beacon, move it to a new project, and keep it
 >
 > **Running a church?** Parts 1 to 5 are yours. They assume no technical knowledge and nothing needs installing.
 >
-> **Setting the app up, or moving it?** Parts 6 to 11. Follow them in order; each one checks the one before it.
+> **Setting the app up, or moving it?** Parts 6 to 12. Follow them in order; each one checks the one before it.
 >
-> **An AI tool picking this up?** Part 12 is written for you and states the invariants you must not break.
+> **An AI tool picking this up?** Part 13 is written for you and states the invariants you must not break.
 
 1. [What the app is](#1-what-the-app-is)
 2. [The four roles](#2-the-four-roles)
@@ -21,10 +21,11 @@ Everything needed to run Open Hope Beacon, move it to a new project, and keep it
 7. [Moving to a new project](#7-moving-to-a-new-project)
 8. [Every setting, in one place](#8-every-setting-in-one-place)
 9. [The database and its rules](#9-the-database-and-its-rules)
-10. [Data protection](#10-data-protection)
-11. [When something breaks](#11-when-something-breaks)
-12. [For an AI tool continuing this](#12-for-an-ai-tool-continuing-this)
-13. [What is not finished](#13-what-is-not-finished)
+10. [What it costs](#10-what-it-costs)
+11. [Data protection](#11-data-protection)
+12. [When something breaks](#12-when-something-breaks)
+13. [For an AI tool continuing this](#13-for-an-ai-tool-continuing-this)
+14. [What is not finished](#14-what-is-not-finished)
 
 ## 1. What the app is
 
@@ -42,7 +43,7 @@ What an Explorer says to their Guide is readable by those two and nobody else. N
 
 ### The limit is people, not computers
 
-A Guide walks with at most five Explorers at once, and the database enforces it rather than the screen. The app will run a church of a hundred on a free plan without complaint. What it cannot do is find you a sixth Guide. Growth here means recruiting and training people, and the app is built to keep that constraint visible rather than hide it behind a number that keeps rising.
+A Guide walks with at most five Explorers at once, and the database enforces it rather than the screen. The app will run a church of a hundred without complaint, on the plan it is on today and with room to spare. See [What it costs](./WHAT-IT-COSTS.md) for the measured figures. What it cannot do is find you a sixth Guide. Growth here means recruiting and training people, and the app is built to keep that constraint visible rather than hide it behind a number that keeps rising.
 
 ## 2. The four roles
 
@@ -905,7 +906,9 @@ Pictures further up a thread are not fetched until they are scrolled to, and a v
 
 > **NOTE** · Why there is no video
 >
-> Video cannot be sent, and that is a decision rather than an omission. One phone video is the storage of a hundred photographs and is paid for again on every view, which is the single thing most likely to end a church's free plan. Put it on YouTube and share the link; the composer says so.
+> Video cannot be sent today. A minute of it is about four hundred shrunk photographs, and it is paid for again on every view. Put it on YouTube and share the link; the composer says so.
+>
+> **This is under review and the cost has been worked out.** At this church's size video turns out to be affordable, and it stops being affordable at about ten churches sharing one instance. [What it costs](./WHAT-IT-COSTS.md) has the numbers, the three arguments against that are not about money, and the recommendation: allow it with a short cap, and measure for a month before widening it.
 
 **Files in the library never reach a server at all.** The library holds links; a file saved under *On this device* is passed from one phone to the other through the phone's own share sheet. Files in a **conversation** do reach the server, because the two people are rarely holding their phones at the same moment and the file has to wait somewhere. That is the honest line between the two.
 
@@ -922,7 +925,36 @@ Two scheduled jobs live in the repository. Both are free on a public repository,
 >
 > **Never let an unencrypted dump reach the repository.** Files attached to a job on a public repository can be downloaded by anyone on the internet. Encrypt before upload, or do not produce the file.
 
-## 10. Data protection
+## 10. What it costs
+
+Worked out from the live systems rather than estimated, and it produced two
+surprises worth stating here.
+
+**This app is not on a free plan.** The Supabase organisation is on **Pro**, and
+there are **two projects** on it: the live one, and the predecessor with nine
+accounts that nobody uses. That is about **$35 a month, roughly ₱2,030**,
+against a stated budget of ₱2,000. Pausing the old project brings it to about
+**₱1,450**, and is the single cleanest saving available.
+
+Every document in this repository said "free plan", including this handbook, and
+that error was informing decisions.
+
+**Storage will not be a problem this decade.** Sixteen days in, with 63 members,
+the database is 16 MB of an 8 GB allowance and the files are 34 MB of 100 GB.
+Traffic is the meter that moves, because a private file is downloaded again on
+every view.
+
+**The bill does not multiply as churches join**, because the plan is per
+organisation and the app is already multi-tenant. Ten churches on one instance
+is about ₱145 each. Ten separate projects would be ten times the compute for the
+same work.
+
+[docs/WHAT-IT-COSTS.md](./WHAT-IT-COSTS.md) has the measured figures, the video
+question costed both ways, and the list of what could not be seen from here.
+Chief among it is the Vercel account that actually serves the site, which is the
+one number that could still put the church over budget.
+
+## 11. Data protection
 
 Somebody will eventually ask what the law requires of a church running this, and the answer starts with one fact.
 
@@ -951,7 +983,7 @@ The two largest gaps today:
 >
 > An engineer can say what the app collects and who can see it. Whether that satisfies a regulator is a question for a lawyer, and neither the document nor this section is legal advice. What they do is give a lawyer the map they cannot produce themselves.
 
-## 11. When something breaks
+## 12. When something breaks
 
 | What you see | What it usually is | What to do |
 | --- | --- | --- |
@@ -1001,7 +1033,7 @@ All of those live screens were one file of three thousand lines called `LiveCore
 >
 > They read `components/LiveCorePages.tsx` by name, so when the screens moved, ten assertions stopped testing anything while still reporting nothing wrong. One of them was a safeguarding placement check. They read every live screen now, so the next move cannot switch them off. **A check pinned to a file name is a check a refactor can silently delete.**
 
-## 12. For an AI tool continuing this
+## 13. For an AI tool continuing this
 
 Read this section before making a change. It states what is true, what must stay true, and the mistakes already made here so they are not made twice.
 
@@ -1058,7 +1090,7 @@ CI runs the same command on **Ubuntu, macOS and Windows**. A green run on Linux 
 - **Trusting a filename.** The version a migration is recorded under in the database is not the name of the file it came from, and a `00NN_` name added today sorts before every timestamped one.
 - **Editing a migration that had already run.** It changes nothing in the database and makes a fresh environment differ from production. Add a corrective migration.
 
-## 13. What is not finished
+## 14. What is not finished
 
 Stated plainly, because a plan that hides its gaps is worse than no plan.
 

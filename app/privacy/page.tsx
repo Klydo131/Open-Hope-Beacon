@@ -115,7 +115,9 @@ export default function PrivacyPage() {
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">Where it is kept, and for how long</h2>
           <p className="mt-2 text-gray-700">
-            The database and files are hosted by Supabase in <Blank what="[region]" />.
+            The database and files are hosted by Supabase in <strong>Seoul, South
+            Korea</strong>, so information about you leaves the Philippines. That is
+            allowed, and you are being told because you should know.
             The pages are served by Vercel. Email is sent through Brevo. A weekly backup
             is encrypted before it leaves.
           </p>
