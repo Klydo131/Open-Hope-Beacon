@@ -410,6 +410,22 @@ export function LiveJoinPage() {
   const [busy, setBusy] = useState(false);
   const [donePending, setDonePending] = useState(false);
   const [error, setError] = useState('');
+  // Getting back in when the link is dead.
+  //
+  // An invitation creates the account immediately but sets no password, and the
+  // link in the email works once. Somebody who opens it twice, or opens it a day
+  // late, is then holding an account they cannot reach: no password to sign in
+  // with, and a link that will not open again. The only screen they were given
+  // said "go to sign in", which is exactly what they cannot do.
+  //
+  // The recovery email works for them, because it does not care whether a
+  // password exists yet. It was already in the app, labelled "Forgot your
+  // password?" on the sign-in screen -- wording that no one in this position
+  // reads as applying to them, because they have not forgotten a password, they
+  // have never had one. So it is offered here, in their own words.
+  const [rescueEmail, setRescueEmail] = useState('');
+  const [rescueNotice, setRescueNotice] = useState('');
+  const [rescueBusy, setRescueBusy] = useState(false);
   const [churchName, setChurchName] = useState('');
   const [role, setRole] = useState<Role>('ds');
   const recovery = params.get('recovery') === '1' || params.get('type') === 'recovery';
@@ -626,6 +642,25 @@ export function LiveJoinPage() {
 
   const isSeeker = role === 'ds';
 
+  const sendFreshLink = async () => {
+    const address = rescueEmail.trim().toLowerCase();
+    if (!emailLooksValid(address)) {
+      setRescueNotice('Enter the address your invitation was sent to.');
+      return;
+    }
+    const client = supabaseAuth();
+    if (!client) return;
+    setRescueBusy(true);
+    await client.auth
+      .resetPasswordForEmail(address, { redirectTo: `${window.location.origin}/join?recovery=1` })
+      .catch(() => {});
+    setRescueBusy(false);
+    // The same words whether or not the address has an account. Saying "no
+    // account here" would turn this box into a way of finding out who is a
+    // member of the church.
+    setRescueNotice('If that address has an account, a fresh link is on its way. It lasts one hour.');
+  };
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     const { chosen: chosenPassword, confirmation } = readPasswordFields();
@@ -795,6 +830,45 @@ export function LiveJoinPage() {
                 inbox for the newest message before asking for another, because a new
                 invitation switches off the one you already have.
               </p>
+
+              {/* The way out, and it has to be here.
+                  Somebody reading this has an account already, because the
+                  invitation made one. What they do not have is a password, so
+                  "go to sign in" is the one thing they cannot do, and asking
+                  their church for another invitation costs them a day and
+                  switches off any link they still hold. This sends a fresh
+                  link straight to the address it was addressed to. */}
+              <div className="mt-5 rounded-xl bg-navy/5 p-4">
+                <p className="text-sm font-bold text-navy">Send me a new link</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Type the address your invitation was sent to. You do not need a
+                  password, and you do not need to ask your church again.
+                </p>
+                <label className="mt-3 block">
+                  <span className="sr-only">Your e-mail address</span>
+                  <input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={rescueEmail}
+                    onChange={(e) => setRescueEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="tap w-full rounded-xl border border-gray-300 px-4 text-base outline-none focus:border-navy"
+                  />
+                </label>
+                <Button
+                  variant="gold"
+                  className="mt-3 w-full"
+                  disabled={rescueBusy}
+                  onClick={sendFreshLink}
+                >
+                  {rescueBusy ? 'Sending…' : 'E-mail me a new link'}
+                </Button>
+                {rescueNotice && (
+                  <p role="status" className="mt-3 text-sm font-semibold text-navy">{rescueNotice}</p>
+                )}
+              </div>
+
               <Link href="/login" className="mt-4 inline-block font-semibold text-navy underline">Go to sign in</Link>
             </>
           ) : (

@@ -268,5 +268,37 @@ const DATA = 'lib/live/data.ts';
   ok(globalSignOuts.length === 0, 'no screen signs a person out of all their devices at once');
 }
 
+// A dead invitation link is not a dead end.
+//
+// An invitation creates the account immediately and sets NO password, and the
+// link in the email works exactly once. Somebody who opens it twice, or a day
+// late, is then holding an account they cannot reach: no password to sign in
+// with, and a link that will not open again. This happened to a real Guide on
+// 1 September, and the only thing that screen offered them was "go to sign in",
+// which is precisely what they could not do. The account had to be repaired by
+// hand against the database.
+//
+// The recovery email already worked for exactly this case -- it does not care
+// whether a password exists yet -- but it was only ever offered as "Forgot your
+// password?", wording nobody in this position reads as theirs, because they
+// have not forgotten a password, they have never had one.
+{
+  const door = read('components/live/DoorPages.tsx');
+  const deadLink = door.slice(door.indexOf('const [rescueEmail'));
+
+  ok(/resetPasswordForEmail/.test(deadLink),
+     'a stuck invitee can send themselves a fresh link without asking their church');
+  ok(/redirectTo:[^\n]*\/join\?recovery=1/.test(deadLink),
+     'and that link brings them back to set a password');
+  ok(/E-mail me a new link/i.test(door),
+     'the way out is offered in their words, not as "forgot your password"');
+
+  // The same answer whether or not the address has an account. Anything else
+  // turns the box into a way of finding out who belongs to the church.
+  const notice = (door.match(/setRescueNotice\('If that address[^']*'\)/) || [])[0] ?? '';
+  ok(/If that address has an account/.test(notice),
+     'and it never reveals whether an address is a member');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);
