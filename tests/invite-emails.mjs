@@ -55,20 +55,44 @@ for (const role of ROLES) {
   const hrefs = (html.match(/href="https:\/\/church\.example\.org[^"]*"/g) || []).length;
   ok(hrefs >= 2, `${role}: the join link appears as both a button and copyable text`);
 
-  // The install/use guidance must come before the one-time invitation. A
-  // recipient should not trigger an account link before knowing which browser
-  // to use and how the app arrives on their device.
   ok(html.includes('Safari on iPhone or iPad') && html.includes('Other browsers'),
      `${role}: gives separate Safari and other-browser install steps`);
   ok(html.includes('Using the app') && (html.includes('Guild Room') || (html.includes('Admin') && html.includes('Security'))),
      `${role}: explains how to return and use the right room after joining`);
-  ok(html.indexOf('Safari on iPhone or iPad') < html.indexOf('Accept your invitation'),
-     `${role}: places install help before the invitation link`);
-  const invitationButton = html.lastIndexOf('Accept your invitation');
-  const fallback = html.lastIndexOf('If the button does not work');
-  ok(invitationButton >= 0 && invitationButton < fallback
-     && html.slice(fallback).includes('token_hash=abc123'),
-     `${role}: keeps the fallback invitation URL at the bottom`);
+
+  // THE INVITATION COMES BEFORE THE INSTALL STEPS, and this assertion used to
+  // say the opposite.
+  //
+  // The old reasoning was that a recipient should not spend a one-time link
+  // before knowing which browser to use. It reads sensibly and it was wrong,
+  // because of what people did with it: they followed the install steps first,
+  // and an installed app opens as a fresh session with no invitation in it.
+  // Some never came back to the email. One Guide finished with an account that
+  // had no password and a spent link, and it had to be repaired by hand against
+  // the database.
+  //
+  // Accepting is the only step that expires, works once, and cannot be done
+  // later from anywhere else. Installing has no deadline and is explained inside
+  // the app. So the thing with a deadline goes first.
+  ok(html.indexOf('Accept your invitation') < html.indexOf('Safari on iPhone or iPad'),
+     `${role}: puts the invitation before the install steps`);
+  ok(html.indexOf('Accept your invitation') < html.indexOf('Next: install Hope Beacon'),
+     `${role}: and the install section presents itself as what comes next`);
+  // The copyable address stays immediately under the button it backs up, which
+  // is no longer the bottom of the message. A button that will not render in
+  // somebody's mail client is a dead end; a URL beside it is not.
+  //
+  // MEASURED AS A DISTANCE, not just an order. The first version of this check
+  // asked only that the copyable address came somewhere after the button, and
+  // it passed happily while the reorder left that address stranded at the very
+  // bottom of the message, below every install step. Order alone cannot tell
+  // "underneath the button" from "elsewhere in the email".
+  const invitationButton = html.indexOf('Accept your invitation');
+  const fallback = html.indexOf('If the button does not work');
+  ok(invitationButton >= 0 && fallback > invitationButton && fallback - invitationButton < 500,
+     `${role}: the copyable address sits directly under the button (${fallback - invitationButton} chars away)`);
+  ok(html.slice(fallback, fallback + 500).includes('token_hash=abc123'),
+     `${role}: and it is the invitation link, not the app address`);
   ok(html.includes(`href="${APP_URL}"`), `${role}: install links use the ordinary app address, never the one-time link`);
 
   ok(html.includes(CHURCH), `${role}: names the church`);
