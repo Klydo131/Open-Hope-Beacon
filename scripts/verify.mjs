@@ -119,6 +119,11 @@ const staticChecks = [
   // closed with a lesson archive. That is a filing cabinet, not a welcome, so
   // an Explorer now gets a short Jesus-first list -- and this keeps it short.
   ['the Explorer starts with Jesus', 'tests/the-explorer-starts-with-jesus.mjs'],
+  // Dead link, or a publisher that dislikes robots? The shelf checker cannot
+  // reach the internet from here and runs in CI instead, but the rule it sorts
+  // by can be tested anywhere -- and it is the part that was wrong, calling
+  // three live sites dead because they answer 403 to a datacentre.
+  ['dead is not refused', 'tests/dead-is-not-refused.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

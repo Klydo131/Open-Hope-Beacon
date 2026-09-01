@@ -9,13 +9,27 @@
 //
 // It could not be written to run where it was written: that sandbox has no route
 // out, so `curl` to any of these hosts fails at the proxy. GitHub Actions does
-// have a route out, which is why this runs there and on a schedule rather than in
-// `npm run verify`.
+// have a route out, which is why this runs there rather than in `npm run verify`.
 //
 //   node scripts/check-links.mjs
 //
-// Exits non-zero if any link is dead. A link that merely redirects is fine — that
-// is a publisher tidying up, not a broken shelf.
+// WHAT COUNTS AS BROKEN, AND WHY THAT DISTINCTION IS THE WHOLE JOB.
+//
+// The first run of this checker called four links dead. Three of them open fine
+// in a browser. `kingjamesbibleonline.org`, `adventistarchives.org` and
+// `gcyouthministries.org` answer 403 to a request from a GitHub runner, and
+// `hopetv.org` answered 429 after we had made nineteen requests in ten seconds.
+// None of those is a wrong address. They are sites declining a robot, and one of
+// them we provoked ourselves.
+//
+// A wrong address does not answer 403. It answers 404 or 410, or the hostname
+// does not resolve, or nothing accepts the connection. Those are the failures
+// this check exists to catch, and those are the only ones that turn the build
+// red. Anything else is reported and passed, because a check that cries wolf at
+// Cloudflare is a check people learn to click past — and the next time it goes
+// red for a real 404, nobody will look.
+//
+// So: fail on DEAD, report REFUSED, and never invent a third meaning for either.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -32,43 +46,99 @@ if (links.length === 0) {
   process.exit(2);
 }
 
-console.log(`Checking ${links.length} links…\n`);
+const pause = (ms) => new Promise((go) => setTimeout(go, ms));
 
-// HEAD first: it is the polite request, and most of these are large PDFs we have
-// no reason to download. Some servers refuse HEAD, so a failure there falls back
-// to a ranged GET that asks for the first byte only.
-async function reach(url) {
-  const opts = {
+// Ask the way a phone would. Several of these publishers sit behind a bot filter
+// that turns away anything without a browser's headers, and the church member
+// tapping the link IS a browser — so asking as one is the honest test, not a
+// trick. It is still truthfully identified in the comment header of this file
+// and the request rate below is deliberately gentle.
+const BROWSER = {
+  'User-Agent':
+    'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Mobile Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/pdf;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+
+// A live server that will not talk to a robot. Distinct from a wrong address.
+const REFUSALS = new Set([401, 403, 405, 406, 409, 429, 503]);
+
+export async function ask(url, method, extra = {}) {
+  return fetch(url, {
+    method,
     redirect: 'follow',
-    headers: { 'User-Agent': 'OpenHopeBeacon-LinkCheck/1.0 (+church resource shelf)' },
+    headers: { ...BROWSER, ...extra },
     signal: AbortSignal.timeout(25000),
-  };
-  try {
-    const head = await fetch(url, { ...opts, method: 'HEAD' });
-    if (head.ok) return { ok: true, status: head.status };
-    const get = await fetch(url, {
-      ...opts,
-      method: 'GET',
-      headers: { ...opts.headers, Range: 'bytes=0-0' },
-    });
-    return { ok: get.ok, status: get.status };
-  } catch (cause) {
-    return { ok: false, status: cause?.name === 'TimeoutError' ? 'timed out' : String(cause?.message ?? cause) };
-  }
+  });
 }
 
+// HEAD first: it is the polite request, and most of these are large PDFs there is
+// no reason to download. Some servers refuse HEAD outright, so fall back to a
+// ranged GET asking for one byte, and then to a plain GET for the servers that
+// refuse Range too. Only after all three does a status get believed.
+export async function reach(url) {
+  let last = null;
+  for (const attempt of [
+    () => ask(url, 'HEAD'),
+    () => ask(url, 'GET', { Range: 'bytes=0-0' }),
+    () => ask(url, 'GET'),
+  ]) {
+    try {
+      const res = await attempt();
+      if (res.ok) return { verdict: 'OK', detail: res.status };
+      last = res.status;
+    } catch (cause) {
+      last = cause?.name === 'TimeoutError' ? 'timed out' : String(cause?.message ?? cause);
+      // A DNS failure or a refused connection will not be fixed by another verb.
+      if (typeof last === 'string') break;
+    }
+  }
+  if (typeof last === 'number' && REFUSALS.has(last)) {
+    return { verdict: 'REFUSED', detail: last };
+  }
+  return { verdict: 'DEAD', detail: last };
+}
+
+// Importing this file must not fire twenty requests at other people's servers,
+// so the sweep runs only when the file is the thing that was executed. That is
+// what lets `tests/dead-is-not-refused.mjs` exercise `reach` against a local
+// server that answers 403 and 404 on demand — the classification above is the
+// part that got it wrong last time, so it is the part with a test.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  await sweep();
+}
+
+async function sweep() {
+console.log(`Checking ${links.length} links…\n`);
+
 const dead = [];
+const refused = [];
 for (const link of links) {
-  const { ok, status } = await reach(link.url);
-  console.log(`${ok ? 'OK ' : 'BAD'} ${link.id.padEnd(24)} ${status}  ${link.url}`);
-  if (!ok) dead.push({ ...link, status });
+  const { verdict, detail } = await reach(link.url);
+  console.log(`${verdict.padEnd(7)} ${link.id.padEnd(24)} ${detail}  ${link.url}`);
+  if (verdict === 'DEAD') dead.push({ ...link, detail });
+  if (verdict === 'REFUSED') refused.push({ ...link, detail });
+  // One second between requests. Twenty links is nothing to a publisher spread
+  // over twenty seconds, and it is how we earned a 429 the first time.
+  await pause(1000);
+}
+
+if (refused.length) {
+  console.log(`\n${refused.length} link(s) answered but would not serve a robot:\n`);
+  for (const r of refused) console.log(`  ${r.id}  ${r.url}  (${r.detail})`);
+  console.log('\nThese are not failures. The site is up; it declined an automated');
+  console.log('request. Open one in a browser if you want to be sure.');
 }
 
 if (dead.length) {
-  console.log(`\n${dead.length} of ${links.length} links are not reachable:\n`);
-  for (const d of dead) console.log(`  ${d.id}  ${d.url}  (${d.status})`);
+  console.log(`\n${dead.length} of ${links.length} links are DEAD:\n`);
+  for (const d of dead) console.log(`  ${d.id}  ${d.url}  (${d.detail})`);
   console.log('\nFix the address in lib/starter-kit.ts, or remove the resource.');
   process.exit(1);
 }
 
-console.log(`\nRESULT: all ${links.length} links open.`);
+console.log(
+  `\nRESULT: no dead links. ${links.length - refused.length} of ${links.length} opened; ` +
+    `${refused.length} declined a robot.`,
+);
+}
