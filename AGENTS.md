@@ -96,16 +96,25 @@ the Director opening a report about nothing.
 about four panels on it is a scroll, and a scroll is how somebody stops finding
 the tool they came for. `components/Rooms.tsx` is the mechanism and it is
 already written: `useRoom` remembers the subroom per role, `?room=` in the
-address beats the memory so a link can still send somebody somewhere exact, and
-the strip scrolls sideways inside itself on a phone. The Admin screen and the
-Office both use it.
+address beats the memory so a link can still send somebody somewhere exact, a
+third argument translates an old `#card` anchor to the folder that draws that
+card, and the strip scrolls sideways inside itself on a phone. Admin, the
+Office, the Library, Settings, the Church, a Guide's home and an Explorer's
+journey all use it, on both the live and the sample side.
 
 Two rules when you add one. **A panel lives in exactly one subroom**: one that
 appears in two is in neither, as far as the person hunting for it is concerned.
 And **the first subroom is what the room is for**: `useRoom` opens it when there
 is nothing remembered, so a Guide's Office opens on Lesson studies and a
 Director's opens on the numbers. `tests/rooms-and-subrooms.mjs` holds both,
-plus the rule that every link naming a subroom names one that exists.
+plus the rule that every link naming a subroom names one that exists, across
+every room that has them. `tests/e2e/office-subrooms.js` walks them all in a
+real browser at eight device sizes, and runs on WebKit in CI.
+
+Two things must not move into a folder of their own. **An Explorer's report
+control belongs on the same screen as the conversation it is about**, and **a
+Guide sees the church's notices above the row rather than inside a folder** —
+both were asked for in those terms and both are checked.
 
 ---
 

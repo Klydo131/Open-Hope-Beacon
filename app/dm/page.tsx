@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { AppShell } from '@/components/AppShell';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { Avatar, Badge, Button, Card, EmptyState } from '@/components/ui';
 import { STAGES, stageInfo, trackColor } from '@/lib/brand';
 import { emitQuest } from '@/lib/quest';
@@ -40,6 +41,16 @@ function Dashboard() {
   const [filter, setFilter] = useState<Filter>('all');
 
   const today = todayKey();
+
+  // FOUR FOLDERS, matching the live Guide's home. What needs attention, the
+  // roster and the filter are one errand and stay together; the week ahead and
+  // the writing desk are two others that were simply further down the page.
+  const rooms: Room[] = [
+    { id: 'people', label: '🤝 My Explorers' },
+    { id: 'week', label: '📅 Next 7 days' },
+    { id: 'write', label: '✍️ Write' },
+  ];
+  const [room, chooseRoom] = useRoom(rooms, 'beacon:demo-guide-room');
 
   // One pass over the missionary's pairings, decorated with everything the
   // dashboard and the list both need.
@@ -135,8 +146,12 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* Needs attention — the reason to open the app at all */}
-      <Card className="p-5">
+      <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
+
+      {/* Needs attention, the reason to open the app at all. It is in the
+          folder that opens, because a Guide who has to pick a folder before
+          being told somebody has gone quiet has been told too late. */}
+      {room === 'people' && <Card className="p-5">
         <h2 className="mb-3 text-xl font-bold text-navy">
           {attention === 0 ? 'All caught up 🎉' : 'Needs your attention'}
         </h2>
@@ -182,10 +197,10 @@ function Dashboard() {
             )}
           </div>
         )}
-      </Card>
+      </Card>}
 
       {/* Where everyone sits on the journey */}
-      <Card className="p-5">
+      {room === 'people' && <Card className="p-5">
         {/* "Your flock" was a shepherd's word for the church's people. It reads
             as a group somebody owns, and this list is the opposite of that:
             individuals, one at a time, each on their own journey. */}
@@ -212,10 +227,10 @@ function Dashboard() {
             </div>
           ))}
         </div>
-      </Card>
+      </Card>}
 
       {/* The week ahead */}
-      {upcoming.length > 0 && (
+      {room === 'week' && upcoming.length > 0 && (
         <Card className="p-5">
           <h2 className="mb-3 text-xl font-bold text-navy">📅 Next 7 days</h2>
           <div className="space-y-2">
@@ -255,6 +270,7 @@ function Dashboard() {
       )}
 
       {/* The seekers themselves, most urgent first */}
+      {room === 'people' && (
       <div>
         <h2 className="mb-3 text-xl font-bold text-navy">
           {filter === 'all'
@@ -382,11 +398,11 @@ function Dashboard() {
             })}
           </div>
         )}
-      </div>
+      </div>)}
 
-      {/* Last on the page on purpose. The people waiting on this Guide come
-          first; writing is the thing you do once everyone is answered. */}
-      <BlogDesk userId={me.id} />
+      {/* Its own folder now. Writing is the thing you do once everyone is
+          answered, and it was the bottom of a page nobody reached. */}
+      {room === 'write' && <BlogDesk userId={me.id} />}
     </div>
   );
 }

@@ -155,6 +155,9 @@ const staticChecks = [
   // panel in the Office is in exactly one subroom, and whether the links that
   // point into it name subrooms that exist.
   ['rooms and subrooms', 'tests/rooms-and-subrooms.mjs'],
+  // Three loading screens existed and the app showed the plainest one. This
+  // holds it to the designed one, drawing the real logo.
+  ['one loading screen', 'tests/one-loading-screen.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

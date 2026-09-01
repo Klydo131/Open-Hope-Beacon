@@ -22,6 +22,12 @@ import { shareItem, blobToFile } from '@/lib/share';
 import { ShareButton } from '@/components/ShareSheet';
 import { MediaPlayer } from '@/components/MediaPlayer';
 import { HeartGlyph, SearchGlyph } from '@/components/Glyph';
+// TWO DIFFERENT HOOKS ARE CALLED useRoom IN THIS CODEBASE, and this file is
+// the only one that needs both: `lib/room-theme` gives a room its colours,
+// `components/Rooms` gives a room its subrooms. Aliased rather than renamed,
+// because renaming either would touch every screen to settle an argument this
+// comment settles.
+import { RoomTabs, useRoom as useSubroom, type Room } from '@/components/Rooms';
 import { Playlists } from '@/components/Playlists';
 import { PlayerPanel } from '@/components/PlayerBar';
 import { useRoom } from '@/lib/room-theme';
@@ -365,6 +371,20 @@ export default function LibraryPage() {
   );
   const featured = resources.slice(0, 3);
 
+  // THREE FOLDERS, AND THIS ROOM NEEDED THEM MOST. Measured on a 390px phone:
+  // eleven screens of scrolling, the longest page in the app by a factor of
+  // two. The church's shelf and the files on your own device are two different
+  // things that happened to share a page, and the second was at the bottom of
+  // the first.
+  const rooms: Room[] = [
+    { id: 'browse', label: '🔎 Browse' },
+    { id: 'featured', label: '⭐ Featured' },
+    { id: 'mine', label: '📱 On this device' },
+  ];
+  const [room, chooseRoom] = useSubroom(rooms, 'beacon:library-room', {
+    'your-device-library': 'mine',
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 text-navy">
       <header className="border-b border-navy/10 bg-white">
@@ -401,7 +421,9 @@ export default function LibraryPage() {
           </div>
         </section>
 
-        <section aria-labelledby="browse-library" className="space-y-4">
+        <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
+
+        {room === 'browse' && <section aria-labelledby="browse-library" className="space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 id="browse-library" className="text-2xl font-extrabold text-navy">Browse the library</h2>
@@ -452,9 +474,9 @@ export default function LibraryPage() {
               );
             })}
           </div>
-        </section>
+        </section>}
 
-        {featured.length > 0 && (
+        {room === 'featured' && featured.length > 0 && (
           <section aria-labelledby="featured-resources">
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
               <div>
@@ -481,7 +503,7 @@ export default function LibraryPage() {
           </section>
         )}
 
-        <section aria-labelledby="all-library-resources">
+        {room === 'browse' && <section aria-labelledby="all-library-resources">
           <div className="mb-4">
             <h2 id="all-library-resources" className="text-2xl font-extrabold text-navy">All resources</h2>
             <p className="mt-1 text-sm text-gray-600">Every public resource in this part of the library.</p>
@@ -500,9 +522,9 @@ export default function LibraryPage() {
               ))}
             </div>
           )}
-        </section>
+        </section>}
 
-        <section id="your-device-library" aria-labelledby="your-device-library-heading" className="border-t border-navy/10 pt-8">
+        {room === 'mine' && <section id="your-device-library" aria-labelledby="your-device-library-heading" className="border-t border-navy/10 pt-8">
           <div className="max-w-3xl">
             <p className="text-sm font-bold uppercase tracking-[0.15em] text-teal-700">Your device library</p>
             <h2 id="your-device-library-heading" className="mt-1 text-2xl font-extrabold text-navy">Keep your own media close.</h2>
@@ -581,7 +603,7 @@ export default function LibraryPage() {
               </div>
             )}
           </div>
-        </section>
+        </section>}
       </main>
     </div>
   );

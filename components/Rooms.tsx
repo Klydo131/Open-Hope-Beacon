@@ -43,7 +43,24 @@ export interface Room {
  * a Director who lives in Approvals should land there. A link is an explicit
  * request and beats a habit.
  */
-export function useRoom(rooms: Room[], storageKey: string): [string, (id: string) => void] {
+export function useRoom(
+  rooms: Room[],
+  storageKey: string,
+  /**
+   * `#card` in the address, translated to the subroom that draws that card.
+   *
+   * Anchors were written before any of these screens had subrooms, and they
+   * point at cards: `/settings#install`, `/office#pairing-requests`. Once the
+   * card lives inside a subroom, the hash names something the page is not
+   * drawing, and the person arrives at a room with nothing in it — which is
+   * the complaint this whole mechanism came from, restated.
+   *
+   * The links themselves have been changed to `?room=`, but an open tab or an
+   * installed copy that has not refreshed is still holding the old address, so
+   * the translation stays.
+   */
+  hashAliases: Record<string, string> = {},
+): [string, (id: string) => void] {
   const first = rooms[0]?.id ?? '';
   const [room, setRoom] = useState(first);
   // Re-read on every address change, not just on mount. The desk rail is drawn
@@ -59,6 +76,17 @@ export function useRoom(rooms: Room[], storageKey: string): [string, (id: string
     try {
       asked = new URLSearchParams(window.location.search).get('room') ?? '';
     } catch { /* no window, or no search */ }
+
+    // A hash is as explicit a request as a query string, so it beats the
+    // remembered room for the same reason.
+    let hash = '';
+    try { hash = window.location.hash.replace('#', ''); } catch { /* no window */ }
+    const viaHash = hashAliases[hash];
+    if (!asked && viaHash && rooms.some((r) => r.id === viaHash)) {
+      setRoom(viaHash);
+      try { localStorage.setItem(storageKey, viaHash); } catch {}
+      return;
+    }
 
     if (asked && rooms.some((r) => r.id === asked)) {
       setRoom(asked);

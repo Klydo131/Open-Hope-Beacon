@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { APP_NAME } from '@/lib/brand';
 
 // -------------------------------------------------------------------------
 // The Beacon loader.
@@ -18,25 +20,32 @@ import { useEffect, useState } from 'react';
 // people ill.
 // -------------------------------------------------------------------------
 
+// THE REAL LOGO, NOT A DRAWING OF ONE.
+//
+// This drew its own lighthouse: a tower, a lamp, and for a while a sweeping
+// beam, all built here in SVG. It was pretty and it was not the brand. People
+// saw one mark on the loading screen and a different one on every screen after
+// it, which is exactly the kind of thing that makes a product look assembled
+// rather than designed. The church app that came before this one had already
+// worked that out and fixed it; this is the same fix, brought across.
+//
+// `HopeBeaconMark` is the mark. The animation stays around it: a halo that
+// breathes behind, stopped under prefers-reduced-motion like everything else.
+//
+// `beacon-halo`, NOT `beacon-glow`. There are two different `.beacon-glow`
+// rules in globals.css: one is this breathing animation and the other is the
+// big radial ring behind the sign-in door. Reusing the name here would have
+// hung the door's blue and gold rings off the loading mark.
 function Mark({ size = 96 }: { size?: number }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 120 120"
-      aria-hidden
-      className="beacon-mark"
-    >
-      {/* THE BEAM AND THE HALO ARE GONE. A rotating wedge plus a breathing
-          circle plus a flickering lamp is three animations fighting for the
-          same 90 pixels, and the result reads as busy rather than as waiting.
-          The lamp alone still says the light is on. */}
-      <circle cx="60" cy="60" r="58" fill="#E8B84B" opacity="0.14" />
-      <circle cx="60" cy="60" r="58" fill="none" stroke="#E8B84B" strokeOpacity="0.35" strokeWidth="1.5" />
-      <path d="M60 20 L75 75 H45 Z" fill="#1E2A4A" />
-      <rect x="49" y="75" width="22" height="22" rx="3" fill="#1E2A4A" />
-      <circle cx="60" cy="33" r="7.5" fill="#fff" className="beacon-lamp" />
-    </svg>
+    <div className="relative grid place-items-center" style={{ width: size, height: size }}>
+      <div
+        className="beacon-halo absolute -inset-4 rounded-full blur-2xl"
+        style={{ backgroundColor: '#2F80ED' }}
+        aria-hidden
+      />
+      <HopeBeaconMark size={size} className="relative" />
+    </div>
   );
 }
 
@@ -57,7 +66,7 @@ function Mark({ size = 96 }: { size?: number }) {
  * fill at this size reads as a failed page rather than a deliberate screen.
  */
 export function BeaconSplash({
-  label = 'Getting things ready…',
+  label = 'Lighting the way…',
 }: {
   label?: string;
 }) {
@@ -71,8 +80,11 @@ export function BeaconSplash({
       <div className="flex flex-col items-center gap-6 px-6 text-center">
         <Mark size={88} />
         <div>
+          {/* From the brand constant, not typed here. lib/brand.ts is the one
+              place the app's name lives, and a loading screen with last year's
+              name on it is the most visible place to get that wrong. */}
           <p className="text-[1.6rem] font-extrabold tracking-tight text-white">
-            Hope Beacon
+            {APP_NAME}
           </p>
           <p className="mt-1.5 text-sm text-white/50">{label}</p>
         </div>

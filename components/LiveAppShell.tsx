@@ -7,6 +7,7 @@ import { roleLabel, NAVY } from '@/lib/brand';
 import type { Role } from '@/lib/types';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { BeaconSplash } from '@/components/BeaconLoader';
 import { Avatar, Button, Card } from '@/components/ui';
 import { LeftRail, RightRail, railGroupsFor } from '@/components/RoomRails';
 import { LiveDesk } from '@/components/LiveDesk';
@@ -133,7 +134,19 @@ export function LiveAppShell({
     }
   }, [session, profile, loading, allow, router]);
 
-  if (loading) return <LiveLoading />;
+  // THE APP HAD THREE LOADING SCREENS AND SHOWED THE WORST ONE.
+  //
+  // `BeaconSplash` in components/BeaconLoader.tsx is the loading screen: the
+  // mark with a halo breathing behind it, the name, one line, and a bar that
+  // travels without claiming a percentage. It was written, and then nothing in
+  // this repository ever rendered it. What people actually saw was a second,
+  // plainer screen defined a few lines below here: flat navy, the mark, and a
+  // hardcoded sentence.
+  //
+  // Two loading screens in one product are two answers to "is it working?",
+  // and people learn one of them. The church app this grew out of uses the
+  // splash at exactly this moment, which is what the owner asked for.
+  if (loading) return <BeaconSplash label="Signing you in…" />;
   if (!session) return null;
 
   if (!profile) {
@@ -333,17 +346,6 @@ export function LiveUnsupported() {
         screen remains available in the separate sample-data demo.
       </p>
     </Card>
-  );
-}
-
-function LiveLoading() {
-  return (
-    <div className="grid min-h-screen place-items-center" style={{ backgroundColor: NAVY }}>
-      <div className="text-center text-white">
-        <HopeBeaconMark size={64} className="mx-auto" />
-        <p className="mt-4 text-white/70">Opening Hope Beacon…</p>
-      </div>
-    </div>
   );
 }
 

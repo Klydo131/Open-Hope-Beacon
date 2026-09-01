@@ -22,6 +22,7 @@ import { useLiveSession } from '@/lib/live/session';
 import { useTutorialMode } from '@/lib/tutorial';
 import type { Role } from '@/lib/types';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { WhatsNewButton } from '@/components/WhatsNew';
 import { FeedbackButton } from '@/components/Feedback';
 import { humanError } from '@/lib/live/errors';
@@ -216,38 +217,73 @@ export function LiveProfilePage() {
 
 export function LiveSettingsPage() {
   const { profile } = useLiveSession();
+  const leads = profile?.role === 'admin' || profile?.role === 'executive';
+
+  // THREE FOLDERS. Settings was seven cards for a member and nine for a
+  // Director, at nearly seven screens on a phone: installing, where the app
+  // came from, alerts, the church's name, the tutorial, help and about, one
+  // below the other. Almost nobody opens this room to read all of it; they
+  // open it to change one thing.
+  // FOUR SMALL FOLDERS RATHER THAN THREE, for the same reason the sample side
+  // has five: "This device" was still holding installing, alerts and where the
+  // app came from, which is most of the page it was meant to shorten.
+  const rooms: Room[] = [
+    { id: 'device', label: '📱 Install' },
+    { id: 'alerts', label: '🔔 Alerts' },
+    ...(leads ? [{ id: 'church', label: '⛪ Church' }] : []),
+    { id: 'help', label: '❓ Help' },
+  ];
+
+  // THE TWO ANCHORS THAT ALREADY EXISTED. The header's Install chip points at
+  // `/settings#install` and the desk points at `/settings#tutorial`. Both name
+  // a card, and a card inside a folder nobody has opened is not on the page for
+  // a hash to find. Apple users are sent to the install card precisely because
+  // Safari cannot install for them, so this one failing would fail exactly the
+  // people it exists for.
+  const [room, chooseRoom] = useRoom(rooms, `beacon:settings-room:${profile?.role ?? 'none'}`, {
+    install: 'device',
+    tutorial: 'help',
+  });
+
   if (!profile) return <BeaconSpinner inline label="Loading your account" />;
-  const leads = profile.role === 'admin' || profile.role === 'executive';
 
   return (
     <div className="space-y-6">
-      {/* First, because it is the first thing somebody does on a new device,
-          and because device alerts below are far more useful once the app is
-          installed. */}
-      {/* ANCHORED, because things link here by name and used to miss.
-          The header's Install chip has always pointed at `/settings#install`,
-          and on the live app it landed at the top of this page instead — the
-          card it named was below the fold, and Apple users, who are sent here
-          precisely because Safari cannot install for them, were the ones who
-          got the top of a page and no card. The id costs nothing; not having
-          it made the chip look broken. */}
-      <div id="install" className="scroll-mt-24">
-        <InstallCard />
-      </div>
-      <SourceCard />
-      <NotificationCard />
-      {leads && <ChurchNameCard />}
-      <div id="tutorial" className="scroll-mt-24">
-        <TutorialCard />
-      </div>
-      {/* WHAT'S NEW AND FEEDBACK LIVE HERE NOW, and on the live app they did
-          not live anywhere. They were taken out of the rail — "Tutorial, What's
-          new and Feedback should all be in Settings" — and only the tutorial
-          made the journey. The sample-data Settings screen has had both since
-          the move; this one has had neither, so on a real church deployment the
-          two buttons simply ceased to exist. */}
-      <HelpCard />
-      <AboutCard />
+      <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
+
+      {room === 'device' && (
+        <>
+          {/* First, because it is the first thing somebody does on a new
+              device, and because device alerts below are far more useful once
+              the app is installed.
+
+              The id stays even though the folder now does the arriving: a hash
+              that lands in the right folder should still put the card itself in
+              front of the person rather than the top of it. */}
+          <div id="install" className="scroll-mt-24">
+            <InstallCard />
+          </div>
+          <SourceCard />
+        </>
+      )}
+
+      {room === 'alerts' && <NotificationCard />}
+
+      {room === 'church' && leads && <ChurchNameCard />}
+
+      {room === 'help' && (
+        <>
+          <div id="tutorial" className="scroll-mt-24">
+            <TutorialCard />
+          </div>
+          {/* WHAT'S NEW AND FEEDBACK LIVE HERE NOW, and on the live app they
+              did not live anywhere. They were taken out of the rail and only
+              the tutorial made the journey, so on a real church deployment the
+              two buttons simply ceased to exist. */}
+          <HelpCard />
+          <AboutCard />
+        </>
+      )}
     </div>
   );
 }

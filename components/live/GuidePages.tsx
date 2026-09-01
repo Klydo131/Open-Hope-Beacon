@@ -22,6 +22,7 @@ import { Avatar, Button, Card, Tabs } from '@/components/ui';
 import { JourneyPath } from '@/components/JourneyPath';
 import { Conversation, Notice, errorText } from '@/components/live/shared';
 import { LiveAnnouncements } from '@/components/LiveAnnouncements';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
@@ -89,6 +90,19 @@ export function LiveGuidePage() {
     return () => { alive = false; };
   }, []);
 
+  // FOUR FOLDERS. The Guide's home was the greeting, the announcements, the
+  // picture prompt, the summary, five Explorer cards, the follow-ups, every
+  // prayer request and the whole congregation's writing, one below the other.
+  // The roster is what a Guide comes here for, so it is the folder that opens.
+  const waitingPrayers = Object.values(unprayed).reduce((a, b) => a + b, 0);
+  const rooms: Room[] = [
+    { id: 'people', label: '🤝 My Explorers', badge: rows.length },
+    { id: 'waiting', label: '📋 Follow-ups' },
+    { id: 'prayer', label: '🙏 Prayer', badge: waitingPrayers, urgent: waitingPrayers > 0 },
+    { id: 'church', label: '⛪ Church' },
+  ];
+  const [room, chooseRoom] = useRoom(rooms, 'beacon:guide-room', { prayer: 'prayer' });
+
   return (
     <LiveAppShell allow={['dm']}>
       {/* GREETED BY NAME, AND TOLD THE ONE NUMBER THAT MATTERS.
@@ -113,6 +127,8 @@ export function LiveGuidePage() {
               : 'Loading the people you walk with.'}
       </p>
       {error && <div className="mt-5"><Notice tone="error">{error}</Notice></div>}
+
+      <div className="mt-5"><RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} /></div>
 
       {/* FIRST ON THE DASHBOARD, under the greeting that names the page. A
           Guide is the person a church most needs to reach: they carry the
@@ -152,7 +168,7 @@ export function LiveGuidePage() {
           A Guide could see a list of cards and nothing else: answering "where
           are my people up to" meant reading every card and counting. These are
           the same rows, added up. */}
-      {rows.length > 0 && <MyExplorersAtAGlance rows={rows} waiting={unprayed} />}
+      {room === 'people' && rows.length > 0 && <MyExplorersAtAGlance rows={rows} waiting={unprayed} />}
 
       {/* Cases moved to their own room, /cases, reachable from the rail on
           every screen. A formal hearing does not belong as one card among a
@@ -167,7 +183,7 @@ export function LiveGuidePage() {
           The stage sits on the right on its own line above the path, which is
           where the reference design puts it and where a scan for "who is at
           Commission" actually looks. */}
-      <div className="mt-6 space-y-2.5">
+      {room === 'people' && <div className="mt-6 space-y-2.5">
         {rows.map((row) => {
           const stage = stageInfo(row.journey_stage);
           const waiting = unprayed[row.ds_id] ?? 0;
@@ -216,27 +232,29 @@ export function LiveGuidePage() {
             </Link>
           );
         })}
-      </div>
+      </div>}
       {/* `ready` as well as `!error`: still fetching is not the same as nobody,
           and this card was the second place saying so. */}
-      {rows.length === 0 && ready && !error && <Card className="mt-6 p-6 text-center text-gray-500">No active pairing yet.</Card>}
+      {room === 'people' && rows.length === 0 && ready && !error && <Card className="mt-6 p-6 text-center text-gray-500">No active pairing yet.</Card>}
 
       {/* FOLLOW-UPS STAY. They are about the people on this list and nothing
           else, which is what this screen is for. Writing studies, stocking the
           shelf, recommending somebody and the blog desk all moved to the
           Office, because they are work rather than people and they were making
           this page four screens long. See app/office/page.tsx. */}
-      <div className="mt-6 space-y-6">
+      {room === 'waiting' && <div className="mt-6 space-y-6">
         <LiveFollowUps pairings={rows.map((r) => ({ id: r.id, ds_name: r.ds_name }))} />
-      </div>
+      </div>}
 
       {/* Named requests from their own Explorers. A prayer request is about a
           person, so it belongs here rather than in the Office. */}
-      <div className="mt-6 space-y-6">
-        <LivePrayerForGuide nameFor={(id) => rows.find((r) => r.ds_id === id)?.ds_name ?? 'An Explorer'} />
-      </div>
+      {/* alwaysShow, because a folder called Prayer that draws nothing at all
+          when a Guide opens it reads as broken rather than as quiet. */}
+      {room === 'prayer' && <div className="mt-6 space-y-6">
+        <LivePrayerForGuide nameFor={(id) => rows.find((r) => r.ds_id === id)?.ds_name ?? 'An Explorer'} alwaysShow />
+      </div>}
 
-      <div className="mt-6"><LiveBlogFeed selfId={profile?.id} /></div>
+      {room === 'church' && <div className="mt-6"><LiveBlogFeed selfId={profile?.id} /></div>}
     </LiveAppShell>
   );
 }

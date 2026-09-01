@@ -24,6 +24,7 @@ import { useLiveSession } from '@/lib/live/session';
 import { LiveChurchOverview, LiveBoardReport } from '@/components/LiveExecutive';
 import { LiveBillboard } from '@/components/LiveBillboard';
 import { BeaconSpinner } from '@/components/BeaconLoader';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { humanError } from '@/lib/live/errors';
 
 const message = (cause: unknown) =>
@@ -50,34 +51,70 @@ export function LiveChurchPage() {
   const leads = profile.role === 'admin' || profile.role === 'executive';
   const explorer = profile.role === 'ds';
 
+  return <ChurchRooms profile={profile} churchName={churchName} leads={leads} explorer={explorer} />;
+}
+
+/**
+ * The church, in three folders instead of one long page.
+ *
+ * It ran to nearly five screens on a phone: the masthead, everything the
+ * congregation has written, every notice pinned to the board, the counts and
+ * the board report, one after another. Somebody coming to read a notice
+ * scrolled past twenty blog posts to reach it.
+ *
+ * THE ORDER INSIDE EACH FOLDER IS UNCHANGED, and that matters more than it
+ * looks: the masthead comes first because the church's name is the first
+ * thing, and the counts are still absent for an Explorer, because a tally of
+ * how many people like them there are is the church looking at itself.
+ */
+function ChurchRooms({ profile, churchName, leads, explorer }: {
+  profile: { id: string; role: string };
+  churchName?: string;
+  leads: boolean;
+  explorer: boolean;
+}) {
+  const rooms: Room[] = [
+    { id: 'notices', label: '📌 Notices' },
+    { id: 'blogs', label: '✍️ Community Blogs' },
+    // An Explorer has no numbers folder at all rather than an empty one. A room
+    // that would be empty for somebody tells them they are missing something.
+    ...(explorer ? [] : [{ id: 'numbers', label: '📊 The numbers' }]),
+  ];
+  const [room, chooseRoom] = useRoom(rooms, `beacon:church-room:${profile.role}`);
+
   return (
     <div className="space-y-6">
-      {/* THE BOARD, not a heading and two numbers. Masthead, anything waiting
-          for a Director, then Community Blogs, then the church's own notices.
+      <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
 
-          THAT ORDER IS THE ASK, and it settles what a home screen is for. The
-          church's name is the first thing; what people wrote comes next,
-          because it is the reason to come back; the pinned notices sit under
-          it. The blogs are not first anywhere, and on every other role's home
-          screen they are last. */}
-      <LiveBillboard
-        churchName={churchName}
-        between={<LiveBlogFeed selfId={profile.id} />}
-      />
+      {/* THE BOARD. Masthead and the church's own notices. The blogs used to be
+          woven between the two by the `between` prop, which was the right call
+          when this was one page and is the wrong one now: they are their own
+          folder, and a folder that also appears inside another folder is a
+          thing nobody can find twice. */}
+      {room === 'notices' && <LiveBillboard churchName={churchName} />}
+
+      {/* WHAT PEOPLE WROTE, which is the reason to come back. */}
+      {room === 'blogs' && <LiveBlogFeed selfId={profile.id} />}
+
       {/* NOT FOR EXPLORERS. Counts of Guides, Explorers, approvals and prayer
-          requests are the church looking at itself — a management view. An
+          requests are the church looking at itself, a management view. An
           Explorer opening this screen wants their church, not a tally of how
           many people like them there are and how many have "graduated". It
-          reads as being counted, and it was the first thing on the page.
+          reads as being counted, and it was once the first thing on the page.
 
-          It is safe in the sense that matters — no names, no conversations,
-          never who wrote a prayer request — which is why it was shown to
-          everybody in the first place. Safe is not the same as theirs. */}
-      {!explorer && <LiveChurchOverview />}
-      {/* The board report is numbers only, and it names nobody — so it is safe
-          for every role to see, not just leadership. A Guide who can see what
-          their church reports upward is a Guide who trusts the reporting. */}
-      {leads && <LiveBoardReport churchName={churchName} />}
+          It is safe in the sense that matters, with no names, no conversations
+          and never who wrote a prayer request, which is why it was shown to
+          everybody in the first place. Safe is not the same as theirs.
+
+          The board report is numbers only and names nobody, so a Guide sees it
+          too. A Guide who can see what their church reports upward is a Guide
+          who trusts the reporting. */}
+      {room === 'numbers' && (
+        <>
+          <LiveChurchOverview />
+          {leads && <LiveBoardReport churchName={churchName} />}
+        </>
+      )}
     </div>
   );
 }

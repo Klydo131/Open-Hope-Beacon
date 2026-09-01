@@ -185,72 +185,78 @@ const settle = (page) => page.waitForTimeout(2600);
     ['a narrow Mac window', { viewport: { width: 1024, height: 768 } }],
   ].filter(([, d]) => d);
 
+  // EVERY ROOM THAT HAS SUBROOMS NOW, not the Office alone. Each is walked as
+  // the role that lives in it.
+  const ROOMS = [
+    ['Maria Santos', '/office', "a Guide's Office"],
+    ['Maria Santos', '/dm', "a Guide's home"],
+    ['Maria Santos', '/church', 'the Church'],
+    ['Maria Santos', '/settings', 'Settings'],
+    ['Maria Santos', '/library', 'the Library'],
+    ['John Reyes', '/ds', "an Explorer's journey"],
+  ];
+
   for (const [label, descriptor] of SHAPES) {
-    const c = await browser.newContext(descriptor);
-    await quietStart(c);
-    const pg = await c.newPage();
-    await signInAs(pg, 'Maria Santos');
-    await pg.goto(`${BASE}/office`, { waitUntil: 'networkidle' });
-    await pg.waitForTimeout(1100);
-    await settle(pg);
+    for (const [who, path, roomName] of ROOMS) {
+      const c = await browser.newContext(descriptor);
+      await quietStart(c);
+      const pg = await c.newPage();
+      await signInAs(pg, who);
+      await pg.goto(`${BASE}${path}`, { waitUntil: 'networkidle' });
+      await pg.waitForTimeout(900);
+      await settle(pg);
 
-    const strip = pg.locator('[role="tablist"][aria-label="Rooms"]');
-    const t = strip.locator('[role="tab"]');
-    const n = await t.count();
+      const strip = pg.locator('[role="tablist"][aria-label="Rooms"]');
+      const t = strip.locator('[role="tab"]');
+      const n = await t.count();
 
-    const m = await pg.evaluate(() => {
-      const el = document.querySelector('[role="tablist"][aria-label="Rooms"]');
-      const r = el ? el.getBoundingClientRect() : null;
-      return {
-        pageScrollW: document.documentElement.scrollWidth,
-        pageClientW: document.documentElement.clientWidth,
-        stripLeft: r ? Math.round(r.left) : null,
-        stripRight: r ? Math.round(r.right) : null,
-        stripScrolls: el ? el.scrollWidth > el.clientWidth + 1 : false,
-      };
-    });
+      const m = await pg.evaluate(() => {
+        const el = document.querySelector('[role="tablist"][aria-label="Rooms"]');
+        const r = el ? el.getBoundingClientRect() : null;
+        return {
+          pageScrollW: document.documentElement.scrollWidth,
+          pageClientW: document.documentElement.clientWidth,
+          stripLeft: r ? Math.round(r.left) : null,
+          stripRight: r ? Math.round(r.right) : null,
+        };
+      });
 
-    // 1. The page never scrolls sideways. This is the iOS bug, restated.
-    ok(m.pageScrollW <= m.pageClientW + 1,
-       `${label}: the page does not scroll sideways (${m.pageScrollW} <= ${m.pageClientW})`);
+      const tag = `${label} · ${roomName}`;
+      ok(n >= 2, `${tag}: offers subrooms (${n})`);
 
-    // 2. The strip's negative margin must not hang off the viewport.
-    ok(m.stripLeft !== null && m.stripLeft >= -8 && m.stripRight <= m.pageClientW + 8,
-       `${label}: the strip sits inside the screen (${m.stripLeft} to ${m.stripRight} of ${m.pageClientW})`);
+      // 1. The page never scrolls sideways. This is the iOS bug, restated.
+      ok(m.pageScrollW <= m.pageClientW + 1,
+         `${tag}: no sideways scroll (${m.pageScrollW} <= ${m.pageClientW})`);
 
-    // 3. Every choice is a real touch target. Apple's own floor is 44 points
-    //    and this app's `.tap-sm` is exactly that; a rounding error that made
-    //    it 43 would be a control people miss with a thumb.
-    let smallest = 999;
-    for (let i = 0; i < n; i += 1) {
-      const box = await t.nth(i).boundingBox();
-      if (box) smallest = Math.min(smallest, box.height);
+      // 2. The strip's negative margin must not hang off the viewport.
+      ok(m.stripLeft !== null && m.stripLeft >= -8 && m.stripRight <= m.pageClientW + 8,
+         `${tag}: the strip is inside the screen`);
+
+      // 3. Apple's floor for a touch target is 44 points, and `.tap-sm` is
+      //    exactly that; a rounding error making it 43 is a control people miss.
+      let smallest = 999;
+      for (let i = 0; i < n; i += 1) {
+        const box = await t.nth(i).boundingBox();
+        if (box) smallest = Math.min(smallest, box.height);
+      }
+      ok(smallest >= 44, `${tag}: every subroom is a 44pt target (${smallest})`);
+
+      // 4. THE LAST CHOICE IS REACHABLE, and opening it does not widen the page.
+      const last = t.nth(n - 1);
+      await last.scrollIntoViewIfNeeded();
+      await last.click();
+      await pg.waitForTimeout(500);
+      ok(await last.getAttribute('aria-selected') === 'true',
+         `${tag}: the last subroom opens`);
+
+      const after = await pg.evaluate(() => ({
+        w: document.documentElement.scrollWidth,
+        c: document.documentElement.clientWidth,
+      }));
+      ok(after.w <= after.c + 1, `${tag}: still no sideways scroll with it open`);
+
+      await c.close();
     }
-    ok(smallest >= 44, `${label}: every subroom is at least a 44pt target (${smallest})`);
-
-    // 4. THE LAST CHOICE IS REACHABLE. A strip that overflows and cannot be
-    //    scrolled hides the subrooms at the end of it, which on a phone is
-    //    where the least-used ones live and on a Director's screen is the
-    //    Guides' room.
-    const last = t.nth(n - 1);
-    await last.scrollIntoViewIfNeeded();
-    await pg.waitForTimeout(250);
-    ok(await last.isVisible(), `${label}: the last subroom can be reached${m.stripScrolls ? ' by scrolling the strip' : ''}`);
-
-    await last.click();
-    await pg.waitForTimeout(600);
-    ok(await last.getAttribute('aria-selected') === 'true',
-       `${label}: and pressing it opens that subroom`);
-
-    // 5. And the page still has not been pushed sideways by whatever it drew.
-    const after = await pg.evaluate(() => ({
-      w: document.documentElement.scrollWidth,
-      c: document.documentElement.clientWidth,
-    }));
-    ok(after.w <= after.c + 1,
-       `${label}: still no sideways scroll with that subroom open (${after.w} <= ${after.c})`);
-
-    await c.close();
   }
 
   await browser.close();

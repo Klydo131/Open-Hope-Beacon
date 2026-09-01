@@ -147,28 +147,17 @@ function LiveOffice() {
   // Remembered per role, like the Director's screen: a Guide who lives in
   // Lesson studies should land there tomorrow, and a Director's habit is their
   // own rather than everybody's.
-  const [room, chooseRoom] = useRoom(rooms, `beacon:office-room:${profile?.role ?? 'none'}`);
-
+  //
   // THE OLD DEEP LINK STILL HAS TO ARRIVE SOMEWHERE. The desk rail pointed at
   // `/office#pairing-requests` and that card now lives inside a subroom, so the
   // hash would land on a panel that is not drawn. The link itself has been
-  // changed to `?room=people`, but an open tab or a stale install can still be
-  // holding the old address, and sending somebody to a room with no card in it
-  // is exactly the complaint this whole feature came from.
-  useEffect(() => {
-    let hash = '';
-    try { hash = window.location.hash.replace('#', ''); } catch {}
-    const forHash: Record<string, string> = {
-      'pairing-requests': 'people',
-      studies: 'studies',
-      library: 'library',
-    };
-    const wanted = forHash[hash];
-    if (wanted && rooms.some((r) => r.id === wanted)) chooseRoom(wanted);
-    // Only on arrival. Re-running would drag somebody out of a tab they picked
-    // by hand while the hash was still sitting in the address bar.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.role]);
+  // changed to `?room=people`; the translation is for the open tab and the
+  // installed copy that has not refreshed yet.
+  const [room, chooseRoom] = useRoom(
+    rooms,
+    `beacon:office-room:${profile?.role ?? 'none'}`,
+    { 'pairing-requests': 'people', studies: 'studies', library: 'library' },
+  );
 
   if (!profile) return null;
 

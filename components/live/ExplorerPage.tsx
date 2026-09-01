@@ -15,6 +15,7 @@ import { LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveStudies } from '@/components/LiveStudies';
 import { Avatar, Card } from '@/components/ui';
 import { Conversation, Notice, errorText } from '@/components/live/shared';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { LiveAnnouncements } from '@/components/LiveAnnouncements';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
@@ -110,6 +111,25 @@ export function LiveExplorerPage() {
     }
   };
 
+  // FOUR FOLDERS, BECAUSE THIS SCREEN RAN TO NEARLY SEVEN ON A PHONE.
+  //
+  // An Explorer's own journey was: their Guide, the church's notices, the
+  // conversation, the way out of it, the meetings, what has been shared with
+  // them, the studies, everything the congregation has written, and the box
+  // for asking prayer. All of it theirs, all of it worth having, and all of it
+  // one below the other.
+  //
+  // The relationship stays together in the first folder, and it is the one
+  // that opens. The journey is a relationship, so the Guide, the talking, the
+  // way out and the arranging of a time are one thing and are not split up.
+  const rooms: Room[] = [
+    { id: 'guide', label: '🤝 My Guide' },
+    { id: 'study', label: '📖 Study' },
+    { id: 'church', label: '⛪ Church' },
+    { id: 'prayer', label: '🙏 Prayer' },
+  ];
+  const [room, chooseRoom] = useRoom(rooms, 'beacon:journey-room', { prayer: 'prayer' });
+
   return (
     <LiveAppShell allow={['ds']}>
       <div className="space-y-5">
@@ -118,83 +138,83 @@ export function LiveExplorerPage() {
           <h1 className="text-3xl font-extrabold">{profile?.full_name.split(' ')[0]}</h1>
           <p className="mt-3 text-white/80">Your journey is a relationship, not a score.</p>
         </div>
+
+        <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
+
         {error && <Notice tone="error">{error}</Notice>}
 
-        {/* WHO IS WALKING WITH YOU, FIRST, and on this screen only.
-            On a Director's or a Guide's home the church's writing comes first,
-            because their job is the church. An Explorer opening My Journey is
-            not looking for the church, they are looking for their person; the
-            whole design says the journey is a relationship, and then the page
-            opened on a list of everybody else's posts. The Guide's name goes
-            above the blogs here. */}
-        {pairing && <GuideCard pairing={pairing} />}
-
-        {/* THE CHURCH, BETWEEN THE PERSON AND THE TALKING. An Explorer opens
-            this screen looking for their Guide, so the name stays first. What
-            the church has pinned comes next, above the conversation: it is the
-            one thing on here that did not come from the two of them, and below
-            the thread nobody would ever scroll to it. Draws nothing when
-            there is nothing pinned. */}
-        <LiveAnnouncements hideWhenEmpty />
-
-        {/* Cases moved to their own room, /cases, in the rail on every screen.
-            An Explorer called into one is the person in it with the least
-            standing, so it has to be somewhere they can find without being
-            told, and a card partway down this page was not that. */}
-
-        {!pairing ? (
-          <Card className="p-6 text-center">
-            <h2 className="text-xl font-bold text-navy">Your Guide is being arranged</h2>
-            <p className="mt-2 text-gray-500">Your church will connect one person with you soon.</p>
-          </Card>
-        ) : (
+        {room === 'guide' && (
           <>
-            {/* The card that used to sit here has moved to the top of the page.
-                Two copies of a person's Guide on one screen is not emphasis. */}
-            <Conversation
-              messages={messages}
-              files={files}
-              myId={profile?.id ?? ''}
-              body={body}
-              setBody={setBody}
-              send={send}
-              busy={busy}
-              onAttach={(chosen) => void attach(chosen)}
-              onRemoveFile={(file) => void dropFile(file)}
-              attachError={attachError}
-            />
-            {/* THE ONE THAT MATTERS MOST. The Explorer is the person with the
-                least standing in this relationship and the most reason to stay
-                silent, so their route out has to be on the same screen as the
-                conversation itself — not in a menu, not in settings. */}
-            <LiveReportControl
-              subjectId={pairing.dm_id}
-              subjectName={pairing.dm_name}
-              pairingId={pairing.id}
-            />
+            {/* WHO IS WALKING WITH YOU, FIRST, and on this screen only.
+                On a Director's or a Guide's home the church's writing comes
+                first, because their job is the church. An Explorer opening My
+                Journey is not looking for the church, they are looking for
+                their person. */}
+            {pairing && <GuideCard pairing={pairing} />}
+
+            {/* THE CHURCH, BETWEEN THE PERSON AND THE TALKING. Asked for in
+                exactly those words: after the Guide's name box and before the
+                chat box. It is the one thing in this folder that did not come
+                from the two of them, and below the thread nobody would ever
+                scroll to it. Draws nothing when there is nothing pinned. */}
+            <LiveAnnouncements hideWhenEmpty />
+
+            {!pairing ? (
+              <Card className="p-6 text-center">
+                <h2 className="text-xl font-bold text-navy">Your Guide is being arranged</h2>
+                <p className="mt-2 text-gray-500">Your church will connect one person with you soon.</p>
+              </Card>
+            ) : (
+              <>
+                <Conversation
+                  messages={messages}
+                  files={files}
+                  myId={profile?.id ?? ''}
+                  body={body}
+                  setBody={setBody}
+                  send={send}
+                  busy={busy}
+                  onAttach={(chosen) => void attach(chosen)}
+                  onRemoveFile={(file) => void dropFile(file)}
+                  attachError={attachError}
+                />
+                {/* THE ONE THAT MATTERS MOST. The Explorer is the person with
+                    the least standing in this relationship and the most reason
+                    to stay silent, so their route out has to be on the same
+                    screen as the conversation itself. It is in this folder for
+                    that reason and must not be moved to another one. */}
+                <LiveReportControl
+                  subjectId={pairing.dm_id}
+                  subjectName={pairing.dm_name}
+                  pairingId={pairing.id}
+                />
+                {/* ARRANGING A TIME IS PART OF THE RELATIONSHIP, so it sits
+                    with the conversation rather than in a folder of its own. */}
+                <LiveMeetings pairingId={pairing.id} withName={pairing.dm_name} />
+              </>
+            )}
           </>
         )}
 
-        {/* Below the conversation, because a message addressed to you matters
-            more than one addressed to everybody. Renders nothing at all when
-            there is nothing to read, rather than an empty card. */}
-        {/* ARRANGING A TIME IS PART OF THE RELATIONSHIP, so it sits with the
-            conversation rather than in a menu. Both people see the same card
-            and either may propose; migration 0009's policies were written for
-            exactly that and nothing had ever called them. */}
-        {pairing && <LiveMeetings pairingId={pairing.id} withName={pairing.dm_name} />}
-        <LiveSharedWithMe />
-        <LiveStudies />
+        {/* WHAT SOMEBODY HAS PUT IN FRONT OF YOU TO READ. A file a Guide
+            shared and a study series the church published are the same errand,
+            so they are one folder. */}
+        {room === 'study' && (
+          <>
+            <LiveSharedWithMe />
+            <LiveStudies />
+          </>
+        )}
 
         {/* READ, THEN ASK. Writing moved to the Publish room, which every role
             has: this screen is somebody's journey, and their own blog desk sat
-            on it because there was nowhere else to put it.
+            on it because there was nowhere else to put it. */}
+        {room === 'church' && <LiveBlogFeed selfId={profile?.id} />}
 
-            Asking for prayer is last, at the foot of the page, because it is
-            the most exposed thing anybody does in this app and should not be
-            the first thing on the screen every time they open their journey. */}
-        <LiveBlogFeed selfId={profile?.id} />
-        <LiveAskForPrayer />
+        {/* ASKING FOR PRAYER IS THE MOST EXPOSED THING ANYBODY DOES HERE, which
+            is why it was last on the page and is its own folder now rather than
+            the first thing anybody sees on opening their journey. */}
+        {room === 'prayer' && <LiveAskForPrayer />}
       </div>
     </LiveAppShell>
   );

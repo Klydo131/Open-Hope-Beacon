@@ -291,11 +291,26 @@ The screen a Guide lands on opens with their own figures: how many Explorers the
 
 **Graduated** means reached Commission: walked the whole journey and now sent to walk with somebody else. It is the number the whole design exists to produce.
 
-### The Office, and what a subroom is
+### Rooms, and what a subroom is
 
 Guides, Directors and Executive Directors have an **Office**, in the left column on every screen. It holds the work: the numbers, the downloads, the studies you write and the shelf you stock.
 
-**A room is a folder, and a subroom is a folder inside it.** Open the Office and a row of subrooms sits across the top; tap one and you are in it. Nothing else is drawn, so there is nothing to scroll past.
+**A room is a folder, and a subroom is a folder inside it.** Open a room and a row of subrooms sits across the top; tap one and you are in it. Nothing else is drawn, so there is nothing to scroll past.
+
+Six rooms work this way now. Measured on a phone, with the sample church in them:
+
+| Room | Was | Now |
+| --- | --- | --- |
+| **The Library** | 11 screens of scrolling | 3 folders: Browse, Featured, On this device |
+| **Settings** | 7 screens | 5 folders: Install, Alerts, Language and size, Church, Help |
+| **My Journey**, an Explorer's own screen | 7 screens | 4 folders: My Guide, Study, Church, Prayer |
+| **The Church** | 5 screens | 3 folders: Notices, Community Blogs, The numbers |
+| **My Explorers**, a Guide's home | 4 screens | 4 folders: My Explorers, Follow-ups, Prayer, Church |
+| **The Office** | 3 screens, and nine cards | 5 or 6 folders, below |
+
+Publish, Cases, the Guild Room, Mail and Profile are left alone. They are one or two screens and mostly one thing; a row of choices above a single card is furniture, not navigation.
+
+The Office in particular:
 
 | A Guide's subrooms | A Director's subrooms |
 | --- | --- |
@@ -311,7 +326,13 @@ The count beside **Pairing requests** is how many Guides are waiting on an answe
 
 > **NOTE** · Why this room needed it most
 >
-> It held nine panels down one page. A Guide who came here to write a study passed their numbers, the shelf, two pairing cards and a recommendation form on the way, every single time, and on a phone that is most of a minute of thumb. The Director's screen has worked in rooms since it was split up; the Office simply never got the same treatment.
+> It held nine panels down one page. A Guide who came here to write a study passed their numbers, the shelf, two pairing cards and a recommendation form on the way, every single time, and on a phone that is most of a minute of thumb. The Director's screen has worked in rooms since it was split up; the Office simply never got the same treatment, and neither had anywhere else.
+
+> **NOTE** · Two things that did not move
+>
+> **An Explorer's way out of a conversation is on the same screen as the conversation.** Report sits in the My Guide folder with the thread, the Guide's card and the meetings, because the journey is a relationship and splitting it across folders would be the worst thing this change could do.
+>
+> **A Guide still sees the church's notices before choosing a folder.** They sit above the row, not inside one, because a Guide carries the notices onward to the people they walk with and was told to see them first.
 
 The split is by kind of work rather than by rank. A roster, a conversation, a case is about a person, and lives on that person's screen. Numbers, exports, writing and stocking a shelf are office work, and live here. Before this, a Guide's roster carried study-writing, library-stocking and a blog desk underneath the list of five people they walk with, and a Director's analytics sat three clicks inside an admin tab. The people screens were four screens long and the tools were hard to find.
 
@@ -581,7 +602,11 @@ They are all one component now, so a new panel gets the behaviour instead of som
 
 ### Waiting
 
-Anywhere the app is fetching something, it shows the lighthouse mark turning with a word for what it is waiting on, rather than the word "Loading" on its own or nothing at all. A screen that is still fetching and a screen that has finished and found nothing used to look identical, so people pressed the button again.
+**Opening the app shows one screen while it signs you in**: the app's own mark with a halo breathing behind it, the name, and a bar that travels without pretending to know how far along it is.
+
+There were three waiting states and the app showed the plainest of them. The designed one existed and nothing ever drew it; what people saw was a second, flatter screen written inside the live shell, with a lighthouse drawn by hand rather than the app's actual logo. So somebody saw one mark while waiting and a different one for the rest of the session. The church app this grew out of had already found that and fixed it, and this is the same fix.
+
+Anywhere the app is fetching something smaller, it shows the same mark turning with a word for what it is waiting on, rather than the word "Loading" on its own or nothing at all. A screen that is still fetching and a screen that has finished and found nothing used to look identical, so people pressed the button again.
 
 A device set to reduce motion gets the same message without the spin.
 

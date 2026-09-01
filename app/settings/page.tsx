@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { InstallCard } from '@/components/InstallCard';
 import { SourceCard } from '@/components/SourceCard';
 import { LiveAppShell } from '@/components/LiveAppShell';
@@ -452,6 +453,24 @@ function Body() {
   const canRename = currentUser?.role === 'admin';
   const canManageData = currentUser?.role === 'admin';
 
+  // FIVE SMALL FOLDERS RATHER THAN THREE BIG ONES. Three still left "This
+  // device" holding installing, alerts, where the app came from, the version,
+  // the language and the text size, which was five screens of the six the page
+  // had. A folder that is still a scroll has not solved anything.
+  const rooms: Room[] = [
+    { id: 'device', label: '📱 Install' },
+    { id: 'alerts', label: '🔔 Alerts' },
+    { id: 'reading', label: '🔠 Language and size' },
+    ...(canRename || canManageData ? [{ id: 'church', label: '⛪ Church' }] : []),
+    { id: 'help', label: '❓ Help' },
+  ];
+  // The Install chip and the desk both point at a card by name. Translated, or
+  // they arrive at a folder that is not drawing what they were sent for.
+  const [room, chooseRoom] = useRoom(rooms, 'beacon:demo-settings-room', {
+    install: 'device',
+    tutorial: 'help',
+  });
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-extrabold text-navy">⚙️ {t('settings')}</h1>
@@ -465,23 +484,45 @@ function Body() {
           chip cannot install for them and sends them here instead. Without an
           id that meant arriving at the top of a long page with the card they
           were sent for somewhere below the fold. */}
-      <div id="install" className="scroll-mt-24">
-        <InstallCard />
-      </div>
-      <SourceCard />
+      <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
 
-      {canRename && <ChurchNameCard />}
+      {/* THE SAME FOLDERS THE LIVE SETTINGS HAS. Nine cards for a Director on
+          one page is nearly seven screens of scrolling to change one thing. */}
+      {room === 'device' && (
+        <>
+          {/* Anchored so the header's Install chip can land ON it. Apple users
+              are the ones who need this: Safari never fires
+              beforeinstallprompt, so the chip cannot install for them and
+              sends them here instead. Without an id that meant arriving at the
+              top of a long page with the card they were sent for below the
+              fold; without the folder translation above it would now mean
+              arriving at a folder that is not drawing the card at all. */}
+          <div id="install" className="scroll-mt-24">
+            <InstallCard />
+          </div>
+          <SourceCard />
+          <VersionCard />
+        </>
+      )}
 
-      {canManageData && <DataManager />}
+      {room === 'alerts' && <NotificationCard />}
 
-      <TutorialCard />
+      {room === 'church' && (
+        <>
+          {canRename && <ChurchNameCard />}
+          {canManageData && <DataManager />}
+        </>
+      )}
 
-      <NotificationCard />
+      {room === 'help' && (
+        <div id="tutorial" className="scroll-mt-24">
+          <TutorialCard />
+        </div>
+      )}
 
-      <VersionCard />
-
-      {/* Language */}
-      <Card className="p-5">
+      {/* Language and text size are how the app READS, so they belong with the
+          device rather than with the church or the help. */}
+      {room === 'reading' && <Card className="p-5">
         <h2 className="mb-1 text-xl font-bold text-navy">🌐 {t('language')}</h2>
         <p className="mb-4 text-sm text-gray-500">
           Choose your language. More of the app is translated over time; anything
@@ -499,10 +540,10 @@ function Body() {
             </option>
           ))}
         </select>
-      </Card>
+      </Card>}
 
       {/* Text size */}
-      <Card className="p-5">
+      {room === 'reading' && <Card className="p-5">
         <h2 className="mb-1 text-xl font-bold text-navy">🔠 {t('textSize')}</h2>
         <p className="mb-4 text-sm text-gray-500">
           Make everything bigger or smaller. Changes apply right away.
@@ -529,7 +570,7 @@ function Body() {
           <p className="mb-1 text-sm text-gray-400">Preview</p>
           <p className="text-lg text-navy">{t('appTagline')}</p>
         </div>
-      </Card>
+      </Card>}
     </div>
   );
 }

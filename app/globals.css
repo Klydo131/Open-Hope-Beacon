@@ -149,6 +149,15 @@ a[role='button'],
 .beacon-glow {
   animation: beaconGlow 3.4s ease-in-out infinite;
 }
+/* The halo behind the loading mark.
+   Its own name rather than `.beacon-glow`, which is taken twice in this file:
+   once for the animation above and once, further down, for the large radial
+   rings behind the sign-in door. A loader that borrowed that name inherited
+   the door's scenery. */
+.beacon-halo {
+  opacity: 0.32;
+  animation: beaconGlow 3.4s ease-in-out infinite;
+}
 .beacon-flame {
   display: inline-block;
   transform-origin: 50% 80%;
@@ -225,6 +234,7 @@ a[role='button'],
     animation: none;
   }
   .beacon-glow,
+  .beacon-halo,
   .beacon-flame {
     animation: none;
   }
@@ -296,9 +306,6 @@ a[role='button'],
   }
 }
 
-.beacon-lamp {
-  animation: beaconPulse 1.8s ease-in-out infinite;
-}
 .beacon-bar {
   animation: beaconSlide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
@@ -489,7 +496,6 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .beacon-lamp,
   .beacon-bar {
     animation: none;
   }

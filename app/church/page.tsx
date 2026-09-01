@@ -2,6 +2,7 @@
 
 import { useDemo } from '@/lib/demo/store';
 import { AppShell } from '@/components/AppShell';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveChurchPage } from '@/components/LiveChurchPages';
 import { useIsLive } from '@/lib/tutorial';
@@ -49,24 +50,38 @@ function Body() {
 
   const seesMore = me.role === 'admin' || me.role === 'executive';
 
+  const rooms: Room[] = [
+    { id: 'notices', label: '📌 Notices' },
+    { id: 'prayer', label: '🙏 Prayer wall' },
+    // An Explorer has no numbers folder, here as in the live church: a tally
+    // of how many people like them there are reads as being counted.
+    ...(seesMore ? [{ id: 'numbers', label: '📊 The numbers' }] : []),
+  ];
+  const [room, chooseRoom] = useRoom(rooms, 'beacon:demo-church-room');
+
   return (
     <div className="space-y-6">
+      <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
+
       {/* The activity billboard — masthead, privileged strip, announcements and
           the live stream of what's happening across the church. */}
-      <ChurchBillboard />
+      {room === 'notices' && <ChurchBillboard />}
 
       {/* Home is where people land, so the way to report something lives here
-          too rather than only behind a Settings menu. */}
+          too rather than only behind a Settings menu. It stays in the first
+          folder for that reason: a way to report that you have to go looking
+          for in a folder is one nobody finds. */}
+      {room === 'notices' && (
       <div className="mt-6 rounded-2xl bg-white p-5 text-center ring-1 ring-black/5">
         <p className="font-bold text-navy">How is Beacon working for you?</p>
         <p className="mb-3 mt-1 text-sm text-gray-500">
           Anything confusing, broken, or missing. One sentence is plenty.
         </p>
         <FeedbackButton className="tap" />
-      </div>
+      </div>)}
 
       {/* Prayer wall — anonymously shared requests, visible to everyone */}
-      {(() => {
+      {room === 'prayer' && (() => {
         const wall = db.prayer_requests
           .filter((r) => r.share_with_board)
           .sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -111,6 +126,7 @@ function Body() {
         );
       })()}
 
+      {room === 'numbers' && (<>
       {/* Church at a glance.
           The headline counts are for everyone — how many are walking, how many
           are walking with them. The six-stage breakdown below is not: /church
@@ -159,6 +175,7 @@ function Body() {
           </p>
         </Card>
       )}
+      </>)}
     </div>
   );
 }

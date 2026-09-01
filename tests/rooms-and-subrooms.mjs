@@ -37,18 +37,45 @@ const stripComments = (src) => src
   .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
   .replace(/\/\/[^\n]*/g, '');
 
+// EVERY ROOM THAT HAS SUBROOMS, not the Office alone.
+//
+// The Office went first because it was the worst, and then the same treatment
+// went to the rest: measured on a 390px phone with sample data, an Explorer's
+// journey ran to 6.6 screens, Settings to 6.7 for a Director, the Library to
+// 11.2. Each entry below is a component that draws a strip, and the rules after
+// it apply to all of them.
+const ROOMS_WITH_SUBROOMS = [
+  ['app/office/page.tsx', 'LiveOffice', 'the live Office'],
+  ['app/office/page.tsx', 'DemoOffice', 'the sample Office'],
+  ['components/live/ExplorerPage.tsx', 'LiveExplorerPage', "an Explorer's journey"],
+  ['app/ds/page.tsx', 'Home', "the sample journey"],
+  ['components/live/GuidePages.tsx', 'LiveGuidePage', "a Guide's home"],
+  ['app/dm/page.tsx', 'Dashboard', "the sample Guide's home"],
+  ['components/LiveChurchPages.tsx', 'ChurchRooms', 'the live Church'],
+  ['app/church/page.tsx', 'Body', 'the sample Church'],
+  ['components/LiveAccountPages.tsx', 'LiveSettingsPage', 'live Settings'],
+  ['app/settings/page.tsx', 'Body', 'sample Settings'],
+  ['app/library/page.tsx', 'LibraryPage', 'the Library'],
+];
+
 const office = readFileSync('app/office/page.tsx', 'utf8');
-const clean = stripComments(office);
 
 // ---------------------------------------------------------------------------
-// 1. The Office uses the mechanism the Director's screen already had.
+// 1. Every one of them uses the shared mechanism.
 // ---------------------------------------------------------------------------
-{
-  ok(/from '@\/components\/Rooms'/.test(clean), 'the Office imports the shared Rooms mechanism');
-  ok(/useRoom\(rooms,/.test(clean), 'and asks it which subroom is open');
-  ok(/<RoomTabs\s/.test(clean), 'and draws the strip of choices');
-  ok(/beacon:office-room:\$\{profile\?\.role/.test(clean),
-     'the remembered subroom is per role, so a Guide and a Director keep their own place');
+// Not a hand-rolled useState per screen. The mechanism carries the remembered
+// choice, the `?room=` override that makes a link work, and the hash
+// translation that keeps an old anchor arriving somewhere; a screen that rolls
+// its own gets none of those and nobody notices until a link goes dead.
+const sources = new Map();
+for (const [file] of ROOMS_WITH_SUBROOMS) {
+  if (!sources.has(file)) sources.set(file, stripComments(readFileSync(file, 'utf8')));
+}
+
+for (const [file, fn, label] of ROOMS_WITH_SUBROOMS) {
+  const src = sources.get(file);
+  ok(/from '@\/components\/Rooms'/.test(src), `${label} imports the shared Rooms mechanism`);
+  ok(new RegExp(`function ${fn}\\(`).test(src), `${label} is where it says it is (${fn})`);
 }
 
 // ---------------------------------------------------------------------------
@@ -61,9 +88,9 @@ function panelsByRoom(source, fnName) {
   const start = source.indexOf(`function ${fnName}(`);
   if (start === -1) return null;
   // Brace-match the function's own body. Slicing to the next `function` keyword
-  // ran DemoOffice's body to the end of the file and swept up the shells in
-  // OfficePage, which are not panels and are not in a subroom — a failure that
-  // was entirely this reader's, and exactly the reason to bound it properly.
+  // ran one body to the end of the file and swept up components that are not
+  // panels and are not in a subroom, a failure that was entirely this reader's
+  // and exactly the reason to bound it properly.
   const open = source.indexOf('{', source.indexOf(')', start));
   let d = 0, end = open;
   for (let i = open; i < source.length; i += 1) {
@@ -72,7 +99,7 @@ function panelsByRoom(source, fnName) {
   }
   const body = source.slice(start, end);
   const found = [];
-  const stack = [];      // { id, depth } for each open `{room === 'id' &&`
+  const stack = [];
   let depth = 0;
   for (let i = 0; i < body.length; i += 1) {
     const ch = body[i];
@@ -93,43 +120,61 @@ function panelsByRoom(source, fnName) {
   return found;
 }
 
-{
-  const panels = panelsByRoom(clean, 'LiveOffice');
-  ok(Array.isArray(panels) && panels.length > 0,
-     `the live Office draws panels (${panels ? panels.length : 0})`);
+// The shell is not a panel; it is the thing the panels are inside.
+const NOT_A_PANEL = ['LiveAppShell', 'AppShell'];
 
-  const loose = panels.filter((p) => p.room === null).map((p) => p.panel);
+// DELIBERATELY OUTSIDE THE FOLDERS, each with the reason it is out there. This
+// is a list, and a list is what this file argues against everywhere else, so it
+// earns its place only by being a list of decisions rather than a list of
+// whatever happened to exist. Adding to it should feel like a decision.
+const ALWAYS_ON = {
+  // "For Guides and Directors and ED I should see it first in my homescreen."
+  // A notice the church has pinned is above the folders on a Guide's home for
+  // that reason, and putting it inside one would undo what was asked for.
+  'components/live/GuidePages.tsx': ['LiveAnnouncements'],
+};
+
+for (const [file, fn, label] of ROOMS_WITH_SUBROOMS) {
+  const panels = panelsByRoom(sources.get(file), fn);
+  if (!panels || panels.length === 0) continue;   // a room built from local parts
+  const exempt = [...NOT_A_PANEL, ...(ALWAYS_ON[file] ?? [])];
+
+  const loose = [...new Set(panels
+    .filter((p) => p.room === null && !exempt.includes(p.panel))
+    .map((p) => p.panel))];
   ok(loose.length === 0,
      loose.length
-       ? `these draw in every subroom because nothing guards them: ${[...new Set(loose)].join(', ')}`
-       : 'every panel in the Office is inside a subroom');
+       ? `${label}: these draw in every subroom because nothing guards them: ${loose.join(', ')}`
+       : `${label}: every panel is inside a subroom (${panels.length})`);
 
-  const rooms = new Map();
+  const where = new Map();
   for (const p of panels) {
     if (!p.room) continue;
-    (rooms.get(p.panel) ?? rooms.set(p.panel, new Set()).get(p.panel)).add(p.room);
+    if (!where.has(p.panel)) where.set(p.panel, new Set());
+    where.get(p.panel).add(p.room);
   }
-  const twice = [...rooms].filter(([, set]) => set.size > 1)
+  const twice = [...where].filter(([, set]) => set.size > 1)
     .map(([panel, set]) => `${panel} (${[...set].join(', ')})`);
   ok(twice.length === 0,
      twice.length
-       ? `these are in more than one subroom, so nobody knows where to look: ${twice.join('; ')}`
-       : 'and no panel is in two subrooms at once');
+       ? `${label}: these are in more than one subroom, so nobody knows where to look: ${twice.join('; ')}`
+       : `${label}: and no panel is in two subrooms at once`);
+}
 
-  // THE ONE THE OWNER NAMED. Picking Lesson studies has to land on the writing
-  // desk, not somewhere near it.
-  ok(rooms.get('LiveStudies') && [...rooms.get('LiveStudies')][0] === 'studies',
-     'Lesson studies is its own subroom');
-
-  // NOTHING WAS LOST ON THE WAY IN. Splitting one page into subrooms is a lot
-  // of moving, and a panel that is imported and never drawn is a tool that has
-  // quietly disappeared from somebody's Office. TypeScript will not say a word
-  // about it.
-  const imported = [...clean.matchAll(/import \{([^}]+)\} from '@\/components\/[^']+'/g)]
+// ---------------------------------------------------------------------------
+// 3. Nothing was lost on the way in.
+// ---------------------------------------------------------------------------
+// Splitting a page into folders is a lot of moving, and a panel that is still
+// imported and no longer drawn is a tool that has quietly disappeared from
+// somebody's screen. TypeScript will not say a word about it.
+{
+  const officePanels = panelsByRoom(sources.get('app/office/page.tsx'), 'LiveOffice') ?? [];
+  const demoPanels = panelsByRoom(sources.get('app/office/page.tsx'), 'DemoOffice') ?? [];
+  const imported = [...office.matchAll(/import \{([^}]+)\} from '@\/components\/[^']+'/g)]
     .flatMap((m) => m[1].split(',').map((n) => n.trim()))
     .filter((n) => /^(Live[A-Z]|Analytics$|LessonSeriesLibrary$)/.test(n))
     .filter((n) => !['LiveAppShell'].includes(n));
-  const drawn = new Set([...panels, ...(panelsByRoom(clean, 'DemoOffice') ?? [])].map((x) => x.panel));
+  const drawn = new Set([...officePanels, ...demoPanels].map((x) => x.panel));
   const orphaned = imported.filter((n) => !drawn.has(n));
   ok(orphaned.length === 0,
      orphaned.length
@@ -138,46 +183,64 @@ function panelsByRoom(source, fnName) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. A Guide lands on the writing desk.
+// 4. The first subroom is what the room is for.
 // ---------------------------------------------------------------------------
-// `useRoom` opens the first subroom when there is nothing remembered, so the
-// order of the list is a decision about what the room is for.
+// `useRoom` opens the first one when there is nothing remembered, so the order
+// of the list is a decision rather than a detail.
 {
-  // THE FIRST ENTRY, not "somewhere in the first two hundred characters".
-  // The looser version passed happily with the list reordered, which is the
-  // only change it existed to catch.
-  const listStart = clean.indexOf('const rooms: Room[] = ');
-  const splitAt = clean.indexOf(': [', listStart);
-  const firstOf = (chunk) => /\{ id: '([a-z]+)'/.exec(chunk)?.[1] ?? '(none)';
-
-  const guideFirst = firstOf(clean.slice(listStart, splitAt));
+  const firstOf = (src, after = 0) => {
+    const at = src.indexOf('const rooms: Room[] = ', after);
+    if (at === -1) return null;
+    return /\{ id: '([a-z]+)'/.exec(src.slice(at, at + 900))?.[1] ?? null;
+  };
+  const officeSrc = sources.get('app/office/page.tsx');
+  const listStart = officeSrc.indexOf('const rooms: Room[] = ');
+  const splitAt = officeSrc.indexOf(': [', listStart);
+  const guideFirst = /\{ id: '([a-z]+)'/.exec(officeSrc.slice(listStart, splitAt))?.[1];
   ok(guideFirst === 'studies',
-     `a Guide's first subroom is Lesson studies, which is what they open the room to do (${guideFirst})`);
-
-  const leadFirst = firstOf(clean.slice(splitAt, clean.indexOf('const [room')));
+     `a Guide's Office opens on Lesson studies, which is what they come to it for (${guideFirst})`);
+  const leadFirst = /\{ id: '([a-z]+)'/.exec(officeSrc.slice(splitAt, officeSrc.indexOf('const [room')))?.[1];
   ok(leadFirst === 'numbers',
-     `and leadership's first subroom is the numbers, which is what they open it for (${leadFirst})`);
+     `and a Director's opens on the numbers (${leadFirst})`);
+
+  // AN EXPLORER'S JOURNEY OPENS ON THEIR GUIDE. The journey is a relationship,
+  // and the relationship is the point of the screen.
+  for (const [file, fn, label, expected] of [
+    ['components/live/ExplorerPage.tsx', 'LiveExplorerPage', "an Explorer's journey", 'guide'],
+    ['app/ds/page.tsx', 'Home', 'the sample journey', 'guide'],
+    ['components/live/GuidePages.tsx', 'LiveGuidePage', "a Guide's home", 'people'],
+    ['app/dm/page.tsx', 'Dashboard', "the sample Guide's home", 'people'],
+  ]) {
+    const src = sources.get(file);
+    const at = src.indexOf(`function ${fn}(`);
+    const got = firstOf(src, at);
+    ok(got === expected, `${label} opens on ${expected} (${got})`);
+  }
 }
 
 // ---------------------------------------------------------------------------
-// 4. The demo Office has the same shape.
+// 5. The relationship is not split up.
 // ---------------------------------------------------------------------------
-// Somebody learns the job on the sample side and then signs in. A tutorial that
-// teaches one long page and a live app with subrooms teaches the shape wrong.
+// An Explorer's route out of a conversation has to be on the same screen as the
+// conversation. Putting the report control in a different folder from the
+// thread would be the single worst thing this refactor could do.
 {
-  const demo = panelsByRoom(clean, 'DemoOffice');
-  ok(demo && demo.length > 0, 'the sample Office draws panels too');
-  ok(demo && demo.every((p) => p.room !== null),
-     'and every one of them is inside a subroom as well');
-  ok(/useRoom\(rooms, 'beacon:office-room:demo'\)/.test(clean),
-     'with its own remembered choice, so practising does not move the live one');
+  const src = sources.get('components/live/ExplorerPage.tsx');
+  const guideRoom = src.slice(src.indexOf("{room === 'guide' && ("), src.indexOf("{room === 'study'"));
+  ok(/<Conversation/.test(guideRoom) && /<LiveReportControl/.test(guideRoom),
+     'the conversation and the way out of it are in the same folder');
+  ok(/<GuideCard/.test(guideRoom) && /<LiveAnnouncements/.test(guideRoom),
+     "and the church's notices still sit after the Guide's card, where they were asked to be");
+  ok(guideRoom.indexOf('<GuideCard') < guideRoom.indexOf('<LiveAnnouncements')
+     && guideRoom.indexOf('<LiveAnnouncements') < guideRoom.indexOf('<Conversation'),
+     'in that order: the Guide, then the notices, then the talking');
 }
 
 // ---------------------------------------------------------------------------
-// 5. Every link into a subroom names one that exists.
+// 6. Every link into a subroom names one that exists.
 // ---------------------------------------------------------------------------
 {
-  const ids = new Set([...clean.matchAll(/\{ id: '([a-z]+)'/g)].map((m) => m[1]));
+  const ids = new Set([...sources.get('app/office/page.tsx').matchAll(/\{ id: '([a-z]+)'/g)].map((m) => m[1]));
   ok(ids.size >= 5, `the Office defines subrooms (${[...ids].join(', ')})`);
 
   const walk = (dir) => readdirSync(dir).flatMap((name) => {
@@ -186,23 +249,32 @@ function panelsByRoom(source, fnName) {
     return /\.tsx?$/.test(name) ? [full.split(path.sep).join('/')] : [];
   });
 
+  // Every hash that points into a room with subrooms must be translated by that
+  // room, or it lands on a folder that is not drawing what it names.
+  const HASH_OWNERS = [
+    [/\/office#([a-z-]+)/g, 'app/office/page.tsx'],
+    [/\/settings#([a-z-]+)/g, 'components/LiveAccountPages.tsx'],
+    [/\/library#([a-z-]+)/g, 'app/library/page.tsx'],
+  ];
+
   const broken = [];
   for (const file of [...walk('components'), ...walk('app'), ...walk('lib')]) {
     const src = stripComments(readFileSync(file, 'utf8'));
     for (const m of src.matchAll(/\/office\?room=([a-z]+)/g)) {
       if (!ids.has(m[1])) broken.push(`${file}: ?room=${m[1]}`);
     }
-    // A hash into the Office points at a card that a subroom may not be
-    // drawing. The Office translates the ones that existed; a new one would
-    // land on a page with nothing to scroll to.
-    for (const m of src.matchAll(/\/office#([a-z-]+)/g)) {
-      if (!clean.includes(`'${m[1]}':`)) broken.push(`${file}: #${m[1]} is not translated to a subroom`);
+    for (const [re, owner] of HASH_OWNERS) {
+      for (const m of src.matchAll(re)) {
+        const ownerSrc = sources.get(owner) ?? stripComments(readFileSync(owner, 'utf8'));
+        const named = new RegExp(`['\"]?${m[1]}['\"]?:\\s*'`).test(ownerSrc);
+        if (!named) broken.push(`${file}: #${m[1]} is not translated to a subroom by ${owner}`);
+      }
     }
   }
   ok(broken.length === 0,
      broken.length
-       ? `these links point into the Office at something that is not there:\n        ${broken.join('\n        ')}`
-       : 'every link into an Office subroom names a subroom that exists');
+       ? `these links point into a room at something that is not there:\n        ${broken.join('\n        ')}`
+       : 'every link into a subroom names a subroom that exists');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

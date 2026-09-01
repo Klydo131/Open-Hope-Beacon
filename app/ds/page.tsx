@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { emitQuest } from '@/lib/quest';
 import { AppShell } from '@/components/AppShell';
+import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { Chat } from '@/components/Chat';
 import { Avatar, Button, Card, EmptyState } from '@/components/ui';
 import { NAVY } from '@/lib/brand';
@@ -54,6 +55,14 @@ function Home() {
   );
   const verse = VERSES[new Date().getDay() % VERSES.length];
 
+  const rooms: Room[] = [
+    { id: 'guide', label: '🤝 My Guide' },
+    { id: 'study', label: '📖 Study' },
+    { id: 'church', label: '⛪ Church' },
+    { id: 'prayer', label: '🙏 Prayer' },
+  ];
+  const [room, chooseRoom] = useRoom(rooms, 'beacon:demo-journey-room');
+
   return (
     <div className="space-y-6">
       {/* Warm welcome + verse */}
@@ -85,25 +94,40 @@ function Home() {
           had written to them. No stage appears here, and none ever should — a
           priority strip is exactly where "you are ready for the next step"
           would creep back in. */}
-      <Priorities />
+      <RoomTabs rooms={rooms} room={room} onChoose={chooseRoom} />
 
-      {pairing ? (
-        <Paired pairingId={pairing.id} />
-      ) : (
-        <EmptyState
-          title="A Guide will be connected with you soon"
-          hint="Until then, start your own study shelf below."
-        />
+      {/* THE SAME FOUR FOLDERS THE LIVE JOURNEY HAS, in the same order, with
+          the same one open first. Somebody learns the job here and then signs
+          in; a tutorial that teaches one long page and a live app with folders
+          teaches the shape of the app wrong, and every complaint in this area
+          has ultimately been that gap. */}
+      {room === 'guide' && (
+        <>
+          <Priorities />
+          {pairing ? (
+            <Paired pairingId={pairing.id} />
+          ) : (
+            <EmptyState
+              title="A Guide will be connected with you soon"
+              hint="Until then, start your own study shelf in Study."
+            />
+          )}
+        </>
       )}
 
-      {/* Above the study material: a Guide's post is a person speaking, and it
-          should not sit underneath a reading list. */}
-      <BlogFeed userId={currentUser!.id} />
+      {room === 'study' && (
+        <>
+          <MySeries />
+          <MyLessons />
+          <StudyShelf />
+        </>
+      )}
 
-      <MySeries />
-      <MyLessons />
-      <StudyShelf />
-      <PrayerCorner />
+      {/* A Guide's post is a person speaking, so it is the church folder rather
+          than something under a reading list. */}
+      {room === 'church' && <BlogFeed userId={currentUser!.id} />}
+
+      {room === 'prayer' && <PrayerCorner />}
     </div>
   );
 }
