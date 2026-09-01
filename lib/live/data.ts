@@ -1352,6 +1352,52 @@ export async function listMaterials(): Promise<Material[]> {
 }
 
 /** Add one to the church library. Guides and leaders only, by policy. */
+/**
+ * The record of who shared what, for church leadership.
+ *
+ * EACH RANK SEES THE RANK BELOW IT AND NO FURTHER DOWN. A Director reads this
+ * for the Guides and Explorers of a church they lead; an Executive Director
+ * reads it for Directors and is shown nothing about a Guide or an Explorer.
+ * The database decides that, not this file.
+ *
+ * Rows older than 30 days are gone. A record kept forever is a different
+ * product from a record kept to answer "what happened last month".
+ */
+export interface LibraryActivity {
+  id: string;
+  actor_id: string | null;
+  actor_name: string;
+  actor_role: 'dm' | 'ds' | 'admin' | 'executive';
+  action: 'added' | 'shared';
+  title: string;
+  address: string | null;
+  with_name: string | null;
+  blocked: boolean;
+  occurred_at: string;
+}
+
+export async function listLibraryActivity(limit = 100): Promise<LibraryActivity[]> {
+  const { data, error } = await db().rpc('library_activity_feed', { p_limit: limit });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as LibraryActivity[];
+}
+
+/**
+ * Stop somebody sharing, or let them start again.
+ *
+ * A Director reaches Guides and Explorers; an Executive Director reaches
+ * Directors. Nobody reaches sideways, upward, or themselves, and all of that
+ * is enforced in the function rather than by hiding a button.
+ */
+export async function setLibraryBlock(personId: string, blocked: boolean, reason?: string): Promise<void> {
+  const { error } = await db().rpc('set_library_block', {
+    p_person: personId,
+    p_blocked: blocked,
+    p_reason: reason?.trim() || null,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function addMaterial(m: {
   title: string;
   url: string;
@@ -1397,7 +1443,7 @@ export async function listShares(pairingId: string): Promise<MaterialShare[]> {
   return (data ?? []) as MaterialShare[];
 }
 
-/** Share one into a pairing. Only the Guide of that pairing may, by policy. */
+/** Share one into a pairing. Either person in it may, by policy. */
 export async function shareMaterial(materialId: string, pairingId: string, note?: string): Promise<void> {
   const supabase = db();
   const me_id = await uid();

@@ -158,6 +158,10 @@ const staticChecks = [
   // Three loading screens existed and the app showed the plainest one. This
   // holds it to the designed one, drawing the real logo.
   ['one loading screen', 'tests/one-loading-screen.mjs'],
+  // Who may put something in the library, who reads the record of it
+  // afterwards, and who may stop somebody. Each rank watches the rank below it
+  // and no further down.
+  ['the library is shared and watched', 'tests/the-library-is-shared-and-watched.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

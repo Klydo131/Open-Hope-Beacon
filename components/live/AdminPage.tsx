@@ -11,6 +11,7 @@ import { LiveReportsForDirector } from '@/components/LiveSafeguarding';
 import { LiveTrialRoom, LiveCourt } from '@/components/LiveTrialRoom';
 import { LiveGuilds, LiveChurchPulse } from '@/components/LiveGuilds';
 import { LiveSecurityAudit } from '@/components/LiveSecurityAudit';
+import { LiveLibraryRecord } from '@/components/LiveLibraryRecord';
 import type { Profile, Role } from '@/lib/types';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveLibraryForGuide } from '@/components/LiveLibrary';
@@ -442,7 +443,21 @@ export function LiveAdminPage() {
           />
         )}
 
-        {room === 'security' && <LiveSecurityAudit />}
+        {/* THE SECURITY ROOM HOLDS BOTH RECORDS, because they answer the same
+            question a week apart: the audit says what happened to accounts, and
+            the library record says what people sent each other. A Director
+            looking into somebody reads both, and two doors for one errand is
+            one door too many.
+
+            Who appears in each is decided in the database. A Director reads the
+            library record for Guides and Explorers; an Executive Director reads
+            it for Directors and sees nothing about a Guide or an Explorer. */}
+        {room === 'security' && (
+          <>
+            <LiveSecurityAudit />
+            <LiveLibraryRecord audience={profile?.role === 'executive' ? 'executive' : 'admin'} />
+          </>
+        )}
 
         {/* Guilds and the church-wide numbers. Both are a Director's job as
             much as an Executive's -- a Director who cannot see their own

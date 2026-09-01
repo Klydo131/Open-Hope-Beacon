@@ -11,7 +11,7 @@ import { LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer } from '@/components/LivePrayer';
 import { LiveMeetings } from '@/components/LiveMeetings';
 import { useDraft, clearDraft } from '@/lib/drafts';
-import { LiveSharedWithMe } from '@/components/LiveLibrary';
+import { LiveSharedWithMe, LiveLibraryForGuide } from '@/components/LiveLibrary';
 import { LiveStudies } from '@/components/LiveStudies';
 import { Avatar, Card } from '@/components/ui';
 import { Conversation, Notice, errorText } from '@/components/live/shared';
@@ -199,8 +199,18 @@ export function LiveExplorerPage() {
         {/* WHAT SOMEBODY HAS PUT IN FRONT OF YOU TO READ. A file a Guide
             shared and a study series the church published are the same errand,
             so they are one folder. */}
+        {/* AN EXPLORER SHARES TOO, and until today could not. The library was
+            Guides and leadership only. It goes both ways now: an Explorer who
+            finds something worth reading can put it in front of the person
+            walking with them, which is a small thing and is most of what
+            "a relationship, not a score" means in practice. */}
         {room === 'study' && (
           <>
+            {pairing && (
+              <LiveLibraryForGuide
+                pairings={[{ id: pairing.id, ds_name: pairing.dm_name }]}
+              />
+            )}
             <LiveSharedWithMe />
             <LiveStudies />
           </>

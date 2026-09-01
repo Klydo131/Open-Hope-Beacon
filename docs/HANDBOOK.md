@@ -179,6 +179,33 @@ Before this, an online meeting had a title and a time and nowhere to put the add
 >
 > A meeting link is text one member types and another taps, which is the exact shape of an attack. Anything that is not an ordinary web address is shown as plain text and is not tappable, whatever it claims to be.
 
+### The library, and who watches it
+
+**Anybody in the church can put a link in the library and share it.** A Guide and an Explorer both can, without asking a Director first. That freedom is the point: somebody who finds a reading worth passing on should be able to pass it on.
+
+**The library holds links, and files stay on your own device.** A file saved under *On this device* is passed from your phone to theirs through your phone's own share sheet, so it never sits on a server. That is what keeps this app free to run while it is small, and storing files for everybody is on the list for when it can be paid for properly. The screen says so, so nobody hunts for an upload button that is not there.
+
+#### What a Director sees, and what an Executive Director sees
+
+Freedom to share is not freedom from oversight, and the oversight is a record afterwards rather than a gate in front of every share.
+
+| You are | You see the record for | You do not see |
+| --- | --- | --- |
+| A Director | Guides and Explorers in your church | Other Directors, or an Executive Director |
+| An Executive Director | Directors | Guides and Explorers |
+
+Each rank watches the rank below it and no further down, which is the same shape as the security audit. The record is in **Admin → Security**, under the audit, and shows who added or shared what, with whom, and when. Nothing from a conversation appears in it.
+
+> **IMPORTANT** · The record is kept for 30 days and then deleted
+>
+> It is there to answer "what happened recently", not to be an archive, and a file of everybody's reading kept forever is a different and worse thing. **If something in it needs to outlast the month, raise a safeguarding report about it.** Those are never deleted, and that is the difference between the two.
+
+#### Stopping somebody
+
+A Director can **block a Guide or an Explorer** from sharing anything. An Executive Director can block a Director. Nobody can block themselves, and nobody can block upward or sideways; the database refuses it rather than the screen hiding a button.
+
+Blocking takes away the library and nothing else. The person keeps their account and their conversation, and can be let back in with one press. It is the right answer for somebody misusing the shelf, and the wrong answer for somebody who needs a safeguarding report or a case.
+
 ### Prayer
 
 An Explorer asks for prayer on their own screen, at the foot of it. It goes to the Guide walking with them and to nobody else. There is no audience to choose, and the choice to broadcast one was taken out on purpose.
@@ -899,6 +926,7 @@ Two scheduled jobs live in the repository. Both are free on a public repository,
 | A blank box where an icon should be, on an Android phone | Fixed on 28 August 2026, and again on 31 August. A character that looks like an emoji but comes from a symbol block is drawn only if the phone's font happens to include it. Apple's does; Android's does not. | Nothing to do. Controls are drawn as pictures now, and a check refuses the characters. |
 | A pop-up runs off the bottom or the side, but only in portrait | Fixed on 28 August 2026. | Nothing to do. |
 | An invitation was accepted but the person never appeared in Approvals | Fixed on 29 August 2026. Somebody who already had an account got a recovery link instead of an invitation link, and a recovery link does not carry the church and role across. They existed with no church, visible to nobody. | Nothing to do for new ones. Anybody already stuck in that state was repaired when the fix was applied. |
+| "You do not have permission to do that" when adding to the library | Fixed on 1 September 2026, and it was never about permission. The app saved the resource and asked the database for it back in the same breath, and the read rule could not recognise a row that did not exist a moment ago. It is the same fault as the blog error in Part 9. | Nothing to do. Anybody in the church can add a link now, Explorers included. |
 | A card I used to scroll to has disappeared | Nothing was removed. Six rooms now open in folders, and the card is in one of them: the row of choices is across the top of the room. | Tap the folder it belongs to. The room remembers your choice, so it will open there next time. |
 | A link took me to a room but not to the card I pressed for | Fixed on 31 August 2026. Links that pointed at a card by name were pointing at something a folder might not be drawing. | Nothing to do. Those links now name the folder as well, and old ones are translated. |
 | A study cannot be written on a phone or an iPad | Fixed on 28 August 2026. The Office was reachable only from the left column, which does not exist below laptop width. | Nothing to do. Office, Publish and Cases are in the header row on every size. |

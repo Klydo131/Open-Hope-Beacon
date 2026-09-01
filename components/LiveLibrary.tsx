@@ -59,8 +59,19 @@ function Item({ m, children }: { m: live.Material; children?: React.ReactNode })
 }
 
 // ---------------------------------------------------------------------------
-// The Guide's library, with sharing.
+// The library, with sharing. For everybody, not only a Guide.
 // ---------------------------------------------------------------------------
+//
+// AN EXPLORER MAY ADD AND SHARE, and until today they could not. The rule was
+// that the library is "what the church offers, not a place anybody can post
+// into", which is a defensible position and is not the one the owner wants: a
+// Guide and an Explorer share links with each other freely, without asking
+// anybody. What makes that safe is the record afterwards and the ability to
+// stop somebody, not a gate in front of every share. See
+// components/LiveLibraryRecord.tsx.
+//
+// The component keeps its old name because a dozen call sites use it and
+// renaming them would be a large diff to settle a comment.
 export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_name: string }[] }) {
   const [items, setItems] = useState<live.Material[] | null>(null);
   const [open, setOpen] = useState(false);
@@ -113,6 +124,18 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
 
       <Err msg={error} />
       {flash && <p className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{flash}</p>}
+
+      {/* WHY THIS IS LINKS AND NOT UPLOADS, said plainly rather than left for
+          somebody to discover by looking for an upload button that is not
+          there. The alternative to saying it is a person concluding the
+          feature is broken. */}
+      <p className="mt-4 rounded-xl bg-sky-50 p-3 text-sm leading-relaxed text-slate-700 ring-1 ring-sky-100">
+        <strong>The library holds links, and files stay on your own device.</strong>{' '}
+        A file you save in <em>On this device</em> is passed straight from your phone to
+        theirs through your phone&rsquo;s own share sheet, so it never sits on a server and
+        costs the church nothing. That keeps this app free to run while it is small.
+        Storing files for everybody is on the list for when it can be paid for properly.
+      </p>
 
       {open && (
         <div className="mt-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-navy/5">
