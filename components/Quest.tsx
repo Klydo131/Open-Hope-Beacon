@@ -68,6 +68,23 @@ function isPinned(el: Element): boolean {
   return false;
 }
 
+// The nearest ancestor that can clip this element by scrolling.
+//
+// The header's feature icons live in a strip you push sideways with a thumb, so
+// a control can be laid out at x=167..211, be reported by getBoundingClientRect
+// at exactly that, and yet only be visible from 167 to 180 because the strip
+// ends there. Every other check in this file compares against the VIEWPORT,
+// which that control is comfortably inside.
+function scrollParent(el: Element): Element | null {
+  let node: Element | null = el.parentElement;
+  while (node && node !== document.body) {
+    const o = getComputedStyle(node);
+    if (/(auto|scroll)/.test(`${o.overflowX} ${o.overflowY}`)) return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
 // Where the page's own sticky header ends, so we never scroll a target under it.
 function headerBottom(): number {
   const h = document.querySelector('header');
@@ -266,9 +283,27 @@ export function Quest() {
       // target, so a strip that cannot move does not retry forever.
       if (slidFor.current !== placeKey) {
         const vw = document.documentElement.clientWidth;
-        if (r.right > vw - 4 || r.left < 4) {
+        const offViewport = r.right > vw - 4 || r.left < 4;
+
+        // …and hidden inside its own strip counts too. On a 375px iPhone the
+        // church link is laid out at 167..211 while the strip it lives in ends
+        // near 180, so it is inside the viewport and still mostly not there.
+        // The ring was drawn around the whole 167..211 box, putting its centre
+        // at 189 — in the clipped-away part, on top of the pinned account
+        // button sitting behind the strip. The spotlight pointed at one control
+        // and a tap would have hit another.
+        const clip = scrollParent(el)?.getBoundingClientRect();
+        const clipped = !!clip && (r.right > clip.right + 1 || r.left < clip.left - 1);
+
+        if (offViewport || clipped) {
           slidFor.current = placeKey;
-          el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+          // Instant, not smooth. This is a few pixels of strip, so the animation
+          // buys nothing visually and costs correctness: the ring is redrawn on
+          // every tick, and a rect measured midway through a smooth slide puts
+          // the highlight where the control was rather than where it is going.
+          // How long that animation lasts differs between engines, which is how
+          // this becomes a bug that only shows up on one browser.
+          el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
           return; // re-measure next tick, once it has slid
         }
       }

@@ -43,6 +43,14 @@ const ok = (c, m) => {
 // board is shown now lives inside the Admin and Executive accounts.
 const TRACKS = (process.env.QUEST_ONLY || 'executive,admin,dm,ds').split(',');
 const DEBUG = !!process.env.QUEST_DEBUG;
+// The screen shape is the variable that matters here. Every tutorial bug found
+// so far has been a geometry bug — a band reserved on the wrong side, a ring
+// drawn past the right edge — and those appear or vanish with the width and the
+// height, not with the logic. QUEST_VIEWPORT runs this same proven walk at any
+// shape; tutorial-every-screen.js drives it across the real ones.
+const [QVW, QVH] = (process.env.QUEST_VIEWPORT || '412x820').split('x').map(Number);
+const QUEST_VIEWPORT = { width: QVW || 412, height: QVH || 820 };
+
 
 // What the panel is showing, and whether the thing it points at is real.
 const readPanel = (page) =>
@@ -218,7 +226,7 @@ async function act(page, target) {
 
 async function walk(browser, track) {
   const ctx = await browser.newContext({
-    viewport: { width: 412, height: 820 },
+    viewport: QUEST_VIEWPORT,
     serviceWorkers: 'block',
   });
   const page = await ctx.newPage();
@@ -374,7 +382,7 @@ async function walk(browser, track) {
   // Finishing one walk must not mark another done. Same profile, two tracks.
   console.log('\n──────── progress is per walk ────────');
   const ctx = await browser.newContext({
-    viewport: { width: 412, height: 820 },
+    viewport: QUEST_VIEWPORT,
     serviceWorkers: 'block',
   });
   const page = await ctx.newPage();
