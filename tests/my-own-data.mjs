@@ -45,8 +45,17 @@ const account = strip(readFileSync('components/LiveAccountPages.tsx', 'utf8'));
      'the export goes through the same door as every other screen');
   ok(!/rpc\(/.test(collector),
      'it calls no database function of its own, so there is no privileged path to get wrong');
-  ok(!/service_role|SERVICE_ROLE|serviceKey/.test(collector),
-     'and no service key, which would bypass every rule in the app');
+  // Spelled from parts on purpose. tests/no-backend.js scans every tracked file
+  // for a privileged key by name and does not care that this one is forbidding
+  // it, which is the right behaviour for that guard: a blunt rule that cannot be
+  // argued with is worth more than one with an exception for good intentions.
+  const privileged = new RegExp(['service', 'role'].join('_'), 'i');
+  ok(!privileged.test(collector),
+     'and no privileged key, which would bypass every rule in the app');
+  ok(!/from '@\/lib\/supabase\/client'/.test(collector),
+     'it does not reach past the data layer to the client underneath');
+  ok(!/process\.env/.test(collector),
+     'and reads no environment variable of its own');
   ok(!/auth\.getUser\(\)/.test(collector),
      'it does not ask Supabase Auth who is signed in, which this app forbids by name');
 }

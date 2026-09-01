@@ -168,6 +168,10 @@ const staticChecks = [
   // "Send me everything you have about me." The right both laws give, and the
   // one property that keeps answering it safe: it reads as the person asking.
   ['my own data', 'tests/my-own-data.mjs'],
+  // A photograph in a conversation is shown rather than named. The sample side
+  // had done this correctly for months and the live one had not, which is the
+  // parity rule this project keeps writing down and keeps breaking.
+  ['a picture looks like a picture', 'tests/a-picture-looks-like-a-picture.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:

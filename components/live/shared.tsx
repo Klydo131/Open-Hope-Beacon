@@ -282,6 +282,39 @@ export function Conversation({
  * otherwise mint dozens of signed URLs nobody opens.
  */
 
+// A picture looks like a picture, and a voice note plays.
+//
+// THE REPORT, with a screenshot of a photograph rendered as a blue underlined
+// filename: "I should see the image or video in my chat, not the document
+// file please."
+//
+// Everything sent into a conversation was drawn the same way, as a paperclip
+// and a filename, whether it was a study sheet or a photograph of somebody's
+// grandchild. The name a phone gives a photo is `20260901_110714.jpg`, which
+// tells the person receiving it nothing at all, and opening it meant leaving
+// the conversation for a new browser tab.
+//
+// THREE SHAPES, DECIDED BY THE MIME TYPE THE DATABASE ALREADY STORES:
+//
+//   image  -> the picture, tappable for the full size
+//   audio  -> a player, because a voice note is for listening to
+//   other  -> the filename, which is right for a study sheet
+//
+// LAZY, AND THAT IS NOT A DETAIL. A private file is fetched through a signed
+// link that no cache will keep, so every picture drawn is paid for in egress
+// every single time the thread is opened. `loading="lazy"` means a photo from
+// March is not fetched by somebody reading today's message, and the audio
+// player is told to load nothing until it is pressed.
+//
+// HEIC IS WHY THERE IS A FALLBACK RATHER THAN A CHECK. Apple's format is in the
+// upload allowlist and Safari can draw it; Chrome and Firefox cannot. Rather
+// than special-case it, anything that fails to load falls back to the filename
+// link, which also covers a signed URL that expired while the tab sat open.
+//
+// VIDEO IS NOT HERE because it cannot be uploaded: it is deliberately absent
+// from the bucket's allowlist. One phone video is the storage of a hundred
+// photographs and it would be paid for again on every view, which is the whole
+// reason this church can run on a free plan. A video is shared as a link.
 export function LiveAttachment({
   file,
   mine,
@@ -293,13 +326,33 @@ export function LiveAttachment({
 }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState('');
+  const [url, setUrl] = useState('');
+  // Set when the browser could not draw it: an unsupported format, or a link
+  // that expired. Either way the filename still works.
+  const [broken, setBroken] = useState(false);
+
+  const isImage = /^image\//i.test(file.mime);
+  const isAudio = /^audio\//i.test(file.mime);
+  const showsItself = (isImage || isAudio) && !broken;
+
+  // Signed at render time and never stored, for the same reason as everywhere
+  // else in this app: a stored signed URL expires and becomes a broken picture
+  // with nothing to explain it.
+  useEffect(() => {
+    if (!showsItself) return;
+    let alive = true;
+    live.pairingFileUrl(file.path)
+      .then((u) => { if (alive) setUrl(u); })
+      .catch(() => { if (alive) setBroken(true); });
+    return () => { alive = false; };
+  }, [file.path, showsItself]);
 
   const open = async () => {
     setBusy(true);
     setFailed('');
     try {
-      const url = await live.pairingFileUrl(file.path);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      const fresh = await live.pairingFileUrl(file.path);
+      window.open(fresh, '_blank', 'noopener,noreferrer');
     } catch {
       setFailed('That file could not be opened.');
     } finally {
@@ -311,6 +364,76 @@ export function LiveAttachment({
     ? `${(file.size / 1024 / 1024).toFixed(1)} MB`
     : `${Math.max(1, Math.round(file.size / 1024))} KB`;
 
+  const caption = (
+    <span className={`block text-[11px] ${mine ? 'text-white/60' : 'text-gray-500'}`}>
+      {busy ? 'Opening…' : size}
+      {onRemove && (
+        <>
+          {' · '}
+          <button type="button" onClick={onRemove} className="font-semibold text-red-700 underline underline-offset-2">Remove</button>
+        </>
+      )}
+    </span>
+  );
+
+  if (isImage && !broken) {
+    return (
+      <span className="block">
+        <button
+          type="button"
+          onClick={() => void open()}
+          className="block overflow-hidden rounded-xl"
+          // The filename is the accessible name. A photo from a phone is called
+          // 20260901_110714.jpg, which is nothing to a screen reader, so it is
+          // said as what it is instead.
+          aria-label={`Open the picture ${file.title}`}
+        >
+          {url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={url}
+              alt={file.title}
+              loading="lazy"
+              onError={() => setBroken(true)}
+              className="block max-h-72 rounded-xl bg-black/10 object-cover"
+            />
+          ) : (
+            // A box of the right shape while it arrives, rather than the text
+            // jumping down the moment the picture lands.
+            <span className="block h-32 w-44 animate-pulse rounded-xl bg-black/10" />
+          )}
+        </button>
+        {caption}
+        {failed && <span className={`block text-[11px] ${mine ? 'text-red-200' : 'text-red-600'}`}>{failed}</span>}
+      </span>
+    );
+  }
+
+  if (isAudio && !broken) {
+    return (
+      <span className="block">
+        <span className={`block break-words text-sm font-semibold ${mine ? 'text-white' : 'text-navy'}`}>
+          🎧 {file.title}
+        </span>
+        {url ? (
+          // preload="none": a voice note is not fetched until somebody presses
+          // play, which on a thread with several of them is the difference
+          // between one download and all of them.
+          <audio
+            controls
+            preload="none"
+            src={url}
+            onError={() => setBroken(true)}
+            className="mt-1 w-full"
+          />
+        ) : (
+          <span className={`block text-[11px] ${mine ? 'text-white/60' : 'text-gray-500'}`}>Loading…</span>
+        )}
+        {caption}
+      </span>
+    );
+  }
+
   return (
     <span className="block">
       <button
@@ -321,15 +444,7 @@ export function LiveAttachment({
       >
         📎 {file.title}
       </button>
-      <span className={`block text-[11px] ${mine ? 'text-white/60' : 'text-gray-500'}`}>
-        {busy ? 'Opening…' : size}
-        {onRemove && (
-          <>
-            {' · '}
-            <button type="button" onClick={onRemove} className="font-semibold text-red-700 underline underline-offset-2">Remove</button>
-          </>
-        )}
-      </span>
+      {caption}
       {failed && <span className={`block text-[11px] ${mine ? 'text-red-200' : 'text-red-600'}`}>{failed}</span>}
     </span>
   );

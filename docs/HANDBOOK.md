@@ -899,6 +899,14 @@ So a photo is made smaller before it is sent: sixteen hundred pixels on its long
 >
 > A phone writes the exact coordinates into a photograph, usually somebody's home. Sending a picture of a Bible page to a Guide should not tell them where you live. Re-drawing the image keeps the pixels and drops every tag, so the privacy fix and the saving are the same line of code. The conversation says so above the message box, and so does the privacy notice.
 
+**A photograph is shown, not named.** A picture sent into a conversation draws as the picture, tappable for the full size; a voice note draws as a player. Anything else is a filename, which is right for a study sheet. The sample side had done this for months and the live conversation had not, so somebody who learned the app in the tutorial signed in, sent their Guide a photo, and got `20260901_110714.jpg`.
+
+Pictures further up a thread are not fetched until they are scrolled to, and a voice note downloads nothing until it is played. That is not politeness: a private file is fetched through a signed link no cache keeps, so a conversation with thirty photographs in it would otherwise download all thirty to show today's message.
+
+> **NOTE** · Why there is no video
+>
+> Video cannot be sent, and that is a decision rather than an omission. One phone video is the storage of a hundred photographs and is paid for again on every view, which is the single thing most likely to end a church's free plan. Put it on YouTube and share the link; the composer says so.
+
 **Files in the library never reach a server at all.** The library holds links; a file saved under *On this device* is passed from one phone to the other through the phone's own share sheet. Files in a **conversation** do reach the server, because the two people are rarely holding their phones at the same moment and the file has to wait somewhere. That is the honest line between the two.
 
 ### Backups
