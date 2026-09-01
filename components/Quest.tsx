@@ -105,6 +105,9 @@ export function Quest() {
   // Whether we have already slid this target in from the side. Separate from
   // the vertical latch because the two axes fail independently.
   const slidFor = useRef<string>('');
+  // Where the page was the last time we looked. A retry decided while a smooth
+  // scroll is still animating is a retry that fights it.
+  const lastY = useRef<number>(-1);
   const panelRef = useRef<HTMLElement | null>(null);
   // The target is on this screen but scrolled out of sight. Drawing a ring at
   // coordinates nobody can see is how the tutorial ended up saying "tap the
@@ -325,7 +328,19 @@ export function Quest() {
       // So the latch only sticks once the target has actually been seen. Capped
       // at three, because a target that cannot be brought into view must stop
       // fighting the page and let the panel offer its "show me" instead.
-      if (!pinned && (r.bottom < top + 4 || r.top > vh - 4)
+      //
+      // Only once the page has come to rest. `measure` runs on a 350ms interval
+      // AND on every scroll event, so during a smooth scroll it is called many
+      // times with the target still out of place. Retrying then issues a second
+      // scroll into the middle of the first one and spends the whole allowance
+      // before the page has finished moving — and how long that takes is
+      // exactly the sort of thing that differs between Blink and WebKit. So the
+      // retry waits for two consecutive looks at the same scroll position.
+      const settled = Math.abs(window.scrollY - lastY.current) < 1;
+      lastY.current = window.scrollY;
+
+      if (!pinned && settled
+          && (r.bottom < top + 4 || r.top > vh - 4)
           && placedFor.current === placeKey
           && placeTries.current.key === placeKey && placeTries.current.n < 3) {
         placedFor.current = '';
