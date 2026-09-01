@@ -54,7 +54,11 @@ class NotLive extends Error {
   }
 }
 
-function db() {
+// Exported for lib/live/my-data.ts, which assembles a person's own copy of
+// their data and must read it through the ordinary rules as that person, not
+// through a privileged path of its own. Sharing these two is what keeps that
+// true: there is only one way into the database in this app.
+export function db() {
   const client = supabase();
   if (!client) throw new NotLive();
   return client;
@@ -76,7 +80,7 @@ function db() {
  * lib/supabase/client.ts takes the access token from the same place, for the
  * same reason.
  */
-async function uid(): Promise<string> {
+export async function uid(): Promise<string> {
   const id = readBrowserSession()?.user.id;
   if (!id) throw new Error('You are not signed in.');
   return id;

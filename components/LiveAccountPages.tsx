@@ -23,6 +23,7 @@ import { useTutorialMode } from '@/lib/tutorial';
 import type { Role } from '@/lib/types';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
+import { LiveMyData } from '@/components/LiveMyData';
 import { WhatsNewButton } from '@/components/WhatsNew';
 import { FeedbackButton } from '@/components/Feedback';
 import { humanError } from '@/lib/live/errors';
@@ -143,6 +144,11 @@ export function LiveProfilePage() {
           in a real church was a pair of initials, including on the card their
           Guide opens every week. The tutorial has had both from the start. */}
       <LiveFacePicker />
+
+      {/* ON THE PROFILE SCREEN, which is where somebody goes when they are
+          thinking about their own account, rather than in Settings among the
+          switches. Asking for your own information is not a setting. */}
+      <LiveMyData />
 
       <Card className="p-5">
         <h2 className="mb-1 text-xl font-bold text-navy">Profile details</h2>

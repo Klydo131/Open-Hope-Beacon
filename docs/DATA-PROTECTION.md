@@ -126,6 +126,12 @@ These are properties of the running system, not intentions:
 - **Photographs are stripped of location** before they are stored. A phone
   writes GPS coordinates into a picture; re-encoding drops them.
 - **A weekly backup is encrypted** before it leaves the machine.
+- **A member can download their own data**, from their Profile screen, without
+  asking anybody. It is assembled in the browser from queries that person could
+  already run, so no privileged path exists that could be made to hand over
+  somebody else's records. Verified against the live database: the unfiltered
+  read of every message returned three rows, all theirs, and none from a
+  conversation they are not in.
 
 ---
 
@@ -136,7 +142,7 @@ Ordered by how much it matters, not by how hard it is.
 | # | Gap | What it needs | Who |
 |---|---|---|---|
 | 1 | **No privacy notice.** Nothing tells a member what is collected, why, who sees it, how long it is kept, or how to complain. RA 10173 §16(a) and GDPR Art. 13 both require it before collection. | `/privacy` now exists as a draft in the app. The blanks in it must be filled: who the controller is, the DPO's name and contact, the retention periods, the hosting region. | Owner, then a lawyer |
-| 2 | **No way for a member to get a copy of their own data.** RA 10173 §16(c) and GDPR Art. 15 give them the right to ask, and there is no screen and no export that answers it. | A "download everything about me" button producing a file, covering profile, messages, prayer requests, meetings, notes and shares. | Engineering, next |
+| ~~2~~ | ~~**No way for a member to get a copy of their own data.**~~ **Built, 1 September 2026.** *A copy of your information* on the Profile screen produces a JSON file with the profile, the conversation, prayer requests, meetings, posts, library shares, notifications and every change to their own details. | Nothing. See below for what it deliberately leaves out. | Done |
 | 3 | **No named Data Protection Officer.** Expected where sensitive personal information is processed. | A person, an email address, and the NPC filing if the church passes 1,000 members. | Owner |
 | 4 | **No breach procedure.** RA 10173 requires notification to the NPC and to affected people **within 72 hours** of knowing. There is no written procedure and no rehearsal. | One page: who decides it is a breach, who is told, in what order, and the wording. | Owner |
 | 5 | **Processor terms unchecked.** Supabase, Vercel, Brevo and GitHub all hold or see personal data. | Confirm each one's data-processing terms, and record the hosting region. | Owner |
@@ -153,8 +159,19 @@ collects a child's religious participation without telling anybody what it does
 with it is the single largest exposure here, and it is a writing job rather than
 an engineering one.
 
-**Build the "download everything about me" export.** It is the one right in both
-laws that this app currently cannot honour at all, and it is a day's work.
+**Decide the retention periods.** Everything except the library record is kept
+because nothing deletes it rather than because anybody chose a period, and the
+privacy notice has a blank waiting for the answer.
+
+> **What the export leaves out, and why it is defensible.** Safeguarding
+> reports, a Guide's private notes, and the discipline log are not in the file.
+> A report names whoever raised it, and this app promises them that the person
+> they reported is never told; handing it over would break that promise and
+> could put somebody at risk. Both laws allow an access request to be limited
+> where answering it would identify another person who has not agreed. The file
+> **names each exclusion, gives the reason, and says to write to the Data
+> Protection Officer**, who can weigh a particular case. An omission somebody is
+> told about is a disclosure; the same omission in silence is not.
 
 ---
 

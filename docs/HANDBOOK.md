@@ -924,10 +924,20 @@ That raises the standard in four ways: consent has to be **express** rather than
 
 **[docs/DATA-PROTECTION.md](./DATA-PROTECTION.md) is the map**: every table that holds anything about a person, why it is there, who can read it, how long it stays, and which company holds it. It also lists what is still missing, and the list is the point of the document.
 
+### Asking for a copy of your own information
+
+Anybody signed in can download everything the app holds about them, from **Profile → A copy of your information**. No reason is needed and nobody has to approve it. The file is JSON, which is the form both laws ask for so it can be carried somewhere else.
+
+**It is built from what that person could already read.** There is no privileged path assembling "everything about member X", because that is one mistake away from handing somebody a stranger's conversation, and the file would look the same either way. Proved against the live database: reading every message as one Explorer returned three, all theirs, and none from a conversation they are not in.
+
+**Three things are deliberately left out, and the file says so on its front page:** a safeguarding report about them, a Guide's private notes, and the record of approvals and removals. A report names whoever raised it, and this app promises that person the one they reported is never told; handing it over would break that promise and could put somebody at risk. Both laws allow an access request to be limited where answering it would identify another person who has not agreed.
+
+The file names each exclusion, gives the reason, and says to write to the Data Protection Officer, who can weigh a particular case. That is the difference between an omission somebody was told about and one they were not.
+
 The two largest gaps today:
 
 1. **The privacy notice is a draft.** `/privacy` in the app is written and reachable from Settings, with the church's name, the DPO's contact, the hosting region and the retention periods marked as blanks. They cannot be guessed, and a notice with a plausible wrong name on it is worse than one that admits it is unfinished.
-2. **A member cannot get a copy of their own data.** Both laws give them the right to ask, and there is no screen that answers it. It is the next thing to build.
+2. **Nobody has decided the retention periods.** Everything except the 30-day library record is kept because nothing deletes it, not because a period was chosen. The privacy notice has a blank waiting for the answer.
 
 > **CAUTION** · This is the factual half, not a legal opinion
 >

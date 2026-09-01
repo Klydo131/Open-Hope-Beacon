@@ -165,6 +165,9 @@ const staticChecks = [
   // The claims a privacy notice makes have to stay true in the code. Nothing
   // breaks when they drift, which is exactly why they need a check.
   ['data protection', 'tests/data-protection.mjs'],
+  // "Send me everything you have about me." The right both laws give, and the
+  // one property that keeps answering it safe: it reads as the person asking.
+  ['my own data', 'tests/my-own-data.mjs'],
   ['themes are readable', 'tests/themes-are-readable.mjs'],
   ['migrations apply cleanly', 'tests/migrations-apply-cleanly.mjs'],
   // The signed-in header, which is the one layout nothing else here can render:
