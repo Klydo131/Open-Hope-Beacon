@@ -2,7 +2,8 @@
 
 import { onCanonicalHost } from '@/lib/canonical';
 import { useDemo } from '@/lib/demo/store';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { copyText } from '@/lib/share';
 
@@ -286,7 +287,19 @@ export function OpenInSafari({ from }: { from: string }) {
   // Read the address after mount. On the server there is no location, and a
   // link rendered empty and filled in later is better than one that differs
   // between the server's HTML and the browser's.
-  useEffect(() => { setHref(safariHandoffUrl()); }, []);
+  //
+  // AND READ IT AGAIN ON EVERY NAVIGATION. This was `[]`, so the address was
+  // captured once and never revisited — and this is a single-page app, so the
+  // page under it changes without a reload. Somebody who arrived on one screen
+  // and walked to another was handed off to the screen they arrived on.
+  //
+  // The WebKit walk caught it on the shortest possible journey: `/settings`
+  // sends a signed-out visitor to `/login`, and the link still said
+  // `/settings`. The same staleness lands on the case that matters most —
+  // somebody opening an invitation in Chrome on an iPhone, where being sent to
+  // the wrong page means being sent away from their invitation.
+  const pathname = usePathname();
+  useEffect(() => { setHref(safariHandoffUrl()); }, [pathname]);
 
   // copyText, not navigator.clipboard. Safari refuses the write when the
   // document is not focused and the API does not exist at all over plain http;
@@ -444,6 +457,49 @@ export function InstallPrompt() {
     // week rather than asking again on the next page load.
     if (outcome === 'dismissed') snooze();
   };
+
+  // RESERVE THE GROUND THIS BAR STANDS ON.
+  //
+  // The bar is `position: fixed`, so it draws over the bottom of the page and
+  // the document has no idea it is there. On an iPhone it is not a thin strip:
+  // measured on a 664px screen it is 323px tall — HALF THE PHONE — because it
+  // carries the two install steps as well as the button. Everything in the
+  // bottom half of every screen was underneath it.
+  //
+  // Three separate WebKit walks failed on this and none of them could fail
+  // here, which is the part worth remembering. The bar is shown by UA sniffing
+  // (isIos), and headless Chromium is not an iPhone, so the whole class of bug
+  // is invisible to the local suite by construction. It took an iPhone user
+  // agent to reproduce it in this sandbox at all.
+  //
+  // Publishing the height as a custom property, and spending it as padding on
+  // the body plus scroll-padding on the root, fixes both halves: the page can
+  // always scroll far enough to lift anything clear, and anything scrolled to
+  // lands above the bar rather than beneath it. Cleared on unmount, so a
+  // dismissed bar does not leave a strip of dead space behind it.
+  const barRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = barRef.current;
+    const root = document.documentElement;
+    if (!el) {
+      root.style.removeProperty('--install-bar');
+      return;
+    }
+    const publish = () =>
+      root.style.setProperty(
+        '--install-bar',
+        `${Math.ceil(el.getBoundingClientRect().height)}px`,
+      );
+    publish();
+    // The bar grows when the steps open, so a one-off measurement would be
+    // right until the moment somebody presses the button.
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      root.style.removeProperty('--install-bar');
+    };
+  });
 
   // `installed` is checked here rather than only in the effect, so the card
   // disappears the moment the app is installed instead of at the next reload.
@@ -614,7 +670,7 @@ export function InstallPrompt() {
   // dismissed and every later click was swallowed by the overlay. An install
   // prompt must never be able to block a dialog the person has to answer.
   return (
-    <div className="no-print safe-bottom fixed inset-x-0 bottom-0 z-[66] flex justify-center p-3">
+    <div ref={barRef} className="no-print safe-bottom fixed inset-x-0 bottom-0 z-[66] flex justify-center p-3">
       <div className="animate-drop w-full max-w-md rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
         <div className="flex items-center gap-3">
           <HopeBeaconMark size={40} />

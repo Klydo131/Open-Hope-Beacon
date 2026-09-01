@@ -42,6 +42,19 @@ body {
      breaks the sticky header. Anything that genuinely needs to scroll
      horizontally (a wide table, the tab strip) does so in its own box. */
   overflow-x: clip;
+
+  /* ROOM FOR THE INSTALL BAR.
+
+     The bar is `position: fixed`, so the document does not know it exists and
+     the page used to end flush with the bottom of the screen underneath it. On
+     an iPhone that bar is 323px of a 664px screen — half the phone — because it
+     carries the install steps as well as the button, so the bottom half of
+     every screen was covered with nothing to scroll into.
+
+     InstallPrompt publishes the bar's real measured height as `--install-bar`
+     while it is on screen and removes it when it goes, so this is exactly zero
+     the rest of the time and on every device that never sees the bar. */
+  padding-bottom: var(--install-bar, 0px);
 }
 
 /* Visible focus for keyboard + low-vision users. */
@@ -425,6 +438,13 @@ a[role='button']:active {
 /* Anchor jumps and "back to top" glide instead of teleporting. */
 html {
   scroll-behavior: smooth;
+
+  /* The other half of the install-bar fix above. Padding lets the page scroll
+     far enough to lift a control clear of the bar; this decides where a
+     scrolled-to control comes to REST. Without it, `scrollIntoView` on anything
+     near the bottom parks it in the covered strip — technically on screen and
+     impossible to press. */
+  scroll-padding-bottom: var(--install-bar, 0px);
 }
 
 /* A strip that scrolls sideways with no visible scrollbar.
