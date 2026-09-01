@@ -1565,7 +1565,41 @@ export async function uploadAvatar(chosen: File): Promise<string> {
   const { error } = await db().storage.from(AVATAR_BUCKET)
     .upload(path, file, { upsert: true, contentType: file.type });
   if (error) throw new Error(error.message);
+
+  // A new picture used to JOIN the old one rather than replace it. The name
+  // carries a timestamp, so `upsert` never had an existing key to overwrite,
+  // and every profile picture anybody had ever set was still stored and still
+  // readable by their church. One member was keeping three.
+  //
+  // Cleared here, after the upload has succeeded, so a failed upload can never
+  // cost somebody the picture they already had. Failing to tidy is not worth
+  // failing the upload over, so this never throws: the caller's picture is
+  // changed either way, and the worst case is the leftover we already had.
+  await removeOtherAvatars(me, path);
+
   return path;
+}
+
+/**
+ * Delete a person's earlier avatars, keeping the one just uploaded.
+ *
+ * Deleting through the Storage API rather than the `storage.objects` table is
+ * not a preference. Supabase refuses direct deletes from that table, because
+ * the row is only metadata — removing it strands the image itself in object
+ * storage, unreachable and undeletable, since every route to a file goes
+ * through the metadata that was just thrown away.
+ */
+async function removeOtherAvatars(person: string, keep: string): Promise<void> {
+  try {
+    const { data, error } = await db().storage.from(AVATAR_BUCKET).list(`avatars/${person}`);
+    if (error || !data) return;
+    const stale = data
+      .map((f) => `avatars/${person}/${f.name}`)
+      .filter((p) => p !== keep);
+    if (stale.length) await db().storage.from(AVATAR_BUCKET).remove(stale);
+  } catch {
+    // Tidying is best-effort by design. See above.
+  }
 }
 
 /**
@@ -2312,9 +2346,40 @@ export async function restoreMember(userId: string): Promise<string> {
 
 /** Remove from the church entirely ("kick"), under the same authority rules. */
 export async function removeMemberByLeader(userId: string): Promise<string> {
+  // Their files go FIRST, and the order is not a preference. This call deletes
+  // the account, `profiles` goes with it by cascade, and from that moment no
+  // rule can say which church the leftover files belonged to — so nobody can
+  // ever delete them again. Three such photographs are already stranded that
+  // way, left by removals that happened before this existed.
+  //
+  // It cannot be done in a database trigger: Supabase refuses direct deletes
+  // from `storage.objects`, and a row deleted there strands the image rather
+  // than removing it. Only the Storage API deletes both halves.
+  await removeStoredFilesFor(userId);
+
   const { data, error } = await db().rpc('remove_member_by_leader', { p_target: userId });
   if (error) throw new Error(error.message);
   return String(data ?? 'Something went wrong.');
+}
+
+/**
+ * Clear everything a member has stored, before the account that owns it goes.
+ *
+ * Best-effort on purpose. A leftover picture is a privacy problem worth
+ * chasing; it is not a reason to refuse to remove somebody who needs removing
+ * today, which is what throwing here would mean.
+ */
+async function removeStoredFilesFor(person: string): Promise<void> {
+  for (const prefix of ['avatars', 'lessons']) {
+    try {
+      const { data, error } = await db().storage.from(AVATAR_BUCKET).list(`${prefix}/${person}`);
+      if (error || !data?.length) continue;
+      await db().storage.from(AVATAR_BUCKET)
+        .remove(data.map((f) => `${prefix}/${person}/${f.name}`));
+    } catch {
+      // See above.
+    }
+  }
 }
 
 /**

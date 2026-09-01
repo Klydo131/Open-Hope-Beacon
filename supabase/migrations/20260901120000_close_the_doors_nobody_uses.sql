@@ -40,7 +40,14 @@
 -- screen renders them, because there is no profile left to render — they were
 -- simply unreachable rather than gone. A person who asks to be deleted and
 -- whose photograph remains on the server has not been deleted, so the last
--- section makes the bytes follow the account out.
+-- section tries to make the bytes follow the account out.
+--
+-- CORRECTION, added the same day by the migration that undoes it: that last
+-- section DOES NOT WORK and never could. Supabase refuses direct deletes from
+-- `storage.objects`, the trigger below swallows the refusal, and the files
+-- stay. See 20260901140000_a_database_trigger_cannot_delete_a_photograph.sql,
+-- which drops it and moves the job into the app, where the Storage API can
+-- actually delete the image and not merely the row that points at it.
 
 begin;
 

@@ -138,8 +138,48 @@ ok(/alter\s+policy\s+avatar_read[\s\S]{0,400}?can_access_church/i.test(all),
 // existed. Three were left behind by deleted accounts: unreachable, because no
 // profile remained to render them, but not gone. A person who asks to be
 // deleted and whose photograph stays on the server has not been deleted.
-ok(/create\s+trigger\s+forget_stored_files[\s\S]{0,200}?on\s+public\.profiles/i.test(all),
-   'a deleted account takes its stored pictures out with it');
+//
+// The first attempt at fixing that was a database trigger, and it could never
+// have worked. Supabase refuses direct deletes from `storage.objects` — the row
+// is metadata, and removing it STRANDS the image rather than deleting it, since
+// every route to a file goes through the metadata. The trigger swallowed the
+// refusal and reported success. It shipped, and was described in a commit
+// message as working, on the strength of having been read rather than run.
+//
+// So the rule is not "have a trigger". It is: never try this in SQL, and do it
+// in the app where the Storage API can delete both halves.
+//
+// Checked from the migration that learned it onward. The one that made the
+// mistake still contains it and always will — an applied migration is a ledger
+// entry, not a draft — and the correcting migration drops what it created. A
+// check that fails forever on unchangeable history is a check somebody
+// eventually deletes.
+const lesson = files.findIndex((f) => f.includes('a_database_trigger_cannot_delete_a_photograph'));
+ok(lesson !== -1, 'the migration that removed the unworkable trigger is present');
+
+const sqlDeletesStorage = files
+  .slice(lesson + 1)
+  .filter((f) => /delete\s+from\s+storage\.objects/i.test(strip(read(`${dir}/${f}`))));
+ok(sqlDeletesStorage.length === 0,
+   'no migration since tries to delete from storage.objects, which Postgres refuses'
+   + (sqlDeletesStorage.length ? ` (${sqlDeletesStorage.join(', ')})` : ''));
+
+ok(!/create\s+trigger\s+forget_stored_files/i.test(
+     files.slice(lesson + 1).map((f) => read(`${dir}/${f}`)).join('\n')),
+   'and the trigger that swallowed the refusal has not come back');
+
+ok(/create\s+policy\s+member_files_drop_by_leader/i.test(all),
+   'a leader may clear the files of somebody in a church they manage');
+
+// The app half, which is where the deletion actually happens.
+const dataTs = read('lib/live/data.ts');
+const removeFn = dataTs.slice(dataTs.indexOf('export async function removeMemberByLeader'));
+const beforeRpc = removeFn.slice(0, removeFn.indexOf("rpc('remove_member_by_leader'"));
+ok(/removeStoredFilesFor\s*\(/.test(beforeRpc),
+   'a member’s files are cleared BEFORE the account that identifies them is deleted');
+
+ok(/removeOtherAvatars\s*\(/.test(dataTs) && /\.remove\(/.test(dataTs),
+   'a new profile picture removes the ones it replaces');
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);
