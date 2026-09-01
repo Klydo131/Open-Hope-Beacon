@@ -37,10 +37,18 @@ type Health =
  * Ask the database one harmless question and see what comes back.
  *
  * `profiles` is the table every other feature depends on, so its absence is the
- * cleanest signal that the schema has not been applied. Row Level Security
- * means a signed-out visitor gets an EMPTY list rather than an error — which is
- * the right answer here: the table exists and the rules are working. An error
- * naming a missing relation is the one that means work is outstanding.
+ * cleanest signal that the schema has not been applied.
+ *
+ * TWO ANSWERS MEAN HEALTHY, NOT ONE. An empty list is the obvious one. The
+ * other is `42501`, permission denied, which is what a correctly locked-down
+ * database says to a visitor who has not signed in: the signed-out role holds
+ * no privilege on any table, so the request is refused before Row Level
+ * Security is ever consulted. A refusal proves more than an empty list does —
+ * the table is there AND the door is shut.
+ *
+ * This page read that refusal as "unreachable" and told installers their
+ * database was broken when it was working exactly as intended. Only an error
+ * naming a missing relation means work is outstanding.
  */
 async function probe(): Promise<Health> {
   if (!IS_LIVE) return { state: 'demo' };
@@ -55,6 +63,11 @@ async function probe(): Promise<Health> {
     // 42P01 is Postgres for "that table is not there".
     if (text.includes('42p01') || text.includes('does not exist') || text.includes('not find the table')) {
       return { state: 'no-tables', detail: error.message };
+    }
+    // 42501 is "permission denied": the table exists and the signed-out role is
+    // being kept out of it, which is the whole point.
+    if (text.includes('42501') || text.includes('permission denied')) {
+      return { state: 'ready' };
     }
     return { state: 'unreachable', detail: error.message };
   } catch (cause) {

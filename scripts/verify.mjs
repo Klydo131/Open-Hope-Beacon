@@ -108,6 +108,12 @@ const staticChecks = [
   ['auto-update policy', 'tests/auto-update-policy.mjs'],
   ['analytics over time', 'tests/analytics-trend.mjs'],
   ['security invariants', 'tests/security-invariants.mjs'],
+  // What a visitor who has NOT signed in can touch. Supabase grants the
+  // anonymous role everything on every new table and RLS is what takes it back,
+  // so a policy written without a TO clause quietly applies to the whole
+  // internet. Sweeps every migration rather than a list of tables somebody
+  // remembered to add — which is how it caught three the audit had missed.
+  ['the signed-out role', 'tests/the-signed-out-role.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

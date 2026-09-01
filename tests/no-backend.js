@@ -262,7 +262,11 @@ for (const [re, what] of FORBIDDEN_FILES) {
 // And the words that would mean somebody's private infrastructure came along.
 const FORBIDDEN_TERMS = [
   [/library[\s-]?os/i, 'a private reporting pipeline'],
-  [/supabase\.co/i, 'a live database hostname'],
+  // A project host is a subdomain of supabase.co; the connection pooler is a
+  // subdomain of supabase.com. Both are live database hostnames. The company's
+  // own dashboard address is not one, and setup instructions have to name it.
+  [/[a-z0-9-]+\.supabase\.co\b/i, 'a live database hostname'],
+  [/[a-z0-9-]*\.?pooler\.supabase\.com/i, 'a live database hostname'],
   [/\.vercel\.app/i, 'a live deployment hostname'],
   [/SITE_URL|FEEDBACK_INGRESS_TOKEN|FEEDBACK_RESEND/i, 'a private deployment setting'],
   [/service[_-]?role/i, 'a privileged database key'],

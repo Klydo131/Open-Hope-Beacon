@@ -73,9 +73,16 @@ ok(tooEarly.length === 0,
 // ------------------------------------------------------------- re-runnable --
 // Applying the set twice must not fail. Postgres has no CREATE POLICY IF NOT
 // EXISTS, so the guard is a DROP first; the rest take their own if-not-exists.
+// Quoted text is data, not DDL. An event trigger has to name the commands it
+// fires on — `when tag in ('CREATE TABLE', 'CREATE TABLE AS', ...)` — and
+// reading those literals as statements reported a migration that creates no
+// table at all as having two unguarded ones. A guard that cannot tell a
+// keyword from a string is a guard people start ignoring.
+const unquote = (sql) => sql.replace(/'(?:[^']|'')*'/g, "''");
+
 const notGuarded = [];
 for (const f of files) {
-  const s = strip(fs.readFileSync(path.join(dir, f), 'utf8'));
+  const s = unquote(strip(fs.readFileSync(path.join(dir, f), 'utf8')));
   const checks = [
     ['create policy', /create policy/gi, /drop policy/gi],
     ['create trigger', /create trigger/gi, /drop trigger/gi],
