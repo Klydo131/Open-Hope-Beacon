@@ -707,7 +707,22 @@ export function InstallPrompt() {
       data-install-prompt="bar"
       className="no-print safe-bottom fixed inset-x-0 bottom-0 z-[66] flex justify-center p-3"
     >
-      <div className="animate-drop w-full max-w-md rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
+      {/* A CEILING, BECAUSE THE BAR RESERVES WHATEVER IT IS TALL.
+          This bar carries the steps as well as the button, and it publishes its
+          height so the page can pad itself clear. On a phone held upright that
+          is a fair trade. On the same phone turned sideways the viewport is
+          412px and the bar is 344 of them: the page keeps 68px, the row you
+          were reaching for is pushed under the bar, and the tap lands on the
+          bar instead. Sending a tablet here to escape the floating card is what
+          exposed it.
+
+          Half the visible height, and the steps scroll inside what is left.
+          NOT collapsed behind the button: somebody who opened this from a
+          Messenger link has to be told to leave Messenger without pressing
+          anything, and tests/e2e/in-app-browser.js fails the build if that is
+          ever gated again. Scrolling is not gating; the steps are still there
+          and still on screen. */}
+      <div className="animate-drop flex max-h-[50dvh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
         <div className="flex items-center gap-3">
           <HopeBeaconMark size={40} />
           <div className="min-w-0 flex-1">

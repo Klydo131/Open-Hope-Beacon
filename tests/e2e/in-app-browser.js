@@ -52,7 +52,8 @@ async function readCard(browser, userAgent, viewport) {
   // Without this the test below proves nothing: a card that never mentions
   // Safari at all would "pass" the Messenger check.
   const safari = await readCard(browser, IPHONE_SAFARI, { width: 390, height: 844 });
-  ok(/Install Hope Beacon/i.test(safari), 'real Safari is still offered the install');
+  ok(/Add Hope Beacon to your Home Screen/i.test(safari),
+    'real Safari is still offered the install, in the words its own menu uses');
   ok(/Add to Home Screen/i.test(safari), 'real Safari gets the Add to Home Screen step');
   ok(!/built-in browser|Open in Safari/i.test(safari),
     'real Safari is NOT told to open itself in Safari');
@@ -71,7 +72,13 @@ async function readCard(browser, userAgent, viewport) {
     'MESSENGER IS NOT GIVEN THE SAFARI SHARE STEP IT CANNOT FOLLOW');
   // And Share must never be the FIRST thing asked of somebody in Messenger:
   // whatever else the card says, leaving Messenger has to come before it.
-  const shareAt = messenger.search(/Tap Share|Add to Home Screen/i);
+  // "Add to Home Screen" IS NO LONGER USABLE HERE, and dropping it is not a
+  // weakening. It is now in the HEADING of every Apple card -- that is the whole
+  // point of the rename, since no Apple menu says Install -- so searching for it
+  // finds the title rather than a step, and reports that Share was asked first
+  // on a card whose first step is to leave Messenger. The step wording is what
+  // this assertion was ever about.
+  const shareAt = messenger.search(/Tap Share/i);
   const safariAt = messenger.search(/Open in Safari/i);
   ok(safariAt >= 0 && (shareAt < 0 || safariAt < shareAt),
     'leaving Messenger is asked BEFORE any Share step, not after');

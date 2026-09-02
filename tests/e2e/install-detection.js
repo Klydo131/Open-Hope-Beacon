@@ -16,7 +16,15 @@ const BASE = `http://localhost:${PORT}`;
 let bad = 0;
 const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); };
 
-const seen = (page) => page.getByText(/Install Hope Beacon/i).count();
+// COUNTED BY ITS HOOK, NOT BY ITS WORDS.
+//
+// This was `getByText(/Install Hope Beacon/i)`, and it went red the day the
+// heading changed -- correctly, but for a reason that has nothing to do with
+// what this file is about, which is whether the prompt appears and how often.
+// The copy differs per device now anyway: an iPhone is offered Add to Home
+// Screen and a Mac Add to Dock, because no Apple menu contains the word
+// Install. The element is the thing being counted, so count the element.
+const seen = (page) => page.locator('[data-install-prompt]').count();
 
 async function signIn(page) {
   await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
