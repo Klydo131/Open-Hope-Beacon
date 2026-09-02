@@ -61,6 +61,24 @@ const PERSONA_KEY = 'beacon-persona';
 const TUTORIAL_KEY = 'beacon-tutorial';
 // Where the person's own demo data waits while the tutorial borrows the app.
 const PRETUTORIAL_KEY = 'beacon-demo-pretutorial';
+// WHAT GETS WRITTEN WHEN THERE WAS NOTHING TO PARK.
+//
+// "No saved demo" is a state to put back, and treating it as "nothing to do"
+// is the bug this exists for. Somebody opening the demo for the first time has
+// no `beacon-demo-v1` at all. Starting the tutorial saved nothing, because
+// there was nothing to save; finishing restored nothing, for the same reason;
+// and the tutorial's own database was simply left sitting there as theirs,
+// with whatever they changed during the walk still in it. Their first
+// impression of the demo was the leftovers of a tutorial.
+//
+// It survived because the check for it was written the same way round as the
+// code: "snapshot cleaned up after finishing" passes when no snapshot was ever
+// taken. WebKit is where it finally showed, and it is not a WebKit bug; that
+// engine just happened to reach the tutorial with empty storage.
+//
+// Deliberately not valid JSON, so a restore path that forgets to check for it
+// throws rather than quietly loading a database made of the word none.
+const NOTHING_BEFORE = 'none';
 export const QUEST_KEY = 'beacon-quest-v1';
 // Which walk is running, so a reload mid-tutorial resumes the right one.
 const TRACK_KEY = 'beacon-tutorial-track';
@@ -722,8 +740,8 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
         // Only snapshot on the way IN, or replaying mid-tutorial would overwrite
         // the person's real data with the tutorial's own leftovers.
         if (localStorage.getItem(TUTORIAL_KEY) !== '1') {
-          const current = localStorage.getItem(DB_KEY);
-          if (current) localStorage.setItem(PRETUTORIAL_KEY, current);
+          // The absence is recorded too. See NOTHING_BEFORE.
+          localStorage.setItem(PRETUTORIAL_KEY, localStorage.getItem(DB_KEY) ?? NOTHING_BEFORE);
         }
         localStorage.setItem(TUTORIAL_KEY, '1');
         localStorage.setItem(TRACK_KEY, track);
@@ -744,13 +762,24 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(TUTORIAL_KEY, '0');
       const saved = localStorage.getItem(PRETUTORIAL_KEY);
-      if (saved) {
-        localStorage.setItem(DB_KEY, saved);
+      // `!== null` rather than truthiness. An empty string is a value that was
+      // there, and reading it as "nothing was saved" is how the tutorial's data
+      // is left behind.
+      if (saved !== null) {
         localStorage.removeItem(PRETUTORIAL_KEY);
-        // Through the normaliser too. This snapshot was taken before the walk
-        // began and can be as old as any other save, so restoring it raw is the
-        // same crash by a slower route.
-        setDb(normalizeDb(JSON.parse(saved)));
+        if (saved === NOTHING_BEFORE) {
+          // Put back the nothing. Removing the key rather than writing a seed
+          // leaves the demo exactly as a first-time visitor finds it, which is
+          // what "as I left it" means when they left it untouched.
+          localStorage.removeItem(DB_KEY);
+          setDb(makeSeed());
+        } else {
+          localStorage.setItem(DB_KEY, saved);
+          // Through the normaliser too. This snapshot was taken before the walk
+          // began and can be as old as any other save, so restoring it raw is
+          // the same crash by a slower route.
+          setDb(normalizeDb(JSON.parse(saved)));
+        }
       }
     } catch {}
     track('tutorial_done');

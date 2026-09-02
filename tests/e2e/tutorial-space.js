@@ -33,6 +33,17 @@ const stages = (p) => p.evaluate(() => {
   if(await adv.count()){await adv.click();await page.waitForTimeout(1400);}
   const mine = await stages(page);
   console.log('my demo state   :', mine);
+  // THE PRECONDITION, ASSERTED RATHER THAN ASSUMED.
+  //
+  // Every step above is guarded with `if (await x.count())`, so a control this
+  // engine renders differently is skipped in silence and the baseline comes out
+  // empty. Two restore assertions below then compare against nothing and report
+  // a restore failure, which is what WebKit did for days: the real fault was
+  // that the setup never ran, and the test named the wrong half of the app.
+  //
+  // If this line is the one that goes red, read it as "the setup did not
+  // happen on this engine", not as anything about the tutorial.
+  ok(mine !== '', 'the setup actually put something in my demo data to restore');
 
   // Run the tutorial.
   await page.goto(`${BASE}/`,{waitUntil:'networkidle'});
