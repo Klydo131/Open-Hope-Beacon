@@ -19,6 +19,36 @@ import { safeHref } from '../linkify.ts';
 import type { MeetingMode } from '../types.ts';
 
 /**
+ * A web address written the way people actually copy one.
+ *
+ * REPORTED FROM A REAL APPOINTMENT. A Guide pasted
+ * `meet.google.com/idn-soex-nkb` into "where", and the card showed it as dead
+ * text with no Join button: `safeHref` only supplies a missing scheme for
+ * addresses that begin `www.`, and almost nothing does any more. Google Meet,
+ * Zoom and Teams all hand you an address with no `www.`, and the browser's
+ * address bar hides the `https://` before you copy it — so the one thing a
+ * person is most likely to paste was the one shape the field refused.
+ *
+ * THE SHAPE TEST IS DELIBERATELY MEAN, because the alternative failure is
+ * worse than a missing button. "I will ring you at seven" must stay a
+ * sentence, and `7.30pm` must not become a link to a website called
+ * `https://7.30pm` — which is exactly what a naive "has a dot in it" test
+ * does. So: no whitespace, at least one dot, and a final label that is
+ * letters only, which is what a top-level domain is and what a time is not.
+ *
+ * Anything carrying its own scheme is left completely alone, so
+ * `javascript:` and `mailto:` and `file:` reach the guard untouched and are
+ * refused there. This function only ever ADDS `https://`; it never rewrites a
+ * scheme somebody typed.
+ */
+const BARE_ADDRESS = /^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}(?::\d{2,5})?(?:[/?#]|$)/i;
+
+function withScheme(where: string): string {
+  if (where.includes('://')) return where;
+  return BARE_ADDRESS.test(where) ? `https://${where}` : where;
+}
+
+/**
  * The joining link for a meeting, or null if there is not one.
  *
  * `safeHref` is the same guard the chat linkifier uses, so a link in a meeting
@@ -35,7 +65,11 @@ import type { MeetingMode } from '../types.ts';
  */
 export function joinUrl(mode: MeetingMode, where: string | null | undefined): string | null {
   if (mode !== 'online' || !where) return null;
-  return safeHref(where.trim());
+  // safeHref still decides. Supplying a missing scheme changes what SHAPE of
+  // text reaches the guard, never what the guard permits: it allows http and
+  // https only and still refuses a URL carrying user info, so
+  // `zoom.us@evil.example/j/1` is refused before and after this change.
+  return safeHref(withScheme(where.trim()));
 }
 
 /**

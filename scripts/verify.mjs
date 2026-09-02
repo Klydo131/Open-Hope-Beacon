@@ -124,6 +124,10 @@ const staticChecks = [
   // by can be tested anywhere -- and it is the part that was wrong, calling
   // three live sites dead because they answer 403 to a datacentre.
   ['dead is not refused', 'tests/dead-is-not-refused.mjs'],
+  // An alert a phone will actually show. Chrome on Android refuses the
+  // Notification constructor outright, so the live settings screen said "On"
+  // and showed nothing -- on a desktop it worked, which is how it survived.
+  ['notifications go through the worker', 'tests/notifications-go-through-the-worker.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

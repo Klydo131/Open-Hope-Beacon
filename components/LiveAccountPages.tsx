@@ -23,6 +23,7 @@ import { useTutorialMode } from '@/lib/tutorial';
 import type { Role } from '@/lib/types';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
+import { showLocalNotification } from '@/lib/push';
 import { LiveMyData } from '@/components/LiveMyData';
 import { WhatsNewButton } from '@/components/WhatsNew';
 import { FeedbackButton } from '@/components/Feedback';
@@ -345,7 +346,21 @@ function NotificationCard() {
     setPerm(result);
     if (result === 'granted') {
       setNote('Alerts are on for this device.');
-      new Notification('Hope Beacon', { body: 'Alerts are on for this device.' });
+      // THROUGH THE SERVICE WORKER, NEVER `new Notification()`.
+      //
+      // REPORTED FROM A REAL ANDROID PHONE: alerts were turned on, the card
+      // said "✓ On", and nothing ever appeared. Chrome on Android refuses the
+      // Notification constructor outright -- it throws `Illegal constructor`
+      // and only ServiceWorkerRegistration.showNotification() is permitted --
+      // so the confirmation threw inside this handler and the person was left
+      // with a screen claiming success and a phone that had shown them
+      // nothing. On a desktop it worked, which is how it survived review.
+      //
+      // showLocalNotification goes through the registration and keeps the
+      // constructor only as a last-resort fallback in a try/catch. The demo
+      // settings screen has always called it; this one was the copy that
+      // reached for the raw API.
+      await showLocalNotification('Hope Beacon', 'Alerts are on for this device.', '/settings');
     } else {
       setNote('Your browser refused. You can change it in the site settings for this page.');
     }
@@ -361,6 +376,17 @@ function NotificationCard() {
       <h2 className="mb-1 text-xl font-bold text-navy">🔔 Notifications</h2>
       <p className="mb-4 text-sm text-gray-500">
         A new message, a prayer request, somebody waiting to be approved.
+      </p>
+      {/* SAYING WHAT THIS IS, BECAUSE THE OTHER KIND IS WHAT PEOPLE EXPECT.
+          Alerts are raised by the app while it is open or in the background on
+          this device. Beacon has no push server, so a phone with the app fully
+          closed is not woken -- see lib/push.ts. Somebody who turns this on
+          expecting their phone to buzz overnight and finds it silent will
+          reasonably call that broken, so the card says which kind it is
+          rather than letting them find out by being missed. */}
+      <p className="mb-4 rounded-xl bg-sky-50 p-3 text-sm text-gray-600">
+        These reach you while Hope Beacon is open or running in the background.
+        Your phone is not woken when the app is fully closed.
       </p>
 
       <label className="flex items-center justify-between gap-4 rounded-xl bg-gray-50 p-4">

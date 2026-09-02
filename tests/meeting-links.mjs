@@ -74,6 +74,40 @@ for (const [url, expected] of [
 
 // How people write a link when they are not thinking about schemes.
 ok(joinUrl('online', 'www.zoom.us/j/123') !== null, 'a bare www. address still works');
+
+// ---------------------------------------------------------------------------
+// 1b. AN ADDRESS PASTED THE WAY PEOPLE ACTUALLY COPY ONE.
+// ---------------------------------------------------------------------------
+// Reported from a real appointment: a Guide pasted `meet.google.com/idn-soex-nkb`
+// and the card showed it as dead text with no Join button. Nothing hands you a
+// `www.` any more, and the address bar hides the `https://` before you copy it,
+// so the likeliest paste of all was the one shape the field refused.
+for (const [pasted, expect] of [
+  ['meet.google.com/idn-soex-nkb', 'https://meet.google.com/idn-soex-nkb'],
+  ['zoom.us/j/9876543210', 'https://zoom.us/j/9876543210'],
+  ['teams.microsoft.com/l/meetup-join/x', 'https://teams.microsoft.com/l/meetup-join/x'],
+  ['meet.jit.si/HopeBeacon', 'https://meet.jit.si/HopeBeacon'],
+]) {
+  ok(joinUrl('online', pasted) === expect, `pasted without https:// still joins (${pasted})`);
+}
+ok(joinLabel(joinUrl('online', 'meet.google.com/idn-soex-nkb')) === 'Join on Google Meet',
+   'and the button is named after the service, not "Join the call"');
+
+// The mean half of the shape test. A dot is not enough to make something an
+// address, and turning a time into a link to a website called `7.30pm` is a
+// worse failure than the missing button this fixes.
+for (const notAnAddress of [
+  '7.30pm',
+  '4.30',
+  'ring me at 7.30pm',
+  'Zoom.',
+  'meet me at the church.',
+  'idn-soex-nkb',
+  '192.168.1.1',
+]) {
+  ok(joinUrl('online', notAnAddress) === null,
+     `still not a button: "${notAnAddress}"`);
+}
 ok(joinUrl('online', '  https://zoom.us/j/123  ') !== null, 'surrounding spaces are trimmed');
 
 // ---------------------------------------------------------------------------
@@ -89,6 +123,12 @@ for (const nasty of [
   'https://zoom.us@evil.example/j/123',
   'https://meet.google.com:pass@evil.example/x',
   'file:///etc/passwd',
+  // THE NEW DOOR. Supplying a missing scheme must not supply one to these:
+  // anything carrying its own scheme is passed through untouched, and a bare
+  // address carrying user info is still refused by the guard.
+  'zoom.us@evil.example/j/123',
+  'meet.google.com:pass@evil.example/x',
+  'javascript:alert(1)//zoom.us',
 ]) {
   ok(joinUrl('online', nasty) === null, `refused: ${nasty.slice(0, 46)}`);
 }
