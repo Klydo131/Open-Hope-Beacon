@@ -577,13 +577,33 @@ export async function listPairings(): Promise<PairingView[]> {
 export async function getMyPairing(): Promise<MyPairing | null> {
   const me = await uid();
   const client = db();
-  const { data, error } = await client
+  // NEWEST FIRST AND TAKE ONE, RATHER THAN maybeSingle().
+  //
+  // This was `.maybeSingle()`, which RAISES when it finds more than one row —
+  // and nothing in the database ever said an Explorer has one Guide. The only
+  // trigger on pairings caps a GUIDE at five Explorers, the other side of the
+  // relationship, so pairing an Explorer who already had a Guide was simply
+  // allowed. Four of them ended up with two.
+  //
+  // The result was not a quietly wrong Guide. It was an exception on the one
+  // screen an Explorer has: My Guide failed to load at all, which is the whole
+  // app as far as they are concerned, and it failed for a reason no Director
+  // could have guessed from their side.
+  //
+  // The trigger added in migration 20260902100000 stops it happening again.
+  // This makes the reading survive the rows already there, because an Explorer
+  // should not be staring at an error while a Director decides which pairing
+  // was the mistake. Newest wins, which is the one a Director most recently
+  // meant.
+  const { data: rows, error } = await client
     .from('pairings')
     .select('id, dm_id, track, status')
     .eq('ds_id', me)
     .eq('status', 'active')
-    .maybeSingle();
+    .order('created_at', { ascending: false })
+    .limit(1);
   if (error) throw new Error(error.message);
+  const data = rows?.[0];
   if (!data) return null;
 
   const { data: guide } = await client

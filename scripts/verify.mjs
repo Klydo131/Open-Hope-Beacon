@@ -160,6 +160,11 @@ const staticChecks = [
   // a real account with no password and no way in. Both ways out are checked:
   // the person's, at the moment their sign-in is refused, and the Director's.
   ['nobody is stranded without a password', 'tests/nobody-is-stranded-without-a-password.mjs'],
+  // Two people who were unpaired could never be paired again: the unique
+  // constraint had no condition and a disconnect archives rather than deletes,
+  // so the archived row held the pair's slot forever. The same migration adds
+  // the rule nobody had written down, that an Explorer has one Guide.
+  ['a pair can be made again', 'tests/a-pair-can-be-made-again.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing
