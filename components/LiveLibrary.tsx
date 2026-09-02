@@ -16,6 +16,7 @@ import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { humanError } from '@/lib/live/errors';
+import { useKeepUp, KEEP_UP_LIBRARY } from '@/lib/live/keep-up';
 
 const message = (cause: unknown) =>
   humanError(cause, 'Something went wrong.');
@@ -87,6 +88,8 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
     catch (cause) { setItems([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_LIBRARY, load);
 
   const add = async () => {
     if (!title.trim() || !url.trim() || busy) return;

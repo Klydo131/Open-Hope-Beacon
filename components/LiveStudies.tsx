@@ -25,6 +25,7 @@ import { Button, Card } from '@/components/ui';
 import { Linked } from '@/components/Linked';
 import { humanError } from '@/lib/live/errors';
 import { ATTACHMENT_ACCEPT } from '@/lib/live/attachments';
+import { useKeepUp, KEEP_UP_STUDIES } from '@/lib/live/keep-up';
 
 function message(cause: unknown): string {
   return humanError(cause, 'That did not work.');
@@ -99,6 +100,8 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
     } catch (cause) { setLessons([]); setError(message(cause)); }
   }, [series.id]);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_STUDIES, load);
 
   const act = async (fn: () => Promise<void>) => {
     setBusy(true); setError('');
@@ -288,6 +291,8 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
     catch (cause) { setRows([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_STUDIES, load);
 
   const act = async (fn: () => Promise<void>) => {
     setBusy(true); setError('');

@@ -25,6 +25,7 @@ import { Button, Card } from '@/components/ui';
 import { humanError } from '@/lib/live/errors';
 import { safeHref } from '@/lib/linkify';
 import { joinLabel, joinUrl } from '@/lib/live/meeting-link';
+import { useKeepUp, KEEP_UP_MEETINGS } from '@/lib/live/keep-up';
 
 /**
  * A link to a map, never an embedded one.
@@ -77,6 +78,8 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
     }
   }, [pairingId]);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_MEETINGS, load);
 
   const act = async (fn: () => Promise<void>) => {
     setBusy(true);

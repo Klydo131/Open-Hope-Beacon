@@ -31,6 +31,7 @@ import type { Profile } from '@/lib/types';
 import type { RoomTheme } from '@/lib/room-theme';
 import { openBell } from '@/lib/open-bell';
 import { joinLabel, joinUrl } from '@/lib/live/meeting-link';
+import { useKeepUp, KEEP_UP_PEOPLE } from '@/lib/live/keep-up';
 
 interface DeskItem {
   key: string;
@@ -187,6 +188,11 @@ export function LiveDesk({ me, theme }: { me: Profile; theme: RoomTheme }) {
     const t = setInterval(() => void load(), 180_000);
     return () => clearInterval(t);
   }, [load]);
+
+  // Three minutes is fine for a rail nobody is staring at, and far too slow for
+  // the one moment somebody IS: a name approved on another screen, in front of
+  // a room. The interval above stays as the floor for a dropped socket.
+  useKeepUp(KEEP_UP_PEOPLE, load);
 
   const now = new Date();
 

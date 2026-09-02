@@ -16,6 +16,7 @@ import { permission, requestPermission, showLocalNotification } from '@/lib/push
 import { onOpenBell } from '@/lib/open-bell';
 import { planAnnouncement } from '@/lib/live/announce-plan';
 import { AnchoredPanel } from '@/components/AnchoredPanel';
+import { useKeepUp, KEEP_UP_BELL } from '@/lib/live/keep-up';
 
 
 /**
@@ -203,6 +204,13 @@ export function LiveBell({ me }: { me: Profile }) {
       document.removeEventListener('visibilitychange', recheck);
     };
   }, [load]);
+
+  // AND THE MOMENT ONE ARRIVES, not at the next tick of the minute timer above.
+  // The poll stays: it is what covers a dropped socket and a phone that has
+  // been asleep, and it is the reason the count is never more than a minute
+  // stale even when realtime is unavailable. This just removes the wait when
+  // everything is working, which is the case somebody is watching in a room.
+  useKeepUp(KEEP_UP_BELL, load);
 
   // THE DESK'S "Unread notifications" ROW ENDS HERE. It is drawn in the rail,
   // several branches away, and the bell it means is in the header; an event is

@@ -23,6 +23,7 @@ import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { Card } from '@/components/ui';
 import { humanError } from '@/lib/live/errors';
+import { useKeepUp, KEEP_UP_NOTICES } from '@/lib/live/keep-up';
 
 export function LiveAnnouncements({
   /**
@@ -48,6 +49,8 @@ export function LiveAnnouncements({
     catch (cause) { setNotices([]); setError(humanError(cause, 'That did not work.')); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_NOTICES, load);
 
   const act = async (fn: () => Promise<void>) => {
     setBusy(true); setError('');

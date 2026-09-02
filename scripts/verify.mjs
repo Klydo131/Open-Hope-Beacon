@@ -132,6 +132,10 @@ const staticChecks = [
   // fixing a typo meant deleting the study and losing every handout on it.
   // The database had always allowed the update; only the app was missing.
   ['a study can be corrected', 'tests/a-study-can-be-corrected.mjs'],
+  // Live updates, both halves. One table was published for realtime and the
+  // rest of the app only changed when somebody pressed refresh; a set naming a
+  // table the migration does not publish is a screen subscribing to silence.
+  ['the screen keeps up', 'tests/the-screen-keeps-up.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

@@ -25,6 +25,7 @@ import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { humanError } from '@/lib/live/errors';
+import { useKeepUp, KEEP_UP_PRAYER } from '@/lib/live/keep-up';
 
 const message = (cause: unknown) =>
   humanError(cause, 'Something went wrong.');
@@ -63,6 +64,8 @@ export function LiveAskForPrayer() {
     catch (cause) { setMine([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_PRAYER, load);
 
   const submit = async () => {
     if (!body.trim() || busy) return;
@@ -210,6 +213,8 @@ export function LivePrayerForGuide({
     catch (cause) { setRows([]); setError(message(cause)); }
   }, [onlyFor]);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_PRAYER, load);
 
   if (rows !== null && rows.length === 0 && !error && !alwaysShow) return null;
 

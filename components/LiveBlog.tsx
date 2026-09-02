@@ -23,6 +23,7 @@ import { roleLabel, roleNoun } from '@/lib/brand';
 import { useLiveSession } from '@/lib/live/session';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { humanError } from '@/lib/live/errors';
+import { useKeepUp, KEEP_UP_BLOG } from '@/lib/live/keep-up';
 
 function when(iso: string): string {
   const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -77,6 +78,8 @@ export function LiveBlogDesk() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_BLOG, load);
 
   useEffect(() => {
     let alive = true;
