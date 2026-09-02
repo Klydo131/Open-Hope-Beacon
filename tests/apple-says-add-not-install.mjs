@@ -74,7 +74,7 @@ ok(appleKindFrom(WINDOWS, 0) === null, 'nor is a Windows computer');
 
 // ---- The words ------------------------------------------------------------
 for (const kind of ['iphone', 'ipad', 'mac']) {
-  for (const words of [addLabel(kind), addChip(kind), addTitle(kind), sharePlace(kind)]) {
+  for (const words of [addLabel(kind), addChip(kind), addTitle(kind, 'Hope Beacon'), sharePlace(kind)]) {
     ok(!/install/i.test(words), `nothing shown to a ${kind} says "install" (${words})`);
   }
 }

@@ -71,7 +71,14 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
   // shows on iOS too and contains the very same words. The test was reading
   // the thing that already worked and reporting on the thing that did not.
   const cardText = (await card.count()) ? await card.innerText() : '';
-  ok(/Install Hope Beacon/i.test(cardText), 'the install card is on the page');
+  // THE WORD "INSTALL" IS THE BUG NOW, NOT THE FIXTURE. No Apple menu contains
+  // it, so somebody told to press it searches a Share sheet for a word that is
+  // not in it. This used to assert the heading said "Install Hope Beacon"; it
+  // now asserts the opposite, and that the heading names the real control.
+  ok(/Add Hope Beacon to your Home Screen/i.test(cardText),
+     'the card offers Add to Home Screen, which is what the iPhone menu says');
+  ok(!/\binstall\b/i.test(cardText),
+     'and the card never says "install" to an iPhone');
 
   // The actual answer the person pressed the button for. Before the fix they
   // had to find the card and then press "Show me how" to get this.
@@ -113,11 +120,11 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
   await page.goto(`${BASE}/dm`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1600);
 
-  const banner = page.locator('text=Install Hope Beacon').first();
-  ok(await banner.count() > 0, 'the install banner appears on an iPhone by itself');
+  const banner = page.locator('text=Add Hope Beacon to your Home Screen').first();
+  ok(await banner.count() > 0, 'the banner appears on an iPhone by itself');
 
-  const cta = page.getByRole('button', { name: /^Install now$/i }).first();
-  ok(await cta.count() > 0, 'the banner has an "Install now" button');
+  const cta = page.getByRole('button', { name: /^Add to Home Screen$/i }).first();
+  ok(await cta.count() > 0, 'and its button says Add to Home Screen');
 
   // The steps are NOT hidden behind the button, and must not be: somebody who
   // arrived from a Messenger link has to be told to leave Messenger without
@@ -164,10 +171,10 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
   if (await macConsent.count()) await macConsent.first().click().catch(() => {});
   await mac.waitForTimeout(1600);
 
-  ok(await mac.getByText(/Install Hope Beacon/i).count() > 0,
-     'macOS Safari sees the install card by itself');
-  const macCta = mac.getByRole('button', { name: /^Install now$/i }).first();
-  ok(await macCta.count() > 0, 'macOS Safari gets an "Install now" button too');
+  ok(await mac.getByText(/Add Hope Beacon to your Dock/i).count() > 0,
+     'macOS Safari is offered Add to Dock, which is what its own menu says');
+  const macCta = mac.getByRole('button', { name: /^Add to Dock$/i }).first();
+  ok(await macCta.count() > 0, 'and the button says Add to Dock, not Install');
   ok(await mac.getByText(/Add to Dock/i).count() > 0,
      'and it gives the Mac steps, Add to Dock, not the iPhone ones');
   ok(await mac.getByText(/Add to Home Screen/i).count() === 0,
@@ -175,8 +182,10 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
   if (await macCta.count()) {
     await macCta.click();
     await mac.waitForTimeout(400);
-    ok(await mac.getByText(/Safari’s toolbar|Safari's toolbar/i).count() > 0,
-       'and pressing it points at the Mac toolbar, not a phone’s Share button');
+    // A Mac has no Share step at all. Add to Dock lives under File in the menu
+    // bar, so pointing at a toolbar was pointing at the wrong control.
+    ok(await mac.getByText(/File menu|menu bar/i).count() > 0,
+       'and pressing it points at the File menu, not a phone’s Share button');
   }
 
   await browser.close();
