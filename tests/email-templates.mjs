@@ -6,12 +6,23 @@
 // empty email, and the person who reports it is a stranger being invited to a
 // church.
 //
-// RULE 1 — ONLY {{ .ConfirmationURL }}.
+// RULE 1 — A SHORT LIST OF VARIABLES, AND NEVER {{ .ConfirmationURL }}.
+//
+// Two separate failures produced this rule, and they pull in opposite
+// directions, so both halves are checked.
 //
 // A template that also used {{ .Email }} was delivered with nothing in the body
 // at all. Go renders these, and a field it cannot resolve aborts the render
 // rather than leaving a gap, so a blank message is the failure mode and no
-// dashboard anywhere reports it. The link is the only thing the message needs.
+// dashboard anywhere reports it. Hence: a short allow-list.
+//
+// And {{ .ConfirmationURL }} points at Supabase's own /auth/v1/verify, which
+// SPENDS THE TOKEN on any GET, before redirecting. A mail scanner, a corporate
+// filter or a phone previewing the message burns the link, and the invited
+// person is told it expired on their first open. Every time, for months, with
+// nothing they did wrong. So the templates build the link themselves out of
+// {{ .TokenHash }} and hand it to /join, which redeems it in the browser where
+// no scanner follows.
 //
 // RULE 2 — NO HTML COMMENTS.
 //
@@ -85,17 +96,40 @@ for (const file of files) {
     const hrefs = (html.match(/href="\{\{\s*params\.JOIN_URL\s*\}\}"/g) || []).length;
     ok(hrefs >= 2, `${file}: the link appears as both a button and copyable text`);
   } else {
-    const allowed = new Set(['.ConfirmationURL']);
+    const allowed = new Set(['.SiteURL', '.TokenHash']);
     const strays = [...new Set(vars.filter((v) => !allowed.has(v)))];
     ok(strays.length === 0,
-       `${file}: uses no variable beyond .ConfirmationURL${strays.length ? ` (found ${strays.join(', ')})` : ''}`);
-    ok(vars.includes('.ConfirmationURL'), `${file}: carries the one-time link`);
+       `${file}: uses no variable beyond .SiteURL and .TokenHash${strays.length ? ` (found ${strays.join(', ')})` : ''}`);
+    // THE RULE THIS FILE EXISTS FOR NOW. A prefetched link is spent before the
+    // reader touches it, and the reader is told they were too slow.
+    ok(!/\.ConfirmationURL/.test(html),
+       `${file}: never uses .ConfirmationURL, which any mail scanner can spend`);
+    ok(vars.includes('.TokenHash'), `${file}: carries the token the browser redeems`);
     ok(!/\{%/.test(html),
        `${file}: carries no Brevo block, which Go templating cannot render at all`);
-    const hrefs = (html.match(/href="\{\{\s*\.ConfirmationURL\s*\}\}"/g) || []).length;
-    ok(hrefs >= 2, `${file}: the link appears as both a button and copyable text`);
+    // Bare ampersand. `&amp;` renames `type` to `amp;type` in some clients,
+    // which turns a password reset into a failed invitation without a word.
+    ok(!/token_hash=\{\{\s*\.TokenHash\s*\}\}&amp;/.test(html),
+       `${file}: joins its parameters with a bare & so the type survives the inbox`);
+    const kind = /recovery/.test(file) ? 'recovery' : 'invite';
+    const built = new RegExp(
+      String.raw`href="\{\{ \.SiteURL \}\}/join\?token_hash=\{\{ \.TokenHash \}\}&type=` + kind + '"', 'g');
+    const hrefs = (html.match(built) || []).length;
+    ok(hrefs >= 2, `${file}: the link appears as both a button and copyable text, and says type=${kind}`);
   }
 }
+
+// ---- The page the link lands on -------------------------------------------
+//
+// A template and the screen that receives its link are one contract, and half
+// of it lives in another file. The template writes `&type=`; some clients
+// re-encode that ampersand and deliver `amp;type` instead. `/join` must read
+// both spellings or a password reset silently arrives as an invitation.
+const door = readFileSync('components/live/DoorPages.tsx', 'utf8');
+ok(/params\.get\('type'\)\s*\?\?\s*params\.get\('amp;type'\)/.test(door),
+   'DoorPages reads type in both spellings, so a re-encoded ampersand cannot lose it');
+ok(/verifyOtp\(\{ token_hash: tokenHash, type: kind \}\)/.test(door),
+   'and redeems the token in the browser, where no mail scanner follows');
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

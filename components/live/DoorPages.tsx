@@ -553,7 +553,15 @@ export function LiveJoinPage() {
         const tokenHash = params.get('token_hash');
         const code = params.get('code');
         const codeEmail = params.get('email');
-        const kind = params.get('type') === 'recovery' ? 'recovery' : 'invite';
+        // `type` IS READ TWICE ON PURPOSE. The invitation link is built in the
+        // email template as `?token_hash=...&type=...`, and a mail client that
+        // re-encodes the ampersand as `&amp;` turns the second parameter into
+        // one named `amp;type`. The link still opens, the token is still there,
+        // and the only thing lost is the word that says which kind it is --
+        // which silently turns a password reset into a failed invitation.
+        const kind = (params.get('type') ?? params.get('amp;type')) === 'recovery'
+          ? 'recovery'
+          : 'invite';
 
         // SUPABASE REPORTS A DEAD LINK IN THE HASH, NOT THE QUERY. An expired
         // or already-used link arrives as

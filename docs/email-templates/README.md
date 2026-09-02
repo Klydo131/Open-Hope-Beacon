@@ -13,13 +13,61 @@ Paste the **whole file**, replacing everything already in the box.
 
 ## Rules these files follow, and why breaking them breaks the email
 
-**Only `{{ .ConfirmationURL }}`.** No other variable, in either file.
+**Never `{{ .ConfirmationURL }}`.** Both files build their own link instead:
 
-An earlier version also used `{{ .Email }}`. It arrived as a blank message. Go
+```
+{{ .SiteURL }}/join?token_hash={{ .TokenHash }}&type=invite
+```
+
+`{{ .ConfirmationURL }}` points at `https://<project>.supabase.co/auth/v1/verify`,
+and that address **spends the token the moment anything fetches it**, before it
+redirects. Anything means anything: Microsoft Safe Links, a corporate mail
+filter, an antivirus scanner, a phone mail app fetching a preview. The invited
+person then taps the button and is told the link has expired, on the first open,
+every time, with nothing they did wrong. Supabase documents this as email
+prefetching and the fix as building your own link from `{{ .TokenHash }}`.
+
+The link above lands on `/join`, which redeems the token with `verifyOtp` in the
+browser. A scanner that fetches the page gets HTML and leaves the token alone.
+
+Three variables are used and all three are documented: `{{ .SiteURL }}`,
+`{{ .TokenHash }}` and nothing else. **`{{ .SiteURL }}` must be set correctly**
+under Authentication -> URL Configuration, because it is now what the button
+points at. A wrong Site URL breaks every invitation.
+
+An earlier version used `{{ .Email }}` and arrived as a blank message. Go
 renders these templates, and a field it cannot resolve aborts the render rather
-than leaving a gap — an empty body is the failure mode, and nothing anywhere
-reports it. The link is the only thing the message genuinely needs, so it is the
-only thing referenced.
+than leaving a gap - an empty body is the failure mode, and nothing anywhere
+reports it. That is why the list of variables here is short and why adding one
+is not a small change.
+
+**A bare `&`, not `&amp;`.** A mail client that re-encodes the ampersand turns
+`type` into a parameter called `amp;type`, which loses the one word that says
+whether the link is an invitation or a password reset. `/join` reads both spellings
+so it survives either, but write the bare one.
+
+## Check the button address before you trust it
+
+`{{ .SiteURL }}` is a dashboard field, and if it is wrong every invitation is
+wrong. Do not reason about it, look at it: paste the template, send yourself one
+invitation, and read the address under the button. It must begin with your app's
+own address and continue `/join?token_hash=`. If it does not, either fix Site URL
+under Authentication -> URL Configuration, or replace `{{ .SiteURL }}` in both
+files with your address written out in full before pasting.
+
+Do not use `{{ .RedirectTo }}` instead. It looks like the safer choice because
+the function passes it, but the reset path passes `/join?recovery=1`, which
+already carries a query string, and appending `?token_hash=` to it produces an
+address with two question marks that no browser will parse.
+
+## How long the link lasts is a dashboard setting, not a file
+
+Nothing in this repository controls it. Authentication -> Sign In / Providers ->
+Email -> **Email OTP Expiration**, in seconds. Set it to **86400** for 24 hours,
+which is the longest Supabase permits; anything above one day is refused, because
+a code that lives longer gives a guesser longer.
+
+
 
 **No HTML comments.** The documentation lives in this file instead. Comments
 inside a pasted template are body content that a mail client may or may not
@@ -60,5 +108,6 @@ that covers both arrivals without guessing which reader it has.
 ## Checking a change
 
 `tests/email-templates.mjs` holds the two rules that produced silent failures:
-only `{{ .ConfirmationURL }}` appears, and no HTML comments survive. It runs as
+no `{{ .ConfirmationURL }}` appears, the link is built from `{{ .TokenHash }}`,
+and no HTML comments survive. It runs as
 part of `npm test`.
