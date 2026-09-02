@@ -1449,6 +1449,33 @@ export async function listShares(pairingId: string): Promise<MaterialShare[]> {
 }
 
 /** Share one into a pairing. Either person in it may, by policy. */
+/**
+ * Take a resource off the church shelf.
+ *
+ * WHY THIS WAS MISSING AND WHY THAT MATTERED. The library could be added to and
+ * shared from, and never tidied. A link pasted with a typo, a resource that
+ * turned out to be the wrong one, a video a church decided against — all of it
+ * stayed on the shelf for good, because the only screen that listed them
+ * offered one control and it was Share. The shelf could only ever grow.
+ *
+ * `materials_drop` has permitted this the whole time: the person who added it,
+ * or anybody who manages the church. Only the app was missing, which is the
+ * kind of gap nothing reports — no error, no refusal, just an absent button.
+ *
+ * SHARES GO WITH IT, and that is the database's doing rather than a loop here:
+ * `material_shares.material_id` is ON DELETE CASCADE, so removing a resource
+ * removes the record of it having been shared in the same statement. Nobody is
+ * left with a share pointing at a row that no longer exists.
+ *
+ * The library ACTIVITY record is deliberately untouched. It says what somebody
+ * did at the time they did it, and a record that quietly rewrites itself when
+ * the thing it describes is deleted is not a record.
+ */
+export async function deleteMaterial(id: string): Promise<void> {
+  const { error } = await db().from('materials').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function shareMaterial(materialId: string, pairingId: string, note?: string): Promise<void> {
   const supabase = db();
   const me_id = await uid();

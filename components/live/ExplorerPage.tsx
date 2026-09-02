@@ -7,7 +7,6 @@ import * as live from '@/lib/live/data';
 import { LiveReportControl } from '@/components/LiveSafeguarding';
 import type { Message, Profile } from '@/lib/types';
 import { LiveAppShell } from '@/components/LiveAppShell';
-import { LiveBlogFeed } from '@/components/LiveBlog';
 import { LiveAskForPrayer } from '@/components/LivePrayer';
 import { LiveMeetings } from '@/components/LiveMeetings';
 import { useDraft, clearDraft } from '@/lib/drafts';
@@ -17,6 +16,7 @@ import { Avatar, Card } from '@/components/ui';
 import { Conversation, Notice, errorText } from '@/components/live/shared';
 import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { LiveAnnouncements } from '@/components/LiveAnnouncements';
+import { LiveBlogFeed } from '@/components/LiveBlog';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
@@ -122,10 +122,36 @@ export function LiveExplorerPage() {
   // The relationship stays together in the first folder, and it is the one
   // that opens. The journey is a relationship, so the Guide, the talking, the
   // way out and the arranging of a time are one thing and are not split up.
+  // THE CHURCH ROOM APPEARS ONLY WHEN THERE IS SOMETHING IN IT.
+  //
+  // Reported from the live app: the tab opened on nothing. That was not a bug —
+  // the read policy is `church_id = my_church_id()` and an Explorer satisfies
+  // it — the church had simply not posted anything addressed to them yet. An
+  // empty folder on somebody's first day reads as an app that is broken, so the
+  // ask was to take the tab out.
+  //
+  // TAKING IT OUT ALTOGETHER WAS WRONG, and the blog walk is what said so: this
+  // room is the Explorer's ONLY route to what the church writes, and the reader
+  // count on a Guide's post is recorded when an Explorer opens it here. Removing
+  // the tab did not remove an empty room, it removed a working feature that
+  // happened to be empty in one church this week.
+  //
+  // So the room is conditional rather than gone. Nothing to read, no tab; the
+  // moment a Guide publishes something for them, it is there. Neither an empty
+  // folder nor a lost feature.
+  const [churchHasSomething, setChurchHasSomething] = useState(false);
+  useEffect(() => {
+    // One row is all this asks: "is there anything at all?" The feed itself is
+    // loaded by the room when somebody opens it.
+    void live.listBlogFeed(1)
+      .then((posts) => setChurchHasSomething(posts.length > 0))
+      .catch(() => setChurchHasSomething(false));
+  }, []);
+
   const rooms: Room[] = [
     { id: 'guide', label: '🤝 My Guide' },
     { id: 'study', label: '📖 Study' },
-    { id: 'church', label: '⛪ Church' },
+    ...(churchHasSomething ? [{ id: 'church', label: '⛪ Church' }] : []),
     { id: 'prayer', label: '🙏 Prayer' },
   ];
   const [room, chooseRoom] = useRoom(rooms, 'beacon:journey-room', { prayer: 'prayer' });
@@ -170,6 +196,8 @@ export function LiveExplorerPage() {
                   messages={messages}
                   files={files}
                   myId={profile?.id ?? ''}
+                  myName={profile?.full_name}
+                  theirName={pairing.dm_name}
                   body={body}
                   setBody={setBody}
                   send={send}
@@ -219,11 +247,11 @@ export function LiveExplorerPage() {
         {/* READ, THEN ASK. Writing moved to the Publish room, which every role
             has: this screen is somebody's journey, and their own blog desk sat
             on it because there was nowhere else to put it. */}
-        {room === 'church' && <LiveBlogFeed selfId={profile?.id} />}
-
         {/* ASKING FOR PRAYER IS THE MOST EXPOSED THING ANYBODY DOES HERE, which
             is why it was last on the page and is its own folder now rather than
             the first thing anybody sees on opening their journey. */}
+        {room === 'church' && <LiveBlogFeed selfId={profile?.id} />}
+
         {room === 'prayer' && <LiveAskForPrayer />}
       </div>
     </LiveAppShell>

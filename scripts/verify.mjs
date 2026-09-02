@@ -136,6 +136,10 @@ const staticChecks = [
   // rest of the app only changed when somebody pressed refresh; a set naming a
   // table the migration does not publish is a screen subscribing to silence.
   ['the screen keeps up', 'tests/the-screen-keeps-up.mjs'],
+  // The library could be added to and shared from and never tidied. The delete
+  // policy had always allowed it; only the button was missing, which is a gap
+  // that reports itself as nothing at all.
+  ['a resource can be taken off the shelf', 'tests/a-resource-can-be-taken-off-the-shelf.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

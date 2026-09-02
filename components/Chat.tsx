@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
-import { NAVY } from '@/lib/brand';
 import { emitQuest } from '@/lib/quest';
 import type { Message, PairingMedia } from '@/lib/types';
 import { Attachment } from './Attachment';
@@ -162,11 +161,19 @@ export function Chat({ pairingId }: { pairingId: string }) {
             >
               {entry.kind === 'message' ? (
                 <div
-                  className="max-w-[80%] rounded-2xl px-4 py-2 text-lg"
+                  // TWO TINTS RATHER THAN ONE SOLID NAVY. A filled navy bubble
+                  // for your own messages is a wall of ink on a phone, and it
+                  // splits every label in the thread into two colour schemes.
+                  // Two soft tints let one set of dark text serve both sides,
+                  // and they match the live conversation — the demo is what
+                  // gets shown to a room, so the two must not diverge.
+                  className={`max-w-[80%] text-lg ${
+                    mine ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'
+                  } px-4 py-2.5`}
                   style={
                     mine
-                      ? { backgroundColor: NAVY, color: '#fff' }
-                      : { backgroundColor: '#EEF1F7', color: '#1a2233' }
+                      ? { backgroundColor: '#E4F0F5', color: '#1f2937' }
+                      : { backgroundColor: '#FCEEDF', color: '#1f2937' }
                   }
                 >
                   <Linked text={entry.message.body} />
@@ -180,9 +187,18 @@ export function Chat({ pairingId }: { pairingId: string }) {
               {/* One footer for both kinds, so a file and a message that were
                   sent together read as the same person speaking. */}
               <span className="mt-1 px-1 text-xs text-gray-400">
-                {mine ? 'You' : nameOf(entry.who)} ·{' '}
+                {/* The speaker in their own colour, matching the bubble they
+                    just spoke from, so a glance down the thread reads as two
+                    people rather than one column of grey captions. */}
+                <span
+                  className="font-bold"
+                  style={{ color: mine ? '#1F7A8C' : '#C2762B' }}
+                >
+                  {mine ? 'You' : nameOf(entry.who)}
+                </span>{' '}
+                ·{' '}
                 {new Date(entry.at).toLocaleTimeString([], {
-                  hour: '2-digit',
+                  hour: 'numeric',
                   minute: '2-digit',
                 })}
               </span>

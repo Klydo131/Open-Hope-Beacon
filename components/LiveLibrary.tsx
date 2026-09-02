@@ -17,6 +17,7 @@ import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { humanError } from '@/lib/live/errors';
 import { useKeepUp, KEEP_UP_LIBRARY } from '@/lib/live/keep-up';
+import { useLiveSession } from '@/lib/live/session';
 
 const message = (cause: unknown) =>
   humanError(cause, 'Something went wrong.');
@@ -82,6 +83,12 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
+  // Which row has been asked to go. Removing a resource cannot be undone and
+  // the shelf is a dense list, so the first tap asks and the second does it —
+  // rather than a browser confirm() dialog, which a phone renders as a system
+  // box nobody reads and iOS sometimes suppresses entirely.
+  const [confirming, setConfirming] = useState('');
+  const { profile } = useLiveSession();
 
   const load = useCallback(async () => {
     try { setItems(await live.listMaterials()); setError(''); }
@@ -101,6 +108,22 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
     } catch (cause) { setError(message(cause)); }
     finally { setBusy(false); }
   };
+
+  const remove = async (m: live.Material) => {
+    setError(''); setFlash('');
+    try {
+      await live.deleteMaterial(m.id);
+      setConfirming('');
+      setFlash(`Removed “${m.title}” from the library.`);
+      await load();
+    } catch (cause) { setError(message(cause)); }
+  };
+
+  // WHOSE RESOURCE IT IS. A convenience, not a control: `materials_drop` lets
+  // the person who added it and anybody who manages the church remove one, and
+  // the database refuses everybody else whatever this draws.
+  const canRemove = (m: live.Material) =>
+    !!profile && (m.added_by === profile.id || profile.role === 'admin' || profile.role === 'executive');
 
   const share = async (materialId: string, pairingId: string, who: string) => {
     setError(''); setFlash('');
@@ -183,6 +206,31 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
                 className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy ring-1 ring-black/10"
               >
                 Share with {p.ds_name.split(' ')[0]}
+              </button>
+            ))}
+            {canRemove(m) && (confirming === m.id ? (
+              <>
+                <button
+                  onClick={() => void remove(m)}
+                  className="rounded-full bg-white px-3 py-1 text-xs font-bold text-red-700 ring-1 ring-red-200"
+                >
+                  Yes, remove it
+                </button>
+                <button
+                  onClick={() => setConfirming('')}
+                  className="rounded-full px-3 py-1 text-xs font-semibold text-gray-600 underline"
+                >
+                  Keep it
+                </button>
+              </>
+            ) : (
+              /* Last on the row and the only red thing on it, so the control
+                 that cannot be undone is never the first one a thumb finds. */
+              <button
+                onClick={() => setConfirming(m.id)}
+                className="rounded-full px-3 py-1 text-xs font-semibold text-red-700 underline"
+              >
+                Remove from library
               </button>
             ))}
           </Item>

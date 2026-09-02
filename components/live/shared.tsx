@@ -27,10 +27,28 @@ export type Entry =
   | { kind: 'file'; id: string; at: string; who: string; file: live.PairingFile };
 
 
+/**
+ * Was this sent today?
+ *
+ * A thread of this morning's replies stamped "Sep 2" four times reads as four
+ * separate days, which is the opposite of what a timestamp is for.
+ */
+function sameDay(at: string): boolean {
+  const then = new Date(at);
+  const now = new Date();
+  return (
+    then.getFullYear() === now.getFullYear() &&
+    then.getMonth() === now.getMonth() &&
+    then.getDate() === now.getDate()
+  );
+}
+
 export function Conversation({
   messages,
   files,
   myId,
+  myName,
+  theirName,
   body,
   setBody,
   send,
@@ -42,6 +60,10 @@ export function Conversation({
   messages: Message[];
   files: live.PairingFile[];
   myId: string;
+  /** Both optional: a caller that passes neither gets the thread with no names,
+   *  exactly as before, rather than a row of blanks. */
+  myName?: string;
+  theirName?: string;
   body: string;
   setBody: (value: string) => void;
   send: (event: React.FormEvent) => void;
@@ -168,7 +190,7 @@ export function Conversation({
         }}
         aria-live="polite"
         aria-label="Conversation messages"
-        className="max-h-[55vh] min-h-48 space-y-3 overflow-y-auto overscroll-contain bg-slate-50 p-4 sm:min-h-72 sm:p-5 [max-height:55dvh]"
+        className="max-h-[55vh] min-h-48 space-y-2.5 overflow-y-auto overscroll-contain bg-white p-4 sm:min-h-72 sm:p-5 [max-height:55dvh]"
       >
         {timeline.length === 0 && <p className="py-16 text-center text-gray-400">Start with a welcome.</p>}
         {timeline.map((entry, index) => {
@@ -180,9 +202,32 @@ export function Conversation({
               ref={isNewest ? newestEl : undefined}
               className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[88%] rounded-2xl px-4 py-3 shadow-sm ${mine ? 'rounded-br-md bg-navy text-white' : 'rounded-bl-md bg-white text-gray-800 ring-1 ring-navy/5'}`}>
+              {/* TWO TINTS, NOT ONE DARK AND ONE LIGHT.
+                  A solid navy bubble for your own messages read as a wall of
+                  ink on a phone, and it forced every label inside it to be
+                  white — so a timestamp was white-on-navy in one bubble and
+                  grey-on-white in the next, and an attachment had to carry two
+                  colour schemes. Two soft tints let one set of dark text serve
+                  both, which is why the `mine ? text-white` branches below are
+                  gone rather than adjusted. */}
+              <div
+                className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 ${
+                  mine
+                    ? 'rounded-br-md bg-[#E4F0F5] text-slate-800'
+                    : 'rounded-bl-md bg-[#FCEEDF] text-slate-800'
+                }`}
+              >
+                {/* WHO IS SPEAKING, above the words. On a thread of short
+                    replies the side a bubble sits on is a weak signal, and it
+                    is no signal at all to somebody reading a screenshot of it
+                    or a screen reader reading down the list. */}
+                {(mine ? myName : theirName) && (
+                  <p className={`mb-0.5 text-[13px] font-bold ${mine ? 'text-[#1F7A8C]' : 'text-[#C2762B]'}`}>
+                    {(mine ? myName : theirName)?.split(' ')[0]}
+                  </p>
+                )}
                 {entry.kind === 'message' ? (
-                  <p className="whitespace-pre-wrap break-words">
+                  <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
                     <Linked text={entry.message.body} />
                   </p>
                 ) : (
@@ -192,8 +237,14 @@ export function Conversation({
                     onRemove={mine && onRemoveFile ? () => onRemoveFile(entry.file) : undefined}
                   />
                 )}
-                <p className={`mt-1 text-[11px] ${mine ? 'text-white/50' : 'text-gray-400'}`}>
-                  {new Date(entry.at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {/* The time sits under the words on the reading edge, small and
+                    quiet. It carries the date only when the message is not from
+                    today: a thread of this morning's replies stamped with the
+                    date four times reads as four separate days. */}
+                <p className="mt-0.5 text-right text-[11px] text-slate-400">
+                  {sameDay(entry.at)
+                    ? new Date(entry.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+                    : new Date(entry.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                 </p>
               </div>
             </div>
@@ -266,8 +317,29 @@ export function Conversation({
             </Button>
           </>
         )}
-        <MessageBox value={body} onChange={setBody} />
-        <Button type="submit" variant="gold" disabled={busy || !body.trim()} className="shrink-0 self-end">Send</Button>
+        <MessageBox
+          value={body}
+          onChange={setBody}
+          className="rounded-3xl bg-slate-100 ring-1 ring-navy/5"
+        />
+        {/* A ROUND SEND, AND STILL A 56px TARGET.
+            The word "Send" beside a pill-shaped box made the composer three
+            different shapes in a row on a phone. A circle reads as the send
+            control in every messaging app people already use, and it gives the
+            glyph the whole button rather than a label competing with it.
+            `tap` keeps the height floor, `aspect-square` makes it a circle
+            rather than an oval, and the aria-label is what a screen reader and
+            every test that asks for a button called Send actually read — the
+            arrow is decorative and is hidden from both. */}
+        <button
+          type="submit"
+          disabled={busy || !body.trim()}
+          aria-label="Send"
+          className="tap flex aspect-square shrink-0 self-end items-center justify-center rounded-full text-white transition-opacity disabled:opacity-40"
+          style={{ backgroundColor: '#1F7A8C' }}
+        >
+          <span aria-hidden className="text-lg leading-none">➤</span>
+        </button>
       </form>
     </Card>
   );
@@ -365,7 +437,7 @@ export function LiveAttachment({
     : `${Math.max(1, Math.round(file.size / 1024))} KB`;
 
   const caption = (
-    <span className={`block text-[11px] ${mine ? 'text-white/60' : 'text-gray-500'}`}>
+    <span className="block text-[11px] text-slate-500">
       {busy ? 'Opening…' : size}
       {onRemove && (
         <>
@@ -404,7 +476,7 @@ export function LiveAttachment({
           )}
         </button>
         {caption}
-        {failed && <span className={`block text-[11px] ${mine ? 'text-red-200' : 'text-red-600'}`}>{failed}</span>}
+        {failed && <span className="block text-[11px] text-red-600">{failed}</span>}
       </span>
     );
   }
@@ -412,7 +484,7 @@ export function LiveAttachment({
   if (isAudio && !broken) {
     return (
       <span className="block">
-        <span className={`block break-words text-sm font-semibold ${mine ? 'text-white' : 'text-navy'}`}>
+        <span className="block break-words text-sm font-semibold text-navy">
           🎧 {file.title}
         </span>
         {url ? (
@@ -427,7 +499,7 @@ export function LiveAttachment({
             className="mt-1 w-full"
           />
         ) : (
-          <span className={`block text-[11px] ${mine ? 'text-white/60' : 'text-gray-500'}`}>Loading…</span>
+          <span className="block text-[11px] text-slate-500">Loading…</span>
         )}
         {caption}
       </span>
@@ -440,12 +512,12 @@ export function LiveAttachment({
         type="button"
         onClick={() => void open()}
         disabled={busy}
-        className={`block break-words text-left font-semibold underline underline-offset-2 ${mine ? 'text-white' : 'text-navy'}`}
+        className="block break-words text-left font-semibold underline underline-offset-2 text-navy"
       >
         📎 {file.title}
       </button>
       {caption}
-      {failed && <span className={`block text-[11px] ${mine ? 'text-red-200' : 'text-red-600'}`}>{failed}</span>}
+      {failed && <span className="block text-[11px] text-red-600">{failed}</span>}
     </span>
   );
 }

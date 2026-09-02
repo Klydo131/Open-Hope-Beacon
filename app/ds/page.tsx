@@ -15,8 +15,8 @@ import { MySeries } from '@/components/MySeries';
 import type { MaterialType } from '@/lib/types';
 import { seekerPriorities, meetingWhen } from '@/lib/engagement';
 import { useIsLive } from '@/lib/tutorial';
-import { BlogFeed } from '@/components/Blog';
 import { LiveExplorerPage } from '@/components/LiveCorePages';
+import { BlogFeed } from '@/components/Blog';
 
 const MATERIAL_ICON: Record<string, string> = {
   pdf: '📄',
@@ -55,12 +55,18 @@ function Home() {
   );
   const verse = VERSES[new Date().getDay() % VERSES.length];
 
+  // THE CHURCH ROOM APPEARS ONLY WHEN THERE IS SOMETHING IN IT — the same rule
+  // as the live Explorer, because the demo is what gets shown to a room and the
+  // two must not disagree about how many tabs an Explorer has. The reasoning is
+  // written out in components/live/ExplorerPage.tsx.
+  const churchHasSomething = db.blog_posts.some((p) => p.visibility === 'published');
   const rooms: Room[] = [
     { id: 'guide', label: '🤝 My Guide' },
     { id: 'study', label: '📖 Study' },
-    { id: 'church', label: '⛪ Church' },
+    ...(churchHasSomething ? [{ id: 'church', label: '⛪ Church' }] : []),
     { id: 'prayer', label: '🙏 Prayer' },
   ];
+
   const [room, chooseRoom] = useRoom(rooms, 'beacon:demo-journey-room');
 
   return (

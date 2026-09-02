@@ -535,6 +535,8 @@ export function LiveConversationPage() {
                 messages={messages}
                 files={files}
                 myId={profile?.id ?? ''}
+                myName={profile?.full_name}
+                theirName={pairing.ds_name}
                 body={body}
                 setBody={setBody}
                 send={send}
