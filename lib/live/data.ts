@@ -2193,14 +2193,88 @@ export async function reportPerson(args: {
   reason: ReportReason;
   detail?: string;
   pairingId?: string;
-}): Promise<void> {
-  const { error } = await db().rpc('report_person', {
+  /** Evidence, attached after the report exists. See attachReportEvidence. */
+  evidence?: File[];
+}): Promise<string> {
+  const { data, error } = await db().rpc('report_person', {
     p_subject: args.subjectId,
     p_reason: args.reason,
     p_detail: args.detail ?? null,
     p_pairing: args.pairingId ?? null,
   });
   if (error) throw new Error(error.message);
+  const reportId = String(data ?? '');
+
+  // THE REPORT IS FILED FIRST AND THE FILES FOLLOW, and if a file fails the
+  // report still stands. The alternative — upload everything, then file —
+  // means a dropped connection halfway through loses the report itself, and a
+  // safeguarding report that vanished because a photo did not upload is the
+  // worst possible trade. Whatever arrives is attached; the Director sees the
+  // written account either way.
+  if (reportId && args.evidence?.length) {
+    for (const file of args.evidence) {
+      try { await attachReportEvidence(reportId, file); } catch { /* the report stands */ }
+    }
+  }
+  return reportId;
+}
+
+/**
+ * Attach one file to a report you raised.
+ *
+ * THE PATH IS `reports/<you>/…` AND THAT IS LOAD-BEARING. The storage policy
+ * only lets somebody write into their own folder, and the definer function
+ * refuses a row whose path is not in the caller's folder — so a reporter cannot
+ * attach a row pointing at somebody else's object and read it back through a
+ * Director's screen. Two checks for one rule, on purpose: the storage one stops
+ * the upload, the database one stops the reference.
+ */
+export async function attachReportEvidence(reportId: string, file: File): Promise<void> {
+  if (file.size > 10 * 1024 * 1024) throw new Error('That file is over 10 MB.');
+  const supabase = db();
+  const me_id = await uid();
+  const ext = (file.name.split('.').pop() || '').replace(/[^a-z0-9]/gi, '').slice(0, 6);
+  const path = `reports/${me_id}/${reportId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext ? '.' + ext : ''}`;
+  const up = await supabase.storage.from('pairing-media')
+    .upload(path, file, { upsert: false, contentType: file.type || undefined });
+  if (up.error) throw new Error(up.error.message);
+  const { error } = await supabase.rpc('attach_report_evidence', {
+    p_report: reportId,
+    p_name: file.name.slice(0, 200),
+    p_path: path,
+    p_mime: file.type || null,
+    p_size: file.size,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export interface ReportFile {
+  id: string;
+  report_id: string;
+  name: string;
+  path: string;
+  mime: string | null;
+  size_bytes: number | null;
+  created_at: string;
+}
+
+/** The evidence on a church's reports, keyed by report. Leadership only. */
+export async function listReportFiles(reportIds: string[]): Promise<Record<string, ReportFile[]>> {
+  if (reportIds.length === 0) return {};
+  const { data, error } = await db().from('report_files')
+    .select('id, report_id, name, path, mime, size_bytes, created_at')
+    .in('report_id', reportIds)
+    .order('created_at', { ascending: true });
+  if (error) throw new Error(error.message);
+  const out: Record<string, ReportFile[]> = {};
+  for (const row of (data ?? []) as ReportFile[]) (out[row.report_id] ??= []).push(row);
+  return out;
+}
+
+/** A short-lived link to one piece of evidence. Never stored. */
+export async function reportFileUrl(path: string): Promise<string> {
+  const { data } = await db().storage.from('pairing-media').createSignedUrl(path, 60 * 60);
+  return data?.signedUrl ?? '';
 }
 
 /**

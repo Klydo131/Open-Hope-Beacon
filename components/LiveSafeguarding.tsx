@@ -57,12 +57,12 @@ export function LiveReportControl({
         <ReportDialog
           subjectName={subjectName}
           onCancel={() => { setOpen(false); setError(''); }}
-          onSubmit={(reason, detail) => {
+          onSubmit={(reason, detail, evidence) => {
             // Fired without awaiting on purpose: the dialog has already told the
             // person it is done, and making somebody watch a spinner after the
             // hardest button in the app is a cruelty. A failure surfaces here.
             void live
-              .reportPerson({ subjectId, reason, detail, pairingId })
+              .reportPerson({ subjectId, reason, detail, pairingId, evidence })
               .catch((cause) => setError(
                 humanError(cause, 'That could not be sent.'),
               ));
@@ -97,12 +97,16 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
   const [outcome, setOutcome] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [evidence, setEvidence] = useState<Record<string, live.ReportFile[]>>({});
 
   const load = useCallback(async () => {
     try {
       const [rows, members] = await Promise.all([live.listReports(), live.listMembers()]);
       setReports(rows);
       setNames(Object.fromEntries(members.map((m) => [m.id, m.full_name || 'A member'])));
+      // Evidence is fetched for the reports actually on screen rather than
+      // per-card, so a queue of ten is one request and not ten.
+      setEvidence(await live.listReportFiles(rows.map((r) => r.id)));
     } catch (cause) {
       setError(humanError(cause, 'Could not load reports.'));
       setReports([]);
@@ -209,6 +213,43 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
                 {r.detail && (
                   <p className="mt-2 whitespace-pre-wrap rounded-lg bg-white p-3 text-gray-700">{r.detail}</p>
                 )}
+
+                {/* WHAT THEY ATTACHED. Opened through a link that is signed at
+                    the moment it is pressed and lasts an hour, so no address
+                    for a piece of evidence is ever stored anywhere it could be
+                    forwarded. Only Directors of this church can open these; the
+                    person who raised the report cannot read them back either. */}
+                {(evidence[r.id] ?? []).length > 0 && (
+                  <div className="mt-2 rounded-lg bg-white p-3 ring-1 ring-red-200">
+                    <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
+                      Evidence attached ({evidence[r.id].length})
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {evidence[r.id].map((f) => (
+                        <li key={f.id}>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const url = await live.reportFileUrl(f.path);
+                              if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                            }}
+                            className="break-words text-left text-sm font-semibold text-blue-700 underline underline-offset-2"
+                          >
+                            📎 {f.name}
+                          </button>
+                          {!!f.size_bytes && (
+                            <span className="ml-2 text-xs text-gray-400">
+                              {f.size_bytes > 1024 * 1024
+                                ? `${(f.size_bytes / 1024 / 1024).toFixed(1)} MB`
+                                : `${Math.max(1, Math.round(f.size_bytes / 1024))} KB`}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <p className="mt-2 text-xs text-gray-500">{new Date(r.created_at).toLocaleString()}</p>
 
                 <label className="mt-3 block">

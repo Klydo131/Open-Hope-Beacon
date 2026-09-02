@@ -34,6 +34,16 @@ export interface RailLink {
   label: string;
   icon: string;
   badge?: number;
+  /**
+   * Still being built, and said so where somebody decides whether to open it.
+   *
+   * A CHIP RATHER THAN "(Still on Beta)" AFTER THE NAME. The label is
+   * `truncate` inside a narrow rail, so "Guild Room (Still on Beta)" renders as
+   * "Guild Room (Still on…" — the warning is the half that gets cut. The chip
+   * cannot be truncated away, and the full phrase is on the link's title and
+   * its accessible name for anybody hovering or listening.
+   */
+  beta?: boolean;
 }
 
 export interface RailGroup {
@@ -95,7 +105,7 @@ export function railGroupsFor(
   // comes and goes is one nobody trusts is there, and its absence on a quiet
   // day is indistinguishable from it being broken. The room says plainly that
   // nothing is open.
-  const cases = { href: '/cases', label: 'Cases', icon: '⚖️' };
+  const cases = { href: '/cases', label: 'Cases', icon: '⚖️', beta: true };
 
   // THE OFFICE, for everybody who has work to do in this app rather than a
   // journey to walk. The tools were scattered through the screens that are
@@ -108,11 +118,11 @@ export function railGroupsFor(
   // READ: the blog desk on an Explorer's journey, on a Guide's Office and in a
   // Director's admin tab, and the announcement composer on top of the church
   // home screen. Publishing is a task, and a task gets a room.
-  const publish = { href: '/publish', label: 'Publish', icon: '✍️' };
+  const publish = { href: '/publish', label: 'Publish', icon: '✍️', beta: true };
   // Guides and Explorers share Guild activity in its own room. Leadership's
   // security audit stays inside Admin, so it does not need a duplicate door in
   // the room list.
-  const guildRoom = { href: '/guilds', label: 'Guild Room', icon: '🧩' };
+  const guildRoom = { href: '/guilds', label: 'Guild Room', icon: '🧩', beta: true };
 
   if (role === 'ds') {
     return [
@@ -199,6 +209,11 @@ export function LeftRail({
                     key={l.href}
                     href={l.href}
                     aria-current={on ? 'page' : undefined}
+                    // The chip reads "Beta"; the whole sentence lives here, so
+                    // hovering or listening gives the warning in full rather
+                    // than one word somebody has to interpret.
+                    title={l.beta ? `${l.label}, still on beta` : undefined}
+                    aria-label={l.beta ? `${l.label}, still on beta` : undefined}
                     className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-semibold"
                     style={{
                       backgroundColor: on ? theme.accent : 'transparent',
@@ -212,6 +227,17 @@ export function LeftRail({
                       {l.icon}
                     </span>
                     <span className="min-w-0 flex-1 truncate">{l.label}</span>
+                    {l.beta && (
+                      <span
+                        className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                        style={{
+                          backgroundColor: on ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.07)',
+                          color: on ? inkOn(theme.accent) : theme.inkSoft,
+                        }}
+                      >
+                        Beta
+                      </span>
+                    )}
                     {!!l.badge && (
                       <span
                         className="grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold"

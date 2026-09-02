@@ -18,10 +18,11 @@
 //   * IT CANNOT BE FIRED BY A MIS-TAP. The control that opens it is a plain
 //     text link, not a button sitting next to Send.
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import type { ReportReason } from '@/lib/types';
 import { Button, Card } from '@/components/ui';
+import { ATTACHMENT_ACCEPT } from '@/lib/live/attachments';
 
 const REASONS: { value: ReportReason; label: string; hint: string }[] = [
   {
@@ -67,11 +68,13 @@ export function ReportDialog({
    */
   hiddenSubject?: boolean;
   onCancel: () => void;
-  onSubmit: (reason: ReportReason, detail: string) => void;
+  onSubmit: (reason: ReportReason, detail: string, evidence: File[]) => void;
 }) {
   const [reason, setReason] = useState<ReportReason | ''>('');
   const [detail, setDetail] = useState('');
+  const [evidence, setEvidence] = useState<File[]>([]);
   const [sent, setSent] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   if (sent) {
     return (
@@ -148,13 +151,69 @@ export function ReportDialog({
         />
       </label>
 
+      {/* EVIDENCE, AND WHY IT IS OPTIONAL AND LAST.
+          The thing being reported is very often a picture, a screenshot of a
+          conversation, a voice note or a document — and until now the person
+          holding it on their phone was asked to describe it in words, and a
+          Director decided on that description alone.
+          It sits below the written account and says "optional" twice, because
+          somebody frightened enough to be on this screen must never feel the
+          report will not be taken seriously without proof. */}
+      <div className="mt-4 rounded-xl bg-gray-50 p-3 ring-1 ring-black/5">
+        <p className="text-sm font-semibold text-navy">
+          Attach anything that shows what happened{' '}
+          <span className="font-normal text-gray-500">(optional)</span>
+        </p>
+        <p className="mt-1 text-sm text-gray-600">
+          A screenshot, a photo, a recording, a document. Only your church&rsquo;s
+          Directors can open these. Up to 10 MB each.
+        </p>
+
+        <input
+          ref={fileRef}
+          type="file"
+          multiple
+          accept={ATTACHMENT_ACCEPT}
+          className="hidden"
+          onChange={(event) => {
+            const chosen = Array.from(event.target.files ?? []);
+            // Appended, not replaced: picking a second time on a phone opens a
+            // fresh picker, and replacing would silently drop the first choice.
+            if (chosen.length) setEvidence((was) => [...was, ...chosen]);
+            // Cleared on the way OUT here rather than on the way in, because
+            // nothing reads the bytes until the report is sent.
+            event.target.value = '';
+          }}
+        />
+        <Button variant="ghost" className="mt-3" onClick={() => fileRef.current?.click()}>
+          Choose files
+        </Button>
+
+        {evidence.length > 0 && (
+          <ul className="mt-3 space-y-1">
+            {evidence.map((f, i) => (
+              <li key={`${f.name}-${i}`} className="flex items-center gap-2 text-sm">
+                <span className="min-w-0 flex-1 truncate text-navy">📎 {f.name}</span>
+                <button
+                  type="button"
+                  onClick={() => setEvidence((was) => was.filter((_, at) => at !== i))}
+                  className="shrink-0 text-xs font-semibold text-red-700 underline"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       <div className="mt-4 flex flex-wrap gap-2">
         <Button
           variant="gold"
           disabled={!reason}
           onClick={() => {
             if (!reason) return;
-            onSubmit(reason, detail);
+            onSubmit(reason, detail, evidence);
             setSent(true);
           }}
         >

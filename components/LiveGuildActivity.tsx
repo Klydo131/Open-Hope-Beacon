@@ -123,6 +123,15 @@ export function LiveGuildActivity() {
     <div className="space-y-5">
       <div>
         <h1 className="text-3xl font-extrabold text-room">🧩 Guild Room</h1>
+        {/* SAID ON THE PAGE AS WELL AS IN THE RAIL. The chip beside the room's
+            name is a reminder for somebody choosing where to go; this is for
+            somebody already here, deciding whether to rely on what they find.
+            Both were asked for, and the rail alone is easy to walk past. */}
+        <p className="rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 ring-1 ring-amber-200">
+          Still on beta. This room is being built, so expect it to change and do
+          not rely on it for anything you cannot repeat elsewhere.
+        </p>
+
         <p className="mt-1 text-room-soft">
           Your Guild activity: encourage, study, pray, and care together without turning your guild into a public church roster.
         </p>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { NAVY } from '@/lib/brand';
+import { NAVY, roleNoun } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { clearBrowserSession, saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
@@ -430,6 +430,23 @@ export function LiveJoinPage() {
   const [role, setRole] = useState<Role>('ds');
   const recovery = params.get('recovery') === '1' || params.get('type') === 'recovery';
 
+  // SHOWING THE SIGN-UP TO A ROOM, WITHOUT AN INVITATION AND WITHOUT AN ACCOUNT.
+  //
+  // The join screen is the one screen nobody can demonstrate: it needs a live
+  // one-time link, opening one spends it, and the account it creates is real.
+  // So a church deciding whether to adopt this could be shown every screen
+  // except the first one anybody actually meets.
+  //
+  // `?preview=ds|dm|admin|executive` renders the real form — the same password
+  // rules, the same permission wording, the same optional questions, in that
+  // role's words — and can create nothing. It never establishes a session, and
+  // submit returns before it reaches Supabase. Both halves are checked by
+  // tests/the-sign-up-can-be-shown.mjs, because "a preview that writes" is the
+  // only way this could ever be worse than not having it.
+  const PREVIEW_ROLES: Role[] = ['ds', 'dm', 'admin', 'executive'];
+  const previewParam = params.get('preview') ?? '';
+  const preview = PREVIEW_ROLES.includes(previewParam as Role) ? (previewParam as Role) : null;
+
   // WHOSE DEVICE IS THIS?
   //
   // Redeeming an invitation link signs this browser in as the invited person.
@@ -476,6 +493,16 @@ export function LiveJoinPage() {
   useEffect(() => {
     let alive = true;
     const establishSession = async () => {
+      // BEFORE THE CLIENT IS EVEN ASKED FOR. A preview must not be able to
+      // redeem a token, read a session, or sign anybody out, so it returns
+      // above all of that rather than being filtered somewhere inside it.
+      if (preview) {
+        setRole(preview);
+        setChurchName('Your church');
+        setEmail('somebody@example.org');
+        setReady(true);
+        return;
+      }
       const client = supabaseAuth();
       if (!client) return;
       try {
@@ -663,6 +690,16 @@ export function LiveJoinPage() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (preview) {
+      // The checks below still run for a demonstration, so a room can watch a
+      // short password be refused. Nothing after them does.
+      const { chosen, confirmation } = readPasswordFields();
+      if (chosen.length < 10) { setError('Use at least 10 characters.'); return; }
+      if (chosen !== confirmation) { setError('The passwords do not match.'); return; }
+      if (!consent) { setError('Tick the permission box to continue.'); return; }
+      setError('This is a preview. Nothing was created and no account exists.');
+      return;
+    }
     const { chosen: chosenPassword, confirmation } = readPasswordFields();
     if (chosenPassword.length < 10) {
       setError('Use at least 10 characters.');
@@ -748,6 +785,17 @@ export function LiveJoinPage() {
     return <div className="grid min-h-screen place-items-center text-white" style={{ backgroundColor: NAVY }}>Checking your secure link…</div>;
   }
 
+  const previewBanner = preview ? (
+    <div className="mx-auto max-w-md px-4 pt-4">
+      <p className="rounded-xl bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-900 ring-1 ring-purple-200">
+        Preview of the sign-up for {roleNoun(preview)}. Nothing here is real and
+        nothing can be created. Change the role in the address:{' '}
+        <code>?preview=ds</code>, <code>dm</code>, <code>admin</code> or{' '}
+        <code>executive</code>.
+      </p>
+    </div>
+  ) : null;
+
   // Somebody is already signed in on this device. Nothing has been redeemed
   // and nobody has been signed out — that only happens if they choose it here.
   if (signedInAs) {
@@ -818,6 +866,7 @@ export function LiveJoinPage() {
               : 'Your church has already chosen your role. Confirm your details to get started.'
         }
       />
+      {previewBanner}
       {/* pb-32, not py-8: the install banner is fixed to the bottom of the
           viewport, and the join button is the last thing on this page. */}
       <div className="mx-auto max-w-md px-4 pb-32 pt-8">

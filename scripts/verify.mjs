@@ -140,6 +140,14 @@ const staticChecks = [
   // policy had always allowed it; only the button was missing, which is a gap
   // that reports itself as nothing at all.
   ['a resource can be taken off the shelf', 'tests/a-resource-can-be-taken-off-the-shelf.mjs'],
+  // Evidence on a safeguarding report, and the authorisation around it: the
+  // same rule as reports_read, which deliberately keeps it from the reporter
+  // too, and no delete on either the row or the stored object.
+  ['a report can carry evidence', 'tests/a-report-can-carry-evidence.mjs'],
+  // The join screen shown to a room without a live link and without creating
+  // anything. The whole value rests on it being incapable of writing, and that
+  // is invisible on screen, so it is checked rather than trusted.
+  ['the sign-up can be shown', 'tests/the-sign-up-can-be-shown.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing
