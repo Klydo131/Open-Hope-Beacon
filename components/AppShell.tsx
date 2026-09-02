@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { roleLabel, NAVY } from '@/lib/brand';
 import { unseenCount } from '@/lib/release-notes';
@@ -135,9 +135,40 @@ function DemoAppShell({
     today.push({ label: 'Unread mail', value: String(unreadMail) });
   }
 
+  // WHAT THE STICKY HEADER STANDS ON.
+  //
+  // The header is sticky, so it is out of the document's flow at the top the
+  // same way the install bar is at the bottom, and anything scrolled to lands
+  // UNDERNEATH it. Reserving room below the install bar surfaced this: with
+  // the bottom fixed, WebKit scrolled the sign-in list up and parked a name
+  // behind the header instead. One overlay was hiding the other.
+  //
+  // Publishing the measured height lets `scroll-padding-top` in globals.css
+  // add it to `--beacon-chrome-top` (the tutorial bar, when there is one), so
+  // a scrolled-to control comes to rest below BOTH rather than behind either.
+  const headerRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const publish = () =>
+      document.documentElement.style.setProperty(
+        '--app-header',
+        `${Math.ceil(el.getBoundingClientRect().height)}px`,
+      );
+    publish();
+    // The row rewraps at `sm`, so the height is not a constant.
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty('--app-header');
+    };
+  });
+
   return (
     <div className="room-surface min-h-screen" style={{ background: theme.bg }}>
       <header
+        ref={headerRef}
         className="no-print sticky z-20 text-white shadow-md"
         // Sticks BELOW the tutorial bar when there is one. `top-0` pinned it
         // to the viewport, which put it under that bar and made the top of

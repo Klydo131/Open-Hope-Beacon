@@ -113,9 +113,11 @@ function TutorialCard() {
   const [picking, setPicking] = useState(false);
   const mine = currentUser?.role;
   return (
-    // The anchor sits on a wrapper because Card takes no id. scroll-mt keeps the
-    // heading clear of the sticky header when the sidebar link jumps here.
-    <div id="tutorial" className="scroll-mt-24">
+    // The anchor sits on a wrapper because Card takes no id. Clearing the sticky
+    // header is `scroll-padding-top` in globals.css now, once for every anchor,
+    // rather than a scroll-mt remembered per wrapper — six of them had it and
+    // anything new would have needed somebody to remember.
+    <div id="tutorial">
     <Card className="p-5">
       <h2 className="mb-1 text-xl font-bold text-navy">✦ Tutorial</h2>
       <p className="mb-4 text-sm text-gray-500">
@@ -306,8 +308,8 @@ function VersionCard() {
 
   return (
     <Card className="p-5">
-      <div id="whats-new" className="scroll-mt-24" />
-      <div id="feedback" className="scroll-mt-24" />
+      <div id="whats-new" />
+      <div id="feedback" />
       <WhichApp />
 
       <h2 className="mb-1 mt-5 text-xl font-bold text-navy">🔄 App version</h2>
@@ -497,7 +499,7 @@ function Body() {
               top of a long page with the card they were sent for below the
               fold; without the folder translation above it would now mean
               arriving at a folder that is not drawing the card at all. */}
-          <div id="install" className="scroll-mt-24">
+          <div id="install">
             <InstallCard />
           </div>
           <SourceCard />
@@ -515,7 +517,7 @@ function Body() {
       )}
 
       {room === 'help' && (
-        <div id="tutorial" className="scroll-mt-24">
+        <div id="tutorial">
           <TutorialCard />
         </div>
       )}

@@ -266,7 +266,7 @@ export function LiveSettingsPage() {
               The id stays even though the folder now does the arriving: a hash
               that lands in the right folder should still put the card itself in
               front of the person rather than the top of it. */}
-          <div id="install" className="scroll-mt-24">
+          <div id="install">
             <InstallCard />
           </div>
           <SourceCard />
@@ -279,7 +279,7 @@ export function LiveSettingsPage() {
 
       {room === 'help' && (
         <>
-          <div id="tutorial" className="scroll-mt-24">
+          <div id="tutorial">
             <TutorialCard />
           </div>
           {/* WHAT'S NEW AND FEEDBACK LIVE HERE NOW, and on the live app they
@@ -305,8 +305,8 @@ export function LiveSettingsPage() {
 function HelpCard() {
   return (
     <Card className="p-5">
-      <div id="whats-new" className="scroll-mt-24" />
-      <div id="feedback" className="scroll-mt-24" />
+      <div id="whats-new" />
+      <div id="feedback" />
       <h2 className="mb-1 text-xl font-bold text-navy">Help and feedback</h2>
       <p className="mb-4 text-sm text-gray-500">
         What changed in the app recently, and a way to tell us when something is

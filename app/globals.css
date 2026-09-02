@@ -445,6 +445,14 @@ html {
      near the bottom parks it in the covered strip — technically on screen and
      impossible to press. */
   scroll-padding-bottom: var(--install-bar, 0px);
+
+  /* And the same at the top, for the same reason. The header is sticky and the
+     tutorial bar is fixed, so both sit outside the flow and a scrolled-to
+     control lands behind them. Reserving the bottom is what exposed this: with
+     the install bar accounted for, WebKit scrolled a name on the sign-in list
+     up and parked it under the header instead. AppShell publishes the header's
+     measured height, TutorialBar the chrome above it. */
+  scroll-padding-top: calc(var(--beacon-chrome-top, 0px) + var(--app-header, 0px));
 }
 
 /* A strip that scrolls sideways with no visible scrollbar.
