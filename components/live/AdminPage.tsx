@@ -25,6 +25,7 @@ import { Avatar, Button, Card } from '@/components/ui';
 import { Field, Notice, SelectPerson, emailLooksValid, errorText } from '@/components/live/shared';
 import { humanError } from '@/lib/live/errors';
 import { LiveAnnouncements } from '@/components/LiveAnnouncements';
+import { MemberProfile } from '@/components/live/MemberProfile';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
@@ -95,9 +96,36 @@ export function LiveAdminPage() {
     }
   }, []);
 
+  // WHO IS OPEN. One at a time: a Director comparing two people opens one, reads
+  // it, closes it and opens the other, which is also the only shape that fits a
+  // phone. The panel is rendered next to the list rather than over it so the
+  // row they came from stays visible.
+  const [openId, setOpenId] = useState('');
+  const [contact, setContact] = useState<Record<string, { email: string; joined_at: string }>>({});
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  // The address somebody was invited at and the day they arrived are the two
+  // facts that answer "is this the person I meant to let in?", and neither is
+  // on the profile row. Leadership only, by the same function the roster uses.
+  useEffect(() => {
+    live.memberContact().then(setContact).catch(() => setContact({}));
+  }, []);
+
+  const openPerson = members.find((m) => m.id === openId) ?? null;
+  // The other half of their pairing, so the compatibility panel has something
+  // to compare against.
+  const openPartner = (() => {
+    if (!openPerson) return null;
+    const pairing = pairings.find(
+      (x) => x.status === 'active' && (x.dm_id === openPerson.id || x.ds_id === openPerson.id),
+    );
+    if (!pairing) return null;
+    const otherId = pairing.dm_id === openPerson.id ? pairing.ds_id : pairing.dm_id;
+    return members.find((m) => m.id === otherId) ?? null;
+  })();
 
   // An Executive Director may appoint their own bench, which is why
   // 'executive' is here and why the edge function refuses it from anybody
@@ -356,6 +384,23 @@ export function LiveAdminPage() {
           {church?.name || 'Church administration'}
         </h1>
 
+        {/* ABOVE THE ROOMS, and only while somebody is open. A panel below a
+            long roster is one a Director scrolls past without seeing, and they
+            have just pressed a name expecting something to happen. It is not
+            allowed to displace the room tabs permanently — it is here only when
+            it was asked for, and Close puts everything back. */}
+        {openPerson && (
+          <MemberProfile
+            person={openPerson}
+            email={contact[openPerson.id]?.email}
+            joinedAt={contact[openPerson.id]?.joined_at}
+            pairedWith={openPartner}
+            members={members}
+            onChanged={() => void load()}
+            onClose={() => setOpenId('')}
+          />
+        )}
+
         {/* THE ROOMS COME FIRST, above even a safeguarding alert, and that
             ordering is deliberate. docs/DESIGN.md rule 1: the second visit
             should be faster than the first, which only works if the way around
@@ -417,6 +462,7 @@ export function LiveAdminPage() {
             people={room === 'guides' ? guides : room === 'explorers' ? explorers : directors}
             kind={room}
             pairings={pairings}
+            onOpen={setOpenId}
           />
         )}
 
@@ -887,9 +933,24 @@ export function LiveAdminPage() {
           <div className="mt-5 space-y-2">
             {pairings.filter((pairing) => pairing.status === 'active').map((pairing) => (
               <div key={pairing.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 px-4 py-3 text-sm">
-                <span className="font-semibold text-navy">{pairing.dm_name}</span>
+                {/* BOTH NAMES OPEN. The question a Director asks of this row
+                    is whether the two belong together, and that cannot be
+                    answered from two names and a stage. */}
+                <button
+                  type="button"
+                  onClick={() => setOpenId(pairing.dm_id)}
+                  className="font-semibold text-navy underline underline-offset-2"
+                >
+                  {pairing.dm_name}
+                </button>
                 <span className="text-gray-400">walking with</span>
-                <span className="font-semibold text-navy">{pairing.ds_name}</span>
+                <button
+                  type="button"
+                  onClick={() => setOpenId(pairing.ds_id)}
+                  className="font-semibold text-navy underline underline-offset-2"
+                >
+                  {pairing.ds_name}
+                </button>
                 <MinorBadge person={{ birthday: pairing.ds_birthday, guardian_consent_at: pairing.ds_guardian_consent_at }} />
                 {/* THIS IS A STATUS, NOT A BUTTON, and it was read as one.
                     It shows where the Explorer is on the journey, and the
@@ -976,9 +1037,12 @@ function PeopleRoom({
   people,
   kind,
   pairings,
+  onOpen,
 }: {
   people: Profile[];
   kind: 'guides' | 'explorers' | 'directors';
+  /** Open somebody's profile. The panel lives on the page, not in this list. */
+  onOpen: (id: string) => void;
   pairings: live.PairingView[];
 }) {
   const active = pairings.filter((p) => p.status === 'active');
@@ -1011,7 +1075,13 @@ function PeopleRoom({
                 <Avatar name={person.full_name || 'Member'} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="truncate font-semibold text-navy">{person.full_name}</span>
+                    <button
+                      type="button"
+                      onClick={() => onOpen(person.id)}
+                      className="truncate font-semibold text-navy underline underline-offset-2"
+                    >
+                      {person.full_name}
+                    </button>
                     {/* The Guides and Explorers rooms: a Director scanning a
                         roster needs to know who arrived this week. */}
                     <NewBadge person={person} />

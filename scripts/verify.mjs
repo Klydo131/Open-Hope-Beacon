@@ -152,6 +152,10 @@ const staticChecks = [
   // and both destroy data done carelessly: a select holding an unrecognised
   // saved answer silently rewrites it on the next save.
   ['pinned posts and picked answers', 'tests/pinned-posts-and-picked-answers.mjs'],
+  // A Director opening a member, and recording a guardian's permission. The
+  // consent warning existed with nothing that could ever answer it: the
+  // columns, the RPCs and the red badge were built and no screen called them.
+  ['a director can open somebody', 'tests/a-director-can-open-somebody.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

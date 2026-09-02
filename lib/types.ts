@@ -44,6 +44,16 @@ export interface Profile {
   // keeps `status`; the live schema uses `life_status`; both are declared here
   // because one Profile type serves both.
   life_status?: string;
+  /**
+   * The guardian set, for a member under eighteen. Written only by leadership
+   * through record_guardian_consent; lock_privileged_profile_columns refuses
+   * these columns to everybody else, including the member themselves, so
+   * nobody can consent on their own behalf.
+   */
+  guardian_name?: string | null;
+  guardian_member_id?: string | null;
+  guardian_consent_at?: string | null;
+  guardian_consent_by?: string | null;
   topics_of_interest: string[];
   city_of_residence?: string;
   work_industry?: string;
