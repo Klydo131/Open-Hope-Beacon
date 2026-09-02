@@ -31,6 +31,25 @@ const BAD_TYPE = /mime type .* is not supported/i;
 const TOO_BIG = /maximum allowed size|payload too large|entity too large|413/i;
 
 /**
+ * The database refused a row because one like it is already there.
+ *
+ * THE BUG THIS EXISTS FOR, photographed off a Director's phone:
+ *
+ *     duplicate key value violates unique constraint "pairings_ds_id_dm_id_key"
+ *
+ * after trying to pair two people who had been disconnected. The constraint
+ * name is the only thing Postgres offers, it is not a sentence, and a Director
+ * reading it has no way to know the answer was "disconnect the other Guide
+ * first". Any rule worth a real sentence gets one here; everything else at
+ * least stops being SQL.
+ */
+const ALREADY_THERE = /duplicate key value violates unique constraint "([^"]+)"/i;
+
+const ALREADY_THERE_SAYS: Record<string, string> = {
+  pairings_one_active_guide: 'That Explorer already has a Guide. Disconnect the current one first.',
+};
+
+/**
  * Turn anything thrown into a sentence worth showing.
  *
  * @param cause    whatever was caught
@@ -57,6 +76,10 @@ export function humanError(cause: unknown, fallback = 'Something went wrong. Ple
   }
   if (TOO_BIG.test(raw)) {
     return 'That file is too large. The limit is 10 MB.';
+  }
+  const already = ALREADY_THERE.exec(raw);
+  if (already) {
+    return ALREADY_THERE_SAYS[already[1]] ?? 'That is already there, so it was not added again.';
   }
   return raw;
 }

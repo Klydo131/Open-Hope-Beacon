@@ -68,6 +68,30 @@ ok(/A TRIGGER, NOT A UNIQUE INDEX/.test(sql),
 ok(!/delete from|update public\.pairings set status/i.test(sql),
    'and the migration changes nobody’s existing pairing');
 
+// ---- One Explorer, one Guide, as a rule the database cannot break ----
+//
+// The migration above could only manage a trigger, because four Explorers were
+// already in breach and a partial unique index cannot be built over rows that
+// violate it. Those four were settled by a person, so the real constraint could
+// follow. Both stay: the trigger fires first and produces a sentence a Director
+// can read, the index is what holds when two Directors pair at the same instant.
+const later = fs.readdirSync(path.join(root, dir))
+  .filter((f) => f.includes('one_explorer_one_guide')).sort().pop();
+ok(!!later, `the follow-up migration is present (${later ?? 'MISSING'})`);
+const sql2 = later ? read(`${dir}/${later}`) : '';
+
+ok(/create unique index if not exists pairings_one_active_guide[\s\S]{0,120}\(ds_id\)[\s\S]{0,80}where status = 'active'/.test(sql2),
+   'an Explorer can hold only ONE active pairing, enforced by an index');
+ok(/drop index if exists public\.pairings_active_pair_once/.test(sql2),
+   'and the weaker index it subsumes is dropped rather than left to cost every write');
+// The friendly message is the whole reason the trigger is still there. Drop it
+// and a Director sees a constraint name again, which is the bug that started
+// all of this.
+ok(!/drop trigger[\s\S]{0,60}one_guide_per_explorer/.test(sql2),
+   'and the trigger stays, so the refusal is still a sentence and not a constraint name');
+ok(!/delete from|update public\.pairings set/i.test(sql2),
+   'and this migration moves nobody: the four were settled by a person, not by SQL');
+
 // ---- The screen survives the rows already there ----
 // Comments are stripped before the read. The comment above the fixed query has
 // to name `.maybeSingle()` to explain what was wrong with it, and a check that

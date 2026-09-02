@@ -99,6 +99,20 @@ ok(/word/i.test(mime), 'and the answer names what can be attached instead');
 const big = said('The object exceeded the maximum allowed size');
 ok(/10 MB/.test(big), 'a file that is too big is told the actual limit');
 
+// ---- The constraint name off the Director's phone --------------------------
+//
+// This is the one that was actually photographed and sent in. A constraint name
+// is not a sentence, and this one appeared where "disconnect the other Guide
+// first" was the whole answer.
+const dup = said('duplicate key value violates unique constraint "pairings_one_active_guide"');
+ok(!/duplicate key|constraint|pairings_/i.test(dup), 'a constraint name never reaches a screen');
+ok(/Disconnect/i.test(dup), 'and the rule that was hit is said in words, with the way out');
+
+// A rule nobody has written a sentence for yet still must not print SQL.
+const dupUnknown = said('duplicate key value violates unique constraint "some_future_thing_key"');
+ok(!/duplicate key|constraint|some_future_thing/i.test(dupUnknown),
+  'an unnamed unique rule is still not read out as SQL');
+
 // ---- Offline --------------------------------------------------------------
 ok(/connection/i.test(said('Failed to fetch')), 'a dead network is reported as a connection');
 
