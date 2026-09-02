@@ -165,6 +165,10 @@ const staticChecks = [
   // so the archived row held the pair's slot forever. The same migration adds
   // the rule nobody had written down, that an Explorer has one Guide.
   ['a pair can be made again', 'tests/a-pair-can-be-made-again.mjs'],
+  // The invitation route that never touches an inbox, for the failure an
+  // expiry setting cannot fix: a mail scanner spending the one-time link
+  // before the person it was sent to ever taps it.
+  ['a link can be handed over', 'tests/a-link-can-be-handed-over.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

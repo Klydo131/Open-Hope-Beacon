@@ -140,7 +140,7 @@ async function handle(req: Request): Promise<Response> {
   }
   if (!me.church_id) return json({ error: 'Your account is not in a church yet.' }, 400);
 
-  let body: { email?: string; role?: string; full_name?: string; recommended_by?: string };
+  let body: { email?: string; role?: string; full_name?: string; recommended_by?: string; deliver?: string };
   try {
     body = await req.json();
   } catch {
@@ -150,6 +150,19 @@ async function handle(req: Request): Promise<Response> {
   const email = (body.email ?? '').trim().toLowerCase();
   const role = body.role ?? 'ds';
   const fullName = (body.full_name ?? '').trim();
+  // HAND IT OVER INSTEAD OF EMAILING IT, ASKED FOR EXPLICITLY.
+  //
+  // A church whose email cannot be trusted still has to get people in. This
+  // mode sends nothing, mints one token, and hands the Director the link to
+  // pass on through whatever their congregation actually uses.
+  //
+  // It does not weaken the one-token rule below, it obeys it. The rule is that
+  // exactly one token may exist for a person at a time, and the bug it exists
+  // for was minting a SECOND one after a message carrying the first had already
+  // gone. Here no message goes, so this is the first and only mint. What it
+  // does replace is any link sent EARLIER, which is true of every invitation
+  // and is why the screen asking for it says so.
+  const handOver = body.deliver === 'link';
 
   if (!email || !email.includes('@')) return json({ error: 'That is not an email address.' }, 400);
   if (!['executive', 'admin', 'dm', 'ds'].includes(role)) return json({ error: 'Unknown role.' }, 400);
@@ -333,7 +346,12 @@ async function handle(req: Request): Promise<Response> {
   let waitSeconds = 0;
   let joinUrl = '';
 
-  if (brevoKey) {
+  if (handOver) {
+    // Nothing is sent. The mint below is reached through the same fallback
+    // block every other unsent invitation uses, so there is one place in this
+    // function that creates a link and one shape of link to get wrong.
+    sendError = 'No email was sent. You asked for the link to pass on yourself.';
+  } else if (brevoKey) {
     // Mint exactly one token. No mail leaves Supabase on this path.
     let kind = 'invite';
     let { data: link } = await admin.auth.admin.generateLink({

@@ -151,7 +151,7 @@ export function LiveMailPage() {
   // indistinguishable from the capability not existing.
   //
   // Everything it needs is already on the row, so nothing is retyped.
-  const resend = async (invite: live.OpenInvite) => {
+  const resend = async (invite: live.OpenInvite, deliver?: 'link') => {
     setBusy(invite.id);
     setError('');
     setSentTo('');
@@ -161,6 +161,7 @@ export function LiveMailPage() {
         email: invite.email,
         role: invite.role,
         fullName: invite.full_name ?? '',
+        deliver,
       });
       if (result.delivery === 'link' && result.link) {
         setHandLink({ to: invite.email, url: result.link, why: result.mailNote ?? '', wait: result.waitSeconds });
@@ -485,6 +486,25 @@ export function LiveMailPage() {
                     <span className="flex w-full flex-wrap gap-2 sm:w-auto">
                       <Button variant="gold" disabled={busy === i.id} onClick={() => resend(i)}>
                         {busy === i.id ? 'Sending…' : 'Re-send'}
+                      </Button>
+                      {/* THE ROUTE THAT DOES NOT GO THROUGH ANYBODY'S INBOX.
+                          An emailed link can be opened by a mail scanner before
+                          the person it was sent to touches it, and then it is
+                          spent -- which is what "it expired the first time I
+                          opened it" has always been. Nothing is emailed here,
+                          so there is nothing for a scanner to find, and most of
+                          this congregation is easier to reach on Messenger than
+                          by email anyway.
+
+                          It mints a link like every other send, so it switches
+                          off whatever was in their inbox. The panel that opens
+                          says so before they send it on. */}
+                      <Button
+                        variant="ghost"
+                        disabled={busy === i.id}
+                        onClick={() => resend(i, 'link')}
+                      >
+                        Get a link to send myself
                       </Button>
                       {/* An invitation sent to the wrong address, or with the
                           wrong role, used to be permanent — and because one

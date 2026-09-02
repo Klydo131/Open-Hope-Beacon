@@ -683,11 +683,21 @@ export async function inviteMember({
   role,
   fullName,
   recommendedBy,
+  deliver,
 }: {
   email: string;
   role: Role;
   fullName: string;
   recommendedBy?: string;
+  /**
+   * `'link'` sends no email at all and returns a join link to pass on by hand.
+   *
+   * For a church whose email is unreliable, or a congregation that lives on a
+   * messaging app rather than in an inbox. It is also the only route that
+   * cannot be broken by a mail scanner opening the link first, because nothing
+   * is emailed for a scanner to find.
+   */
+  deliver?: 'email' | 'link';
 }): Promise<InviteResult> {
   const client = db();
   const { data, error } = await client.functions.invoke('invite', {
@@ -696,6 +706,7 @@ export async function inviteMember({
       role,
       full_name: fullName.trim(),
       recommended_by: recommendedBy,
+      deliver,
     },
   });
 
