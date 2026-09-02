@@ -316,6 +316,7 @@ export function LiveBlogFeed({ selfId }: { selfId?: string }) {
   const [posts, setPosts] = useState<live.FeedPost[] | null>(null);
   const [error, setError] = useState('');
   const [open, setOpen] = useState(true);
+  const [pinning, setPinning] = useState('');
 
   // Read once on mount rather than during render: the server has no
   // localStorage, and reading it inline is how a hydration mismatch starts.
@@ -329,6 +330,22 @@ export function LiveBlogFeed({ selfId }: { selfId?: string }) {
     const next = !open;
     setOpen(next);
     try { window.localStorage.setItem(OPEN_KEY, next ? '1' : '0'); } catch { /* fine */ }
+  };
+
+  // Re-read after pinning rather than reordering the list here: the ORDER is
+  // the database's decision, and a second copy of it in the component is one
+  // that can disagree with what everybody else sees.
+  const pin = async (id: string, next: boolean) => {
+    setPinning(id);
+    setError('');
+    try {
+      await live.setPostPinned(id, next);
+      setPosts(await live.listBlogFeed());
+    } catch (cause) {
+      setError(message(cause));
+    } finally {
+      setPinning('');
+    }
   };
 
   useEffect(() => {
@@ -386,7 +403,19 @@ export function LiveBlogFeed({ selfId }: { selfId?: string }) {
           }`}
         >
           {posts.map((p) => (
-            <article key={p.id} className="rounded-xl bg-navy/5 p-4">
+            <article
+              key={p.id}
+              className={`rounded-xl p-4 ${p.pinned ? 'bg-gold/10 ring-1 ring-gold/40' : 'bg-navy/5'}`}
+            >
+              {/* SAID, NOT JUST ORDERED. A post silently sitting first looks
+                  like the newest one, so somebody wonders why a welcome from
+                  last month is above this morning's notice. The label is what
+                  turns an odd order into a deliberate one. */}
+              {p.pinned && (
+                <p className="mb-1 text-xs font-bold uppercase tracking-wide text-amber-700">
+                  📌 Start here
+                </p>
+              )}
               <h3 className="text-lg font-bold text-navy">{p.title}</h3>
               <p className="mt-0.5 text-xs text-gray-500">
                 {p.author_id === selfId ? 'You' : p.author_name}
@@ -417,6 +446,24 @@ export function LiveBlogFeed({ selfId }: { selfId?: string }) {
                 )}
               </p>
               <Body text={p.body} />
+
+              {/* ONLY A DIRECTOR SEES THIS, and it is a convenience rather than
+                  the control: set_post_pinned refuses anybody who is not
+                  leadership of that post's own church, whatever this draws. */}
+              {(profile?.role === 'admin' || profile?.role === 'executive') && (
+                <button
+                  type="button"
+                  disabled={pinning === p.id}
+                  onClick={() => void pin(p.id, !p.pinned)}
+                  className="mt-3 text-xs font-semibold text-navy underline underline-offset-2"
+                >
+                  {pinning === p.id
+                    ? 'Saving…'
+                    : p.pinned
+                      ? 'Unpin from the top'
+                      : 'Pin to the top for new members'}
+                </button>
+              )}
             </article>
           ))}
         </div>

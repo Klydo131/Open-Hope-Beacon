@@ -28,6 +28,7 @@ import { LiveMyData } from '@/components/LiveMyData';
 import { WhatsNewButton } from '@/components/WhatsNew';
 import { FeedbackButton } from '@/components/Feedback';
 import { humanError } from '@/lib/live/errors';
+import { GENDER_OPTIONS, LIFE_STATUS_OPTIONS, optionsFor, selectedValue } from '@/lib/about-you';
 
 const message = (cause: unknown) =>
   humanError(cause, 'Something went wrong. Please try again.');
@@ -86,6 +87,12 @@ export function LiveProfilePage() {
   const style = ROLE_STYLE[profile.role] ?? ROLE_STYLE.ds;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setF((p) => ({ ...p, [k]: e.target.value }));
+    setSaved(false);
+  };
+
+  // The same thing for a control that hands back a value rather than an event.
+  const setValue = (k: keyof typeof f) => (value: string) => {
+    setF((p) => ({ ...p, [k]: value }));
     setSaved(false);
   };
 
@@ -166,8 +173,18 @@ export function LiveProfilePage() {
             hint="How you would rather be reached: a phone number, an app."
           />
           <Field label="Birthday" type="date" value={f.birthday} onChange={set('birthday')} />
-          <Field label="Gender" value={f.gender} onChange={set('gender')} />
-          <Field label="Status" value={f.life_status} onChange={set('life_status')} />
+          <SelectField
+            label="Gender"
+            value={selectedValue(GENDER_OPTIONS, f.gender)}
+            options={optionsFor(GENDER_OPTIONS, f.gender)}
+            onChange={setValue('gender')}
+          />
+          <SelectField
+            label="Status"
+            value={selectedValue(LIFE_STATUS_OPTIONS, f.life_status)}
+            options={optionsFor(LIFE_STATUS_OPTIONS, f.life_status)}
+            onChange={setValue('life_status')}
+          />
           <Field label="City" value={f.city_of_residence} onChange={set('city_of_residence')} />
           <Field label="Work or industry" value={f.work_industry} onChange={set('work_industry')} />
           <Field
@@ -517,6 +534,43 @@ function AboutCard() {
         Signed in on this device. <Link href="/login" className="underline">Switch account</Link>
       </p>
     </Card>
+  );
+}
+
+/**
+ * Field, but the answer comes from a list.
+ *
+ * `options` arrives already widened by `optionsFor`, so an answer given before
+ * this was a list is still in it. A `select` holding a value that is not among
+ * its options renders as the FIRST one, and the next save would rewrite that
+ * person's answer to something they never picked.
+ */
+function SelectField({
+  label, value, options, onChange, hint,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+  hint?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-sm font-semibold text-navy">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="tap w-full min-w-0 rounded-xl bg-gray-100 px-4 text-lg outline-none focus:ring-2 focus:ring-gold"
+      >
+        {/* Everything on this screen is optional, and a list must not make one
+            question the exception by having no way to leave it alone. */}
+        <option value="">Prefer not to say</option>
+        {options.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+      {hint && <span className="mt-1 block text-sm text-gray-400">{hint}</span>}
+    </label>
   );
 }
 

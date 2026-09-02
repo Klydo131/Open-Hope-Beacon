@@ -523,6 +523,47 @@ export function LiveAttachment({
 }
 
 
+/**
+ * A Field that picks from a list instead of accepting anything typed.
+ *
+ * `options` is passed already widened by `optionsFor`, so an answer somebody
+ * gave before this was a list is still in it and still selected. Without that,
+ * a `select` holding an unknown value renders as its FIRST option and the next
+ * save rewrites that person's answer to something they never chose.
+ */
+export function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+  blank = 'Prefer not to say',
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+  blank?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-semibold text-gray-600">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-lg outline-none focus:ring-2 focus:ring-gold"
+      >
+        {/* Leaving it unanswered stays possible, and is the default. Every
+            question on this screen is optional and this one must not become
+            the exception by being a list. */}
+        <option value="">{blank}</option>
+        {options.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function Field({
   label,
   value,

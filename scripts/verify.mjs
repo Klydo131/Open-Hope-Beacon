@@ -148,6 +148,10 @@ const staticChecks = [
   // anything. The whole value rests on it being incapable of writing, and that
   // is invisible on screen, so it is checked rather than trusted.
   ['the sign-up can be shown', 'tests/the-sign-up-can-be-shown.mjs'],
+  // Gender and Status as lists, and a Director pinning a post. Both are small
+  // and both destroy data done carelessly: a select holding an unrecognised
+  // saved answer silently rewrites it on the next save.
+  ['pinned posts and picked answers', 'tests/pinned-posts-and-picked-answers.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

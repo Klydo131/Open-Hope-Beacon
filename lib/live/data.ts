@@ -1099,6 +1099,8 @@ export interface FeedPost {
   body: string;
   audience: BlogAudienceKind;
   created_at: string;
+  /** Held at the top of the church's feed by a Director. */
+  pinned?: boolean;
 }
 
 /** The caller's own posts, drafts included, each with its reader count. */
@@ -1180,6 +1182,23 @@ export async function setBlogVisibility(id: string, visibility: BlogVisibility):
 }
 
 /** Delete. The audience rows and the views go with it, by foreign key cascade. */
+/**
+ * Hold a post at the top of the church's feed, or let it fall back into order.
+ *
+ * WHY A FUNCTION RATHER THAN AN UPDATE. `blog_edit` lets an author change their
+ * own post and nobody else's, and that is exactly what makes pinning impossible
+ * through it: the point is that a Director decides what the church leads with,
+ * including on a post somebody else wrote. Widening that policy would also hand
+ * leadership the power to rewrite anybody's words, which is a far larger thing
+ * than choosing an order. The function touches one column and can do nothing
+ * else, and it takes the church from the POST rather than from an argument, so
+ * a Director of one church cannot arrange another's feed.
+ */
+export async function setPostPinned(id: string, pinned: boolean): Promise<void> {
+  const { error } = await db().rpc('set_post_pinned', { p_post: id, p_pinned: pinned });
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteBlogPost(id: string): Promise<void> {
   const { error } = await db().from('blog_posts').delete().eq('id', id);
   if (error) throw new Error(error.message);

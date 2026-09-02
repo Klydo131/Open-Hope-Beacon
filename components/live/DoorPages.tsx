@@ -13,6 +13,7 @@ import { useTutorialMode } from '@/lib/tutorial';
 import { InstallHomeButton } from '@/components/InstallHomeButton';
 import { Button, Card } from '@/components/ui';
 import { Notice, emailLooksValid, errorText } from '@/components/live/shared';
+import { GENDER_OPTIONS, LIFE_STATUS_OPTIONS, optionsFor, selectedValue } from '@/lib/about-you';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
@@ -1075,8 +1076,18 @@ export function LiveJoinPage() {
                             value={extra.birthday}
                             onChange={setExtraField('birthday')}
                           />
-                          <JoinField label="Gender" value={extra.gender} onChange={setExtraField('gender')} />
-                          <JoinField label="Status" value={extra.life_status} onChange={setExtraField('life_status')} />
+                          <JoinSelect
+                            label="Gender"
+                            value={selectedValue(GENDER_OPTIONS, extra.gender)}
+                            options={optionsFor(GENDER_OPTIONS, extra.gender)}
+                            onChange={(v) => setExtra((prev) => ({ ...prev, gender: v }))}
+                          />
+                          <JoinSelect
+                            label="Status"
+                            value={selectedValue(LIFE_STATUS_OPTIONS, extra.life_status)}
+                            options={optionsFor(LIFE_STATUS_OPTIONS, extra.life_status)}
+                            onChange={(v) => setExtra((prev) => ({ ...prev, life_status: v }))}
+                          />
                           <JoinField
                             label="City of residence"
                             value={extra.city_of_residence}
@@ -1120,6 +1131,35 @@ export function LiveJoinPage() {
   );
 }
 
+
+/** The join form's picker. See SelectField in shared.tsx for why options are widened. */
+function JoinSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-semibold text-gray-500">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-base outline-none focus:ring-2 focus:ring-gold"
+      >
+        <option value="">Prefer not to say</option>
+        {options.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
 
 function JoinField({
   label,
