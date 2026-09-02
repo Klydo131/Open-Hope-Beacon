@@ -80,6 +80,12 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
   const [files, setFiles] = useState<Record<string, live.LessonFile[]>>({});
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  // Which study is open for editing, and the words as they are being changed.
+  // One at a time on purpose: a phone has no room for two open editors, and
+  // "which of these am I saving" is not a question worth creating.
+  const [editing, setEditing] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editBody, setEditBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const { profile } = useLiveSession();
@@ -114,11 +120,54 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
       <ol className="space-y-3">
         {lessons?.map((lesson, i) => (
           <li key={lesson.id} className="rounded-xl bg-white p-3 ring-1 ring-black/5">
-            <p className="font-semibold text-navy">{i + 1}. {lesson.title}</p>
-            {lesson.body && (
-              <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
-                <Linked text={lesson.body} />
-              </p>
+            {editing === lesson.id ? (
+              /* EDITING IN PLACE, NOT ON ANOTHER SCREEN. The handouts stay
+                 visible underneath while the words are being changed, because
+                 the study and the sheet that goes with it are one thing to the
+                 person teaching from them. */
+              <div className="grid gap-2">
+                <input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  placeholder="Title of this study"
+                  className="rounded-xl border border-gray-300 px-3 py-2 font-semibold"
+                />
+                <textarea
+                  value={editBody}
+                  onChange={(e) => setEditBody(e.target.value)}
+                  rows={5}
+                  placeholder="Write the study here. Links become clickable."
+                  className="rounded-xl border border-gray-300 px-3 py-2 text-sm"
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    disabled={busy || !editTitle.trim()}
+                    onClick={() => act(async () => {
+                      await live.updateLesson(lesson.id, { title: editTitle, body: editBody });
+                      setEditing('');
+                    })}
+                  >
+                    {busy ? 'Saving…' : 'Save changes'}
+                  </Button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => setEditing('')}
+                    className="text-sm font-semibold text-gray-600 underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="font-semibold text-navy">{i + 1}. {lesson.title}</p>
+                {lesson.body && (
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
+                    <Linked text={lesson.body} />
+                  </p>
+                )}
+              </>
             )}
             {(files[lesson.id] ?? []).length > 0 && (
               <ul className="mt-2 space-y-1">
@@ -132,8 +181,23 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
                 ))}
               </ul>
             )}
-            {mine && (
+            {mine && editing !== lesson.id && (
               <div className="mt-2 flex flex-wrap items-center gap-3">
+                {/* FIRST OF THE THREE, and deliberately not last. Delete was
+                    the only way to change a study, so somebody wanting to fix
+                    a typo had to reach for the destructive control. */}
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => {
+                    setEditing(lesson.id);
+                    setEditTitle(lesson.title);
+                    setEditBody(lesson.body ?? '');
+                  }}
+                  className="text-xs font-semibold text-navy underline"
+                >
+                  Edit this study
+                </button>
                 <label className="cursor-pointer text-xs font-semibold text-navy underline">
                   Attach a file
                   <input
@@ -211,6 +275,11 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
   const [open, setOpen] = useState('');
   const [title, setTitle] = useState('');
   const [topic, setTopic] = useState('');
+  // Which series is being renamed. Same one-at-a-time rule as the studies
+  // inside them.
+  const [renaming, setRenaming] = useState('');
+  const [newTitle, setNewTitle] = useState('');
+  const [newTopic, setNewTopic] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -318,6 +387,20 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
                       )}
                       {mine && (
                         <>
+                          {/* Renaming a series was only possible by deleting it,
+                              which took every study inside it with it. */}
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setRenaming(renaming === s.id ? '' : s.id);
+                              setNewTitle(s.title);
+                              setNewTopic(s.topic || '');
+                            }}
+                            className="text-xs font-semibold text-navy underline"
+                          >
+                            Rename
+                          </button>
                           <button
                             type="button"
                             disabled={busy}
@@ -341,6 +424,43 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
                       <p className="pl-[1.1rem] text-sm leading-snug text-gray-500">
                         <Linked text={s.description} />
                       </p>
+                    )}
+                    {renaming === s.id && (
+                      <div className="mt-2 grid gap-2 rounded-xl bg-white p-3 ring-1 ring-navy/10 sm:grid-cols-[1fr_1fr_auto]">
+                        <input
+                          value={newTitle}
+                          onChange={(e) => setNewTitle(e.target.value)}
+                          placeholder="Series title"
+                          className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
+                        />
+                        <input
+                          value={newTopic}
+                          onChange={(e) => setNewTopic(e.target.value)}
+                          placeholder="Area of interest"
+                          className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
+                        />
+                        <div className="flex items-center gap-3">
+                          <Button
+                            disabled={busy || !newTitle.trim()}
+                            onClick={() => act(async () => {
+                              await live.updateLessonSeries(s.id, {
+                                title: newTitle, topic: newTopic,
+                              });
+                              setRenaming('');
+                            })}
+                          >
+                            {busy ? 'Saving…' : 'Save'}
+                          </Button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => setRenaming('')}
+                            className="text-sm font-semibold text-gray-600 underline"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
                     )}
                     {opened && <SeriesBody series={s} mine={mine} />}
                   </div>

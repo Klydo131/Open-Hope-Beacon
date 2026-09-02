@@ -128,6 +128,10 @@ const staticChecks = [
   // Notification constructor outright, so the live settings screen said "On"
   // and showed nothing -- on a desktop it worked, which is how it survived.
   ['notifications go through the worker', 'tests/notifications-go-through-the-worker.mjs'],
+  // A study could be created, published and deleted but never corrected, so
+  // fixing a typo meant deleting the study and losing every handout on it.
+  // The database had always allowed the update; only the app was missing.
+  ['a study can be corrected', 'tests/a-study-can-be-corrected.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

@@ -1937,6 +1937,34 @@ export async function setSeriesPublished(id: string, published: boolean): Promis
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Rename a series, or move it to another topic.
+ *
+ * WHY THIS WAS MISSING AND WHY THAT MATTERED. A Guide could write a series,
+ * publish it and delete it, but never correct it. A typo in a title, or a
+ * series filed under the wrong topic, could only be fixed by deleting the whole
+ * thing and writing every study inside it again — so in practice it was not
+ * fixed, and the shelf carried the mistake.
+ *
+ * The database has allowed this the whole time: `ls_edit` permits an UPDATE
+ * from the author or anybody who manages the church, and pins `church_id` to
+ * the caller's own. Only the app was missing. Nothing here loosens that — the
+ * policy still decides, and a Guide editing somebody else's series gets no rows
+ * back rather than a change.
+ */
+export async function updateLessonSeries(
+  id: string, m: { title: string; topic: string; description?: string | null },
+): Promise<void> {
+  const title = m.title.trim();
+  if (!title) throw new Error('A series needs a title.');
+  const { error } = await db().from('lesson_series').update({
+    title,
+    topic: m.topic.trim() || 'General',
+    description: m.description?.trim() || null,
+  }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteLessonSeries(id: string): Promise<void> {
   const { error } = await db().from('lesson_series').delete().eq('id', id);
   if (error) throw new Error(error.message);
@@ -1968,6 +1996,30 @@ export async function addLesson(
   }).select('id').single();
   if (error) throw new Error(error.message);
   return (data as { id: string }).id;
+}
+
+/**
+ * Correct a study that is already written.
+ *
+ * Same gap as `updateLessonSeries` above, one level down, and the one people
+ * hit first: the study itself is the thing being taught from, so it is the
+ * thing most likely to need a word changed the night before it is used. Delete
+ * and rewrite loses every handout attached to it, because the files hang off
+ * the lesson row.
+ *
+ * `lessons_edit` has always permitted this for the author and for anybody
+ * managing the church. The empty-title guard is here rather than in the
+ * component so it holds for every caller.
+ */
+export async function updateLesson(
+  id: string, m: { title: string; body: string },
+): Promise<void> {
+  const title = m.title.trim();
+  if (!title) throw new Error('A study needs a title.');
+  const { error } = await db().from('lessons').update({
+    title, body: m.body.trim(),
+  }).eq('id', id);
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteLesson(id: string): Promise<void> {
