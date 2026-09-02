@@ -10,6 +10,7 @@ export function Card({
   className = '',
   id,
   'data-panel': dataPanel,
+  'data-live-conversation': liveConversation,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -30,12 +31,26 @@ export function Card({
    * the DOM.
    */
   'data-panel'?: string;
+  /**
+   * The private conversation, which globals.css bounds to the height actually
+   * left on the glass.
+   *
+   * DECLARED FOR THE THIRD TIME IN THIS FILE, for the third instance of the
+   * same bug. A JSX attribute whose name contains a dash is exempt from excess
+   * property checking, so `<Card data-live-conversation>` compiled, passed
+   * review, was asserted on by a test that read the SOURCE, and never once
+   * reached the DOM. Every rule written against that selector matched nothing,
+   * which is why the conversation kept overflowing a phone while a check
+   * called "live conversations fit phones and tablets" stayed green.
+   */
+  'data-live-conversation'?: boolean;
 }) {
   return (
     <div
       className={`rounded-2xl bg-white shadow-sm ring-1 ring-black/5 ${className}`}
       id={id}
       data-panel={dataPanel}
+      data-live-conversation={liveConversation ? '' : undefined}
     >
       {children}
     </div>

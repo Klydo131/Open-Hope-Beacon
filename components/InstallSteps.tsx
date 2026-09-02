@@ -28,7 +28,7 @@ import { useEffect, useState } from 'react';
 import { iosShareLocation } from '@/components/InstallPrompt';
 import { KebabGlyph, MenuGlyph } from '@/components/Glyph';
 
-export type Platform = 'auto' | 'ios' | 'mac' | 'other';
+export type Platform = 'auto' | 'iphone' | 'ipad' | 'mac' | 'other';
 
 export interface InstallGuide {
   key: string;
@@ -62,6 +62,18 @@ const menu = (glyph: string) => {
  * not listed. "Look for Install" is a useful instruction; a wrong menu path
  * stated firmly is not.
  */
+// SAID ONCE AND SHARED. An iPhone and an iPad differ in where the button is,
+// not in this: Apple gives no other browser the Add to Home Screen that makes a
+// real app, so every one of them is a dead end however confident it looks.
+const APPLE_ONLY_SAFARI = (
+  <>
+    On an iPhone or iPad it MUST be Safari. Chrome, Firefox, Edge, Opera and
+    Hola all run Safari&rsquo;s engine underneath on Apple devices and still
+    cannot add anything to the Home Screen, because Apple allows only Safari
+    to do it. This is not something the app can change.
+  </>
+);
+
 export function installGuides(shareWhere = 'in Safari'): InstallGuide[] {
   return [
     {
@@ -157,37 +169,55 @@ export function installGuides(shareWhere = 'in Safari'): InstallGuide[] {
         </>
       ),
     },
+    // THREE APPLE ENTRIES, NOT ONE.
+    //
+    // An iPhone and an iPad shared a single entry with one variable sentence in
+    // it, and the owner was right that this is not enough: the Share button is
+    // at the BOTTOM of Safari on an iPhone and at the TOP, in the toolbar, on an
+    // iPad, and a Mac has no Share step at all. One entry meant every reader saw
+    // two thirds of instructions written for somebody else's device.
+    //
+    // NONE OF THEM SAYS "INSTALL", because no Apple menu contains that word.
+    // Somebody told to press Install searches a Share sheet for it, does not
+    // find it, and concludes the app is broken.
     {
       key: 'safari-iphone',
       name: 'Safari (iPhone)',
-      on: 'iPhone and iPad',
+      on: 'iPhone',
       steps: [
-        // WHERE THE SHARE BUTTON IS DIFFERS BY DEVICE. On an iPhone it is at the
-        // bottom; on an iPad it is at the TOP, in the toolbar. The old copy said
-        // "at the bottom" everywhere, and somebody told to look at the bottom of
-        // an iPad looks at the bottom, does not find it, and stops.
-        <>Tap the <strong>Share</strong> button, the square with an arrow coming out of it, {shareWhere}.</>,
+        <>Tap the <strong>Share</strong> button, the square with an arrow coming out of it, <strong>at the bottom</strong> of Safari.</>,
         <>Scroll down the list and tap <strong>Add to Home Screen</strong>.</>,
-        <>Tap <strong>Add</strong>, at the top right.</>,
+        <>Tap <strong>Add</strong>, at the top right. The icon appears on your Home Screen.</>,
       ],
-      note: (
-        <>
-          On an iPhone or iPad it MUST be Safari. Chrome, Firefox, Edge, Opera and
-          Hola all run Safari&rsquo;s engine underneath on Apple devices and still
-          cannot add anything to the home screen, because Apple allows only Safari
-          to do it. This is not something the app can change.
-        </>
-      ),
+      note: APPLE_ONLY_SAFARI,
+    },
+    {
+      key: 'safari-ipad',
+      name: 'Safari (iPad)',
+      on: 'iPad',
+      steps: [
+        <>Tap the <strong>Share</strong> button, the square with an arrow coming out of it, <strong>at the top</strong> of Safari, in the toolbar beside the address.</>,
+        <>Tap <strong>Add to Home Screen</strong>. On a large iPad it is often already visible without scrolling.</>,
+        <>Tap <strong>Add</strong>, at the top right. The icon appears on your Home Screen.</>,
+      ],
+      note: APPLE_ONLY_SAFARI,
     },
     {
       key: 'safari-mac',
       name: 'Safari (Mac)',
       on: 'Mac',
       steps: [
-        <>In the menu bar, choose <strong>File</strong>.</>,
-        <>Choose <strong>Add to Dock</strong>.</>,
-        <>Give it a name and press <strong>Add</strong>.</>,
+        <>In the menu bar at the top of the screen, choose <strong>File</strong>.</>,
+        <>Choose <strong>Add to Dock</strong>. There is no Share button step on a Mac.</>,
+        <>Give it a name and press <strong>Add</strong>. It appears in your Dock and opens in its own window.</>,
       ],
+      note: (
+        <>
+          <strong>Add to Dock</strong> arrived in Safari 17, with macOS Sonoma. On an
+          older Mac it is not there and there is nothing to turn on. Bookmark this
+          page instead, or use Chrome or Edge, which can add it from the address bar.
+        </>
+      ),
     },
   ];
 }
@@ -205,7 +235,8 @@ export const INSTALL_GUIDES: InstallGuide[] = installGuides();
  * them.
  */
 export function guessBrowserKey(platform: Platform): string {
-  if (platform === 'ios') return 'safari-iphone';
+  if (platform === 'iphone') return 'safari-iphone';
+  if (platform === 'ipad') return 'safari-ipad';
   if (platform === 'mac') return 'safari-mac';
   if (typeof navigator === 'undefined') return 'chrome';
   const ua = navigator.userAgent;
@@ -250,7 +281,7 @@ export function InstallSteps({ platform }: { platform: Platform }) {
   // on an iPhone, iPad or Mac, and offering somebody holding an iPhone a row of
   // desktop browsers to choose from is a choice that is not theirs to make. The
   // card above already handles being in the wrong browser on those devices.
-  const only = platform === 'ios' || platform === 'mac';
+  const only = platform === 'iphone' || platform === 'ipad' || platform === 'mac';
 
   return (
     <div className="mt-3">

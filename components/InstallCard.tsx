@@ -23,6 +23,8 @@
 import { useEffect, useState } from 'react';
 import { Button, Card } from '@/components/ui';
 import { InstallSteps } from '@/components/InstallSteps';
+import { appleKind, addTitle, addLabel, type AppleKind } from '@/lib/apple-install';
+import { APP_SHORT_NAME } from '@/lib/brand';
 import {
   OpenInSafari,
   inAppBrowser,
@@ -39,10 +41,12 @@ interface BIPEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
-type Platform = 'auto' | 'ios' | 'mac' | 'other';
+type Platform = 'auto' | 'iphone' | 'ipad' | 'mac' | 'other';
 
 export function InstallCard() {
   const [platform, setPlatform] = useState<Platform | null>(null);
+  // Which Apple device, so every label reads the words that are on the menu.
+  const [kind, setKind] = useState<AppleKind>(null);
   const [deferred, setDeferred] = useState<BIPEvent | null>(null);
   const [installed, setInstalled] = useState(false);
   const [wrongHost, setWrongHost] = useState(false);
@@ -54,10 +58,18 @@ export function InstallCard() {
   const [shareWhere, setShareWhere] = useState('at the bottom of Safari');
 
   useEffect(() => {
+    // BEFORE THE EARLY RETURNS. The preview-address card below is a heading
+    // like any other, and an Apple reader who reached it before this ran was
+    // shown the word Install after all.
+    setKind(appleKind());
     if (isStandalone()) { setInstalled(true); return; }
     if (!isInstallable()) { setWrongHost(true); return; }
 
-    setPlatform(isIos() ? 'ios' : isMacSafari() ? 'mac' : 'other');
+    // An iPhone, an iPad and a Mac are three different sets of instructions,
+    // not one Apple set. appleKind tells them apart, including the iPad that
+    // reports itself as a Macintosh.
+    const apple = appleKind();
+    setPlatform(apple ?? (isMacSafari() ? 'mac' : 'other'));
     setInApp(inAppBrowser());
     setWrongBrowser(iosBrowser());
     setShareWhere(iosShareLocation());
@@ -104,7 +116,7 @@ export function InstallCard() {
     // update — so the install is withheld rather than offered and regretted.
     return (
       <Card className="p-5">
-        <h2 className="text-xl font-bold text-navy">📱 Install Hope Beacon</h2>
+        <h2 className="text-xl font-bold text-navy">📱 {addTitle(kind, APP_SHORT_NAME)}</h2>
         <p className="mt-1 text-sm text-gray-600">
           Open the church&rsquo;s main address first. This one is a preview, and an
           app installed from a preview can never receive an update.
@@ -115,7 +127,7 @@ export function InstallCard() {
 
   return (
     <Card className="p-5">
-      <h2 className="text-xl font-bold text-navy">📱 Install Hope Beacon</h2>
+      <h2 className="text-xl font-bold text-navy">📱 {addTitle(kind, APP_SHORT_NAME)}</h2>
       <p className="mt-1 text-sm text-gray-600">
         Put it on your home screen and it opens like any other app: its own
         icon, no address bar, and it keeps working without a signal.
@@ -180,7 +192,7 @@ export function InstallCard() {
             setDeferred(null);
           }}
         >
-          Install now
+          {addLabel(kind)}
         </Button>
       ) : (
         <>

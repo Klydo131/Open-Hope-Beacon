@@ -167,17 +167,14 @@ export function Conversation({
           <p className="text-sm text-gray-600">Only the two people walking together can read this.</p>
         </div>
       </div>
-      {/* `dvh`, not `vh`. `vh` is the layout viewport, which does not shrink
-          when a phone's on-screen keyboard opens — so the thread kept its full
-          height and the message you had just written sat underneath the
-          keyboard. `dvh` is the part actually visible. The plain `vh` line
-          stays underneath it for anything too old to know `dvh`.
+      {/* NO HEIGHT HERE ANY MORE, ON PURPOSE. This carried `55dvh` and two
+          minimums, and every one of those numbers was a guess at how much room
+          the rest of the screen had already taken. They guessed wrong on a
+          two-row header and put the composer below the glass.
 
-          A phone also reaches this card after the header, the relationship
-          card and the tabs. Its former 18rem minimum left the composer just
-          below the glass even in a one-message conversation. The 12rem phone
-          minimum keeps the Send control in reach; `sm` restores the roomier
-          thread used by tablets and desktops. */}
+          globals.css now sizes the card against the real chrome and lets this
+          be the one part that gives up space, so the thread is whatever is
+          left after the heading, the note and the composer have theirs. */}
       <div
         ref={box}
         data-live-thread
@@ -190,7 +187,7 @@ export function Conversation({
         }}
         aria-live="polite"
         aria-label="Conversation messages"
-        className="max-h-[55vh] min-h-48 space-y-2.5 overflow-y-auto overscroll-contain bg-white p-4 sm:min-h-72 sm:p-5 [max-height:55dvh]"
+        className="space-y-2.5 overflow-y-auto overscroll-contain bg-white p-4 sm:p-5"
       >
         {timeline.length === 0 && <p className="py-16 text-center text-gray-400">Start with a welcome.</p>}
         {timeline.map((entry, index) => {

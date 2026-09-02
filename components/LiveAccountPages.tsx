@@ -29,6 +29,7 @@ import { WhatsNewButton } from '@/components/WhatsNew';
 import { FeedbackButton } from '@/components/Feedback';
 import { humanError } from '@/lib/live/errors';
 import { GENDER_OPTIONS, LIFE_STATUS_OPTIONS, optionsFor, selectedValue } from '@/lib/about-you';
+import { appleKind, addChip, type AppleKind } from '@/lib/apple-install';
 
 const message = (cause: unknown) =>
   humanError(cause, 'Something went wrong. Please try again.');
@@ -251,8 +252,17 @@ export function LiveSettingsPage() {
   // FOUR SMALL FOLDERS RATHER THAN THREE, for the same reason the sample side
   // has five: "This device" was still holding installing, alerts and where the
   // app came from, which is most of the page it was meant to shorten.
+  // Read after mount, because the user agent does not exist during the server
+  // render and reading it while rendering makes the first paint disagree with
+  // the second.
+  const [deviceKind, setDeviceKind] = useState<AppleKind>(null);
+  useEffect(() => { setDeviceKind(appleKind()); }, []);
+
   const rooms: Room[] = [
-    { id: 'device', label: '📱 Install' },
+    // NOT "Install" ON AN APPLE DEVICE. Nothing in an iPhone, iPad or Mac menu
+    // is called that, so a chip labelled Install sends somebody hunting a Share
+    // sheet for a word that is not in it. `addChip` says what the device says.
+    { id: 'device', label: `📱 ${addChip(deviceKind)}` },
     { id: 'alerts', label: '🔔 Alerts' },
     ...(leads ? [{ id: 'church', label: '⛪ Church' }] : []),
     { id: 'help', label: '❓ Help' },

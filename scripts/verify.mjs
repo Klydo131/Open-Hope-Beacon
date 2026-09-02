@@ -169,6 +169,9 @@ const staticChecks = [
   // expiry setting cannot fix: a mail scanner spending the one-time link
   // before the person it was sent to ever taps it.
   ['a link can be handed over', 'tests/a-link-can-be-handed-over.mjs'],
+  // No Apple menu contains the word Install, and an iPhone, an iPad and a Mac
+  // are three different sets of steps rather than one Apple set.
+  ['Apple says Add, not Install', 'tests/apple-says-add-not-install.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { HopeBeaconMark } from '@/components/HopeBeaconMark';
 import { copyText } from '@/lib/share';
+import { appleKind, addTitle, addLabel, type AppleKind } from '@/lib/apple-install';
+import { APP_SHORT_NAME } from '@/lib/brand';
 
 // -------------------------------------------------------------------------
 // "Install Hope Beacon".
@@ -378,6 +380,10 @@ export function InstallPrompt() {
   // CAN do is show exactly which control to press, which is the thing people
   // were failing to find. The button is real and doing this is its job.
   const [opened, setOpened] = useState(false);
+  // WHICH APPLE DEVICE, because they are three and not one. `manual` says
+  // whether Safari is doing this by hand; this says whose menu wording to use,
+  // and none of the three contains the word Install.
+  const [kind, setKind] = useState<AppleKind>(null);
 
   useEffect(() => {
     if (isStandalone()) return;
@@ -385,6 +391,7 @@ export function InstallPrompt() {
     if (snoozed()) return;
 
     setDesktop(isDesktop());
+    setKind(appleKind());
     setInApp(inAppBrowser());
     setShareWhere(iosShareLocation());
     setWrongBrowser(iosBrowser());
@@ -529,7 +536,7 @@ export function InstallPrompt() {
           'Then tap Share, and “Add to Home Screen”',
         ]
       : manual === 'mac'
-        ? ['Open the Share menu in Safari’s toolbar', 'Choose “Add to Dock”']
+        ? ['In the menu bar, choose File', 'Choose “Add to Dock”']
         : [`Tap Share ${shareWhere}`, 'Choose “Add to Home Screen”'];
 
   // Desktop: a proper card, bottom-right, impossible to read as a cookie bar.
@@ -543,7 +550,7 @@ export function InstallPrompt() {
           >
             <HopeBeaconMark size={40} />
             <div className="min-w-0 flex-1">
-              <p className="font-extrabold text-white">Install Hope Beacon</p>
+              <p className="font-extrabold text-white">{addTitle(kind, APP_SHORT_NAME)}</p>
               <p className="text-xs text-white/60">
                 {inApp
                   ? `Open in Safari first. ${inApp} cannot install apps`
@@ -587,7 +594,7 @@ export function InstallPrompt() {
                   className="tap w-full rounded-xl text-base font-bold text-white"
                   style={{ backgroundColor: '#1E2A4A' }}
                 >
-                  Install now
+                  {addLabel(kind)}
                 </button>
                 {/* Never hidden behind the button. See the phone layout below
                     for why: in-app-browser.js enforces it. */}
@@ -609,7 +616,7 @@ export function InstallPrompt() {
                     {inApp
                       ? `Open the ••• menu in ${inApp} now, and choose Open in Safari.`
                       : manual === 'mac'
-                        ? 'Now open Share in Safari’s toolbar, at the top of the window.'
+                        ? 'Now open the File menu, in the menu bar at the top of the screen.'
                         : `Now look for the Share button ${shareWhere.replace(/^at /, 'at ')}.`}
                   </p>
                 )}
@@ -675,7 +682,7 @@ export function InstallPrompt() {
         <div className="flex items-center gap-3">
           <HopeBeaconMark size={40} />
           <div className="min-w-0 flex-1">
-            <p className="font-bold text-navy">Install Hope Beacon</p>
+            <p className="font-bold text-navy">{addTitle(kind, APP_SHORT_NAME)}</p>
             {/* THE OTHER REPORTED BUG WAS THIS LINE. Opened from a Messenger
                 link it said "Tap Share, then Add to Home Screen" — inside a
                 browser that has neither. */}
@@ -711,7 +718,7 @@ export function InstallPrompt() {
               className="tap mt-2 w-full rounded-xl text-base font-bold text-white"
               style={{ backgroundColor: '#1E2A4A' }}
             >
-              Install now
+              {addLabel(kind)}
             </button>
             {/* THE STEPS ARE NEVER HIDDEN BEHIND THE BUTTON, and that is a
                 safety property rather than a preference. Somebody who opened
@@ -743,7 +750,7 @@ export function InstallPrompt() {
                 {inApp
                   ? `Open the ••• menu in ${inApp} now, and choose Open in Safari.`
                   : manual === 'mac'
-                    ? 'Now open Share in Safari’s toolbar, at the top of the window.'
+                    ? 'Now open the File menu, in the menu bar at the top of the screen.'
                     : `Now look for the Share button ${shareWhere.replace(/^at /, 'at ')}. It is the square with an arrow coming out of it.`}
               </p>
             )}

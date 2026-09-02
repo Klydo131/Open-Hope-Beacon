@@ -455,6 +455,53 @@ html {
   scroll-padding-top: calc(var(--beacon-chrome-top, 0px) + var(--app-header, 0px));
 }
 
+/* THE CONVERSATION IS BOUNDED BY WHAT IS LEFT ON THE GLASS, NOT BY A FRACTION
+   OF IT.
+
+   THE BUG, photographed on an Android phone: a Guide opened a conversation and
+   the screen ended mid-sentence, on the line about photo sizes. The box to type
+   in and the Send button were below the glass, and dragging did not bring them
+   up, because the thread fills nearly the whole screen and `overscroll-contain`
+   correctly stops a drag inside it from scrolling the page. So there was no
+   part of the screen left to pull on.
+
+   The thread was capped at 55dvh, which sounds modest until the rest is added
+   up. On that phone the sticky app header is two rows and takes about 170px of
+   a roughly 715px viewport, leaving 545. The card wants 55dvh of thread (394)
+   plus its own heading (95), the photo note (30) and the composer (70): 589.
+   Forty-four pixels over, every time, and the forty-four that matter are the
+   ones you type into.
+
+   A fraction of the viewport cannot know any of that. This measures instead:
+   the card may be as tall as the viewport less the chrome above and below it,
+   and inside that the thread is the only part allowed to give up space. So the
+   composer is in the card, the card is on the screen, and the arithmetic holds
+   whatever height the header happens to be that day. */
+[data-live-conversation] {
+  display: flex;
+  flex-direction: column;
+  /* `vh` first for anything too old to know `dvh`; the second wins where it is
+     understood. `dvh` is the part actually visible, which is what shrinks when
+     a phone opens its keyboard. */
+  max-height: calc(100vh - var(--beacon-chrome-top, 0px) - var(--app-header, 0px) - var(--install-bar, 0px) - 1rem);
+  max-height: calc(100dvh - var(--beacon-chrome-top, 0px) - var(--app-header, 0px) - var(--install-bar, 0px) - 1rem);
+}
+
+/* Only the thread gives up space. Without this the heading, the note and the
+   composer shrink in proportion with it, and the thing that ends up clipped is
+   whichever one is tallest -- which is the composer. */
+[data-live-conversation] > :not([data-live-thread]) {
+  flex: 0 0 auto;
+}
+
+/* `min-height: 0` is the half that is easy to leave out. A flex child will not
+   shrink below its content by default, so a long thread simply pushes the
+   composer out of the card and the cap above achieves nothing. */
+[data-live-thread] {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 /* A strip that scrolls sideways with no visible scrollbar.
    Used by the header's feature icons. A scrollbar under a 44px row of icons
    eats a third of the row's height on desktop and looks like a defect on a
