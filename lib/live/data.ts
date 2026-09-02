@@ -448,6 +448,22 @@ export async function createChurch(name: string): Promise<string> {
  * be a second, weaker copy of that rule which an Executive Director overseeing
  * two churches would then have to fight.
  */
+/**
+ * One person's profile, if the caller is allowed it.
+ *
+ * NO ROLE CHECK HERE, and that is deliberate rather than an omission. Three
+ * policies decide it: profiles_read_self, profiles_read_paired — the profile of
+ * somebody you are actually walking with — and profiles_read_church for
+ * leadership. A Guide asking for somebody they are not paired with gets no row
+ * rather than an error, which is the right answer and not one this function
+ * could improve on.
+ */
+export async function memberProfile(id: string): Promise<Profile | null> {
+  const { data, error } = await db().from('profiles').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data as Profile) ?? null;
+}
+
 export async function listMembers(): Promise<Profile[]> {
   const { data, error } = await db()
     .from('profiles')

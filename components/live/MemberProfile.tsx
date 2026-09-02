@@ -60,6 +60,7 @@ export function MemberProfile({
   joinedAt,
   pairedWith,
   members = [],
+  canManage = false,
   onChanged,
   onClose,
 }: {
@@ -70,6 +71,21 @@ export function MemberProfile({
   pairedWith?: Profile | null;
   /** Everybody in the church, so a guardian who is also a member can be linked. */
   members?: Profile[];
+  /**
+   * Is the viewer leadership of this person's church?
+   *
+   * A GUIDE OPENS THE SAME PANEL AND SEES LESS, and the difference is not
+   * decoration. The address somebody was invited at and the day they arrived
+   * come from church_member_contact, which the database serves to Directors
+   * only — a Guide asking for it gets nothing, and rendering the rows anyway
+   * would print "Not given" over a fact the app knows perfectly well and is
+   * deliberately not telling them. Recording a guardian's permission is
+   * refused by the database for the same reason.
+   *
+   * A Guide still SEES whether a minor has permission, because they are the
+   * person actually sitting with them and that is exactly who needs to know.
+   */
+  canManage?: boolean;
   /** Called after a consent is recorded or withdrawn, so the roster reloads. */
   onChanged?: () => void;
   onClose: () => void;
@@ -129,8 +145,10 @@ export function MemberProfile({
           at and the day they arrived answer that better than anything else on
           the screen, so they come first. */}
       <div className="mt-4 grid gap-3 rounded-xl bg-gray-50 p-4 sm:grid-cols-2">
-        <Row label="Email" value={email} />
-        <Row label="Joined" value={joinedAt ? new Date(joinedAt).toLocaleDateString() : undefined} />
+        {canManage && <Row label="Email" value={email} />}
+        {canManage && (
+          <Row label="Joined" value={joinedAt ? new Date(joinedAt).toLocaleDateString() : undefined} />
+        )}
         <Row label="Best way to reach them" value={person.preferred_contact} />
         <Row label="Language" value={person.preferred_language} />
       </div>
@@ -174,6 +192,7 @@ export function MemberProfile({
         <GuardianConsent
           person={person}
           members={members}
+          canManage={canManage}
           onChanged={onChanged}
         />
       )}
@@ -233,10 +252,12 @@ export function MemberProfile({
 function GuardianConsent({
   person,
   members,
+  canManage,
   onChanged,
 }: {
   person: Profile;
   members: Profile[];
+  canManage: boolean;
   onChanged?: () => void;
 }) {
   const [name, setName] = useState(person.guardian_name ?? '');
@@ -268,7 +289,17 @@ function GuardianConsent({
         {given ? '✓ A parent or guardian has given permission' : '⚠ Under 18, and no permission recorded'}
       </p>
 
-      {given ? (
+      {!canManage ? (
+        // A Guide is told, and told what to do about it, because they are the
+        // one sitting with this person. Recording it is a Director's job and
+        // the database refuses them anyway, so offering the form would be a
+        // button that always fails.
+        <p className="mt-1 text-sm text-gray-700">
+          {given
+            ? `Recorded${person.guardian_name ? `, by ${person.guardian_name}` : ''}.`
+            : 'Ask a Director to record a parent or guardian’s permission before you go further.'}
+        </p>
+      ) : given ? (
         <>
           <p className="mt-1 text-sm text-gray-700">
             Recorded {new Date(person.guardian_consent_at as string).toLocaleDateString()}

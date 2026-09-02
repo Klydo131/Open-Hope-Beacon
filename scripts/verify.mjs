@@ -156,6 +156,10 @@ const staticChecks = [
   // consent warning existed with nothing that could ever answer it: the
   // columns, the RPCs and the red badge were built and no screen called them.
   ['a director can open somebody', 'tests/a-director-can-open-somebody.mjs'],
+  // An invitation creates the account when it is SENT, so a spent link leaves
+  // a real account with no password and no way in. Both ways out are checked:
+  // the person's, at the moment their sign-in is refused, and the Director's.
+  ['nobody is stranded without a password', 'tests/nobody-is-stranded-without-a-password.mjs'],
   ['security audit and Guild activity', 'tests/security-audit-and-guild-activity.mjs'],
   // What may become a clickable link. Linkifying user text is how an app like
   // this grows an XSS hole, so the protocol allowlist and the anti-phishing

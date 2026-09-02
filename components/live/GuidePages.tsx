@@ -8,7 +8,7 @@ import { stageInfo, previousStage, STAGES, nextStage } from '@/lib/brand';
 import { useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { LiveReportControl } from '@/components/LiveSafeguarding';
-import type { Message, Stage } from '@/lib/types';
+import type { Message, Profile, Stage } from '@/lib/types';
 import { LiveAppShell } from '@/components/LiveAppShell';
 import { LiveBlogFeed } from '@/components/LiveBlog';
 import { LivePrayerForGuide } from '@/components/LivePrayer';
@@ -23,6 +23,7 @@ import { JourneyPath } from '@/components/JourneyPath';
 import { Conversation, Notice, errorText } from '@/components/live/shared';
 import { LiveAnnouncements } from '@/components/LiveAnnouncements';
 import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
+import { MemberProfile } from '@/components/live/MemberProfile';
 
 // SPLIT OUT OF components/LiveCorePages.tsx, which had grown to three thousand
 // lines holding nineteen components: the signed-out door, the Director's whole
@@ -339,6 +340,11 @@ type GuideTab = 'talk' | 'journey' | 'care' | 'lessons' | 'resources';
 
 export function LiveConversationPage() {
   const [tab, setTab] = useState<GuideTab>('talk');
+  // Their profile, folded away until asked for. The conversation is what this
+  // screen is for, so the details sit above it and start shut.
+  const [openProfile, setOpenProfile] = useState(false);
+  const [theirProfile, setTheirProfile] = useState<Profile | null>(null);
+
   const [prayerWaiting, setPrayerWaiting] = useState(0);
   const params = useParams();
   const pairingId = String(params.id);
@@ -352,6 +358,14 @@ export function LiveConversationPage() {
   const [error, setError] = useState('');
   const [attachError, setAttachError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  // Fetched when it is first opened rather than on every visit to the screen:
+  // most of a Guide's time here is the conversation, and a profile nobody asked
+  // for is a request nobody needed.
+  useEffect(() => {
+    if (!openProfile || theirProfile || !pairing?.ds_id) return;
+    void live.memberProfile(pairing.ds_id).then(setTheirProfile).catch(() => setTheirProfile(null));
+  }, [openProfile, theirProfile, pairing?.ds_id]);
 
   const load = useCallback(async () => {
     try {
@@ -484,14 +498,30 @@ export function LiveConversationPage() {
               <Avatar name={pairing.ds_name} size={52} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-2xl font-extrabold text-navy">{pairing.ds_name}</h1>
+                  {/* THE NAME OPENS THEM. A Guide is the person actually
+                      sitting with this Explorer and had less about them on
+                      screen than a Director did — a name, a stage and a badge.
+                      What they can see is decided by the database:
+                      profiles_read_paired serves the profile of somebody you
+                      are paired with, and nothing else. The address they were
+                      invited at and the day they arrived stay with leadership. */}
+                  <button
+                    type="button"
+                    onClick={() => setOpenProfile((was) => !was)}
+                    className="truncate text-2xl font-extrabold text-navy underline underline-offset-4"
+                  >
+                    {pairing.ds_name}
+                  </button>
                   {/* The screen a Guide spends their time on. If the badge is
                       anywhere, it is here: this is where the conversation
                       happens and where knowing you are talking to a child
                       changes how you write. */}
                   <MinorBadge person={{ birthday: pairing.ds_birthday, guardian_consent_at: pairing.ds_guardian_consent_at }} />
                 </div>
-                <p className="text-sm text-gray-500">Private conversation</p>
+                <p className="text-sm text-gray-500">
+                  Private conversation
+                  <span className="text-gray-400"> · tap their name to see their profile</span>
+                </p>
               </div>
               {/* THE STAGE, READ ONLY, HERE. The buttons that change it moved
                   to the Journey tab, where the six steps are drawn and the
@@ -508,6 +538,19 @@ export function LiveConversationPage() {
               </div>
             </div>
           </Card>
+
+          {/* UNDER THE HEADER, NOT OVER THE CONVERSATION. A Guide opens this to
+              remember something about the person they are about to write to, so
+              it belongs next to their name and above the thread rather than on
+              top of it. */}
+          {openProfile && theirProfile && (
+            <MemberProfile
+              person={theirProfile}
+              pairedWith={profile ?? null}
+              onClose={() => setOpenProfile(false)}
+            />
+          )}
+
           {error && <Notice tone="error">{error}</Notice>}
 
           {/* TABS, THE SAME FIVE THE TUTORIAL HAS TAUGHT ALL ALONG.

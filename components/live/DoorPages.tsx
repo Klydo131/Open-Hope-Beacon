@@ -171,6 +171,9 @@ export function LiveLoginPage() {
     }
   });
   const [notice, setNotice] = useState('');
+  // Set when a sign-in was refused for a reason that an unfinished account
+  // would also produce. See the comment where it is set.
+  const [couldBeUnfinished, setCouldBeUnfinished] = useState(false);
 
   useEffect(() => {
     if (!sessionLoading && session && profile?.is_approved) {
@@ -186,6 +189,7 @@ export function LiveLoginPage() {
     setBusy(true);
     setError('');
     setNotice('');
+    setCouldBeUnfinished(false);
     try {
       const mine = await live.signIn(email, password);
       if (!mine.is_approved) {
@@ -205,6 +209,20 @@ export function LiveLoginPage() {
       window.location.replace(homeFor(mine.role));
     } catch (cause) {
       setError(errorText(cause));
+      // WHY THE FAILURE IS REMEMBERED AND NOT JUST SHOWN.
+      //
+      // An invitation creates the account the moment it is SENT, so somebody
+      // whose one-time link was spent before they reached the password step has
+      // a real account with no password at all. Signing in is refused as
+      // "invalid credentials", which is true and useless: they are not typing
+      // the wrong password, there is no password to type.
+      //
+      // "Forgot your password?" was already on this screen and they do not
+      // press it, because they did not forget one — they never had one, and the
+      // sentence does not describe them. Twenty-three people were stuck in
+      // exactly this state at once. So the offer is made HERE, in the words of
+      // what actually happened, at the moment it happens.
+      setCouldBeUnfinished(/credential|password|invalid/i.test(String((cause as Error)?.message ?? '')));
     } finally {
       setBusy(false);
     }
@@ -321,6 +339,31 @@ export function LiveLoginPage() {
               same question, and it is the one on the front door. */}
           <form onSubmit={() => {}} className="hidden">
           </form>
+          {/* THE SAME BUTTON, IN THE WORDS OF SOMEBODY WHO NEVER HAD A
+              PASSWORD. It calls exactly what "Forgot your password?" calls;
+              what changes is that it appears at the moment they are stuck and
+              describes their situation instead of a different one. */}
+          {couldBeUnfinished && (
+            <div className="mt-4 rounded-xl bg-sky-50 p-4 ring-1 ring-sky-200">
+              <p className="text-sm font-semibold text-navy">
+                Never set a password yet?
+              </p>
+              <p className="mt-1 text-sm text-gray-700">
+                If you were invited but never got as far as choosing one, there is
+                nothing to type here yet. We can send you a link that lets you set
+                it now.
+              </p>
+              <Button
+                variant="gold"
+                className="mt-3 w-full"
+                disabled={busy}
+                onClick={resetPassword}
+              >
+                {busy ? 'Sending…' : 'Send me a link to set my password'}
+              </Button>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={resetPassword}

@@ -85,5 +85,30 @@ ok(/rpc\('withdraw_guardian_consent'/.test(data), 'and so does withdrawing');
 ok(/not the permission/i.test(panel) || /outside this app/i.test(panel),
    'and the screen says it records permission rather than being it');
 
+// ---- A GUIDE OPENS THE SAME PANEL AND SEES LESS ----
+// The Guide is the person actually sitting with this Explorer and had less on
+// screen than a Director did: a name, a stage and a badge. What they may see is
+// decided by the database — profiles_read_paired serves the profile of somebody
+// you are walking with, and nothing else.
+const guide = read('components/live/GuidePages.tsx');
+ok(/<MemberProfile/.test(guide), 'a Guide can open their Explorer');
+ok(/setOpenProfile/.test(guide), 'by tapping their name');
+ok(/live\.memberProfile\(/.test(guide), 'reading one profile, not the whole roster');
+// canManage is NOT passed, so it defaults to false.
+ok(!/canManage/.test(guide), 'and does not claim leadership, so the panel shows less');
+
+// The two leadership-only facts stay leadership-only. Rendering them for a
+// Guide would print "Not given" over something the app knows and is
+// deliberately not telling them, which is worse than leaving the row out.
+ok(/\{canManage && <Row label="Email"/.test(panel), 'the email is shown to leadership only');
+ok(/\{canManage && \(\s*\n\s*<Row label="Joined"/.test(panel)
+   || /canManage && \(/.test(panel), 'and so is the day they joined');
+// But a Guide still sees whether a minor has permission: they are the one
+// sitting with them, so they are exactly who needs to know.
+ok(/canManage \? \(|!canManage \? \(/.test(panel),
+   'a Guide is still told whether a minor has permission');
+ok(/Ask a Director to record/.test(panel),
+   'and told whose job it is to record it');
+
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');
 process.exit(bad ? 1 : 0);

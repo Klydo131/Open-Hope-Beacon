@@ -396,6 +396,7 @@ export function LiveAdminPage() {
             joinedAt={contact[openPerson.id]?.joined_at}
             pairedWith={openPartner}
             members={members}
+            canManage
             onChanged={() => void load()}
             onClose={() => setOpenId('')}
           />

@@ -175,6 +175,68 @@ export function LiveMailPage() {
     }
   };
 
+  // RE-SEND TO EVERYONE WHO HAS NOT FINISHED.
+  //
+  // WHY THIS IS NEEDED AND WHAT IT FIXES. An invitation creates the account the
+  // moment it is sent, so the row shows "has an account" for somebody who has
+  // never chosen a password and cannot sign in. Twenty-three people were in
+  // exactly that state at once — most of them because the one-time link had
+  // been spent: they followed the install steps first, the installed app opened
+  // as a fresh session with no invitation in it, and the link was gone by the
+  // time they came back. That is the bug the email reorder fixed going forward;
+  // it does nothing for the people already stranded.
+  //
+  // The per-row Re-send has always been able to rescue one of them. Twenty-three
+  // of them is twenty-three taps, from a screen that does not say which rows
+  // need it, which is how somebody gets missed.
+  //
+  // ONE AT A TIME AND PACED, NOT ALL AT ONCE. The mailer allows one message per
+  // ADDRESS per minute and has an hourly ceiling for the whole project, so a
+  // burst of twenty-three parallel sends would have the first few succeed and
+  // the rest refused — and the refusals look identical to a broken button. They
+  // go in sequence with a breath between them, the count is shown as it climbs,
+  // and anything refused is named at the end rather than swallowed.
+  const [bulk, setBulk] = useState<{ done: number; total: number } | null>(null);
+  const [bulkFailed, setBulkFailed] = useState<string[]>([]);
+
+  // Somebody who has an account but never finished. `joined_at` is
+  // signup_completed_at, which is stamped once, after a password is chosen.
+  const unfinished = (invites ?? []).filter((i) => !i.joined_at);
+
+  const resendAllUnfinished = async () => {
+    const queue = unfinished;
+    if (queue.length === 0) return;
+    setError('');
+    setSentTo('');
+    setHandLink(null);
+    setBulkFailed([]);
+    setBulk({ done: 0, total: queue.length });
+    const failed: string[] = [];
+    for (let at = 0; at < queue.length; at += 1) {
+      const invite = queue[at];
+      try {
+        const result = await live.inviteMember({
+          email: invite.email,
+          role: invite.role,
+          fullName: invite.full_name ?? '',
+        });
+        // A link handed back instead of sent is a refusal wearing a success:
+        // the account is fine and the MESSAGE did not go, so it counts as one
+        // to chase rather than one that is done.
+        if (result.delivery === 'link') failed.push(invite.email);
+      } catch {
+        failed.push(invite.email);
+      }
+      setBulk({ done: at + 1, total: queue.length });
+      // A breath between sends. Not a fix for the hourly ceiling — nothing here
+      // can be — but it keeps a burst from being refused purely for its shape.
+      if (at < queue.length - 1) await new Promise((go) => setTimeout(go, 1200));
+    }
+    setBulkFailed(failed);
+    setBulk(null);
+    await load();
+  };
+
   const cancel = async (invite: live.OpenInvite) => {
     setBusy(invite.id);
     setError('');
@@ -332,6 +394,49 @@ export function LiveMailPage() {
           work. If they are unsure which to open, tell them to use the most
           recent one.
         </p>
+
+        {/* THE ONE BUTTON FOR THE WHOLE BACKLOG. It names the number, because a
+            Director needs to know whether this is three people or twenty-three
+            before they press something that sends that many emails. */}
+        {unfinished.length > 1 && (
+          <div className="mt-3 rounded-xl bg-slate-50 p-3 ring-1 ring-navy/5">
+            <p className="text-sm text-gray-700">
+              <strong className="text-navy">{unfinished.length} people</strong> have an
+              account but have never set a password, so they cannot sign in yet.
+              Sending everybody a fresh link is usually all it takes.
+            </p>
+            <Button
+              variant="gold"
+              className="mt-2"
+              disabled={!!bulk || !!busy}
+              onClick={() => void resendAllUnfinished()}
+            >
+              {bulk
+                ? `Sending ${bulk.done} of ${bulk.total}…`
+                : `Send all ${unfinished.length} a fresh link`}
+            </Button>
+            {bulk && (
+              <p className="mt-2 text-sm text-gray-500">
+                One at a time, with a pause between each. Leave this screen open.
+              </p>
+            )}
+            {bulkFailed.length > 0 && (
+              // Named, not counted. "Three failed" leaves a Director with no
+              // idea which three, and they are the only ones who can chase.
+              <div className="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+                <p className="font-semibold">
+                  These {bulkFailed.length} did not go, and need chasing by hand:
+                </p>
+                <p className="mt-1 break-words">{bulkFailed.join(', ')}</p>
+                <p className="mt-1">
+                  Usually the hourly email allowance. Wait an hour and press it
+                  again, or use Re-send on those rows to get a link you can pass
+                  on yourself.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {!invites ? (
           <BeaconSpinner inline label="Loading" className="mt-4" />
