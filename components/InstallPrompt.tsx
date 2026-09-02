@@ -346,7 +346,29 @@ export function OpenInSafari({ from }: { from: string }) {
 
 function isDesktop(): boolean {
   if (typeof window === 'undefined') return false;
-  return window.matchMedia('(min-width: 768px)').matches;
+  // WIDTH ALONE IS NOT A DESKTOP, and believing it was put a floating card on
+  // top of things people had to tap.
+  //
+  // The two layouts are not decoration. The bar along the bottom MEASURES
+  // ITSELF and publishes its height as `--install-bar`, which globals.css
+  // spends as padding, so the page can always be scrolled clear of it. The
+  // desktop card floats at bottom-right and reserves nothing, which is
+  // tolerable over a wide window with margins either side and is not tolerable
+  // over a tablet held upright.
+  //
+  // An iPad Mini in portrait is exactly 768 CSS pixels, and a phone on its side
+  // is wider still, so both were handed the floating card. On a real iPad in
+  // Safari it came to rest on a Guide's Explorer row and swallowed the tap;
+  // CI reported it as two failing walks, with Playwright naming the install
+  // steps list as the element that received the touch.
+  //
+  // A pointer that can be placed precisely is what actually distinguishes the
+  // two: a mouse or a trackpad reports `fine`, a finger reports `coarse`. A Mac
+  // keeps its card, an iPad and a sideways phone get the bar that makes room
+  // for itself. Where the query is not understood at all the answer is false,
+  // which is the safe side of this.
+  return window.matchMedia('(min-width: 768px)').matches
+    && window.matchMedia('(pointer: fine)').matches;
 }
 
 function snoozed(): boolean {
@@ -542,7 +564,10 @@ export function InstallPrompt() {
   // Desktop: a proper card, bottom-right, impossible to read as a cookie bar.
   if (desktop) {
     return (
-      <div className="no-print safe-bottom fixed bottom-4 right-4 z-[66] w-[22rem] max-w-[calc(100vw-2rem)]">
+      <div
+        data-install-prompt="card"
+        className="no-print safe-bottom fixed bottom-4 right-4 z-[66] w-[22rem] max-w-[calc(100vw-2rem)]"
+      >
         <div className="animate-drop overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10">
           <div
             className="flex items-center gap-3 px-4 py-3"
@@ -677,7 +702,11 @@ export function InstallPrompt() {
   // dismissed and every later click was swallowed by the overlay. An install
   // prompt must never be able to block a dialog the person has to answer.
   return (
-    <div ref={barRef} className="no-print safe-bottom fixed inset-x-0 bottom-0 z-[66] flex justify-center p-3">
+    <div
+      ref={barRef}
+      data-install-prompt="bar"
+      className="no-print safe-bottom fixed inset-x-0 bottom-0 z-[66] flex justify-center p-3"
+    >
       <div className="animate-drop w-full max-w-md rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
         <div className="flex items-center gap-3">
           <HopeBeaconMark size={40} />
