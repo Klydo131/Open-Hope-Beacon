@@ -99,7 +99,24 @@ export function joinUrl(mode: MeetingMode, where: string | null | undefined): st
 }
 
 /**
+ * True when the text carries a link, rather than being plain words.
+ *
+ * The card needs this to answer one question for both kinds of meeting: print
+ * what they wrote, or let the button carry it? Without it the online branch
+ * could ask `join ? ...` and the in-person branch could not, because a place
+ * ALWAYS produces a button -- a map search of the words when there is no link.
+ * One predicate, and the two branches become the same line.
+ */
+export function hasLink(where: string | null | undefined): boolean {
+  if (!where) return false;
+  return linkifyParts(where.trim()).some((part) => typeof part !== 'string');
+}
+
+/**
  * The words around the link, if the person wrote any.
+ *
+ * Used by both kinds of meeting: a passcode beside a Zoom link, and a place
+ * name beside a map link, are the same problem wearing different clothes.
  *
  * THE PASSCODE PROBLEM. When the field held a link the card showed only the
  * Join button and dropped everything else, on the reasoning that repeating a
@@ -110,10 +127,9 @@ export function joinUrl(mode: MeetingMode, where: string | null | undefined): st
  * Returns '' when the field is nothing but the link, so the card stays clean in
  * the ordinary case.
  */
-export function joinNote(where: string | null | undefined): string {
-  if (!where) return '';
-  const parts = linkifyParts(where.trim());
-  if (!parts.some((part) => typeof part !== 'string')) return '';
+export function wordsBesideLink(where: string | null | undefined): string {
+  if (!hasLink(where)) return '';
+  const parts = linkifyParts((where as string).trim());
   return parts
     .filter((part): part is string => typeof part === 'string')
     .join(' ')
@@ -143,4 +159,59 @@ export function joinLabel(href: string): string {
   if (is('messenger.com') || is('m.me')) return 'Join on Messenger';
   if (is('skype.com')) return 'Join on Skype';
   return 'Join the call';
+}
+
+/**
+ * Where an IN-PERSON meeting is, as one tappable thing.
+ *
+ * THE SAME BUG AS THE JOIN LINK, one field along. The place was always turned
+ * into a Google Maps SEARCH for whatever text was there. Paste a map link that
+ * somebody shared from their phone and the app searched Maps for the URL --
+ * a search for `https://maps.app.goo.gl/xyz` finds nothing, and the precise
+ * pin the sender went to the trouble of sharing was thrown away in favour of
+ * guessing from the characters in its address.
+ *
+ * So: a link somebody pasted wins, because it is exact and a search is a
+ * guess. Only then does the free text become a search.
+ *
+ * NO BARE-ADDRESS FALLBACK HERE, deliberately, and this is the one real
+ * difference from the online field. That field is labelled "link to join the
+ * call", so a lone token like `meet.google.com/x` can only be a link. This one
+ * is labelled "Church cafe, 12 Rizal St", where `St.Mary` is a place and would
+ * become `https://St.Mary`. linkifyParts requires a scheme or a leading www.,
+ * which is exactly the line wanted here.
+ */
+export function placeUrl(mode: MeetingMode, where: string | null | undefined): string | null {
+  if (mode !== 'in_person') return null;
+  const text = (where ?? '').trim();
+  if (!text) return null;
+
+  const found = linkifyParts(text).find((part) => typeof part !== 'string');
+  if (found) return (found as { href: string }).href;
+
+  // Free text somebody typed, so it is encoded. Whitespace alone yielded no
+  // link rather than a map of nowhere, and still does: `text` is trimmed and
+  // empty is handled above.
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}`;
+}
+
+/**
+ * What to call the button for a place.
+ *
+ * "Open in Maps" was hard-coded, which was true while every link WAS a maps
+ * search and stops being true the moment a pasted link is honoured. A button
+ * that says Maps and opens a Facebook event is a small lie told at the moment
+ * somebody is trying to find a room.
+ */
+export function placeLabel(href: string): string {
+  let url: URL;
+  try { url = new URL(href); } catch { return 'Open the link'; }
+  const host = url.hostname.replace(/^www\./i, '');
+  const is = (domain: string) => new RegExp(`(^|\\.)${domain.replace(/\./g, '\\.')}$`, 'i').test(host);
+
+  if (is('maps.app.goo.gl') || is('maps.google.com') || is('goo.gl')) return 'Open in Maps';
+  if (is('google.com') && /^\/maps/.test(url.pathname)) return 'Open in Maps';
+  if (is('waze.com')) return 'Open in Waze';
+  if (is('facebook.com') || is('fb.me')) return 'Open on Facebook';
+  return 'Open the link';
 }

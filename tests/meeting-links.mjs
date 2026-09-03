@@ -46,7 +46,7 @@ try {
   );
   process.exit(r.status ?? 1);
 }
-const { joinUrl, joinLabel, joinNote } = mod;
+const { joinUrl, joinLabel, wordsBesideLink, hasLink, placeUrl, placeLabel } = mod;
 
 // ---------------------------------------------------------------------------
 // 1. The links people actually paste become buttons.
@@ -167,31 +167,35 @@ for (const [text, href, note] of [
 ]) {
   ok(joinUrl('online', text) === href,
     `the link is found inside the sentence: "${text.slice(0, 44)}"`);
-  ok(joinNote(text) === note,
-    `and the words around it survive: ${JSON.stringify(joinNote(text))}`);
+  ok(wordsBesideLink(text) === note,
+    `and the words around it survive: ${JSON.stringify(wordsBesideLink(text))}`);
 }
 
 // THE PASSCODE IS THE POINT. The card used to show the Join button and drop
 // everything else, which threw away the half you cannot join without.
-ok(joinNote('https://zoom.us/j/123 (password 4321)').includes('4321'),
+ok(wordsBesideLink('https://zoom.us/j/123 (password 4321)').includes('4321'),
   'a passcode written beside the link is not thrown away with the URL');
 
 // A field that is nothing but the link keeps the card clean.
 for (const only of ['https://zoom.us/j/1234567890', 'meet.google.com/idn-soex-nkb']) {
-  ok(joinNote(only) === '', `nothing extra to show for a bare address: ${only}`);
+  ok(wordsBesideLink(only) === '', `nothing extra to show for a bare address: ${only}`);
 }
 // No link at all: the card shows the raw text itself, so there is no note.
-ok(joinNote('I will ring you at seven') === '', 'and prose is left to the card to print');
+ok(wordsBesideLink('I will ring you at seven') === '', 'and prose is left to the card to print');
 
 // THE CARD HAS TO ACTUALLY PRINT IT. joinNote returning the passcode is worth
 // nothing if the component still hides everything whenever there is a button,
 // which is exactly what it did before.
 {
   const card = readFileSync('components/LiveMeetings.tsx', 'utf8');
-  ok(/join \? note : m\.location/.test(card),
-    'the card shows the words around the link, not only the Join button');
-  ok(!/truncate[^"]*>\s*\n\s*💻/.test(card) && /break-words[\s\S]{0,80}💻/.test(card),
+  ok(/hasLink\(m\.location\) \? wordsBesideLink\(m\.location\)/.test(card),
+    'the card shows the words around the link, not only the button');
+  ok(/break-words[\s\S]{0,120}\{shown\}/.test(card),
     'and lets them wrap, because a truncated passcode is a passcode you cannot use');
+  // ONE LINE FOR BOTH KINDS. Two near-identical blocks differing only in an
+  // emoji is how the online branch got a fix the in-person branch did not.
+  ok(/m\.mode === 'online' \? '💻' : '📍'/.test(card),
+    'and one branch serves both, so neither can be fixed without the other');
 }
 
 // EXTRACTION MUST NOT WEAKEN THE GUARD. The dangerous shapes stay refused even
@@ -202,6 +206,54 @@ for (const nasty of [
 ]) {
   ok(joinUrl('online', nasty) === null, `still refused inside prose: ${nasty.slice(0, 40)}`);
 }
+
+// ---------------------------------------------------------------------------
+// 3c. THE PLACE OF AN IN-PERSON MEETING, which had the same bug one field along.
+// ---------------------------------------------------------------------------
+// The place was always turned into a Google Maps SEARCH for whatever text was
+// there. Paste the map link somebody shared from their phone and the app
+// searched Maps for the URL -- which finds nothing, and throws away the exact
+// pin the sender took trouble over in favour of guessing from its characters.
+ok(placeUrl('in_person', 'https://maps.app.goo.gl/xyz123') === 'https://maps.app.goo.gl/xyz123',
+  'a pasted map link opens that pin, not a search for its address');
+ok(placeUrl('in_person', 'Church hall - https://maps.app.goo.gl/xyz123') === 'https://maps.app.goo.gl/xyz123',
+  'and is still found when a hall name is written in front of it');
+ok(wordsBesideLink('Church hall - https://maps.app.goo.gl/xyz123') === 'Church hall',
+  'with the hall name kept, because the button only carries the pin');
+
+// Plain words still become a search. This is the ordinary case and must not
+// have been broken by the case above.
+{
+  const search = placeUrl('in_person', 'Church cafe, 12 Rizal St, Cavite');
+  ok(search !== null && search.startsWith('https://www.google.com/maps/search/'),
+    'a place and a street still becomes a map search');
+  ok(search.includes(encodeURIComponent('Church cafe, 12 Rizal St, Cavite')),
+    'and searches for exactly what was typed');
+}
+
+// THE TRAP ON THIS SIDE, and the reason the online field's bare-address
+// fallback is deliberately NOT used here. This field is labelled "Church cafe,
+// 12 Rizal St", so a lone token with a dot in it is a place, not a host.
+{
+  const marys = placeUrl('in_person', 'St.Mary');
+  ok(marys !== null && marys.startsWith('https://www.google.com/maps/search/'),
+    'St.Mary is a church, not a website called https://St.Mary');
+  ok(!hasLink('St.Mary'), 'and is not mistaken for a link');
+}
+
+// A BUTTON MUST NOT LIE ABOUT WHERE IT GOES. "Open in Maps" was hard-coded,
+// which was true while every link was a maps search and stops being true the
+// moment a pasted link is honoured.
+ok(placeLabel('https://www.google.com/maps/search/?api=1&query=x') === 'Open in Maps',
+  'a map search is called Maps');
+ok(placeLabel('https://maps.app.goo.gl/xyz') === 'Open in Maps', 'so is a shared map pin');
+ok(placeLabel('https://facebook.com/events/123') === 'Open on Facebook',
+  'a Facebook event says Facebook rather than Maps');
+ok(placeLabel('https://docs.google.com/document/d/1') !== 'Open in Maps',
+  'and another Google address is not called Maps just for being Google');
+
+// An in-person place never produces a join button, and never the reverse.
+ok(placeUrl('online', 'Church cafe') === null, 'an online meeting has no place button');
 
 // ---------------------------------------------------------------------------
 // 4. The two kinds of meeting do not borrow each other's controls.
@@ -217,7 +269,7 @@ ok(joinUrl('in_person', 'Church cafe, 12 Rizal St') === null,
 // to Google Maps and searched for as though it were a street.
 {
   const src = readFileSync('components/LiveMeetings.tsx', 'utf8');
-  ok(/m\.mode === 'in_person' \? mapsUrl\(/.test(src),
+  ok(/placeUrl\(m\.mode, m\.location\)/.test(src),
      'the map link is gated on the meeting being in person');
 }
 

@@ -23,23 +23,10 @@ import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { Button, Card } from '@/components/ui';
 import { humanError } from '@/lib/live/errors';
-import { joinLabel, joinNote, joinUrl } from '@/lib/live/meeting-link';
+import {
+  hasLink, joinLabel, joinUrl, placeLabel, placeUrl, wordsBesideLink,
+} from '@/lib/live/meeting-link';
 import { useKeepUp, KEEP_UP_MEETINGS } from '@/lib/live/keep-up';
-
-/**
- * A link to a map, never an embedded one.
- *
- * An embed needs a Google Maps key, which means a billing account and a key
- * that reaches every browser. A link opens the map app the person already has,
- * already signed in, with their own saved places. The location is free text
- * somebody typed, so it is encoded; whitespace alone yields no link rather than
- * a map of nowhere.
- */
-function mapsUrl(place: string | null): string | null {
-  const q = (place || '').trim();
-  if (!q) return null;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
-}
 
 function when(iso: string): string {
   const d = new Date(iso);
@@ -177,8 +164,9 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
               className="tap w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
             />
             <p className="mt-1 text-xs text-gray-500">
-              A place and a street. It becomes an Open in Maps button for both
-              of you.
+              A place and a street, which becomes an Open in Maps button for both
+              of you. Or paste a map link and that exact pin is what opens, which
+              beats a search when the place is hard to find.
             </p>
           </div>
         )}
@@ -238,14 +226,13 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
           <p className="text-sm text-gray-400">Nothing arranged yet.</p>
         )}
         {upcoming.map((m) => {
-          // GATED ON MODE. `mapsUrl` was called for every meeting, which was
-          // harmless only because an online meeting could never have a
-          // location. Now that it can, an unguarded call would hand a Zoom
-          // link to Google Maps and search for it as if it were a street.
-          const map = m.mode === 'in_person' ? mapsUrl(m.location) : null;
           const join = joinUrl(m.mode, m.location);
-          // What they wrote around the link, which is where a passcode lives.
-          const note = join ? joinNote(m.location) : '';
+          const map = placeUrl(m.mode, m.location);
+          // PRINT WHAT THEY WROTE, OR LET THE BUTTON CARRY IT. One rule for
+          // both kinds of meeting: when the field holds a link, show the words
+          // around it (a passcode, a hall name) and leave the address to the
+          // button. When it holds no link, the field IS the answer, so show it.
+          const shown = hasLink(m.location) ? wordsBesideLink(m.location) : (m.location ?? '');
           const mine = m.created_by === me;
           return (
             <div key={m.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-navy/5">
@@ -275,9 +262,9 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
                   {/* THE PLACE ON ITS OWN LINE. Run into the date it was a tail
                       on a sentence nobody finished reading, which is half of
                       why the location looked like it was not there. */}
-                  {m.mode === 'in_person' && m.location && (
-                    <p className="mt-0.5 truncate text-sm font-semibold text-navy">
-                      📍 {m.location}
+                  {shown && (
+                    <p className="mt-0.5 break-words text-sm font-semibold text-navy">
+                      {m.mode === 'online' ? '💻' : '📍'} {shown}
                     </p>
                   )}
                   {/* An online meeting whose "where" is NOT a link. Somebody
@@ -285,11 +272,7 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
                       and that is worth showing exactly as they wrote it. When
                       it IS a link the button below carries it, and repeating a
                       long URL here would only push the row off a phone. */}
-                  {m.mode === 'online' && (join ? note : m.location) && (
-                    <p className="mt-0.5 break-words text-sm font-semibold text-navy">
-                      💻 {join ? note : m.location}
-                    </p>
-                  )}
+
                 </div>
 
                 {/* ONE BUTTON ON THE RIGHT, and which one depends on what this
@@ -321,7 +304,7 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
                     rel="noopener noreferrer"
                     className="tap-sm shrink-0 rounded-xl bg-white px-4 text-sm font-semibold text-navy ring-1 ring-black/10"
                   >
-                    Open in Maps
+                    {placeLabel(map)}
                   </a>
                 ) : null}
               </div>
@@ -354,7 +337,7 @@ export function LiveMeetings({ pairingId, withName }: { pairingId: string; withN
                     rel="noopener noreferrer"
                     className="text-sm font-semibold text-navy underline underline-offset-2"
                   >
-                    Open in Maps
+                    {placeLabel(map)}
                   </a>
                 )}
                 <button
