@@ -29,7 +29,7 @@
     "test": "node scripts/verify.mjs",
     "test:all": "node scripts/verify.mjs --all",
     "icons": "node scripts/gen-icons.mjs",
-    "lint": "node scripts/run-next.mjs lint",
+    "lint": "node scripts/lint.mjs",
     "prebuild": "node scripts/stamp-build.mjs",
     "verify": "node scripts/verify.mjs",
     "verify:all": "node scripts/verify.mjs --all"
