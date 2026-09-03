@@ -46,7 +46,7 @@ try {
   );
   process.exit(r.status ?? 1);
 }
-const { joinUrl, joinLabel } = mod;
+const { joinUrl, joinLabel, joinNote } = mod;
 
 // ---------------------------------------------------------------------------
 // 1. The links people actually paste become buttons.
@@ -143,6 +143,65 @@ for (const text of ['I will ring you at seven', 'Zoom, I will send it', '']) {
 }
 ok(joinUrl('online', null) === null, 'a meeting with no address has no button');
 ok(joinUrl('online', undefined) === null, 'and neither has one that never had the field');
+
+// ---------------------------------------------------------------------------
+// 3b. THE LINK IS USUALLY NOT THE WHOLE FIELD.
+// ---------------------------------------------------------------------------
+// Reported as "the hyperlink on the appointment is not working". Two separate
+// failures, and the second is the worse one:
+//
+//   "Zoom link: https://zoom.us/j/123"      -> no button at all
+//   "https://zoom.us/j/123 (password 4321)" -> a button to
+//                          https://zoom.us/j/123%20(password%204321)
+//
+// A URL parser does not reject a space, it ESCAPES it, so a sentence typed
+// after the address was swallowed into the path and the card showed a
+// confident Join button that goes to a 404. Dead text at least looks dead.
+// Both shapes are how people actually paste a meeting link.
+for (const [text, href, note] of [
+  ['Zoom link: https://zoom.us/j/123', 'https://zoom.us/j/123', 'Zoom link'],
+  ['https://zoom.us/j/123 (password 4321)', 'https://zoom.us/j/123', '(password 4321)'],
+  ['https://meet.google.com/abc-defg-hij bring your bible',
+    'https://meet.google.com/abc-defg-hij', 'bring your bible'],
+  ['join at www.zoom.us/j/9 please', 'https://www.zoom.us/j/9', 'join at please'],
+]) {
+  ok(joinUrl('online', text) === href,
+    `the link is found inside the sentence: "${text.slice(0, 44)}"`);
+  ok(joinNote(text) === note,
+    `and the words around it survive: ${JSON.stringify(joinNote(text))}`);
+}
+
+// THE PASSCODE IS THE POINT. The card used to show the Join button and drop
+// everything else, which threw away the half you cannot join without.
+ok(joinNote('https://zoom.us/j/123 (password 4321)').includes('4321'),
+  'a passcode written beside the link is not thrown away with the URL');
+
+// A field that is nothing but the link keeps the card clean.
+for (const only of ['https://zoom.us/j/1234567890', 'meet.google.com/idn-soex-nkb']) {
+  ok(joinNote(only) === '', `nothing extra to show for a bare address: ${only}`);
+}
+// No link at all: the card shows the raw text itself, so there is no note.
+ok(joinNote('I will ring you at seven') === '', 'and prose is left to the card to print');
+
+// THE CARD HAS TO ACTUALLY PRINT IT. joinNote returning the passcode is worth
+// nothing if the component still hides everything whenever there is a button,
+// which is exactly what it did before.
+{
+  const card = readFileSync('components/LiveMeetings.tsx', 'utf8');
+  ok(/join \? note : m\.location/.test(card),
+    'the card shows the words around the link, not only the Join button');
+  ok(!/truncate[^"]*>\s*\n\s*💻/.test(card) && /break-words[\s\S]{0,80}💻/.test(card),
+    'and lets them wrap, because a truncated passcode is a passcode you cannot use');
+}
+
+// EXTRACTION MUST NOT WEAKEN THE GUARD. The dangerous shapes stay refused even
+// though they now travel through a second code path.
+for (const nasty of [
+  'call me on https://zoom.us@evil.example/j/1',
+  'here javascript:alert(1) ok',
+]) {
+  ok(joinUrl('online', nasty) === null, `still refused inside prose: ${nasty.slice(0, 40)}`);
+}
 
 // ---------------------------------------------------------------------------
 // 4. The two kinds of meeting do not borrow each other's controls.

@@ -15,7 +15,7 @@
 // safe link is a security question, and a security question deserves a test
 // that executes the real function.
 
-import { safeHref } from '../linkify.ts';
+import { linkifyParts, safeHref } from '../linkify.ts';
 import type { MeetingMode } from '../types.ts';
 
 /**
@@ -65,11 +65,61 @@ function withScheme(where: string): string {
  */
 export function joinUrl(mode: MeetingMode, where: string | null | undefined): string | null {
   if (mode !== 'online' || !where) return null;
-  // safeHref still decides. Supplying a missing scheme changes what SHAPE of
-  // text reaches the guard, never what the guard permits: it allows http and
-  // https only and still refuses a URL carrying user info, so
-  // `zoom.us@evil.example/j/1` is refused before and after this change.
-  return safeHref(withScheme(where.trim()));
+  const text = where.trim();
+  if (!text) return null;
+
+  // THE LINK IS USUALLY NOT THE WHOLE FIELD, and assuming it was produced two
+  // failures, the second worse than the first.
+  //
+  //   "Zoom link: https://zoom.us/j/123"      -> no button at all
+  //   "https://zoom.us/j/123 (password 4321)" -> a button to
+  //                          https://zoom.us/j/123%20(password%204321)
+  //
+  // The second is the dangerous one. A URL parser does not reject a space, it
+  // ESCAPES it, so the whole sentence was swallowed into the path and the card
+  // showed a confident Join button that goes to a 404. Dead text at least looks
+  // dead.
+  //
+  // Both are how people actually paste a meeting link: with a word in front of
+  // it, or with the passcode after it. So find the link inside the text rather
+  // than demanding the text be nothing but a link. linkifyParts is the same
+  // extractor the chat uses, which is the point -- a link in an appointment and
+  // a link in a message cannot drift apart on what counts as safe, and it
+  // still refuses `https://zoom.us@evil.example/j/1`.
+  const found = linkifyParts(text).find((part) => typeof part !== 'string');
+  if (found) return (found as { href: string }).href;
+
+  // A BARE ADDRESS ON ITS OWN, which the extractor deliberately does not match
+  // because in prose `meet.google.com` may be a sentence about Google rather
+  // than a link. In a field labelled "link to join the call" it is a link. Only
+  // reached when nothing was extracted, and only for a single token, so it
+  // cannot re-introduce the swallowing above: there is no space to swallow.
+  if (/\s/.test(text)) return null;
+  return safeHref(withScheme(text));
+}
+
+/**
+ * The words around the link, if the person wrote any.
+ *
+ * THE PASSCODE PROBLEM. When the field held a link the card showed only the
+ * Join button and dropped everything else, on the reasoning that repeating a
+ * long URL pushes the row off a phone. That is right about the URL and wrong
+ * about the rest: "(password 4321)" is the half you cannot join without, and it
+ * was being thrown away silently.
+ *
+ * Returns '' when the field is nothing but the link, so the card stays clean in
+ * the ordinary case.
+ */
+export function joinNote(where: string | null | undefined): string {
+  if (!where) return '';
+  const parts = linkifyParts(where.trim());
+  if (!parts.some((part) => typeof part !== 'string')) return '';
+  return parts
+    .filter((part): part is string => typeof part === 'string')
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s:.,;·-]+|[\s:.,;·-]+$/g, '')
+    .trim();
 }
 
 /**
