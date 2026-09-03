@@ -53,10 +53,12 @@ export default function PrivacyPage() {
 
       <div className="mx-auto max-w-2xl space-y-5 px-4 py-8">
         <Card className="p-5 ring-2 ring-amber-300">
-          <h2 className="text-xl font-bold text-navy">This copy is unfinished</h2>
+          <h2 className="text-xl font-bold text-navy">Two lines are still missing</h2>
           <p className="mt-2 text-gray-700">
-            The highlighted parts have to be filled in by the church running this app
-            before it is shown to anybody. They cannot be guessed.
+            The highlighted parts are the church&rsquo;s own legal identity and the name of
+            its Data Protection Officer. Nobody but the church can supply them, and a
+            notice carrying a plausible wrong name would be worse than one that says it
+            is unfinished. Everything else below is decided and applies as written.
           </p>
         </Card>
 
@@ -124,7 +126,9 @@ export default function PrivacyPage() {
           <ul className="mt-3 space-y-2 text-gray-700">
             <li><strong>The record of shared links: 30 days</strong>, then deleted
               automatically.</li>
-            <li><strong>Everything else: <Blank what="[retention period]" /></strong>.</li>
+            <li><strong>Everything else: for as long as you have an account.</strong>{' '}
+              When it is removed, what is in it goes at once rather than after a waiting
+              period, and your photographs are deleted before the account itself.</li>
             <li><strong>Safeguarding reports and the record of a removal are kept
               permanently</strong>, including after an account is deleted. A church has
               to be able to show that it acted, and a record the person it describes can
@@ -148,7 +152,9 @@ export default function PrivacyPage() {
             <li><strong>Take it with you.</strong> A copy in a form you can use elsewhere.</li>
           </ul>
           <p className="mt-3 text-sm text-gray-600">
-            Ask, and you will get an answer within <Blank what="[number]" /> days.
+            Ask, and you will get an answer within <strong>30 days</strong>. If the
+            request is complicated and will take longer, you will be told that inside
+            the 30 days, along with when to expect it.
           </p>
         </Card>
 
