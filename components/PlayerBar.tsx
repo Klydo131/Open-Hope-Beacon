@@ -19,7 +19,7 @@
 // play button and a volume slider is a toy.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AMBIENCE, clock, playerCredit, usePlayer, type Track } from '@/lib/player';
+import { AMBIENCE, AMBIENCE_GROUPS, clock, playerCredit, usePlayer, type Track } from '@/lib/player';
 import { usePlayerLists } from '@/lib/player-lists';
 import { deleteMedia, getBlob, humanSize, listMedia, type MediaMeta } from '@/lib/localMedia';
 import { saveFilesFromInput, savedMessage } from '@/lib/save-media';
@@ -615,32 +615,58 @@ export function PlayerStrip({ theme }: { theme: RoomTheme }) {
           )}
 
           {tab === 'ambience' && (
-            <div className="mt-2 space-y-1">
-              {AMBIENCE.map((track) => {
-                const on = current?.id === track.id;
-                return (
-                  <button
-                    key={track.id}
-                    type="button"
-                    onClick={() => play(track, AMBIENCE)}
-                    className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left"
-                    style={rowStyle(on)}
+            <div className="mt-2 space-y-2">
+              {/* GROUPED, because they were not and it cost people. The calm
+                  sounds and the masking ones are different errands, and in one
+                  flat list somebody looking to read quietly kept landing on
+                  the brightest thing here. The heading is the warning. */}
+              {AMBIENCE_GROUPS.map((group) => (
+                <div key={group.kind}>
+                  <p
+                    className="px-2 pb-0.5 text-[10px] font-bold uppercase tracking-[0.12em]"
+                    style={{ color: theme.inkSoft }}
                   >
-                    <span aria-hidden>{track.icon ?? '🎵'}</span>
-                    <span
-                      className="min-w-0 flex-1 truncate text-xs font-semibold"
-                      style={{ color: theme.ink }}
-                    >
-                      {track.title}
-                    </span>
-                    {on && playing && (
-                      <span className="text-[10px] font-bold" style={{ color: theme.accent }}>
-                        Playing
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+                    {group.heading}
+                  </p>
+                  <div className="space-y-1">
+                    {group.tracks.map((track) => {
+                      const on = current?.id === track.id;
+                      return (
+                        <button
+                          key={track.id}
+                          type="button"
+                          onClick={() => play(track, AMBIENCE)}
+                          className="flex w-full items-start gap-2 rounded-xl px-2 py-2 text-left"
+                          style={rowStyle(on)}
+                        >
+                          <span aria-hidden className="pt-0.5">{track.icon ?? '🎵'}</span>
+                          <span className="min-w-0 flex-1">
+                            <span
+                              className="block truncate text-xs font-semibold"
+                              style={{ color: theme.ink }}
+                            >
+                              {track.title}
+                            </span>
+                            {track.blurb && (
+                              <span
+                                className="block text-[10px] leading-snug"
+                                style={{ color: theme.inkSoft }}
+                              >
+                                {track.blurb}
+                              </span>
+                            )}
+                          </span>
+                          {on && playing && (
+                            <span className="text-[10px] font-bold" style={{ color: theme.accent }}>
+                              Playing
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
               <p className="pt-1 text-[11px] leading-snug" style={{ color: theme.inkSoft }}>
                 Made on your device as it plays. No download, no data, and it
                 works with no signal.
@@ -962,28 +988,56 @@ export function PlayerPanel({
       )}
 
       {tab === 'ambience' && (
-        <div className="mt-3 space-y-1.5">
-          {AMBIENCE.map((track) => {
-            const on = current?.id === track.id;
-            return (
-              <button
-                key={track.id}
-                type="button"
-                onClick={() => play(track, AMBIENCE)}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left ${
-                  on ? 'bg-gray-100' : 'hover:bg-gray-50'
-                }`}
-              >
-                <span aria-hidden className="text-lg">{track.icon ?? '🎵'}</span>
-                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-navy">
-                  {track.title}
-                </span>
-                {on && playing && (
-                  <span className="text-xs font-bold" style={{ color: accent }}>Playing</span>
-                )}
-              </button>
-            );
-          })}
+        <div className="mt-3 space-y-3">
+          {/* TWO GROUPS, NOT ONE LIST. "Some of it are not pleasing" -- and it
+              was one flat list of five, so the sound built to cut through a
+              conversation sat beside the one built to read to, with nothing
+              between them. The heading and the note under it are the whole
+              fix: somebody who wants quiet can now see which half to stay in,
+              and somebody who wants masking can find it deliberately. */}
+          {AMBIENCE_GROUPS.map((group) => (
+            <div key={group.kind}>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-gray-500">
+                {group.heading}
+              </p>
+              <p className="mt-0.5 text-xs leading-snug text-gray-500">{group.note}</p>
+              <div className="mt-1.5 space-y-1.5">
+                {group.tracks.map((track) => {
+                  const on = current?.id === track.id;
+                  return (
+                    <button
+                      key={track.id}
+                      type="button"
+                      onClick={() => play(track, AMBIENCE)}
+                      className={`flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left ${
+                        on ? 'bg-gray-100' : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      <span aria-hidden className="pt-0.5 text-lg">{track.icon ?? '🎵'}</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-navy">
+                          {track.title}
+                        </span>
+                        {/* The line that says what it sounds like, which has
+                            existed in lib/noise.ts since the day it was
+                            written and has never been drawn anywhere. */}
+                        {track.blurb && (
+                          <span className="block text-xs leading-snug text-gray-500">
+                            {track.blurb}
+                          </span>
+                        )}
+                      </span>
+                      {on && playing && (
+                        <span className="shrink-0 text-xs font-bold" style={{ color: accent }}>
+                          Playing
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
           {/* AMBIENCE IS GENERATED, and saying so is worth a line: somebody on a
               phone plan needs to know this costs them nothing and works with no
               signal. */}

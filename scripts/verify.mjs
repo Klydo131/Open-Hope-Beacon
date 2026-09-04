@@ -143,6 +143,9 @@ const staticChecks = [
   // ARCHITECTURE.md described an app with no backend for months after the live
   // half shipped, and nothing reported it. Stale documentation fails silently.
   ['the docs know what shipped', 'tests/the-docs-know-what-shipped.mjs'],
+  // The white noise was nearly three times as loud as the gentle sounds from
+  // the same slider, and nothing measured it. "Some of it are not pleasing."
+  ['the ambience is pleasant', 'tests/the-ambience-is-pleasant.mjs'],
   // Evidence on a safeguarding report, and the authorisation around it: the
   // same rule as reports_read, which deliberately keeps it from the reporter
   // too, and no delete on either the row or the stored object.
