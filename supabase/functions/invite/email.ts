@@ -132,23 +132,28 @@ export function roleWord(role: InviteRole): string {
 
 /**
  * The finished message. `appUrl` is the ordinary public home, used for the
- * install instructions. `joinUrl` is the one-time account link.
+ * install instructions. `joinUrl` is the sign-in page with the person's own
+ * address already in it -- no longer a one-time link, and nothing about it
+ * expires or is spent by being opened.
  *
- * THE INVITATION COMES FIRST, AND IT DID NOT USED TO.
+ * THE ORDER OF THIS PAGE IS THE PRODUCT, and both rules in it were learned the
+ * hard way.
  *
- * The original order put the install steps above the button, reasoning that a
- * recipient should not spend a one-time link before knowing which browser to
- * use. It reads sensibly and it was wrong, because of what people actually did
- * with it: they followed the install steps, and the installed app opens as a
- * fresh session with no invitation in it. Some never returned to the email at
- * all. Others came back, tapped the button, and it opened in the browser rather
- * than the app they had just installed. One Guide ended up with an account that
- * had no password and a spent link, and it had to be repaired by hand.
+ * CREDENTIALS BEFORE THE BUTTON. Somebody who taps first and reads second
+ * arrives at a sign-in box holding nothing, goes back to the mail, and half of
+ * them do not come back.
  *
- * Accepting is the only step that expires, works once, and cannot be done later
- * from anywhere else. Installing has no deadline, works from any browser, and
- * is explained inside the app under Settings. So the thing with a deadline goes
- * first, and the thing without one follows it.
+ * SIGNING IN BEFORE INSTALLING. The original order put the install steps at the
+ * top, reasoning that nobody should spend a one-time link before knowing which
+ * browser to use. It reads sensibly and it was wrong: people followed the
+ * install steps, the installed app opened as a fresh session with no invitation
+ * in it, and some never came back to the message at all. One Guide ended up
+ * with an account that had no password and a spent link, repaired by hand.
+ *
+ * The spending problem is gone -- there is no token now -- but the ordering
+ * stays, because the second half of that failure was never about tokens. An app
+ * you install before you have an account is an app that opens on a sign-in
+ * screen you cannot pass.
  */
 export function inviteHtml(
   role: InviteRole,

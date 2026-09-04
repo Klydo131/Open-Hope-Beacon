@@ -3,7 +3,16 @@
 // Holds the service_role key — the one key that bypasses every row level
 // security policy — so it can never run in a browser.
 //
-// THE EMAIL GOES THROUGH SUPABASE ITSELF, and that is the whole design now.
+// THE INVITATION CARRIES A PASSWORD, NOT A ONE-TIME LINK, and that is the whole
+// design now. The account is created with a password before the message leaves;
+// the message shows the address and that password above the button; nothing in
+// this file mints a token. See ./password.ts for why the password is shaped the
+// way it is, and note that Supabase's own mailer CANNOT carry it -- its
+// template is fixed and has no field for credentials -- so a church that wants
+// the fast path connects Brevo. The note below is about that mailer and is kept
+// because the rate limit it describes still governs the fallback.
+//
+// THE EMAIL GOES THROUGH SUPABASE ITSELF when no Brevo key is set.
 // An earlier version posted the message to an external provider (Brevo) and
 // treated Supabase's own mailer as a fallback. That cost a day: the key, the
 // sender and the site URL were all correct and loaded, and every single call
@@ -435,10 +444,10 @@ async function handle(req: Request): Promise<Response> {
   let joinUrl = '';
 
   if (handOver) {
-    // Nothing is sent. The mint below is reached through the same fallback
-    // block every other unsent invitation uses, so there is one place in this
-    // function that creates a link and one shape of link to get wrong.
-    sendError = 'No email was sent. You asked for the link to pass on yourself.';
+    // Nothing is sent. The address is built by the same fallback below that
+    // every other unsent invitation uses, so there is one place in this
+    // function that decides the shape of the link and one to get wrong.
+    sendError = 'No email was sent. You asked to pass the details on yourself.';
   } else if (brevoKey) {
     // NO TOKEN IS MINTED ANY MORE, and that is the point of this change.
     //
@@ -668,8 +677,8 @@ async function handle(req: Request): Promise<Response> {
     }
   }
 
-  // MINT THE FALLBACK LINK ONLY WHEN THE MAIL DID NOT GO. THE RESTRICTION IS
-  // THE WHOLE POINT, AND ITS ABSENCE BROKE EVERY INVITATION THIS APP SENT.
+  // THE FALLBACK ADDRESS. NOTHING IS MINTED HERE ANY MORE, AND THE HISTORY OF
+  // WHY THAT MATTERED IS KEPT BECAUSE IT BROKE EVERY INVITATION THIS APP SENT.
   //
   // This block used to run on every call, under the heading "a link to pass on
   // by hand, ALWAYS". Here is what that actually did.
