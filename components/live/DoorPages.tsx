@@ -158,7 +158,12 @@ export function LiveLoginPage() {
   const router = useRouter();
   const { session, profile, loading: sessionLoading, signOut } = useLiveSession();
   const params = useSearchParams();
-  const [email, setEmail] = useState('');
+  // FILLED FROM THE INVITATION. The e-mail links here as
+  // /login?email=..., so the address is already in the box and the person only
+  // has to copy the password across. Typing an address on a phone is where an
+  // older member gives up, and it is the half of the pair they are least likely
+  // to get exactly right.
+  const [email, setEmail] = useState(() => (params.get('email') ?? '').trim().toLowerCase());
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(() => {
@@ -170,7 +175,11 @@ export function LiveLoginPage() {
       default: return '';
     }
   });
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState(() => (
+    params.get('email')
+      ? 'Your address is filled in. Copy the password from your invitation e-mail.'
+      : ''
+  ));
   // Set when a sign-in was refused for a reason that an unfinished account
   // would also produce. See the comment where it is set.
   const [couldBeUnfinished, setCouldBeUnfinished] = useState(false);

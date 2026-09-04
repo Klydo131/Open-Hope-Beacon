@@ -58,8 +58,8 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       + 'pace suits you. Nobody else can see your journey, and nothing is '
       + 'shared beyond the person walking with you.',
     steps: [
-      ['Choose a password.', 'That is what finishes your sign-up. Nothing else is required.'],
-      ['Tell us your name.', 'Everything beyond that is optional and yours to give or keep.'],
+      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first.'],
+      ['Change the password.', 'Settings, then Change password. It takes a moment and it is worth doing today.'],
       ['Someone will be paired with you.', 'A Guide from your church, who will say hello.'],
     ],
   },
@@ -75,7 +75,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       + 'paired with people one at a time, and each conversation stays between '
       + 'you and them.',
     steps: [
-      ['Choose a password.', 'That is what finishes your sign-up.'],
+      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first.'],
       ['Meet whoever is paired with you.', 'A Guide walks with at most five people at once. Five is a ceiling, not a target.'],
       ['Share from the church library.', 'You choose what each person sees, and when they are ready for it.'],
     ],
@@ -93,7 +93,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       'They would like you to serve as an Executive Director. You will oversee '
       + 'the churches you are given, and appoint the Directors who run them.',
     steps: [
-      ['Choose a password.', 'That is what finishes your sign-up.'],
+      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first.'],
       ['Appoint the Directors.', 'Each church is run day to day by its own Directors, and you decide who they are.'],
       ['Watch the one number that matters.', 'Explorers with no Guide. Everything else can wait a week; that cannot.'],
     ],
@@ -106,7 +106,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       'They would like you to help lead as a Director. You will decide who '
       + 'joins, what they can see, and who walks with whom.',
     steps: [
-      ['Choose a password.', 'That is what finishes your sign-up.'],
+      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first.'],
       ['Approve the people waiting.', 'You choose their role as you approve them, and that decides what they can see. Nobody can change their own role afterwards, including you.'],
       ['Pair every Explorer with a Guide.', 'An Explorer with no Guide is the one number worth watching. Your dashboard opens on it.'],
     ],
@@ -155,11 +155,15 @@ export function inviteHtml(
   churchName: string,
   joinUrl: string,
   appUrl: string,
+  signInEmail: string,
+  tempPassword: string,
 ): string {
   const copy = ROLE_COPY[role];
   const church = esc(churchName || 'Your church');
   const url = esc(joinUrl);
   const app = esc(appUrl);
+  const who = esc(signInEmail);
+  const pass = esc(tempPassword);
   const roomUse = role === 'dm' || role === 'ds'
     ? 'Open the <strong>Guild Room</strong> for group activity, then use the other rooms for your own journey or the people you walk with.'
     : 'Open <strong>Admin</strong>, then choose <strong>Security</strong> to review account activity. Admin also holds approvals, people, and church work.';
@@ -200,21 +204,61 @@ export function inviteHtml(
             </td></tr>
           </table>
 
-          <p style="margin:24px 0 10px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Your invitation</p>
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;">
-            <tr><td align="center" bgcolor="#1E2A4A" style="border-radius:8px;">
-              <a href="${url}" style="display:inline-block;padding:15px 34px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Accept your invitation</a>
+          <!-- THE CREDENTIALS COME BEFORE THE BUTTON, and the order is the
+               request: "That email and password must be emphasized first
+               before tapping the accept or join in to the Web app. Once the
+               user read the email and password, they are ready to tap."
+               Somebody who taps first and reads second arrives at a sign-in
+               box holding nothing, goes back to the mail, and half of them do
+               not come back. So the two things they will be asked for are the
+               first things on the page, in a box that cannot be mistaken for
+               body text, and the button sits underneath them. -->
+          <p style="margin:24px 0 10px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Step 1 &middot; Your sign-in details</p>
+
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F8FF;border:2px solid #2F80ED;border-radius:10px;margin:0 0 14px 0;">
+            <tr><td style="padding:22px 24px;font-family:Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 16px 0;font-size:15px;line-height:1.5;color:#22272F;">Write these down or keep this email open. You will be asked for both.</p>
+
+              <p style="margin:0 0 4px 0;font-size:12px;font-weight:bold;color:#5B6472;letter-spacing:0.6px;text-transform:uppercase;">E-mail</p>
+              <p style="margin:0 0 16px 0;font-family:Courier,'Courier New',monospace;font-size:17px;line-height:1.4;color:#1E2A4A;font-weight:bold;word-break:break-all;">${who}</p>
+
+              <p style="margin:0 0 4px 0;font-size:12px;font-weight:bold;color:#5B6472;letter-spacing:0.6px;text-transform:uppercase;">Password</p>
+              <p style="margin:0 0 10px 0;font-family:Courier,'Courier New',monospace;font-size:22px;line-height:1.4;color:#1E2A4A;font-weight:bold;letter-spacing:0.5px;word-break:break-all;">${pass}</p>
+              <p style="margin:0;font-size:14px;line-height:1.5;color:#5B6472;">All small letters, with the dashes. Type it exactly as it appears.</p>
             </td></tr>
           </table>
 
-          <p style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#5B6472;">If the button does not work, copy this address into the same browser:</p>
+          <!-- THE WARNING SITS WITH THE PASSWORD, not in a footer nobody
+               reaches. It is also honest about the choice being theirs: the
+               owner's instruction was a strong note to change it, "but if they
+               dont change the password from the email, it's up to the user".
+               So this urges and does not threaten, and nothing in the app
+               refuses to work until they comply. -->
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-left:4px solid #C0392B;background-color:#FDF2F0;border-radius:0 8px 8px 0;margin:0 0 26px 0;">
+            <tr><td style="padding:16px 20px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#7A2A20;">
+              <strong style="font-size:16px;">This password is temporary. Please change it.</strong><br>
+              It was created for you so you can get in today. Anybody who can read this
+              e-mail can use it, so change it to one only you know: open Hope&nbsp;Beacon,
+              go to <strong>Settings</strong>, then <strong>Change password</strong>.
+              It takes a moment, and the app will remind you until you do.
+            </td></tr>
+          </table>
+
+          <p style="margin:0 0 10px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Step 2 &middot; Open the app</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;">
+            <tr><td align="center" bgcolor="#1E2A4A" style="border-radius:8px;">
+              <a href="${url}" style="display:inline-block;padding:15px 34px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Sign in to Hope Beacon</a>
+            </td></tr>
+          </table>
+
+          <p style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#5B6472;">If the button does not work, copy this address into your browser:</p>
           <p style="margin:0 0 22px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;word-break:break-all;">
             <a href="${url}" style="color:#2F80ED;text-decoration:underline;">${url}</a>
           </p>
 
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-left:3px solid #E8B84B;background-color:#FFFBF0;border-radius:0 8px 8px 0;margin:0 0 26px 0;">
             <tr><td style="padding:14px 18px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#5B4A1E;">
-              This link works <strong>once</strong>, and only the most recent invitation works. If your church sends another, use the newest email. Open it on the device you want to use Hope&nbsp;Beacon on.
+              <strong>Nothing here expires and nothing runs out.</strong> You can open this e-mail as many times as you like, on any device, and sign in whenever you are ready. If your church sends a newer invitation, use the password from the newest one.
             </td></tr>
           </table>
 
@@ -229,7 +273,7 @@ export function inviteHtml(
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6FA;border-radius:10px;margin:0 0 26px 0;">
             <tr><td style="padding:20px 22px;font-family:Helvetica,Arial,sans-serif;">
               <p style="margin:0 0 8px 0;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Using the app</p>
-              <p style="margin:0 0 8px 0;font-size:15px;line-height:1.55;color:#22272F;">After you accept, choose your own password and finish your account. Sign in through the Hope Beacon icon whenever you return.</p>
+              <p style="margin:0 0 8px 0;font-size:15px;line-height:1.55;color:#22272F;">Sign in with the e-mail and password above, then change the password to one only you know. Use the Hope Beacon icon whenever you return.</p>
               <p style="margin:0;font-size:15px;line-height:1.55;color:#22272F;">${roomUse}</p>
             </td></tr>
           </table>

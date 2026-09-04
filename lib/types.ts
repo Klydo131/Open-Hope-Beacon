@@ -92,6 +92,12 @@ export interface Profile {
    * address, and can be weeks earlier.
    */
   signup_completed_at?: string | null;
+  /**
+   * True while this person is still using the password their invitation
+   * e-mailed them. A reminder flag, not a permission: nothing in the app is
+   * withheld while it is true, and anybody can clear their own.
+   */
+  password_is_temporary?: boolean;
   created_at: string;
 }
 

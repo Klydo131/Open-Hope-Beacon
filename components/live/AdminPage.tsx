@@ -54,7 +54,9 @@ export function LiveAdminPage() {
   const [dsId, setDsId] = useState('');
   const [busy, setBusy] = useState('');
   // Set when the invitation could not be emailed and must be passed on by hand.
-  const [handLink, setHandLink] = useState<{ to: string; url: string; why: string; wait?: number } | null>(null);
+  const [handLink, setHandLink] = useState<
+    { to: string; url: string; why: string; wait?: number; pass?: string } | null
+  >(null);
   // '' not tried, 'yes' copied, 'failed' the clipboard refused. Safari rejects
   // the write when the document is not focused, and navigator.clipboard does
   // not exist at all over plain http. The link is in a selectable box right
@@ -201,7 +203,10 @@ export function LiveAdminPage() {
       // the link the function hands back for exactly this case, was thrown away
       // one layer down.
       if (result.delivery === 'link' && result.link) {
-        setHandLink({ to, url: result.link, why: result.mailNote ?? '', wait: result.waitSeconds });
+        setHandLink({
+          to, url: result.link, why: result.mailNote ?? '',
+          wait: result.waitSeconds, pass: result.tempPassword,
+        });
         setNotice('');
       } else {
         // KEEP THE LINK ON SCREEN EVEN ON SUCCESS. Supabase builds the link in
@@ -212,7 +217,9 @@ export function LiveAdminPage() {
         // says so. This link is built by our own invite function from the
         // church's own configured address, so it is correct whatever the
         // provider dashboard holds.
-        setHandLink(result.link ? { to, url: result.link, why: 'sent' } : null);
+        setHandLink(result.link
+          ? { to, url: result.link, why: 'sent', pass: result.tempPassword }
+          : null);
         // Say WHERE it went and BY WHICH ROUTE. "Sent" on its own is the
         // message this screen showed all day while nothing was being sent, so
         // it has to carry something only a real send could produce.
@@ -556,8 +563,8 @@ export function LiveAdminPage() {
                 {handLink.wait
                   ? `Nearly there. Wait ${handLink.wait} seconds, then press Send once`
                   : handLink.why === 'sent'
-                    ? 'Their link, in case the e-mail does not arrive'
-                    : `Send this link to ${handLink.to} yourself`}
+                    ? 'Their sign-in details, in case the e-mail does not arrive'
+                    : `Pass these to ${handLink.to} yourself`}
               </p>
               <p className={`mt-1 text-sm ${
                 handLink.wait ? 'text-blue-800' : handLink.why === 'sent' ? 'text-green-800' : 'text-amber-800'
@@ -569,8 +576,41 @@ export function LiveAdminPage() {
               <p className={`mt-1 text-sm ${
                 handLink.wait ? 'text-blue-800' : handLink.why === 'sent' ? 'text-green-800' : 'text-amber-800'
               }`}>
-                The account is created and this link works. It can be used once.
+                The account is ready. Nothing here expires, and it can be used as
+                often as they need.
               </p>
+
+              {/* THE PASSWORD, WHERE A DIRECTOR CAN READ IT DOWN A PHONE LINE.
+                  This is the call that used to end in "I'll send you another
+                  one" -- which, while invitations carried a one-time token,
+                  killed the message already sitting in their inbox. Now there
+                  is nothing to kill and nothing to re-send: the two facts on
+                  screen are the two facts in the e-mail. */}
+              {handLink.pass && (
+                <div className="mt-3 rounded-xl bg-white p-3 ring-1 ring-black/10">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">E-mail</p>
+                  <p className="break-all font-mono text-sm font-bold text-navy">{handLink.to}</p>
+                  <p className="mt-2 text-xs font-bold uppercase tracking-wider text-gray-500">Password</p>
+                  <p className="break-all font-mono text-lg font-bold text-navy">{handLink.pass}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                    All small letters, with the dashes. Ask them to change it once
+                    they are in, under Settings, then Password.
+                  </p>
+                  <div className="mt-2">
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        const done = await copyText(
+                          `Hope Beacon\nE-mail: ${handLink.to}\nPassword: ${handLink.pass}\nSign in: ${handLink.url}`,
+                        );
+                        setLinkCopied(done ? 'yes' : 'failed');
+                      }}
+                    >
+                      Copy all of it
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <input
                   readOnly

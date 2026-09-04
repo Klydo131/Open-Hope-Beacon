@@ -263,6 +263,10 @@ export function LiveSettingsPage() {
     // is called that, so a chip labelled Install sends somebody hunting a Share
     // sheet for a word that is not in it. `addChip` says what the device says.
     { id: 'device', label: `📱 ${addChip(deviceKind)}` },
+    // FIRST FOR SOMEBODY WHO ARRIVED ON AN EMAILED PASSWORD, because the
+    // invitation tells them to come here and change it, and a person following
+    // an instruction should not have to hunt for the folder it named.
+    { id: 'account', label: '🔑 Password' },
     { id: 'alerts', label: '🔔 Alerts' },
     ...(leads ? [{ id: 'church', label: '⛪ Church' }] : []),
     { id: 'help', label: '❓ Help' },
@@ -277,6 +281,9 @@ export function LiveSettingsPage() {
   const [room, chooseRoom] = useRoom(rooms, `beacon:settings-room:${profile?.role ?? 'none'}`, {
     install: 'device',
     tutorial: 'help',
+    // The invitation e-mail and the reminder card both send people to
+    // /settings#password. Without this they would land on the Install folder.
+    password: 'account',
   });
 
   if (!profile) return <BeaconSpinner inline label="Loading your account" />;
@@ -301,6 +308,12 @@ export function LiveSettingsPage() {
         </>
       )}
 
+      {room === 'account' && (
+        <div id="password">
+          <PasswordCard />
+        </div>
+      )}
+
       {room === 'alerts' && <NotificationCard />}
 
       {room === 'church' && leads && <ChurchNameCard />}
@@ -319,6 +332,135 @@ export function LiveSettingsPage() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Change your password.
+ *
+ * WHY THERE WAS NOWHERE TO DO THIS. The only place anybody ever set a password
+ * was the sign-up form at the end of a one-time invitation link. Once you were
+ * in, the only route to a new one was signing out and pressing "Forgot your
+ * password" -- a strange thing to ask of somebody who has forgotten nothing,
+ * and the reason nobody ever did it.
+ *
+ * The invitation now e-mails a temporary password and tells people to change
+ * it. Telling somebody to do a thing the app cannot do is worse than never
+ * mentioning it, so this card is not a nicety; it is the other half of that
+ * sentence.
+ */
+function PasswordCard() {
+  const { profile, refreshProfile } = useLiveSession();
+  const [next, setNext] = useState('');
+  const [again, setAgain] = useState('');
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  const temporary = profile?.password_is_temporary === true;
+  // Checked here so somebody is told before they press, rather than after. The
+  // same rule is enforced in lib/live/data.ts, which is the one that counts.
+  const tooShort = next.length > 0 && next.length < 10;
+  const mismatch = again.length > 0 && next !== again;
+  const ready = next.length >= 10 && next === again && !busy;
+
+  const save = async () => {
+    if (!ready) return;
+    setBusy(true); setError(''); setDone(false);
+    try {
+      await live.changeMyPassword(next);
+      setNext(''); setAgain(''); setDone(true);
+      await refreshProfile();
+    } catch (cause) {
+      setError(humanError(cause, 'Could not change your password.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="p-5">
+      <h2 className="text-xl font-bold text-navy">Change your password</h2>
+
+      {temporary ? (
+        <p className="mt-1 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-relaxed text-amber-900 ring-1 ring-amber-200">
+          You are still using the password from your invitation e-mail. Anybody who
+          can read that e-mail can sign in as you, so it is worth changing to one
+          only you know.
+        </p>
+      ) : (
+        <p className="mt-1 text-sm leading-relaxed text-gray-600">
+          Choose something you will remember. You will need it the next time you
+          sign in on a new device.
+        </p>
+      )}
+
+      <label className="mt-4 block text-sm font-semibold text-navy" htmlFor="pw-new">
+        New password
+      </label>
+      <input
+        id="pw-new"
+        type={show ? 'text' : 'password'}
+        value={next}
+        onChange={(e) => setNext(e.target.value)}
+        autoComplete="new-password"
+        className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-base outline-none focus:ring-2 focus:ring-gold"
+      />
+
+      <label className="mt-3 block text-sm font-semibold text-navy" htmlFor="pw-again">
+        Type it again
+      </label>
+      <input
+        id="pw-again"
+        type={show ? 'text' : 'password'}
+        value={again}
+        onChange={(e) => setAgain(e.target.value)}
+        autoComplete="new-password"
+        className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-base outline-none focus:ring-2 focus:ring-gold"
+      />
+
+      {/* SHOWING IT IS THE ACCESSIBLE OPTION, not the careless one. Typing a
+          password you cannot see, twice, on a phone keyboard is where older
+          members give up. */}
+      <label className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+        <input
+          type="checkbox"
+          checked={show}
+          onChange={(e) => setShow(e.target.checked)}
+          className="h-4 w-4"
+        />
+        Show what I am typing
+      </label>
+
+      <p className="mt-2 text-xs text-gray-500">At least 10 characters.</p>
+      {tooShort && (
+        <p className="mt-2 text-sm font-semibold text-amber-800">
+          That is {next.length} characters. Ten or more, please.
+        </p>
+      )}
+      {mismatch && (
+        <p className="mt-2 text-sm font-semibold text-amber-800">
+          The two do not match yet.
+        </p>
+      )}
+      {error && (
+        <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-200">
+          {error}
+        </p>
+      )}
+      {done && (
+        <p className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">
+          Your password is changed. Use the new one from now on.
+        </p>
+      )}
+
+      <div className="mt-4">
+        <Button onClick={save} disabled={!ready}>
+          {busy ? 'Saving\u2026' : 'Change my password'}
+        </Button>
+      </div>
+    </Card>
   );
 }
 

@@ -1,0 +1,168 @@
+// A first password somebody can read off a phone screen and type in.
+//
+// WHY THE INVITATION CARRIES A PASSWORD AT ALL.
+//
+// Every demo so far has been damaged by the same thing: the invitation carried
+// a ONE-TIME LINK, and a one-time link is fragile in ways nobody invited to a
+// church app should have to understand. It expires. It is spent by the first
+// thing that opens it, which on many mail systems is a scanner and not a
+// person. It works once, so a second tap fails. Twenty-three people were once
+// stuck at the same moment, each holding an account with no password and a
+// link that had already been used.
+//
+// A password does not expire, is not consumed by being read, and survives being
+// forwarded, re-opened, or tapped twice. The person can also read it out loud
+// to somebody helping them, which is how an older member actually gets set up.
+//
+// WHAT THIS COSTS, SAID PLAINLY. A password sitting in an inbox is weaker than
+// a link that dies in an hour: anybody who can read that mailbox can sign in,
+// and it stays true until the password is changed. That is the trade, it was
+// made deliberately, and the answer to it is the wording in the email and the
+// nudge inside the app -- not pretending the trade is not there.
+//
+// THE SHAPE, AND WHY IT IS THIS SHAPE.
+//
+//   coral-anchor-cedar-482
+//
+//   * ALL LOWERCASE. Every capital is a shift key on a phone, and a shift key
+//     is a place to get it wrong. Nothing here needs the extra alphabet.
+//   * WORDS, NOT CHARACTERS. `xK7#pQ2v` cannot be read aloud, cannot be
+//     remembered for the ten seconds between the email and the sign-in box, and
+//     cannot be dictated over the phone to somebody who is stuck.
+//   * HYPHENS between the parts, so it is obvious where each word ends and no
+//     two words run together into something unreadable.
+//   * THREE DIGITS at the end, because the app requires ten characters and
+//     because some password rules want a number. They come last so the reader
+//     meets the memorable part first.
+//   * NO AMBIGUOUS WORDS. Nothing that sounds like something else when read
+//     out (`their`, `there`), nothing anybody has to think about spelling.
+
+/**
+ * The words. Short, ordinary, unmistakable when spoken.
+ *
+ * ADD WORDS FREELY; the picker below is correct at any list size. It did not
+ * used to be. This file first shipped with 272 words and a picker that drew ONE
+ * random byte, and one byte cannot address 272 things: the rejection ceiling
+ * computed to zero and `firstPassword()` LOOPED FOREVER. Not a weak password --
+ * no password, and an edge function that never answers. Caught by running it
+ * rather than by reading it, which is the only reason it is not in this commit.
+ *
+ * The comment here used to say "keep this list a power of two", which is a rule
+ * the code did not enforce and nobody would have noticed breaking. The picker
+ * enforces itself now.
+ *
+ * Nothing here should be able to combine into a sentence that would embarrass
+ * somebody reading it out in church. That is why there are no verbs, no body
+ * parts, and no adjectives that attach to a person.
+ */
+export const WORDS: readonly string[] = [
+  'acorn', 'amber', 'anchor', 'apple', 'april', 'arbor', 'arch', 'arrow',
+  'aspen', 'atlas', 'autumn', 'axis', 'bakery', 'balcony', 'bamboo', 'banjo',
+  'barley', 'basil', 'basket', 'beacon', 'bell', 'birch', 'bison', 
+  'bloom', 'blossom', 'boat', 'bonfire', 'border', 'bottle', 'boulder', 'branch',
+  'brass', 'bread', 'breeze', 'bridge', 'bronze', 'brook', 'bucket', 'bundle',
+  'burrow', 'button', 'cabin', 'cable', 'cactus', 'camera', 'candle', 'canoe',
+  'canvas', 'canyon', 'cargo', 'carpet', 'castle', 'cedar', 'cellar', 'cement',
+  'chapel', 'cherry', 'circle', 'citrus', 'clay', 'cliff',
+  'clock', 'cloud', 'clover', 'coast', 'cobalt', 'cocoa', 'coffee', 'column',
+  'comet', 'compass', 'copper', 'coral', 'cotton', 'crane', 'crater', 'crayon',
+  'cricket', 'crystal', 'cushion', 'daisy', 'dawn', 'delta', 'denim', 'desert',
+  'diamond', 'domino', 'donut', 'dove', 'dragon', 'drum', 'dune',
+  'eagle', 'east', 'ember', 'emerald', 'engine', 'fabric', 'falcon',
+  'feather', 'fern', 'ferry', 'fiddle', 'field', 'filter', 'finch', 'flame',
+  'flannel', 'flint', 'flute', 'forest', 'fountain', 'fox', 'frost', 'galaxy',
+  'garden', 'garnet', 'gate', 'gecko', 'ginger', 'glacier', 'glass', 'globe',
+  'granite', 'grape', 'gravel', 'grove', 'guitar', 'gull', 'hammer', 'harbor',
+  'harvest', 'hazel', 'heron', 'hickory', 'honey', 'horizon', 'igloo',
+  'indigo', 'ink', 'iris', 'island', 'ivory', 'jacket', 'jade', 'jasmine',
+  'jetty', 'jigsaw', 'journal', 'juniper', 'kayak', 'kettle', 'kitchen',
+  'kite', 'lagoon', 'lake', 'lantern', 'lattice', 'lavender', 'ledger', 'lemon',
+  'lentil', 'lilac', 'linen', 'lobby', 'locket', 'lotus', 'lumber',
+  'magnet', 'mango', 'maple', 'marble', 'meadow', 'melon',
+  'mesa', 'metro', 'mint', 'mirror', 'mitten', 'monsoon', 'moss',
+  'mountain', 'museum', 'mustard', 'nectar', 'needle', 'nest', 'nickel',
+  'north', 'nutmeg', 'oasis', 'oatmeal', 'ocean', 'olive', 'onyx', 'opal',
+  'orbit', 'orchard', 'orchid', 'otter', 'oxide', 'oyster', 'paddle', 'palm',
+  'pantry', 'paper', 'parcel', 'parsley', 'pasture', 'pebble', 'pelican', 'pepper',
+  'petal', 'pewter', 'piano', 'pigment', 'pillow', 'pilot', 'pine', 
+  'planet', 'plateau', 'plum', 'pocket', 'pond', 'poplar', 'poppy', 'porch',
+  'postcard', 'pottery', 'prairie', 'pretzel', 'puffin', 'pumpkin', 'quarry', 'quartz',
+  'quilt', 'quince', 'rabbit', 'radish', 'rafter', 'rainbow', 'ranch', 'raven',
+  'reef', 'ribbon', 'river', 'robin', 'rocket', 'rope', 'rosemary', 'saffron',
+  'sage', 'salmon', 'sandal', 'satin', 'scarf', 
+];
+
+/** Digits at the end. Three of them, so the total clears the ten-character rule. */
+const DIGITS = 3;
+
+/** How many words are joined. Distinct, so no password reads `coral-coral-cedar`. */
+const PARTS = 3;
+
+/**
+ * How hard this is to guess, in bits, worked out rather than asserted.
+ *
+ * Three DISTINCT words from the list, then a three-digit number from 100-999.
+ * The test prints this and fails if it drops, so shrinking the word list can
+ * never quietly weaken every invitation the church sends.
+ *
+ * Roughly 34 bits at the sizes above. That is a TEMPORARY credential on a
+ * rate-limited online sign-in, not a secret meant to stand up to somebody with
+ * the password file and a month. The email says to change it and the app asks
+ * again; this number is the floor under the few days in between.
+ */
+export function entropyBits(): number {
+  let combinations = 1;
+  for (let i = 0; i < PARTS; i += 1) combinations *= WORDS.length - i;
+  combinations *= 900;                       // 100 through 999
+  return Math.log2(combinations);
+}
+
+/**
+ * A whole number below `limit`, drawn evenly.
+ *
+ * WHY NOT `randomBytes[0] % WORDS.length`. A remainder maps the 256 possible
+ * byte values onto the list unevenly whenever the list size does not divide
+ * 256, so the first few words come up more often than the rest. Rejecting the
+ * draws that would skew it is exact at every size.
+ *
+ * AND WHY THE DRAW SIZES ITSELF. The first version always drew one byte, which
+ * silently required `limit` to be 256 or less -- above that the ceiling
+ * computes to zero, nothing is ever accepted, and the loop never ends. Taking
+ * two bytes when one cannot reach the limit removes that cliff, so the word
+ * list can grow to 65536 without anybody having to know this existed.
+ */
+function below(limit: number): number {
+  if (limit < 1) throw new Error('below() needs a positive limit');
+  const wide = limit > 256;
+  const range = wide ? 65536 : 256;
+  const ceiling = Math.floor(range / limit) * limit;   // largest exact multiple
+  const bytes = new Uint8Array(wide ? 2 : 1);
+  for (;;) {
+    crypto.getRandomValues(bytes);
+    const draw = wide ? (bytes[0] << 8) | bytes[1] : bytes[0];
+    if (draw < ceiling) return draw % limit;
+  }
+}
+
+/**
+ * A first password: three distinct words and a number, hyphenated.
+ *
+ * Example shape: `harbor-lantern-cedar-482`
+ */
+export function firstPassword(): string {
+  const pool = [...WORDS];
+  const picked: string[] = [];
+  for (let i = 0; i < PARTS; i += 1) {
+    // Splice, so the same word cannot be drawn twice.
+    picked.push(pool.splice(below(pool.length), 1)[0]);
+  }
+
+  let number = '';
+  for (let i = 0; i < DIGITS; i += 1) {
+    // The first digit is 1-9 so the number never reads as `047`, which people
+    // mistype as `47` and then cannot sign in.
+    number += i === 0 ? String(1 + below(9)) : String(below(10));
+  }
+
+  return `${picked.join('-')}-${number}`;
+}

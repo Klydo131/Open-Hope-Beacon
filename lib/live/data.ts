@@ -150,6 +150,51 @@ export async function signOut(): Promise<void> {
   clearBrowserSession();
 }
 
+/**
+ * Change your own password.
+ *
+ * WHY THIS SCREEN EXISTS NOW AND DID NOT BEFORE. The invitation used to carry a
+ * one-time link, and the only place anybody ever set a password was the sign-up
+ * form at the end of that link. Once you were in, there was NOWHERE in the app
+ * to change it -- the only route was signing out and using "Forgot your
+ * password", which is a strange thing to ask of somebody who has not forgotten
+ * anything.
+ *
+ * That was survivable while everybody chose their own password. It is not
+ * survivable now: the invitation e-mails a temporary one, the message tells
+ * people to change it, and telling somebody to do a thing the app cannot do is
+ * worse than not mentioning it.
+ *
+ * THE FLAG IS CLEARED HERE AND ITS FAILURE IS SWALLOWED, deliberately. The
+ * password change is the part that matters; the reminder flag is a convenience.
+ * If clearing it fails the person has still changed their password
+ * successfully, and reporting an error would tell them the opposite of what
+ * happened. The reminder simply appears once more.
+ */
+export async function changeMyPassword(next: string): Promise<void> {
+  if (next.length < 10) throw new Error('Use at least 10 characters.');
+  const client = supabaseAuth();
+  if (!client) throw new NotLive();
+
+  const { data, error } = await client.auth.updateUser({ password: next });
+  if (error) throw new Error(error.message);
+
+  // updateUser rotates the tokens, so the saved session has to be replaced or
+  // the next request goes out with the old one. Same reason the join screen
+  // re-publishes after setting a password.
+  try {
+    const { data: fresh } = await client.auth.getSession();
+    if (fresh?.session) saveBrowserSession(fresh.session as Session);
+  } catch { /* the change stands; the session refreshes on its own */ }
+
+  const me = data?.user?.id;
+  if (me) {
+    try {
+      await db().from('profiles').update({ password_is_temporary: false }).eq('id', me);
+    } catch { /* see above: the password changed, which is the point */ }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Me
 // ---------------------------------------------------------------------------
@@ -650,20 +695,31 @@ export interface InviteResult {
   ok?: boolean;
   delivery?: 'email' | 'link';
   /**
-   * The join link, present ONLY when `delivery === 'link'`.
+   * Where to sign in. Present on every reply now, and that used to be forbidden.
    *
-   * It used to be sent on every reply, and that is what broke every invitation
-   * the app has ever sent. Producing this link mints a one-time token, and
-   * auth.users stores exactly one such token per purpose — so generating it
-   * after a successful send overwrote the token already in the recipient's
-   * inbox, and their link came back "expired or already used". The screens only
-   * ever read this field on the failure path anyway, so the destroyed token
-   * bought nothing.
+   * While the invitation carried a one-time token, producing this link MINTED
+   * one -- and auth.users stores exactly one token per purpose, so generating
+   * it after a successful send overwrote the token already in the recipient's
+   * inbox and their link came back "expired or already used". Every invitation
+   * this app ever sent, broken by the reply to the request that sent it.
    *
-   * When the mail did not go there is no token in an inbox to protect, and this
-   * link is the only way that person gets in. That case is unchanged.
+   * No token is minted anywhere any more. This is the ordinary sign-in page
+   * with the person's own address in the query string, so returning it is
+   * returning a fact rather than spending a credential.
    */
   link?: string;
+  /**
+   * The address and the password the invitation e-mailed, handed back so a
+   * Director can read them out to somebody who says nothing arrived.
+   *
+   * THIS IS NOT A LEAK. The Director created the invitation a second ago; under
+   * the old flow they were handed a link that would sign them in AS that person,
+   * which is strictly more than this. What it buys is the phone call that used
+   * to end in "I'll send another one" -- which, under the old flow, killed the
+   * message already sitting in the inbox.
+   */
+  signInEmail?: string;
+  tempPassword?: string;
   /** Why it could not be emailed, in words a person can act on. */
   mailNote?: string;
   /**

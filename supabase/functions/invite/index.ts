@@ -33,6 +33,7 @@
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
 import { inviteHtml, subjectFor, type InviteRole } from './email.ts';
+import { firstPassword } from './password.ts';
 
 // WHO MAY CALL THIS FROM A BROWSER.
 //
@@ -321,6 +322,86 @@ async function handle(req: Request): Promise<Response> {
     return json({ error: 'Cannot work out this app’s address. Set SITE_URL.' }, 400);
   }
 
+  // ---------------------------------------------------------------------
+  // THE ACCOUNT IS READY BEFORE THE MESSAGE LEAVES.
+  // ---------------------------------------------------------------------
+  //
+  // The invitation used to carry a one-time link and nothing else, and a
+  // one-time link is fragile in ways nobody invited to a church app should have
+  // to understand. It expires. It is SPENT BY THE FIRST THING THAT OPENS IT,
+  // which on many mail systems is a scanner and not a person. It works once, so
+  // a second tap fails. Twenty-three people were once stuck at the same moment,
+  // each holding an account with no password and a link already used.
+  //
+  // So the account is created here, with a password already on it, and the
+  // message carries that password. Nothing to expire, nothing to spend, and it
+  // survives being forwarded, re-opened, or tapped twice. It can also be read
+  // aloud to somebody helping an older member get set up, which is how this
+  // actually happens in a congregation.
+  //
+  // ORDER MATTERS AND IS NOT INTERCHANGEABLE. `handle_new_user` fires on INSERT
+  // into auth.users and reads public.invites BY EMAIL to find the role, the
+  // church and the recommended Guide. Create the account before the invitation
+  // row exists and the person arrives with no church and no role. The row is
+  // written above; the account is created here, after it, deliberately.
+  //
+  // NOBODY'S WORKING PASSWORD IS EVER OVERWRITTEN. An address that has finished
+  // signing up is refused far above this point, so `updateUserById` is only
+  // ever reached for an account that was created by an earlier invitation and
+  // never used. Resending to that person replaces a password they never had.
+  const tempPassword = firstPassword();
+  let passwordError = '';
+  {
+    const { data: found } = await admin.rpc('member_by_email', { p_email: email });
+    const existing = Array.isArray(found) ? found[0] : found;
+    let personId = existing?.id ? String(existing.id) : '';
+
+    if (personId) {
+      const { error } = await admin.auth.admin.updateUserById(personId, {
+        password: tempPassword,
+        // An invitation is the church vouching for the address. Making them
+        // confirm it as well is a second hurdle for no extra safety, and it is
+        // the hurdle the one-time link already failed at.
+        email_confirm: true,
+      });
+      if (error) passwordError = String(error.message ?? error);
+    } else {
+      const { data: made, error } = await admin.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { full_name: fullName },
+      });
+      if (error) passwordError = String(error.message ?? error);
+      personId = made?.user?.id ?? '';
+    }
+
+    // MARK IT TEMPORARY, so the app can ask them to change it. Done after the
+    // account exists, because handle_new_user builds the profile row as part of
+    // that insert and there is nothing to update before it.
+    //
+    // A FAILURE HERE IS NOT A FAILED INVITATION. The password is set and the
+    // person can get in; all that is lost is a reminder card. Refusing the
+    // whole invitation over a missing nudge would be the wrong trade.
+    if (!passwordError && personId) {
+      const { error: flagErr } = await admin
+        .from('profiles')
+        .update({ password_is_temporary: true })
+        .eq('id', personId);
+      if (flagErr) console.log(JSON.stringify({ at: 'invite', warn: 'flag', why: flagErr.message }));
+    }
+  }
+
+  // A MESSAGE WITH NO PASSWORD IN IT IS WORSE THAN NO MESSAGE. If the account
+  // could not be given one, stop here rather than sending an invitation whose
+  // credentials box is empty or wrong. The invitation row survives, so the
+  // Director can simply press send again.
+  if (passwordError) {
+    return json({
+      error: `Could not set up the account for that address: ${passwordError}`,
+    }, 400);
+  }
+
   // WHO SENDS THE INVITATION, AND WHY IT IS A SETTING RATHER THAN A REWRITE.
   //
   // Supabase Auth has ONE email template per kind and one mailer, so an
@@ -334,11 +415,18 @@ async function handle(req: Request): Promise<Response> {
   // this choice and continue to go through Supabase Auth over SMTP, which is
   // what a reset should be -- it belongs to the auth system, not the church.
   //
-  // THE ONE-TOKEN RULE STILL GOVERNS BOTH PATHS. generateLink mints a token and
-  // sends NOTHING, which is exactly what a self-sent message needs: we mint
-  // once, put that link in our own email, and no second mint ever races the
-  // first. That is the same property the Supabase path gets by NOT calling
-  // generateLink after a successful send.
+  // THE ONE-TOKEN RULE NO LONGER APPLIES, AND THE HISTORY IS WORTH KEEPING.
+  //
+  // auth.users has ONE confirmation_token slot and ONE recovery_token slot. Any
+  // second mint for the same purpose overwrites the first, so a token already
+  // sitting in somebody's inbox died the moment anything minted another. That
+  // rule governed the whole shape of this function and broke it repeatedly.
+  //
+  // This function no longer mints tokens at all. The account is given a
+  // password above and the message carries it, so there is no slot to race and
+  // nothing to overwrite. The comment below the send, and this one, are kept so
+  // the next person understands why the code is not arranged around a rule that
+  // used to matter enormously.
   const brevoKey = await setting(admin, 'BREVO_API_KEY');
 
   let via = '';
@@ -352,29 +440,16 @@ async function handle(req: Request): Promise<Response> {
     // function that creates a link and one shape of link to get wrong.
     sendError = 'No email was sent. You asked for the link to pass on yourself.';
   } else if (brevoKey) {
-    // Mint exactly one token. No mail leaves Supabase on this path.
-    let kind = 'invite';
-    let { data: link } = await admin.auth.admin.generateLink({
-      type: 'invite',
-      email,
-      options: { data: { full_name: fullName }, redirectTo: `${site}/join` },
-    });
-    if (!link?.properties?.hashed_token) {
-      // Already registered but never finished: a recovery token is the right
-      // shape, and /join?recovery=1 is the screen that completes either.
-      ({ data: link } = await admin.auth.admin.generateLink({
-        type: 'recovery',
-        email,
-        options: { redirectTo: `${site}/join?recovery=1` },
-      }));
-      kind = 'recovery';
-    }
-    const hashed = link?.properties?.hashed_token ?? '';
-
-    if (!hashed) {
-      sendError = 'Could not create a join link for that address.';
-    } else {
-      joinUrl = `${site}/join?token_hash=${encodeURIComponent(hashed)}&type=${kind}`;
+    // NO TOKEN IS MINTED ANY MORE, and that is the point of this change.
+    //
+    // This used to call generateLink and put a one-time token in the message.
+    // The account now has a password before this line is reached, so the
+    // address in the email is the ordinary sign-in page with the person's own
+    // address already filled in. It cannot expire, cannot be spent by a mail
+    // scanner opening it, and works on the tenth tap as well as the first.
+    const kind = 'password';
+    {
+      joinUrl = `${site}/login?email=${encodeURIComponent(email)}`;
 
       const { data: churchRow } = await admin
         .from('churches').select('name').eq('id', church).maybeSingle();
@@ -428,6 +503,10 @@ async function handle(req: Request): Promise<Response> {
           FULL_NAME: fullName,
           CHURCH_NAME: churchName,
           ROLE: ROLE_WORD[role] ?? 'member',
+          // A church designing its own template needs these or its invitation
+          // is the only one that cannot tell people how to sign in.
+          SIGN_IN_EMAIL: email,
+          TEMP_PASSWORD: tempPassword,
         };
       } else {
         // SUBJECTS DIFFER PER ROLE, and that is not decoration. Gmail threads by
@@ -436,7 +515,7 @@ async function handle(req: Request): Promise<Response> {
         // invitations to one person came to read as one invitation and one
         // blank message. Three roles, three subjects, no collapsing.
         payload.subject = subjectFor(asRole);
-        payload.htmlContent = inviteHtml(asRole, churchName, joinUrl, site);
+        payload.htmlContent = inviteHtml(asRole, churchName, joinUrl, site, email, tempPassword);
       }
 
       try {
@@ -470,6 +549,18 @@ async function handle(req: Request): Promise<Response> {
     // A resend almost always lands on the second: the first invitation created
     // the account, so inviting again is refused as already registered. Both
     // mails land on /join, which finishes the sign-up either way.
+    // AND THIS PATH CANNOT CARRY THE PASSWORD, which is the reason to prefer
+    // Brevo now rather than merely a nicer-looking reason. Supabase Auth sends
+    // its own fixed template; there is no field in it for the credentials this
+    // function just created, so the recipient gets a link and no password.
+    //
+    // The account already exists by the time we get here -- this function made
+    // it a moment ago -- so inviteUserByEmail is refused as already registered
+    // every time and the recovery mail is what actually goes. The first call is
+    // kept because a project with its own SMTP may still answer it, and because
+    // its refusal is how we learn which of the two shapes applies.
+    joinUrl = `${site}/login?email=${encodeURIComponent(email)}`;
+
     const { error: inviteMailErr } = await admin.auth.admin.inviteUserByEmail(email, {
       data: { full_name: fullName },
       redirectTo: `${site}/join`,
@@ -485,6 +576,14 @@ async function handle(req: Request): Promise<Response> {
       else sendError = String(resetErr.message ?? '');
     } else {
       sendError = String(inviteMailErr.message ?? '');
+    }
+
+    // Told either way, because a Director who does not know this will assume
+    // the person received what the screen shows them.
+    if (!sendError) {
+      sendError = 'Sent, but this project has no Brevo key, so the message came '
+        + 'from Supabase and could NOT include the password below. Pass the '
+        + 'e-mail and password on yourself.';
     }
   }
 
@@ -578,9 +677,10 @@ async function handle(req: Request): Promise<Response> {
   // auth.users has ONE confirmation_token column and ONE recovery_token column.
   // A one-time token is not remembered alongside others; it is a single slot.
   // inviteUserByEmail mints a token, writes it to that slot, and emails it.
-  // resetPasswordForEmail does the same for recovery. generateLink then mints a
-  // SECOND token for the same purpose and overwrites the slot -- so the token
+  // resetPasswordForEmail does the same for recovery. generateLink then minted a
+  // SECOND token for the same purpose and overwrote the slot -- so the token
   // sitting in the recipient's inbox was dead before they opened the message.
+  // (Past tense throughout: no token is minted anywhere in this file now.)
   // Clicking it returns error_code=otp_expired, and /join reports "this
   // invitation link has expired or has already been used", correctly. Every
   // invitation. Every person. Every time.
@@ -599,27 +699,13 @@ async function handle(req: Request): Promise<Response> {
   // When the mail did NOT go there is no token in anybody's inbox to protect,
   // so minting one here costs nothing and is the only way that person gets in.
   // That is why the fallback keeps working exactly as before.
-  if (sendError && !joinUrl) {
-    let { data: link } = await admin.auth.admin.generateLink({
-      type: 'invite',
-      email,
-      options: { data: { full_name: fullName }, redirectTo: `${site}/join` },
-    });
-    let kind = 'invite';
-    if (!link?.properties?.hashed_token) {
-      ({ data: link } = await admin.auth.admin.generateLink({
-        type: 'recovery',
-        email,
-        options: { redirectTo: `${site}/join` },
-      }));
-      kind = 'recovery';
-    }
-    const hashed = link?.properties?.hashed_token ?? '';
-    // `email_otp` passed as `?code=` selects the PKCE route, which needs a
-    // verifier the browser wrote when it STARTED the flow. A server minted this,
-    // so that route failed for everyone. `hashed_token` needs no prior state.
-    if (hashed) joinUrl = `${site}/join?token_hash=${encodeURIComponent(hashed)}&type=${kind}`;
-  }
+  // NOTHING IS MINTED HERE ANY MORE. This block used to generate a one-time
+  // token so a Director could pass on a working link when the mail failed. The
+  // account has a password now, so the thing to hand over is the address and
+  // that password -- both already in the reply below. A token minted here would
+  // be a SECOND credential for the same account, and the whole reason this
+  // function was rewritten is that one-time tokens are the fragile part.
+  if (!joinUrl) joinUrl = `${site}/login?email=${encodeURIComponent(email)}`;
 
   console.log(JSON.stringify({
     at: 'invite',
@@ -641,20 +727,30 @@ async function handle(req: Request): Promise<Response> {
       delivery: 'link',
       resent,
       link: joinUrl,
+      signInEmail: email,
+      tempPassword,
       mailNote: sendError,
       waitSeconds: waitSeconds || undefined,
     });
   }
 
-  // NO `link` HERE, DELIBERATELY. The message went, and the token that went
-  // with it is the only one that may exist. Adding a link to this reply would
-  // mean minting a second token, which is precisely the bug above.
+  // THE LINK AND THE PASSWORD COME BACK EVEN ON SUCCESS, and that used to be
+  // forbidden for a good reason that no longer applies. While the invitation
+  // carried a one-time token, replying with a link meant MINTING A SECOND ONE
+  // and killing the token already in the person's inbox. There is no token now.
+  // The address is the ordinary sign-in page and the password is the one that
+  // was emailed -- the same two facts, not a new credential -- so a Director
+  // whose member says "nothing arrived" can read them out over the phone
+  // instead of sending another invitation.
   return json({
     ok: true,
     invite_id: inviteId,
     delivery: 'email',
     via,
     resent,
+    link: joinUrl,
+    signInEmail: email,
+    tempPassword,
   });
 }
 
