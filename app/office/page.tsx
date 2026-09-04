@@ -196,7 +196,7 @@ function LiveOffice() {
 
           These are two subrooms rather than one. "Write a study" and "stock the
           shelf" are different errands, and the shelf is long. */}
-      {room === 'studies' && <LiveStudies canWrite />}
+      {room === 'studies' && <LiveStudies />}
       {room === 'library' && <LiveLibraryForGuide pairings={pairings} />}
 
       {/* PUTTING A NAME FORWARD, whichever direction it goes.

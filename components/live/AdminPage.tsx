@@ -1072,7 +1072,7 @@ export function LiveAdminPage() {
             Worth stating because it was once reported as a bug — "the admin
             cannot see the prayer" — when it was the design working. */}
         {room === 'approvals' && <LiveRecommendationsForDirector />}
-        {room === 'lessons' && <LiveStudies canWrite />}
+        {room === 'lessons' && <LiveStudies />}
         {room === 'church' && <LiveBoardReport churchName={church?.name} />}
       </div>
     </LiveAppShell>

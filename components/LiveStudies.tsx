@@ -26,6 +26,25 @@ import { Linked } from '@/components/Linked';
 import { humanError } from '@/lib/live/errors';
 import { ATTACHMENT_ACCEPT } from '@/lib/live/attachments';
 import { useKeepUp, KEEP_UP_STUDIES } from '@/lib/live/keep-up';
+import type { Role } from '@/lib/types';
+
+/**
+ * Who may write teaching material.
+ *
+ * Guides, Directors and Executive Directors. An Explorer reads every published
+ * study in their church and everything their Guide shares, and writes none of
+ * it -- the owner's decision, and the right shape: a study is something
+ * prepared for somebody, and the person it is prepared for is not preparing it.
+ *
+ * THE SAME SENTENCE AS THE DATABASE. `public.may_write_studies()` in migration
+ * `an_explorer_reads_the_studies` is the one that actually refuses. This exists
+ * so nobody is shown a button that would be refused, and the two are checked
+ * against each other by tests/an-explorer-reads-the-studies.mjs -- because two
+ * copies of a rule are two things to change and one to forget.
+ */
+export function canWriteStudies(role: Role | undefined | null): boolean {
+  return role === 'dm' || role === 'admin' || role === 'executive';
+}
 
 function message(cause: unknown): string {
   return humanError(cause, 'That did not work.');
@@ -272,8 +291,18 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
   );
 }
 
-export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
+export function LiveStudies() {
   const { profile } = useLiveSession();
+  // THE ROLE DECIDES, NOT THE CALLER. This was a `canWrite` prop each screen
+  // passed by hand, and the four call sites had already drifted: the Guide's
+  // own studies tab passed nothing, so a Guide -- somebody whose job is
+  // preparing studies -- could not start one. Meanwhile a screen could pass
+  // `canWrite` for an Explorer and hand them a form the database would refuse.
+  //
+  // One rule, read from the profile, matching `may_write_studies()` in the
+  // database. A prop that four callers guess at is four chances to get a
+  // permission wrong.
+  const canWrite = canWriteStudies(profile?.role);
   const [rows, setRows] = useState<live.LessonSeries[] | null>(null);
   const [open, setOpen] = useState('');
   const [title, setTitle] = useState('');
@@ -374,11 +403,30 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
                 // one person's edit land on seventeen other shelves from a
                 // button that looked like an ordinary edit.
                 //
-                // So the controls are for everyone, and the data layer decides
-                // WHERE the change lands: your own study is written in place, a
-                // shared one is copied to you first and your copy is what you
-                // edit from then on. See myVersionOf in lib/live/data.ts.
-                const mine = true;
+                // AN EXPLORER READS. THEY DO NOT WRITE.
+                //
+                // "For Explorers they cannot edit what the sample Lesson
+                // studies are, only EDs, Directors and Guides can do that.
+                // Explorers can only see all of the Lesson studies from the
+                // sample and what the guide provided."
+                //
+                // This was briefly `true` for everybody, on an earlier
+                // instruction that everybody should keep their own edited copy.
+                // The owner narrowed it, and the narrower shape is the better
+                // one: a study is teaching material, and the people who teach
+                // are Guides, Directors and Executive Directors. Somebody being
+                // walked with is not preparing the walk.
+                //
+                // The copy-on-first-edit machinery below stays and still
+                // matters -- a Guide correcting a church sample gets their own
+                // copy rather than rewriting it for the other forty Guides.
+                // Only who may start that has changed.
+                //
+                // NOT THE BOUNDARY. `an_explorer_reads_the_studies` is what
+                // actually refuses, and it refuses a request that never went
+                // near a screen. This only stops offering a button that would
+                // be refused, which is a courtesy, not a lock.
+                const mine = canWriteStudies(profile?.role);
                 // PUBLISHING IS THE EXCEPTION, and it is the one act here that
                 // is genuinely church-wide: it puts a study on everybody's
                 // shelf. Editing privately and publishing universally cannot

@@ -158,6 +158,9 @@ const staticChecks = [
   // The add form never asked what a link was FOR, every row drew one button
   // per person, and the shelf could not be searched at any length.
   ['the library is easy to use', 'tests/the-library-is-easy-to-use.mjs'],
+  // An Explorer reads the studies; Guides, Directors and Executive Directors
+  // write them. Two copies of one rule -- the policy and the screen.
+  ['an Explorer reads the studies', 'tests/an-explorer-reads-the-studies.mjs'],
   // Evidence on a safeguarding report, and the authorisation around it: the
   // same rule as reports_read, which deliberately keeps it from the reporter
   // too, and no delete on either the row or the stored object.
