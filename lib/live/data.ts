@@ -1537,6 +1537,47 @@ export async function listShares(pairingId: string): Promise<MaterialShare[]> {
  * did at the time they did it, and a record that quietly rewrites itself when
  * the thing it describes is deleted is not a record.
  */
+/**
+ * Correct a resource that is already on the shelf.
+ *
+ * THE GAP: `materials_edit` has been in the database since migration 0008 and
+ * NOTHING has ever called it. The library could be added to and taken from and
+ * not corrected, so a link with a typo in it, or a title nobody recognises, had
+ * exactly one remedy: delete it and type the whole thing again. On the church's
+ * starter links -- which are the ones most likely to need a correction, because
+ * nobody chose them for this congregation -- that meant losing the entry to fix
+ * a character.
+ *
+ * The address is validated here for the same reason `addMaterial` does it: so a
+ * person gets a sentence instead of a constraint violation. The database checks
+ * it too, and that is the check that counts.
+ *
+ * Who may do this is not decided here. The policy allows the person who added
+ * it and anybody who manages the church, and refuses everyone else whatever
+ * this function is asked to do.
+ */
+export async function updateMaterial(id: string, m: {
+  title: string;
+  url: string;
+  kind: MaterialKind;
+  description?: string;
+}): Promise<void> {
+  const url = m.url.trim();
+  if (!/^https?:\/\//i.test(url)) throw new Error('The address needs to start with http:// or https://');
+  if (!m.title.trim()) throw new Error('Give it a name so people know what it is.');
+
+  const { error } = await db()
+    .from('materials')
+    .update({
+      title: m.title.trim(),
+      description: m.description?.trim() || null,
+      kind: m.kind,
+      external_url: url,
+    })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
 export async function deleteMaterial(id: string): Promise<void> {
   const { error } = await db().from('materials').delete().eq('id', id);
   if (error) throw new Error(error.message);

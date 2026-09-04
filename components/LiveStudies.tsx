@@ -365,7 +365,26 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
             <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-teal-700">{t}</h3>
             <div className="mt-2 space-y-2">
               {list.map((s) => {
-                const mine = !!profile && s.author_id === profile.id;
+                // THE SCREEN WAS STRICTER THAN THE DATABASE, and the gap
+                // showed up as "the example studies have no edit or delete".
+                //
+                // This asked only "did I write it". The policy has always said
+                // `manages_church(church_id) or author_id = auth.uid()`, and
+                // author_id did not exist until migration 0038 -- so every
+                // series written before that has author_id NULL. Four of them
+                // do. `mine` was false for EVERYBODY on those, including the
+                // Director the policy would have allowed, so Rename, Publish,
+                // Delete and the whole writing panel were hidden from the one
+                // person who could have used them.
+                //
+                // Mirroring the policy rather than a subset of it is the fix.
+                // It stays a convenience and not a control: the database still
+                // refuses a write from anybody else whatever this draws.
+                const mine = !!profile && (
+                  s.author_id === profile.id
+                  || profile.role === 'admin'
+                  || profile.role === 'executive'
+                );
                 const opened = open === s.id;
                 return (
                   <div key={s.id} className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-navy/5">

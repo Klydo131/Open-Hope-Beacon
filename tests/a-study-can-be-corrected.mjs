@@ -65,5 +65,36 @@ const lessonControls = ui.slice(ui.indexOf('Edit this study'), ui.indexOf('Delet
 ok(lessonControls.length > 0 && lessonControls.includes('Attach a file'),
    'Edit comes before Delete on a study, not after it');
 
+// ---- The example studies, which had no edit and no delete ----------------
+//
+// REPORTED AS "the examples in Lesson studies have no edit or delete". The
+// controls were there; the screen was stricter than the database.
+//
+// It asked only "did I write this". The policy has always been
+// `manages_church(church_id) or author_id = auth.uid()`, and author_id did not
+// exist until migration 0038 -- so every series written before it has
+// author_id NULL. Four in this church do. The test was false for EVERYBODY on
+// those rows, including the Director the policy allows, so Rename, Publish,
+// Delete and the writing panel were hidden from the only person who could have
+// used them.
+//
+// Probed against the live policies before the fix was written: a Director may
+// edit and delete a series with a null author, and a Guide may not.
+{
+  const gate = ui.slice(ui.indexOf('const mine ='), ui.indexOf('const opened ='));
+  ok(/author_id === profile\.id/.test(gate),
+     'the person who wrote a series still gets its controls');
+  ok(/profile\.role === 'admin'/.test(gate) && /profile\.role === 'executive'/.test(gate),
+     'and so does somebody who manages the church, which is what the policy says');
+
+  // The policy is the thing being mirrored, so read it rather than trust the
+  // comment above the code.
+  const policy = read('supabase/migrations/0038_a_guide_may_write_their_own_studies.sql');
+  const edit = policy.slice(policy.indexOf('create policy ls_edit'));
+  ok(/manages_church\(church_id\) or author_id = \(select auth\.uid\(\)\)/
+       .test(edit.slice(0, 240)),
+     'and the policy it mirrors is still the two-part one it was written against');
+}
+
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');
 process.exit(bad ? 1 : 0);

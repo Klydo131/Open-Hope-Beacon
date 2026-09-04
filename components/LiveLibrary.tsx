@@ -88,6 +88,13 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
   // rather than a browser confirm() dialog, which a phone renders as a system
   // box nobody reads and iOS sometimes suppresses entirely.
   const [confirming, setConfirming] = useState('');
+  // Which row is open for correction, and the fields while it is. Editing in
+  // place rather than in a dialog: the shelf is the context, and a dialog on a
+  // phone covers the thing being described.
+  const [editing, setEditing] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editUrl, setEditUrl] = useState('');
+  const [editKind, setEditKind] = useState<live.MaterialKind>('link');
   const { profile } = useLiveSession();
 
   const load = useCallback(async () => {
@@ -109,6 +116,26 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
     finally { setBusy(false); }
   };
 
+  const startEdit = (m: live.Material) => {
+    setEditing(m.id);
+    setEditTitle(m.title);
+    setEditUrl(m.external_url);
+    setEditKind(m.kind);
+    setError(''); setFlash('');
+  };
+
+  const saveEdit = async (m: live.Material) => {
+    if (!editTitle.trim() || !editUrl.trim() || busy) return;
+    setBusy(true); setError(''); setFlash('');
+    try {
+      await live.updateMaterial(m.id, { title: editTitle, url: editUrl, kind: editKind });
+      setEditing('');
+      setFlash(`Saved the changes to \u201c${editTitle.trim()}\u201d.`);
+      await load();
+    } catch (cause) { setError(message(cause)); }
+    finally { setBusy(false); }
+  };
+
   const remove = async (m: live.Material) => {
     setError(''); setFlash('');
     try {
@@ -119,10 +146,13 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
     } catch (cause) { setError(message(cause)); }
   };
 
-  // WHOSE RESOURCE IT IS. A convenience, not a control: `materials_drop` lets
-  // the person who added it and anybody who manages the church remove one, and
-  // the database refuses everybody else whatever this draws.
-  const canRemove = (m: live.Material) =>
+  // WHOSE RESOURCE IT IS. A convenience, not a control: `materials_edit` and
+  // `materials_drop` both let the person who added it and anybody who manages
+  // the church act on it, and the database refuses everybody else whatever this
+  // draws. One rule for both buttons, because the two policies are the same
+  // sentence and a screen that split them would drift from the database the
+  // first time one of them changed.
+  const canManage = (m: live.Material) =>
     !!profile && (m.added_by === profile.id || profile.role === 'admin' || profile.role === 'executive');
 
   const share = async (materialId: string, pairingId: string, who: string) => {
@@ -208,7 +238,17 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
                 Share with {p.ds_name.split(' ')[0]}
               </button>
             ))}
-            {canRemove(m) && (confirming === m.id ? (
+            {canManage(m) && editing !== m.id && (
+              /* Before the red one, and quiet. Correcting a typo is the far
+                 commoner errand and the reversible one. */
+              <button
+                onClick={() => startEdit(m)}
+                className="rounded-full px-3 py-1 text-xs font-semibold text-navy underline"
+              >
+                Edit
+              </button>
+            )}
+            {canManage(m) && (confirming === m.id ? (
               <>
                 <button
                   onClick={() => void remove(m)}
@@ -233,6 +273,51 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
                 Remove from library
               </button>
             ))}
+            {editing === m.id && (
+              <div className="mt-1 w-full rounded-xl bg-white p-3 ring-1 ring-navy/10">
+                <label className="block text-xs font-semibold text-navy" htmlFor={`edit-title-${m.id}`}>
+                  What it is called
+                </label>
+                <input
+                  id={`edit-title-${m.id}`}
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="tap mt-1 w-full rounded-xl bg-slate-50 px-3 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
+                />
+                <label className="mt-2 block text-xs font-semibold text-navy" htmlFor={`edit-url-${m.id}`}>
+                  Address
+                </label>
+                <input
+                  id={`edit-url-${m.id}`}
+                  value={editUrl}
+                  onChange={(e) => setEditUrl(e.target.value)}
+                  inputMode="url"
+                  placeholder="https://…"
+                  className="tap mt-1 w-full rounded-xl bg-slate-50 px-3 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
+                />
+                <label className="mt-2 block text-xs font-semibold text-navy" htmlFor={`edit-kind-${m.id}`}>
+                  Kind
+                </label>
+                <select
+                  id={`edit-kind-${m.id}`}
+                  value={editKind}
+                  onChange={(e) => setEditKind(e.target.value as live.MaterialKind)}
+                  className="tap mt-1 w-full rounded-xl bg-slate-50 px-3 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
+                >
+                  <option value="link">Link</option>
+                  <option value="video">Video</option>
+                  <option value="audio">Audio or music</option>
+                  <option value="pdf">PDF</option>
+                  <option value="image">Picture</option>
+                </select>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button onClick={() => void saveEdit(m)} disabled={!editTitle.trim() || !editUrl.trim() || busy}>
+                    {busy ? 'Saving…' : 'Save the changes'}
+                  </Button>
+                  <Button variant="ghost" onClick={() => setEditing('')}>Cancel</Button>
+                </div>
+              </div>
+            )}
           </Item>
         ))}
       </div>
