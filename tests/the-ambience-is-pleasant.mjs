@@ -130,13 +130,58 @@ const ok = (c, m) => {
 // The play button on the bar starts the first sound in the list without asking.
 // If that is the flat one, the app's default answer to "play something" is its
 // worst sound.
-ok(VOICES[0].kind === 'calm', 'the first sound in the list is a calm one');
-ok(VOICES[0].cutoff || VOICES[0].sway,
-   'and it is shaped rather than raw, so the default is the gentlest thing here');
+ok(VOICES[0].kind !== 'masking', 'the first sound in the list is never a masking one');
+ok(VOICES[0].cutoff || VOICES[0].sway || VOICES[0].engine,
+   'and it is shaped or played rather than raw, so the default is the gentlest thing here');
 {
-  const lastCalm = VOICES.map((v) => v.kind).lastIndexOf('calm');
-  const firstMask = VOICES.map((v) => v.kind).indexOf('masking');
-  ok(lastCalm < firstMask, 'the two kinds are not interleaved');
+  // The groups must not interleave, or a heading would appear twice.
+  const order = VOICES.map((v) => v.kind);
+  const seen = [];
+  for (const k of order) if (seen[seen.length - 1] !== k) seen.push(k);
+  ok(seen.length === new Set(seen).size,
+     `each kind appears in one run rather than scattered (${seen.join(' \u2192 ')})`);
+  ok(order.lastIndexOf('calm') < order.indexOf('masking'),
+     'and the masking ones come last, furthest from where a thumb starts');
+}
+
+// ---------------------------------------------------------------------------
+// 3b. NOTES, NOT ONLY NOISE
+// ---------------------------------------------------------------------------
+//
+// "These are all White noises, and most of it sounds static with flavor that I
+// would feel like I am really outside or in nature. Can you add some very soft
+// music and some chimes?"
+//
+// A fair verdict, and one that filtering cannot answer: shaping a hiss makes a
+// nicer hiss. These voices do not loop a buffer at all -- they schedule struck
+// notes or hold a drifting chord -- so there is nothing to repeat and nothing
+// for the ear to lock onto.
+{
+  const gentle = VOICES.filter((v) => v.kind === 'gentle');
+  ok(gentle.length >= 2, `there are sounds made of notes rather than noise (${gentle.length})`);
+  ok(gentle.some((v) => v.engine === 'chime'), 'at least one is chimes');
+  ok(gentle.some((v) => v.engine === 'pad'), 'and at least one is soft music');
+  ok(KINDS.some((k) => k.kind === 'gentle' && /music|chime/i.test(k.heading)),
+     'and they have a heading of their own, apart from the white noise');
+
+  for (const v of gentle) {
+    ok(Array.isArray(v.notes) && v.notes.length >= 4,
+       `\u201c${v.label}\u201d has notes to play (${v.notes?.length ?? 0})`);
+    // EVERY INTERVAL MUST BE CONSONANT. A pentatonic set has no semitone steps,
+    // which is what lets a chime pick at random and never sound sour. A minor
+    // second is roughly a 1.059 ratio; nothing here may come that close.
+    const hz = [...(v.notes ?? [])].sort((a, b) => a - b);
+    let tightest = Infinity;
+    for (let i = 1; i < hz.length; i += 1) {
+      // Fold into one octave so notes an octave apart are not counted as close.
+      let lo = hz[i - 1]; let high = hz[i];
+      while (high / lo >= 2) high /= 2;
+      if (high < lo) { const t = lo; lo = high; high = t; }
+      tightest = Math.min(tightest, high / lo);
+    }
+    ok(tightest > 1.09,
+       `and no two of them are a semitone apart (closest ratio ${tightest.toFixed(3)})`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -254,6 +299,51 @@ for (const v of VOICES.filter((x) => x.kind === 'calm')) {
   for (const v of VOICES) {
     ok(!(v.trim && !v.cutoff), `“${v.label}” is not simply turned up above the others`);
   }
+}
+
+// ---------------------------------------------------------------------------
+// 5c. THE PLAYED VOICES ARE BUILT AND TORN DOWN PROPERLY
+// ---------------------------------------------------------------------------
+//
+// A chime is a chain of timeouts and a pad is a set of oscillators that run
+// forever. Both keep going after the sound is meant to have stopped unless
+// something cancels them, and the failure is invisible: the audio graph is
+// disconnected, so you hear nothing while the timers keep firing and a new set
+// accumulates every time somebody changes sound.
+{
+  const player = read('lib/player.tsx');
+
+  ok(/engine === 'chime'/.test(player), 'the player knows how to strike a chime');
+  ok(/engine === 'pad'/.test(player), 'and how to hold a chord');
+
+  // A FIXED INTERVAL WOULD BE A METRONOME, which is the one thing a wind chime
+  // never is. Each wait has to be its own length.
+  ok(/setTimeout\(/.test(player) && /0\.45 \+ Math\.random\(\)/.test(player),
+     'and the gap between strikes is randomised rather than fixed');
+  ok(!/setInterval\(/.test(player), 'so nothing beats in time');
+
+  // NOT `indexOf('const strike')`. `striker` is declared above stopNoise and
+  // starts with the same eleven characters, so that finds the REF and slices
+  // backwards to an empty string -- three assertions passing on nothing. The
+  // same prefix trap as addLesson/addLessonSeries earlier today; include
+  // enough of the declaration to be unambiguous.
+  const stop = player.slice(
+    player.indexOf('const stopNoise'),
+    player.indexOf('const strike = useCallback'),
+  );
+  ok(stop.length > 100, `the teardown block was actually found (${stop.length} chars)`);
+  ok(/clearTimeout\(striker\.current\)/.test(stop), 'the striker is cancelled when the sound stops');
+  ok(/for \(const osc of held\.current\)/.test(stop), 'and every held oscillator is stopped');
+  ok(/held\.current = \[\]/.test(stop), 'and the list is emptied, so they cannot be stopped twice');
+
+  // exponentialRampToValueAtTime is undefined at zero. Ramping to 0 throws and
+  // the note never sounds.
+  ok(!/exponentialRampToValueAtTime\(0,/.test(player),
+     'no envelope ramps to exactly zero, which is undefined and throws');
+  ok(/0\.0001/.test(player), 'they aim just above silence instead');
+
+  // A struck bell needs an inharmonic partial or it is a test tone.
+  ok(/2\.76/.test(player), 'a chime has an inharmonic partial, so it reads as metal not as a flute');
 }
 
 // ---------------------------------------------------------------------------

@@ -2324,12 +2324,28 @@ export async function updateLessonSeries(
   const title = m.title.trim();
   if (!title) throw new Error('A series needs a title.');
   const mineId = await myVersionOf(id);
-  const { error } = await db().from('lesson_series').update({
+  // ASK FOR THE ROW BACK, AND SAY SO IF NOTHING CHANGED.
+  //
+  // Without `.select()`, an UPDATE that matches NO ROWS is not an error --
+  // PostgREST returns success and the screen says "Saved". So any policy that
+  // filters the row out produces the worst possible outcome: a person presses
+  // Save, sees no error, and nothing has changed. From their side that is not
+  // a permission problem, it is "this app does not work", and there is nothing
+  // on screen for them to report.
+  //
+  // Reported as exactly that: "Explorers can't edit any Lesson studies." The
+  // database turned out to allow it for all forty-four of them, which is
+  // precisely why a silent no-op is so expensive to diagnose -- it looks
+  // identical whether the cause is permissions, a stale build, or a bug here.
+  const { data, error } = await db().from('lesson_series').update({
     title,
     topic: m.topic.trim() || 'General',
     description: m.description?.trim() || null,
-  }).eq('id', mineId);
+  }).eq('id', mineId).select('id');
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error('That did not save. Close the series, open it again, and retry.');
+  }
   return mineId;
 }
 
@@ -2538,10 +2554,15 @@ export async function updateLesson(
   const title = m.title.trim();
   if (!title) throw new Error('A study needs a title.');
   const mineId = await myVersionOfLesson(id);
-  const { error } = await db().from('lessons').update({
+  // Same reason as updateLessonSeries: a zero-row update is a silent success,
+  // and a silent success is indistinguishable from a broken app.
+  const { data, error } = await db().from('lessons').update({
     title, body: m.body.trim(),
-  }).eq('id', mineId);
+  }).eq('id', mineId).select('id');
   if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error('That did not save. Close the series, open it again, and retry.');
+  }
 }
 
 /**

@@ -44,9 +44,37 @@ export type NoiseColour = 'white' | 'pink' | 'brown';
  * that brightness is the working part, not a defect. Putting them in one list
  * meant the second kind kept being picked by people who wanted the first.
  */
-export type AmbienceKind = 'calm' | 'masking';
+export type AmbienceKind = 'gentle' | 'calm' | 'masking';
+
+/**
+ * HOW a voice is made, which is not the same question as what it is for.
+ *
+ * `noise` fills a two-second buffer with arithmetic and loops it forever.
+ * Everything here used to be that, and the owner's verdict on the result was
+ * fair: "These are all White noises, and most of it sounds static with flavor."
+ * Filtering and swelling a hiss makes it a nicer hiss. It does not make it
+ * music, and no amount of shaping will.
+ *
+ * `chime` and `pad` are not looped at all. They SCHEDULE notes -- a struck bell
+ * with a long decay, or a held chord that drifts -- so nothing repeats, because
+ * there is no loop to repeat. That is the whole difference between something
+ * you stop hearing and something you keep noticing.
+ */
+export type VoiceEngine = 'noise' | 'chime' | 'pad';
 
 export interface Voice {
+  /** How it is made. Absent means the looped-noise engine, which most are. */
+  engine?: VoiceEngine;
+  /**
+   * The notes a chime strikes or a pad holds, in Hz.
+   *
+   * A PENTATONIC SET, AND THAT IS THE WHOLE TRICK. Five notes with no semitone
+   * steps between them: any two of them played together sound intentional, so
+   * a chime that picks at random can never land on a sour interval. It is why
+   * real wind chimes are tuned this way, and it is what lets this be random
+   * without ever needing a composer.
+   */
+  notes?: number[];
   /**
    * Stable, and saved inside playlists as `ambience-<key>`. RENAMING ONE
    * ORPHANS EVERY PLAYLIST THAT HOLDS IT, silently -- the entry stays in the
@@ -103,6 +131,42 @@ export interface Voice {
  * to be the one that is hardest to dislike.
  */
 export const VOICES: Voice[] = [
+  // A MAJOR PENTATONIC ON C, two octaves. C D E G A -- no semitone steps, so
+  // any two of these sound deliberate together and a random pick cannot land
+  // on a sour interval.
+  {
+    key: 'chimes',
+    label: 'Wind chimes',
+    blurb: 'Single notes, struck now and then, fading slowly.',
+    kind: 'gentle',
+    colour: 'pink',
+    icon: '🎐',
+    engine: 'chime',
+    notes: [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51],
+  },
+  {
+    key: 'quiet-song',
+    label: 'Quiet song',
+    blurb: 'A soft chord that drifts and changes. No words, nothing to follow.',
+    kind: 'gentle',
+    colour: 'pink',
+    icon: '🎵',
+    engine: 'pad',
+    // A ninth chord, low and open: C E G D. Wide spacing keeps it from
+    // sounding thick, and the ninth is what stops it sounding like a hymn
+    // anybody is expected to recognise.
+    notes: [130.81, 164.81, 196.00, 293.66],
+  },
+  {
+    key: 'chapel-bells',
+    label: 'Far-off bells',
+    blurb: 'Deeper, further away, and further apart.',
+    kind: 'gentle',
+    colour: 'pink',
+    icon: '🔔',
+    engine: 'chime',
+    notes: [196.00, 220.00, 261.63, 293.66, 329.63, 392.00],
+  },
   {
     key: 'pink',
     label: 'Rainfall',
@@ -162,7 +226,12 @@ export const VOICES: Voice[] = [
 
 /** What each group is called, and why somebody would want it. */
 export const KINDS: { kind: AmbienceKind; heading: string; note: string }[] = [
-  { kind: 'calm', heading: 'Calm', note: 'Made to sit with while you read or pray.' },
+  {
+    kind: 'gentle',
+    heading: 'Music and chimes',
+    note: 'Notes rather than noise. Nothing repeats, and there is nothing to follow.',
+  },
+  { kind: 'calm', heading: 'Weather', note: 'Rain, surf and wind. Made to sit with while you read or pray.' },
   {
     kind: 'masking',
     heading: 'White noise',

@@ -39,7 +39,7 @@
 import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
-import { KINDS, VOICES, noiseBuffer, voiceFor, type AmbienceKind } from '@/lib/noise';
+import { KINDS, VOICES, noiseBuffer, voiceFor, type AmbienceKind, type Voice } from '@/lib/noise';
 
 export function playerCredit(): string {
   return (process.env.NEXT_PUBLIC_PLAYER_CREDIT ?? '').trim();
@@ -135,6 +135,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   // stopped and disconnected when the sound stops -- an oscillator left
   // running is a leak that survives the next twenty presses of play.
   const shape = useRef<{ nodes: AudioNode[]; lfo: OscillatorNode | null }>({ nodes: [], lfo: null });
+  // A chime has no buffer and no loop: it schedules struck notes on a timer.
+  // The timer has to be cleared when the sound stops or it keeps striking
+  // into a graph that is no longer connected to anything.
+  // A CHAIN OF TIMEOUTS, NOT AN INTERVAL, because each wait is a different
+  // length -- a fixed interval would be a metronome, which is the one thing a
+  // wind chime never is.
+  const striker = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const held = useRef<OscillatorNode[]>([]);
 
   const [current, setCurrent] = useState<Track | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -163,6 +171,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // The oscillator driving the swell is a second source and does not stop
     // when the noise does. Left running it keeps the AudioContext awake and
     // accumulates one more every time somebody changes sound.
+    if (striker.current) { clearTimeout(striker.current); striker.current = null; }
+    for (const osc of held.current) {
+      try { osc.stop(); } catch { /* already stopped */ }
+    }
+    held.current = [];
     try { shape.current.lfo?.stop(); } catch { /* already stopped */ }
     for (const node of shape.current.nodes) {
       try { node.disconnect(); } catch { /* already gone */ }
@@ -192,6 +205,43 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
    * A voice with neither stage is played raw, which is what "Plain hush" is
    * for and the reason it is still here.
    */
+  /**
+   * A struck note that rings and fades. The whole of a wind chime.
+   *
+   * TWO OSCILLATORS, NOT ONE. A single sine is a test tone; what makes a struck
+   * bell sound struck is a second, quieter partial slightly out of tune with
+   * the first, so the two drift against each other as they fade. That beating
+   * is most of the character, and it costs one extra oscillator.
+   *
+   * The envelope is the rest of it: almost no attack, then a long exponential
+   * fall. `exponentialRampToValueAtTime` cannot reach zero -- it is undefined
+   * at 0 -- so it aims at a value near silence and the note is stopped after.
+   */
+  const strike = useCallback((c: AudioContext, to: AudioNode, hz: number, level: number) => {
+    const now = c.currentTime;
+    const ring = 3.5 + Math.random() * 2.5;
+
+    const shell = c.createGain();
+    shell.gain.setValueAtTime(0.0001, now);
+    shell.gain.exponentialRampToValueAtTime(level, now + 0.01);
+    shell.gain.exponentialRampToValueAtTime(0.0001, now + ring);
+    shell.connect(to);
+
+    for (const [ratio, share] of [[1, 1], [2.76, 0.28]] as const) {
+      const osc = c.createOscillator();
+      osc.type = 'sine';
+      // 2.76 is roughly the first inharmonic partial of a struck bar, which is
+      // why it reads as metal rather than as a flute.
+      osc.frequency.value = hz * ratio;
+      const part = c.createGain();
+      part.gain.value = share;
+      osc.connect(part);
+      part.connect(shell);
+      osc.start(now);
+      osc.stop(now + ring + 0.1);
+    }
+  }, []);
+
   const startNoise = useCallback((key: string, v: number) => {
     if (!ctx.current) {
       const Ctor = window.AudioContext
@@ -207,12 +257,89 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // a voice was renamed should sound like something.
     const voice = voiceFor(key) ?? VOICES[0];
 
+    if (!gain.current) { gain.current = c.createGain(); gain.current.connect(c.destination); }
+    gain.current.gain.value = v;
+
+    // -----------------------------------------------------------------------
+    // NOTES RATHER THAN NOISE
+    // -----------------------------------------------------------------------
+    //
+    // "These are all White noises, and most of it sounds static with flavor."
+    // That was a fair verdict and no amount of filtering answers it: shaping a
+    // hiss makes a nicer hiss. These two engines do not loop a buffer at all,
+    // so there is nothing to repeat and nothing for the ear to lock onto.
+    if (voice.engine === 'chime' && voice.notes?.length) {
+      const notes = voice.notes;
+      // Quiet, because a bell is a transient and a transient at the same
+      // nominal level as a continuous hiss sounds twice as loud.
+      const level = 0.16;
+      const gap = voice.key === 'chapel-bells' ? 6500 : 3200;
+      const ring = () => {
+        const hz = notes[Math.floor(Math.random() * notes.length)];
+        strike(c, gain.current as AudioNode, hz, level);
+      };
+      ring();
+      // A FIXED INTERVAL WOULD BE A METRONOME, which is the one thing a wind
+      // chime never is. Each wait is randomised around the gap so the pattern
+      // never settles into something countable.
+      const tick = () => {
+        striker.current = setTimeout(() => {
+          ring();
+          tick();
+        }, gap * (0.45 + Math.random()));
+      };
+      tick();
+      source.current = null;
+      shape.current = { nodes: [], lfo: null };
+      return;
+    }
+
+    if (voice.engine === 'pad' && voice.notes?.length) {
+      // A HELD CHORD THAT DRIFTS. Each note gets its own slow swell at its own
+      // rate, so they move against one another and the chord never sits still.
+      // Rates are deliberately unrelated -- 0.031, 0.043, 0.057 -- so the whole
+      // never lines back up into a pulse.
+      const made: AudioNode[] = [];
+      voice.notes.forEach((hz, i) => {
+        const osc = c.createOscillator();
+        osc.type = 'triangle';   // one soft harmonic more than a sine, no edge
+        osc.frequency.value = hz;
+
+        const swell = c.createGain();
+        const depth = 0.055;
+        swell.gain.value = depth;
+
+        const lfo = c.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.031 + i * 0.012;
+        const amount = c.createGain();
+        amount.gain.value = depth * 0.7;
+        lfo.connect(amount);
+        amount.connect(swell.gain);
+        lfo.start();
+
+        // A gentle low-pass so the triangle's upper harmonics never get glassy.
+        const soft = c.createBiquadFilter();
+        soft.type = 'lowpass';
+        soft.frequency.value = 900;
+        soft.Q.value = 0.6;
+
+        osc.connect(soft);
+        soft.connect(swell);
+        swell.connect(gain.current as AudioNode);
+        osc.start();
+
+        held.current.push(osc, lfo);
+        made.push(swell, amount, soft);
+      });
+      source.current = null;
+      shape.current = { nodes: made, lfo: null };
+      return;
+    }
+
     const node = c.createBufferSource();
     node.buffer = noiseBuffer(c, voice.colour);
     node.loop = true;
-
-    if (!gain.current) { gain.current = c.createGain(); gain.current.connect(c.destination); }
-    gain.current.gain.value = v;
 
     const made: AudioNode[] = [];
     let tail: AudioNode = node;
@@ -268,7 +395,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     node.start();
     source.current = node;
     shape.current = { nodes: made, lfo };
-  }, [stopNoise]);
+  }, [stopNoise, strike]);
 
   const play = useCallback((track: Track, nextQueue?: Track[]) => {
     if (nextQueue) setQueue(nextQueue);

@@ -145,5 +145,36 @@ ok(lessonControls.length > 0 && lessonControls.includes('Attach a file'),
      'and publishing to the church stays with the people who answer for it');
 }
 
+// ---------------------------------------------------------------------------
+// A SAVE THAT CHANGES NOTHING MUST SAY SO
+// ---------------------------------------------------------------------------
+//
+// Reported: "Explorers can't edit any Lesson studies." Probed against the live
+// database, every one of the forty-four CAN -- copy the series, copy the
+// lessons, rename their copy, read it back. The database was never the
+// problem.
+//
+// What made it impossible to diagnose is this: without `.select()`, an UPDATE
+// that matches NO ROWS is not an error. PostgREST returns success, the screen
+// says nothing went wrong, and nothing changed. From the other side of the
+// glass that is not a permission message, it is "this app does not work", and
+// there is nothing on screen to report.
+//
+// So both updates ask for the row back and refuse to call it saved when none
+// came. Whatever the cause -- a policy, a stale build, a bug here -- the person
+// now gets a sentence instead of silence.
+{
+  const src = read('lib/live/data.ts');
+  for (const name of ['updateLessonSeries', 'updateLesson(']) {
+    const at = src.indexOf(`export async function ${name}`);
+    const body = src.slice(at, src.indexOf('\nexport ', at + 1));
+    const label = name.replace('(', '');
+    ok(at !== -1, `${label} exists`);
+    ok(/\.select\('id'\)/.test(body), `${label} asks for the row back`);
+    ok(/data\.length === 0/.test(body), `${label} notices when nothing was written`);
+    ok(/did not save/.test(body), `${label} says so in words a person can act on`);
+  }
+}
+
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');
 process.exit(bad ? 1 : 0);
