@@ -18,6 +18,7 @@ import { BeaconSpinner } from '@/components/BeaconLoader';
 import { humanError } from '@/lib/live/errors';
 import { useKeepUp, KEEP_UP_LIBRARY } from '@/lib/live/keep-up';
 import { useLiveSession } from '@/lib/live/session';
+import { shareItem } from '@/lib/share';
 
 const message = (cause: unknown) =>
   humanError(cause, 'Something went wrong.');
@@ -32,6 +33,26 @@ function Err({ msg }: { msg: string }) {
     <p className="mt-3 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 ring-1 ring-red-200">
       {msg}
     </p>
+  );
+}
+
+/**
+ * Hand a resource to somebody who is not in the app.
+ *
+ * The library holds LINKS, so this needs no upload and no hosting: it passes
+ * the address to the phone's own share sheet — WhatsApp, Messenger, a text,
+ * another device — and where there is no share sheet (most desktops) it copies
+ * the address and says so. Being told is the point; a button that silently did
+ * nothing is the failure lib/share.ts exists to have fixed once.
+ */
+function SendOut({ onSend }: { onSend: () => void }) {
+  return (
+    <button
+      onClick={onSend}
+      className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy ring-1 ring-black/10"
+    >
+      Share outside the app
+    </button>
   );
 }
 
@@ -95,10 +116,21 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
   const [editTitle, setEditTitle] = useState('');
   const [editUrl, setEditUrl] = useState('');
   const [editKind, setEditKind] = useState<live.MaterialKind>('link');
+  // What this person has taken off their own shelf, and whether they are
+  // looking at it. A hide with no way back is a trap, and an undo that lives
+  // only in the seconds after the tap is barely an undo at all.
+  const [putAway, setPutAway] = useState<live.Material[]>([]);
+  const [showPutAway, setShowPutAway] = useState(false);
   const { profile } = useLiveSession();
 
   const load = useCallback(async () => {
-    try { setItems(await live.listMaterials()); setError(''); }
+    try {
+      const [shelf, off] = await Promise.all([
+        live.listMaterials(),
+        live.listHiddenMaterials(),
+      ]);
+      setItems(shelf); setPutAway(off); setError('');
+    }
     catch (cause) { setItems([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
@@ -139,11 +171,48 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
   const remove = async (m: live.Material) => {
     setError(''); setFlash('');
     try {
-      await live.deleteMaterial(m.id);
+      const what = await live.deleteMaterial(m.id);
       setConfirming('');
-      setFlash(`Removed “${m.title}” from the library.`);
+      // SAY WHICH OF THE TWO HAPPENED. One took it from everybody and the other
+      // took it from one shelf, and whoever pressed the button is the person
+      // who most needs to know which.
+      setFlash(what === 'deleted'
+        ? `Removed \u201c${m.title}\u201d from the church library.`
+        : `Took \u201c${m.title}\u201d off your shelf. It is still there for everybody else.`);
       await load();
     } catch (cause) { setError(message(cause)); }
+  };
+
+  /** Put back something taken off this person's own shelf. */
+  const putBack = async (m: live.Material) => {
+    setError(''); setFlash('');
+    try {
+      await live.restoreMaterial(m.id);
+      setFlash(`Put \u201c${m.title}\u201d back on your shelf.`);
+      await load();
+    } catch (cause) { setError(message(cause)); }
+  };
+
+  /**
+   * Send it out of the app: WhatsApp, Messenger, a text, another device.
+   *
+   * The library holds links, so this shares a link and needs no upload and no
+   * hosting. Where the device has no share sheet -- most desktops -- shareItem
+   * copies the address instead, and the person is TOLD that is what happened
+   * rather than left wondering whether the button did anything, which is the
+   * failure lib/share.ts exists to have fixed once.
+   */
+  const sendOut = async (m: live.Material) => {
+    setError(''); setFlash('');
+    const result = await shareItem({
+      title: m.title,
+      text: m.description || m.title,
+      url: m.external_url,
+    });
+    if (result === 'shared') setFlash(`Sent \u201c${m.title}\u201d.`);
+    else if (result === 'copied') setFlash('The address is copied. Paste it wherever you like.');
+    else if (result === 'cancelled') setFlash('');
+    else setError('This browser cannot share for you. Tap the title to open it, then share from there.');
   };
 
   // WHOSE RESOURCE IT IS. A convenience, not a control: `materials_edit` and
@@ -238,6 +307,12 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
                 Share with {p.ds_name.split(' ')[0]}
               </button>
             ))}
+            {/* OUT OF THE APP, and on every row for every role. The buttons
+                above hand a resource to somebody the church has already paired
+                you with; this one hands it to a mother, a neighbour, a group
+                chat — the people an Explorer actually wants to send a good
+                link to, none of whom have accounts. */}
+            <SendOut onSend={() => void sendOut(m)} />
             {canManage(m) && editing !== m.id && (
               /* Before the red one, and quiet. Correcting a typo is the far
                  commoner errand and the reversible one. */
@@ -248,8 +323,20 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
                 Edit
               </button>
             )}
-            {canManage(m) && (confirming === m.id ? (
+            {/* REMOVE IS FOR EVERYBODY, and does two different things.
+                Leadership and whoever added it delete the row; anybody else
+                takes it off their OWN shelf and leaves it on everybody's. That
+                asymmetry is not a UI trick — deleteMaterial asks the database
+                which of the two it is allowed to do — but a person is entitled
+                to know which one they are about to press, so the sentence
+                below says it BEFORE the tap and the flash repeats it after. */}
+            {confirming === m.id ? (
               <>
+                <p className="w-full text-xs font-semibold text-gray-600">
+                  {canManage(m)
+                    ? 'This takes it out of the church library, for everybody.'
+                    : 'This takes it off your shelf only. Everybody else keeps it, and you can put it back.'}
+                </p>
                 <button
                   onClick={() => void remove(m)}
                   className="rounded-full bg-white px-3 py-1 text-xs font-bold text-red-700 ring-1 ring-red-200"
@@ -270,9 +357,9 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
                 onClick={() => setConfirming(m.id)}
                 className="rounded-full px-3 py-1 text-xs font-semibold text-red-700 underline"
               >
-                Remove from library
+                {canManage(m) ? 'Remove from library' : 'Take it off my shelf'}
               </button>
-            ))}
+            )}
             {editing === m.id && (
               <div className="mt-1 w-full rounded-xl bg-white p-3 ring-1 ring-navy/10">
                 <label className="block text-xs font-semibold text-navy" htmlFor={`edit-title-${m.id}`}>
@@ -321,6 +408,35 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
           </Item>
         ))}
       </div>
+
+      {/* THE WAY BACK. Only drawn when there is something to come back to, so
+          nobody who has never hidden anything is asked to think about it. */}
+      {putAway.length > 0 && (
+        <div className="mt-4 rounded-2xl bg-slate-50 p-4 ring-1 ring-navy/5">
+          <button
+            onClick={() => setShowPutAway((v) => !v)}
+            className="text-sm font-semibold text-navy underline underline-offset-2"
+          >
+            {showPutAway
+              ? 'Hide these again'
+              : `You have taken ${putAway.length} off your shelf. Show ${putAway.length === 1 ? 'it' : 'them'}.`}
+          </button>
+          {showPutAway && (
+            <div className="mt-3 space-y-2">
+              {putAway.map((m) => (
+                <Item key={m.id} m={m}>
+                  <button
+                    onClick={() => void putBack(m)}
+                    className="rounded-full bg-white px-3 py-1 text-xs font-bold text-navy ring-1 ring-black/10"
+                  >
+                    Put it back
+                  </button>
+                </Item>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       </div>
     </Card>
   );
@@ -332,6 +448,24 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
 export function LiveSharedWithMe() {
   const [items, setItems] = useState<live.Material[] | null>(null);
   const [error, setError] = useState('');
+  const [flash, setFlash] = useState('');
+
+  // AN EXPLORER WITH NO GUIDE YET SEES ONLY THIS CARD -- the shelf above it is
+  // drawn beside a pairing and there is not one. So the way to hand a link to
+  // somebody outside the app has to be here too, or the person the church has
+  // not paired yet is the one person who cannot pass anything on.
+  const sendOut = async (m: live.Material) => {
+    setError(''); setFlash('');
+    const result = await shareItem({
+      title: m.title,
+      text: m.description || m.title,
+      url: m.external_url,
+    });
+    if (result === 'shared') setFlash(`Sent \u201c${m.title}\u201d.`);
+    else if (result === 'copied') setFlash('The address is copied. Paste it wherever you like.');
+    else if (result === 'cancelled') setFlash('');
+    else setError('This browser cannot share for you. Tap the title to open it, then share from there.');
+  };
 
   useEffect(() => {
     let alive = true;
@@ -358,8 +492,13 @@ export function LiveSharedWithMe() {
       </div>
       <div className="p-5 sm:p-6">
       <Err msg={error} />
+      {flash && <p className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{flash}</p>}
       <div className="mt-3 space-y-2">
-        {items.map((m) => <Item key={m.id} m={m} />)}
+        {items.map((m) => (
+          <Item key={m.id} m={m}>
+            <SendOut onSend={() => void sendOut(m)} />
+          </Item>
+        ))}
       </div>
       </div>
     </Card>

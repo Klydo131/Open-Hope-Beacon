@@ -1413,13 +1413,27 @@ export interface MaterialShare {
  * for an Explorer it is only what was shared with them. Same query either way —
  * the policy decides, not this function.
  */
+/**
+ * The shelf as THIS person has it, which is not the same shelf for everybody.
+ *
+ * Anything they have taken off their own shelf is left out. Filtered here and
+ * not in a policy on purpose: the row is genuinely readable by them -- the
+ * church published it -- so this is a question of what to SHOW, and a policy
+ * that hid a church resource from one member would be a much larger claim.
+ */
 export async function listMaterials(): Promise<Material[]> {
-  const { data, error } = await db()
+  const supabase = db();
+  const { data, error } = await supabase
     .from('materials')
     .select('*')
     .order('created_at', { ascending: false });
   if (error) throw new Error(error.message);
-  return (data ?? []) as Material[];
+  const rows = (data ?? []) as Material[];
+
+  // Only this person's own rows come back: mh_read allows no others.
+  const { data: hidden } = await supabase.from('material_hides').select('material_id');
+  const off = new Set(((hidden ?? []) as { material_id: string }[]).map((h) => h.material_id));
+  return off.size ? rows.filter((m) => !off.has(m.id)) : rows;
 }
 
 /** Add one to the church library. Guides and leaders only, by policy. */
@@ -1578,8 +1592,72 @@ export async function updateMaterial(id: string, m: {
   if (error) throw new Error(error.message);
 }
 
-export async function deleteMaterial(id: string): Promise<void> {
-  const { error } = await db().from('materials').delete().eq('id', id);
+/**
+ * Take a resource off the shelf.
+ *
+ * YOURS IS DELETED. One somebody else added is taken off YOUR shelf and left on
+ * everybody else's, because the library is one shared shelf and a Guide
+ * pressing Remove on the church's link would otherwise take it from sixteen
+ * other people without knowing they had.
+ *
+ * Leadership deletes outright, which is the moderation the policy already
+ * grants them and the only way a genuinely bad link ever leaves the church.
+ */
+export async function deleteMaterial(id: string): Promise<'deleted' | 'hidden'> {
+  const supabase = db();
+  const me_id = await uid();
+
+  const { data: row } = await supabase
+    .from('materials').select('added_by').eq('id', id).maybeSingle();
+  const { data: me } = await supabase
+    .from('profiles').select('role').eq('id', me_id).maybeSingle();
+  const mine = (row as { added_by: string } | null)?.added_by === me_id;
+  const leads = ['admin', 'executive'].includes(String((me as { role?: string } | null)?.role ?? ''));
+
+  if (mine || leads) {
+    const { error } = await supabase.from('materials').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    return 'deleted';
+  }
+
+  // Pressing it twice is not an error, it is the same wish expressed again.
+  const { error } = await supabase
+    .from('material_hides').upsert({ material_id: id, user_id: me_id });
+  if (error) throw new Error(error.message);
+  return 'hidden';
+}
+
+/**
+ * What you have taken off your own shelf.
+ *
+ * WHY THIS EXISTS AT ALL. Remove is offered to everybody now, and for anybody
+ * who is not the owner or leadership it hides rather than deletes. A hide with
+ * no way back is a trap: one mis-tap on the church's starter link and that
+ * person never sees it again, on any device, with nothing on screen to suggest
+ * anything is missing. This is what makes the undo reachable tomorrow and not
+ * only in the seconds after the tap.
+ */
+export async function listHiddenMaterials(): Promise<Material[]> {
+  const supabase = db();
+  // mh_read returns this person's rows and nobody else's, so no filter here.
+  const { data: hidden, error: hidErr } = await supabase
+    .from('material_hides').select('material_id');
+  if (hidErr) throw new Error(hidErr.message);
+  const ids = ((hidden ?? []) as { material_id: string }[]).map((h) => h.material_id);
+  if (!ids.length) return [];
+
+  const { data, error } = await supabase
+    .from('materials').select('*').in('id', ids)
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Material[];
+}
+
+/** Put back something taken off your own shelf. The undo for the above. */
+export async function restoreMaterial(id: string): Promise<void> {
+  const me_id = await uid();
+  const { error } = await db().from('material_hides')
+    .delete().eq('material_id', id).eq('user_id', me_id);
   if (error) throw new Error(error.message);
 }
 

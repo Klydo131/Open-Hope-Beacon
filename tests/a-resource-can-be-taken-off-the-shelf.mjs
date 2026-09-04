@@ -39,8 +39,9 @@ ok(/live\.deleteMaterial\(/.test(ui), 'the library screen calls deleteMaterial')
 ok(/Remove from library/.test(ui), 'and a row offers "Remove from library"');
 
 // ---- It asks before it does it ----
-// Removing cannot be undone, and the shelf is a dense list where the controls
-// sit side by side. A single tap that destroys something is the wrong shape.
+// The shelf is a dense list where the controls sit side by side, and for a
+// deleter the tap cannot be undone. A single tap that destroys something is
+// the wrong shape, so the first one asks.
 ok(/Yes, remove it/.test(ui), 'the first tap asks rather than removing');
 ok(/Keep it/.test(ui), 'and there is a way to say no');
 const askIndex = ui.indexOf('Remove from library');
@@ -54,7 +55,7 @@ ok(askIndex !== -1 && doIndex !== -1 && doIndex < askIndex,
 const removeProps = ui.slice(Math.max(0, ui.lastIndexOf('<button', askIndex)), askIndex);
 ok(/text-red-\d{3}/.test(removeProps), 'the remove control is red');
 
-// ---- And it is only drawn for somebody who may actually do it ----
+// ---- Who it is drawn for, and what it does for each of them ----
 ok(/const canManage = /.test(ui), 'the screen works out whether this person may act on one');
 ok(/added_by === profile\.id/.test(ui), 'the person who added it may');
 ok(/profile\.role === 'admin'/.test(ui) && /profile\.role === 'executive'/.test(ui),
@@ -94,14 +95,145 @@ ok(/A convenience, not a control/.test(ui),
      'and the policy behind it still allows the owner and whoever manages the church');
 }
 
-// ONE RULE FOR BOTH BUTTONS. The two policies are the same sentence, so a
-// screen that gated Edit and Remove separately would drift from the database
-// the first time one of them changed.
-ok(/const canManage = /.test(ui), 'Edit and Remove are gated by one rule');
-ok(!/const canRemove = /.test(ui), 'and not by two that can disagree');
-ok((ui.match(/canManage\(m\)/g) || []).length >= 2, 'which both buttons ask');
+// ONE RULE, ONE PLACE. `canManage` decides whether Edit is drawn at all and
+// which of two things Remove is about to do. Two separate predicates would
+// drift from each other and from the database the first time one changed.
+ok(/const canManage = /.test(ui), 'one rule answers both controls');
+ok(!/const canRemove = /.test(ui), 'and not two that can disagree');
+ok((ui.match(/canManage\(m\)/g) || []).length >= 2, 'which both of them ask');
 ok(/startEdit\(m\)/.test(ui) && />\s*Edit\s*</.test(ui),
    'and the Edit control is on the row it corrects');
+
+// ===========================================================================
+// REMOVE IS FOR EVERYBODY, and does two different things
+// ===========================================================================
+//
+// THE GAP THIS CLOSES. Remove was drawn only for the person who added a
+// resource and for church leadership, which is exactly who `materials_drop`
+// permits to DELETE. But the shelf is shared: sixteen people see the same
+// rows, most of them added by somebody else, and for all of those people the
+// library was a list that could only grow. There was no control at all — not a
+// refused one, an absent one.
+//
+// So Remove is on every row now and asks the database which of two things it
+// is allowed to do: delete the row (yours, or you lead the church), or take it
+// off YOUR shelf and leave it on everybody else's. A Guide pressing Remove on
+// the church's starter link must not take it from fifteen other people without
+// knowing they had.
+{
+  // ---- The data layer knows the difference and says which happened ----
+  ok(/export async function deleteMaterial\(id: string\): Promise<'deleted' \| 'hidden'>/.test(data),
+     'deleteMaterial reports which of the two it did');
+  const fn = data.slice(data.indexOf("export async function deleteMaterial("));
+  const body = fn.slice(0, fn.indexOf('\nexport ', 1));
+  ok(/return 'deleted'/.test(body) && /return 'hidden'/.test(body),
+     'both outcomes are reachable');
+  ok(/material_hides'\)\s*\.upsert\(/.test(body),
+     'the second one writes a hide rather than deleting somebody else’s row');
+  // Pressing Remove twice is the same wish expressed again, not an error.
+  ok(/\.upsert\(/.test(body) && !/\.insert\(\{ material_id/.test(body),
+     'and pressing it twice is not an error');
+
+  // ---- The screen draws it for everybody ----
+  // The whole point: the control must NOT sit behind `canManage(m) && (`.
+  ok(!/\{canManage\(m\) && \(confirming/.test(ui),
+     'the Remove control is not gated on being allowed to delete');
+  ok(/\{confirming === m\.id \? \(/.test(ui),
+     'it is drawn for every row and every role');
+  ok(/Take it off my shelf/.test(ui),
+     'and says "Take it off my shelf" to somebody who cannot delete it');
+  ok(/Remove from library/.test(ui),
+     'while whoever may delete it still reads "Remove from library"');
+
+  // ---- And says which one it is about to do BEFORE the tap ----
+  // The flash afterwards was not enough. By the time it is read the row is
+  // already gone, and the person cannot tell whether they took it from
+  // themselves or from the whole church.
+  ok(/takes it out of the church library, for everybody/.test(ui),
+     'the confirmation names the consequence for a deleter');
+  ok(/takes it off your shelf only/.test(ui),
+     'and names the different consequence for everybody else');
+  ok(/from the church library\./.test(ui) && /off your shelf\./.test(ui),
+     'and the message afterwards distinguishes them too');
+}
+
+// ===========================================================================
+// A HIDE WITH NO WAY BACK IS A TRAP
+// ===========================================================================
+//
+// Hiding is per-person and permanent: it survives a reload, a new device, a
+// reinstall. One mis-tap on the church's starter link and that person never
+// sees it again, with nothing on screen to suggest anything is missing. The
+// undo has to be reachable tomorrow, not only in the seconds after the tap.
+{
+  ok(/export async function listHiddenMaterials/.test(data),
+     'there is a way to list what you have taken off your own shelf');
+  ok(/export async function restoreMaterial/.test(data), 'and a way to put it back');
+  const fn = data.slice(data.indexOf('export async function restoreMaterial'));
+  const body = fn.slice(0, fn.indexOf('\nexport ', 1));
+  ok(/material_hides'\)[\s\S]{0,60}\.delete\(\)/.test(body),
+     'which deletes the hide rather than re-adding the resource');
+  ok(/\.eq\('user_id', me_id\)/.test(body),
+     'and only this person’s own hide');
+
+  ok(/live\.listHiddenMaterials\(\)/.test(ui), 'the screen loads them');
+  ok(/live\.restoreMaterial\(/.test(ui), 'and offers to put one back');
+  ok(/Put it back/.test(ui), 'in those words');
+  // Nobody who has never hidden anything should be made to think about it.
+  ok(/putAway\.length > 0 && \(/.test(ui),
+     'and the whole section is absent until there is something in it');
+
+  // ---- The rows are this person’s and nobody else’s ----
+  const dir = 'supabase/migrations';
+  const file = fs.readdirSync(path.join(root, dir))
+    .filter((f) => f.includes('a_shelf_of_your_own')).sort().pop();
+  ok(!!file, `the migration is present (${file ?? 'MISSING'})`);
+  const sql = file ? read(`${dir}/${file}`) : '';
+  ok(/create table if not exists public\.material_hides/.test(sql), 'material_hides exists');
+  ok(/enable row level security/.test(sql), 'with RLS on');
+  // Every policy on it is scoped to the caller. A hide readable by others
+  // would leak what somebody chose not to look at, which is nobody's business.
+  const policies = sql.match(/create policy[\s\S]*?;/g) || [];
+  ok(policies.length >= 3, 'read, write and drop are all policed');
+  ok(policies.every((p) => /user_id = \(select auth\.uid\(\)\)/.test(p)),
+     'and every one of them is scoped to the person asking');
+}
+
+// ===========================================================================
+// SHARING OUTSIDE THE APP
+// ===========================================================================
+//
+// The buttons on a row hand a resource to somebody the church has already
+// paired you with. That is not who most links are for: a mother, a neighbour,
+// a group chat — none of whom have accounts, and all of whom were unreachable.
+//
+// The library holds LINKS, so this costs nothing: the address goes to the
+// phone's own share sheet, and where there is no share sheet it is copied and
+// the person is TOLD it was copied. A button that silently did nothing is the
+// exact failure lib/share.ts was written to have fixed once.
+{
+  ok(/from '@\/lib\/share'/.test(ui), 'the library screen uses the shared share helper');
+  ok(!/navigator\.share\(/.test(ui) && !/navigator\.clipboard/.test(ui),
+     'and does not hand-roll the share sheet or the clipboard again');
+  ok(/Share outside the app/.test(ui), 'a row offers to share outside the app');
+  ok(/url: m\.external_url/.test(ui), 'passing the address, which is the whole resource');
+
+  // Every outcome shareItem can return has something to say. 'cancelled' is
+  // deliberately silent — the person chose to stop and does not need telling.
+  ok(/=== 'shared'/.test(ui) && /=== 'copied'/.test(ui) && /=== 'cancelled'/.test(ui),
+     'and every outcome the helper can return is answered');
+  ok(/copied\. Paste it wherever you like/.test(ui),
+     'including the desktop case, where the address is copied instead');
+
+  // BOTH CARDS. An Explorer with no Guide yet sees only "Shared with you" —
+  // the shelf above it is drawn beside a pairing and there is not one. Leave
+  // the control off that card and the one person the church has not paired is
+  // the one person who cannot pass anything on.
+  ok((ui.match(/<SendOut onSend=/g) || []).length >= 2,
+     'and it is on the Explorer’s card as well as the shelf');
+  const shared = ui.slice(ui.indexOf('export function LiveSharedWithMe'));
+  ok(/<SendOut onSend=/.test(shared), 'specifically inside LiveSharedWithMe');
+}
 
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');
 process.exit(bad ? 1 : 0);
