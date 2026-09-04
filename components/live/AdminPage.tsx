@@ -11,6 +11,7 @@ import { LiveReportsForDirector } from '@/components/LiveSafeguarding';
 import { LiveTrialRoom, LiveCourt } from '@/components/LiveTrialRoom';
 import { LiveGuilds, LiveChurchPulse } from '@/components/LiveGuilds';
 import { LiveSecurityAudit } from '@/components/LiveSecurityAudit';
+import { LiveFeedbackInbox } from '@/components/LiveFeedbackInbox';
 import { LiveLibraryRecord } from '@/components/LiveLibraryRecord';
 import type { Profile, Role } from '@/lib/types';
 import { LiveAppShell } from '@/components/LiveAppShell';
@@ -168,6 +169,7 @@ export function LiveAdminPage() {
     { id: 'lessons', label: 'Lessons' },
     { id: 'safeguarding', label: 'Safeguarding' },
     { id: 'security', label: 'Security' },
+    { id: 'feedback', label: 'Feedback' },
     { id: 'church', label: 'Church' },
   ];
   // Stored per role, so a Director and an Executive keep their own places.
@@ -499,6 +501,8 @@ export function LiveAdminPage() {
             Who appears in each is decided in the database. A Director reads the
             library record for Guides and Explorers; an Executive Director reads
             it for Directors and sees nothing about a Guide or an Explorer. */}
+        {room === 'feedback' && <LiveFeedbackInbox />}
+
         {room === 'security' && (
           <>
             <LiveSecurityAudit />

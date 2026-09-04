@@ -11,6 +11,8 @@ import {
 import type { Session } from '@supabase/supabase-js';
 import { onSignedOut, readBrowserSession } from '@/lib/supabase/client';
 import * as live from '@/lib/live/data';
+import { setFeedbackSink } from '@/lib/backend/feedback';
+import { churchFeedbackSink, flushKeptFeedback } from '@/lib/live/feedback-sink';
 import { verdictOnFailure } from '@/lib/live/session-verdict';
 import type { Profile, Role } from '@/lib/types';
 
@@ -78,6 +80,20 @@ export function LiveSessionProvider({ children }: { children: React.ReactNode })
         if (!alive) return;
         setProfile(mine);
         setError(mine ? '' : 'Your account profile is not ready yet.');
+
+        // FEEDBACK NOW HAS SOMEWHERE TO GO, and until this line it did not.
+        //
+        // `setFeedbackSink` was never called anywhere in the app, so every
+        // message people wrote went to the default sink -- which saves to their
+        // own browser and says so -- and the church never saw one of them.
+        // Installed here rather than in a provider because it needs a signed-in
+        // session to know which church, and this is the one place that knows a
+        // session has just been established.
+        setFeedbackSink(churchFeedbackSink);
+        // And anything this device kept while there was nowhere to send it goes
+        // now. Quiet: nobody asked for it, and a failure leaves the message
+        // exactly where it already was.
+        void flushKeptFeedback().catch(() => {});
       } catch (cause) {
         if (!alive) return;
 

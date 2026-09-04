@@ -2258,6 +2258,65 @@ export async function restoreLessonSeries(originalId: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Feedback, which for months went to the sender's own browser and nowhere else.
+// ---------------------------------------------------------------------------
+
+export interface Feedback {
+  id: string;
+  category: string;
+  message: string;
+  contact: string | null;
+  page: string | null;
+  build: string | null;
+  created_at: string;
+  handled_at: string | null;
+  author_id: string | null;
+  author_name?: string | null;
+}
+
+/**
+ * What people have sent, newest first.
+ *
+ * Leadership sees everything; anybody else sees only what they sent
+ * themselves, which is what the policy says and is not re-decided here.
+ */
+export async function listFeedback(): Promise<Feedback[]> {
+  const { data, error } = await db()
+    .from('feedback')
+    .select('id, category, message, contact, page, build, created_at, handled_at, author_id, profiles!feedback_author_id_fkey(full_name)')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: String(r.id),
+    category: String(r.category),
+    message: String(r.message),
+    contact: (r.contact as string) ?? null,
+    page: (r.page as string) ?? null,
+    build: (r.build as string) ?? null,
+    created_at: String(r.created_at),
+    handled_at: (r.handled_at as string) ?? null,
+    author_id: (r.author_id as string) ?? null,
+    author_name: (r.profiles as { full_name?: string } | null)?.full_name ?? null,
+  }));
+}
+
+/**
+ * Mark one as dealt with, so the list is a queue rather than a wall.
+ *
+ * There is deliberately no way to delete feedback. A message a leader can
+ * quietly remove is a message nobody can rely on having been heard.
+ */
+export async function markFeedbackHandled(id: string, handled: boolean): Promise<void> {
+  const me_id = await uid();
+  const { error } = await db().from('feedback').update({
+    handled_at: handled ? new Date().toISOString() : null,
+    handled_by: handled ? me_id : null,
+  }).eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
 // Lessons inside a series, and the handouts attached to them.
 // ---------------------------------------------------------------------------
 
