@@ -365,22 +365,25 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
             <h3 className="text-sm font-bold uppercase tracking-[0.12em] text-teal-700">{t}</h3>
             <div className="mt-2 space-y-2">
               {list.map((s) => {
-                // THE SCREEN WAS STRICTER THAN THE DATABASE, and the gap
-                // showed up as "the example studies have no edit or delete".
+                // EVERYBODY MAY CHANGE A STUDY. NOBODY CHANGES IT FOR
+                // ANYBODY ELSE.
                 //
-                // This asked only "did I write it". The policy has always said
-                // `manages_church(church_id) or author_id = auth.uid()`, and
-                // author_id did not exist until migration 0038 -- so every
-                // series written before that has author_id NULL. Four of them
-                // do. `mine` was false for EVERYBODY on those, including the
-                // Director the policy would have allowed, so Rename, Publish,
-                // Delete and the whole writing panel were hidden from the one
-                // person who could have used them.
+                // This asked "did I write it", which left the church's shared
+                // studies editable by nobody. Widening it to Directors was the
+                // first attempt and was wrong in the other direction: it made
+                // one person's edit land on seventeen other shelves from a
+                // button that looked like an ordinary edit.
                 //
-                // Mirroring the policy rather than a subset of it is the fix.
-                // It stays a convenience and not a control: the database still
-                // refuses a write from anybody else whatever this draws.
-                const mine = !!profile && (
+                // So the controls are for everyone, and the data layer decides
+                // WHERE the change lands: your own study is written in place, a
+                // shared one is copied to you first and your copy is what you
+                // edit from then on. See myVersionOf in lib/live/data.ts.
+                const mine = true;
+                // PUBLISHING IS THE EXCEPTION, and it is the one act here that
+                // is genuinely church-wide: it puts a study on everybody's
+                // shelf. Editing privately and publishing universally cannot
+                // share a gate, so this one stays with whoever wrote it.
+                const canPublish = !!profile && (
                   s.author_id === profile.id
                   || profile.role === 'admin'
                   || profile.role === 'executive'
@@ -425,14 +428,16 @@ export function LiveStudies({ canWrite = false }: { canWrite?: boolean }) {
                           >
                             Rename
                           </button>
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void act(() => live.setSeriesPublished(s.id, !s.is_published))}
-                            className="text-xs font-semibold text-navy underline"
-                          >
-                            {s.is_published ? 'Unpublish' : 'Publish'}
-                          </button>
+                          {canPublish && (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void act(() => live.setSeriesPublished(s.id, !s.is_published))}
+                              className="text-xs font-semibold text-navy underline"
+                            >
+                              {s.is_published ? 'Unpublish' : 'Publish'}
+                            </button>
+                          )}
                           <button
                             type="button"
                             disabled={busy}

@@ -65,35 +65,84 @@ const lessonControls = ui.slice(ui.indexOf('Edit this study'), ui.indexOf('Delet
 ok(lessonControls.length > 0 && lessonControls.includes('Attach a file'),
    'Edit comes before Delete on a study, not after it');
 
-// ---- The example studies, which had no edit and no delete ----------------
+// ---- Everybody may change a study, nobody changes it for anybody else ----
 //
-// REPORTED AS "the examples in Lesson studies have no edit or delete". The
-// controls were there; the screen was stricter than the database.
+// TWO REPORTS AND TWO WRONG ANSWERS BEFORE THIS ONE.
 //
-// It asked only "did I write this". The policy has always been
-// `manages_church(church_id) or author_id = auth.uid()`, and author_id did not
-// exist until migration 0038 -- so every series written before it has
-// author_id NULL. Four in this church do. The test was false for EVERYBODY on
-// those rows, including the Director the policy allows, so Rename, Publish,
-// Delete and the writing panel were hidden from the only person who could have
-// used them.
+// The screen asked "did I write it", so the church's shared studies were
+// editable by nobody: author_id did not exist until migration 0038 and every
+// series written before it carries NULL. Widening the gate to Directors fixed
+// that and broke something worse -- one person's edit landed on seventeen other
+// shelves, from a button that looked like an ordinary edit. The ask that
+// settled it was "privately, based on their own account, not universal".
 //
-// Probed against the live policies before the fix was written: a Director may
-// edit and delete a series with a null author, and a Guide may not.
+// So a shared study is a TEMPLATE. The first edit copies it to the person
+// making it, and their edits land on their copy for ever after. Probed against
+// the live policies, and rolled back:
+//
+//   guide:    make_copy=ALLOWED  original=untouched  lessons 6/6 still there
+//   explorer: copy=ALLOWED  adds_lesson=ALLOWED  publish=refused
+//             edits_shared=refused
 {
+  const data = read('lib/live/data.ts');
   const gate = ui.slice(ui.indexOf('const mine ='), ui.indexOf('const opened ='));
-  ok(/author_id === profile\.id/.test(gate),
-     'the person who wrote a series still gets its controls');
-  ok(/profile\.role === 'admin'/.test(gate) && /profile\.role === 'executive'/.test(gate),
-     'and so does somebody who manages the church, which is what the policy says');
+  ok(/const mine = true;/.test(gate),
+     'the controls are drawn for everybody, because everybody may change their own copy');
 
-  // The policy is the thing being mirrored, so read it rather than trust the
-  // comment above the code.
-  const policy = read('supabase/migrations/0038_a_guide_may_write_their_own_studies.sql');
-  const edit = policy.slice(policy.indexOf('create policy ls_edit'));
-  ok(/manages_church\(church_id\) or author_id = \(select auth\.uid\(\)\)/
-       .test(edit.slice(0, 240)),
-     'and the policy it mirrors is still the two-part one it was written against');
+  // PUBLISHING IS THE EXCEPTION and must not share the gate: it is the one act
+  // on this screen that reaches the whole church.
+  ok(/const canPublish = /.test(ui), 'publishing has its own narrower gate');
+  ok(/\{canPublish && \(/.test(ui), 'and the Publish control asks it');
+  ok(/author_id === profile\.id/.test(ui.slice(ui.indexOf('const canPublish ='))),
+     'which starts from who wrote it');
+
+  // The whole of "privately" is one function, so it is named and checked.
+  const copy = data.slice(data.indexOf('export async function myVersionOf'));
+  const body = copy.slice(0, copy.indexOf('\nexport '));
+  ok(/if \(original\.author_id === me_id\) return original\.id;/.test(body),
+     'a study you wrote is written in place, with no copy made');
+  ok(/copied_from: original\.id/.test(body), 'and a shared one is copied to you');
+  ok(/is_published: false/.test(body), 'the copy is private, which is the point');
+  ok(/from\('lessons'\)[\s\S]{0,200}position/.test(body),
+     'and the studies inside come with it, positions kept');
+
+  // EVERY WRITE PATH GOES THROUGH IT. One that does not is a way to change the
+  // church's copy by accident, which is the bug this replaced.
+  // The OPENING PAREN is part of the search, because `addLesson` is a prefix of
+  // `addLessonSeries` and `deleteLesson` of `deleteLessonSeries`, both of which
+  // are declared earlier in the file. Without it this read the wrong function
+  // and reported a fix missing that was three lines further down.
+  for (const fn of ['updateLessonSeries', 'updateLesson', 'addLesson', 'deleteLesson']) {
+    const f = data.slice(data.indexOf(`export async function ${fn}(`));
+    ok(/myVersionOf/.test(f.slice(0, f.indexOf('\nexport '))),
+       `${fn} writes to your version, not the shared one`);
+  }
+
+  // Deleting a shared study hides it for you rather than removing it from
+  // everybody, which is not yours to do.
+  const del = data.slice(data.indexOf('export async function deleteLessonSeries'));
+  const delBody = del.slice(0, del.indexOf('\nexport '));
+  ok(/author_id === me_id/.test(delBody) && /\.delete\(\)/.test(delBody),
+     'your own study is really deleted');
+  // THE INSERT SPECIFICALLY. `is_hidden: true` appears twice in this function,
+  // once on the update branch for somebody who already has a copy, so matching
+  // the bare string passed even with the insert's copy of it deleted.
+  ok(/\.insert\(\{[\s\S]{0,400}copied_from: row\.id,[\s\S]{0,80}is_hidden: true/.test(delBody),
+     'and a shared one is hidden for you alone, by a marker pointing at it');
+  ok(!/\.delete\(\)[\s\S]{0,60}eq\('id', row\.id\)/.test(delBody),
+     'and is never deleted out from under the rest of the church');
+
+  // And the list has to honour both, or the shelf shows the same study twice.
+  const list = data.slice(data.indexOf('export async function listLessonSeries'));
+  const listBody = list.slice(0, list.indexOf('\nexport '));
+  ok(/replaced\.has\(r\.id\)/.test(listBody), 'a template you have replaced is not shown as well');
+  ok(/!r\.is_hidden/.test(listBody), 'and one you put away stays away');
+
+  // The policy that lets an Explorer keep a copy, and stops them publishing it.
+  const mig = read('supabase/migrations/20260904090000_a_study_is_yours_to_change.sql');
+  ok(/author_id = \(select auth\.uid\(\)\)/.test(mig), 'a series may only be written as yourself');
+  ok(/not is_published[\s\S]{0,120}manages_church/.test(mig),
+     'and publishing to the church stays with the people who answer for it');
 }
 
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');

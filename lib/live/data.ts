@@ -2021,6 +2021,10 @@ export interface LessonSeries {
   description: string | null; topic: string; is_published: boolean; created_at: string;
   /** Who wrote it. Null on series made before Guides could write their own. */
   author_id: string | null;
+  /** The shared study this replaces, for its author alone. See migration 20260904090000. */
+  copied_from: string | null;
+  /** A copy that exists only to say its author does not want the template. */
+  is_hidden: boolean;
 }
 
 /** One study inside a series. The body is the lesson; files hang off it. */
@@ -2039,11 +2043,98 @@ export interface LessonAssignment {
   assigned_by: string; completed_at: string | null; created_at: string;
 }
 
+/**
+ * The studies this person should see, which is not the same list for everybody.
+ *
+ * A shared study is a TEMPLATE. Once somebody has taken their own copy of one,
+ * they should see theirs and not the original, or the shelf shows them the same
+ * study twice and only one of them answers to their edits. And a template they
+ * have put away should not come back.
+ *
+ * Filtered here rather than in a policy on purpose. The rows are all genuinely
+ * readable by this person -- the original is published to the church and the
+ * copy is their own -- so this is a question of what to SHOW, and a policy that
+ * hid a published study from one member would be a much larger claim than the
+ * one being made.
+ */
 export async function listLessonSeries(): Promise<LessonSeries[]> {
   const { data, error } = await db().from('lesson_series').select('*')
     .order('topic', { ascending: true });
   if (error) throw new Error(error.message);
-  return (data ?? []) as LessonSeries[];
+  const rows = (data ?? []) as LessonSeries[];
+  const me_id = await uid();
+
+  const replaced = new Set(
+    rows.filter((r) => r.author_id === me_id && r.copied_from).map((r) => r.copied_from as string),
+  );
+  return rows.filter((r) => !r.is_hidden && !replaced.has(r.id));
+}
+
+/**
+ * The id of THIS PERSON'S version of a study, making one if they have none.
+ *
+ * The whole of "edit it privately" is this function. A study somebody wrote is
+ * theirs and is returned unchanged. A shared study is copied -- the series and
+ * every lesson in it, positions kept -- and from then on their edits land on
+ * their copy while the original stays exactly as the church published it.
+ *
+ * The copy is not published. It is visible to its author through ls_read and to
+ * nobody else, which is what "privately" has to mean to be worth saying.
+ */
+export async function myVersionOf(seriesId: string): Promise<string> {
+  const supabase = db();
+  const me_id = await uid();
+
+  const { data: series, error } = await supabase
+    .from('lesson_series').select('*').eq('id', seriesId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!series) throw new Error('That study is no longer there.');
+  const original = series as LessonSeries;
+  if (original.author_id === me_id) return original.id;
+
+  // Already taken one? The unique index makes this at most one row, so a second
+  // press cannot leave somebody with two versions and no way to tell them apart.
+  const { data: had } = await supabase
+    .from('lesson_series').select('id')
+    .eq('copied_from', seriesId).eq('author_id', me_id).maybeSingle();
+  if (had) return (had as { id: string }).id;
+
+  const { data: made, error: makeErr } = await supabase.from('lesson_series').insert({
+    church_id: original.church_id,
+    title: original.title,
+    topic: original.topic,
+    description: original.description,
+    author_id: me_id,
+    is_published: false,
+    copied_from: original.id,
+  }).select('id').single();
+  if (makeErr) throw new Error(makeErr.message);
+  const mineId = (made as { id: string }).id;
+
+  // The lessons come with it, or the copy is an empty shelf with a familiar
+  // name on it. Positions are kept so "the third study" is still the third.
+  const { data: lessons } = await supabase
+    .from('lessons').select('title, body, position')
+    .eq('series_id', seriesId).order('position', { ascending: true });
+  const rows = (lessons ?? []) as { title: string; body: string; position: number }[];
+  if (rows.length) {
+    const { error: copyErr } = await supabase.from('lessons').insert(
+      rows.map((l) => ({
+        series_id: mineId,
+        church_id: original.church_id,
+        author_id: me_id,
+        title: l.title,
+        body: l.body,
+        position: l.position,
+      })),
+    );
+    // A copy with no lessons is worse than none: it looks finished and is not.
+    if (copyErr) {
+      await supabase.from('lesson_series').delete().eq('id', mineId);
+      throw new Error(copyErr.message);
+    }
+  }
+  return mineId;
 }
 
 export async function addLessonSeries(
@@ -2086,21 +2177,83 @@ export async function setSeriesPublished(id: string, published: boolean): Promis
  * policy still decides, and a Guide editing somebody else's series gets no rows
  * back rather than a change.
  */
+/**
+ * Rename a study. Yours if it is yours, your copy of it if it is not.
+ *
+ * Returns the id that was actually written, which the screen needs: after the
+ * first edit of a shared study the person is looking at a different row, and a
+ * screen still pointing at the original would show their change vanish.
+ */
 export async function updateLessonSeries(
   id: string, m: { title: string; topic: string; description?: string | null },
-): Promise<void> {
+): Promise<string> {
   const title = m.title.trim();
   if (!title) throw new Error('A series needs a title.');
+  const mineId = await myVersionOf(id);
   const { error } = await db().from('lesson_series').update({
     title,
     topic: m.topic.trim() || 'General',
     description: m.description?.trim() || null,
-  }).eq('id', id);
+  }).eq('id', mineId);
+  if (error) throw new Error(error.message);
+  return mineId;
+}
+
+/**
+ * Put a study away.
+ *
+ * YOURS IS DELETED. A shared one is not, because it is not yours to take off
+ * seventeen other people's shelves -- it is hidden for you, by way of a copy
+ * that holds nothing but that fact. The church's version stays exactly where it
+ * was for everybody who has not made the same choice.
+ */
+export async function deleteLessonSeries(id: string): Promise<void> {
+  const supabase = db();
+  const me_id = await uid();
+
+  const { data: series } = await supabase
+    .from('lesson_series').select('id, church_id, title, topic, author_id').eq('id', id).maybeSingle();
+  const row = series as { id: string; church_id: string; title: string; topic: string; author_id: string | null } | null;
+  if (!row) return;
+
+  if (row.author_id === me_id) {
+    const { error } = await supabase.from('lesson_series').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  // Already have a copy of it? Then hiding it is a flag on the copy rather than
+  // a second row, or the unique index would refuse the insert.
+  const { data: had } = await supabase
+    .from('lesson_series').select('id').eq('copied_from', id).eq('author_id', me_id).maybeSingle();
+  if (had) {
+    const { error } = await supabase.from('lesson_series')
+      .update({ is_hidden: true }).eq('id', (had as { id: string }).id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  const { error } = await supabase.from('lesson_series').insert({
+    church_id: row.church_id,
+    title: row.title,
+    topic: row.topic,
+    author_id: me_id,
+    is_published: false,
+    copied_from: row.id,
+    is_hidden: true,
+  });
   if (error) throw new Error(error.message);
 }
 
-export async function deleteLessonSeries(id: string): Promise<void> {
-  const { error } = await db().from('lesson_series').delete().eq('id', id);
+/** Put back a study that was hidden, which is the whole undo for the above. */
+export async function restoreLessonSeries(originalId: string): Promise<void> {
+  const supabase = db();
+  const me_id = await uid();
+  const { data: had } = await supabase
+    .from('lesson_series').select('id').eq('copied_from', originalId)
+    .eq('author_id', me_id).eq('is_hidden', true).maybeSingle();
+  if (!had) return;
+  const { error } = await supabase.from('lesson_series').delete().eq('id', (had as { id: string }).id);
   if (error) throw new Error(error.message);
 }
 
@@ -2117,6 +2270,13 @@ export async function listLessons(seriesId: string): Promise<Lesson[]> {
   return (data ?? []) as Lesson[];
 }
 
+/**
+ * Add a study to a series. To YOUR version of it, if the series is shared.
+ *
+ * Without this the series could be edited privately and added to universally,
+ * which is the worst of both: somebody tidying their own copy would post a new
+ * study into seventeen other people's shelves without being told they had.
+ */
 export async function addLesson(
   seriesId: string, m: { title: string; body: string; position?: number },
 ): Promise<string> {
@@ -2124,8 +2284,9 @@ export async function addLesson(
   const me_id = await uid();
   const { data: me } = await supabase.from('profiles').select('church_id').eq('id', me_id).maybeSingle();
   if (!me?.church_id) throw new Error('Your account is not in a church yet.');
+  const mineSeries = await myVersionOf(seriesId);
   const { data, error } = await supabase.from('lessons').insert({
-    series_id: seriesId, church_id: me.church_id, author_id: me_id,
+    series_id: mineSeries, church_id: me.church_id, author_id: me_id,
     title: m.title.trim(), body: m.body.trim(), position: m.position ?? 0,
   }).select('id').single();
   if (error) throw new Error(error.message);
@@ -2145,19 +2306,60 @@ export async function addLesson(
  * managing the church. The empty-title guard is here rather than in the
  * component so it holds for every caller.
  */
+/**
+ * The lesson in THIS PERSON'S version of whatever series a lesson belongs to.
+ *
+ * Matched by `position`, which is the only thing that survives a copy and means
+ * the same on both sides: the third study is still the third study. Ids cannot
+ * be used because the copy's rows are new rows, and titles cannot because the
+ * point of the exercise is that somebody is about to change one.
+ *
+ * Returns the id to write, having made the copy if this is the first edit.
+ */
+async function myVersionOfLesson(lessonId: string): Promise<string> {
+  const supabase = db();
+  const me_id = await uid();
+
+  const { data: lesson, error } = await supabase
+    .from('lessons').select('id, series_id, position, author_id').eq('id', lessonId).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!lesson) throw new Error('That study is no longer there.');
+  const row = lesson as { id: string; series_id: string | null; position: number; author_id: string };
+  if (row.author_id === me_id) return row.id;
+
+  // A lesson with no series cannot be copied anywhere sensible, and one that is
+  // not yours is then not yours to change.
+  if (!row.series_id) throw new Error('That study belongs to somebody else.');
+
+  const mineSeries = await myVersionOf(row.series_id);
+  const { data: twin } = await supabase
+    .from('lessons').select('id').eq('series_id', mineSeries).eq('position', row.position).maybeSingle();
+  if (!twin) throw new Error('That study could not be copied. Try opening the series again.');
+  return (twin as { id: string }).id;
+}
+
+/** Correct a study. Yours, or your copy of a shared one. */
 export async function updateLesson(
   id: string, m: { title: string; body: string },
 ): Promise<void> {
   const title = m.title.trim();
   if (!title) throw new Error('A study needs a title.');
+  const mineId = await myVersionOfLesson(id);
   const { error } = await db().from('lessons').update({
     title, body: m.body.trim(),
-  }).eq('id', id);
+  }).eq('id', mineId);
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Remove a study from a series.
+ *
+ * On a shared series this copies it first and deletes from the copy, so the
+ * church's version keeps all of its studies and this person's version does not.
+ */
 export async function deleteLesson(id: string): Promise<void> {
-  const { error } = await db().from('lessons').delete().eq('id', id);
+  const mineId = await myVersionOfLesson(id);
+  const { error } = await db().from('lessons').delete().eq('id', mineId);
   if (error) throw new Error(error.message);
 }
 
