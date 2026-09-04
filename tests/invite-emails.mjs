@@ -38,16 +38,20 @@ const ROLES = ['ds', 'dm', 'admin', 'executive'];
 // hostname anywhere in the tree, because a fork that inherits it inherits a
 // wrong address in a place nobody thinks to look. Any absolute URL proves the
 // same property here.
-const URL_ = 'https://church.example.org/join?token_hash=abc123&type=invite';
+// NO LONGER A TOKEN. The invitation carries a password, so the address in the
+// message is the ordinary sign-in page with the person's own e-mail in it.
+const URL_ = 'https://church.example.org/login?email=someone%40example.org';
 const APP_URL = 'https://church.example.org';
 const CHURCH = 'Open Hope Beacon Demo Church';
+const SIGN_IN_EMAIL = 'someone@example.org';
+const TEMP_PASSWORD = 'coral-anchor-cedar-482';
 
 // ---------------------------------------------------------------------------
 // Every role renders, and renders differently.
 // ---------------------------------------------------------------------------
 const bodies = {};
 for (const role of ROLES) {
-  const html = inviteHtml(role, CHURCH, URL_, APP_URL);
+  const html = inviteHtml(role, CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD);
   bodies[role] = html;
   ok(typeof html === 'string' && html.length > 800, `${role}: renders a real message`);
 
@@ -74,9 +78,9 @@ for (const role of ROLES) {
   // Accepting is the only step that expires, works once, and cannot be done
   // later from anywhere else. Installing has no deadline and is explained inside
   // the app. So the thing with a deadline goes first.
-  ok(html.indexOf('Accept your invitation') < html.indexOf('Safari on iPhone or iPad'),
-     `${role}: puts the invitation before the install steps`);
-  ok(html.indexOf('Accept your invitation') < html.indexOf('Next: install Hope Beacon'),
+  ok(html.indexOf('Sign in to Hope Beacon') < html.indexOf('Safari on iPhone or iPad'),
+     `${role}: puts signing in before the install steps`);
+  ok(html.indexOf('Sign in to Hope Beacon') < html.indexOf('Next: install Hope Beacon'),
      `${role}: and the install section presents itself as what comes next`);
   // The copyable address stays immediately under the button it backs up, which
   // is no longer the bottom of the message. A button that will not render in
@@ -87,13 +91,48 @@ for (const role of ROLES) {
   // it passed happily while the reorder left that address stranded at the very
   // bottom of the message, below every install step. Order alone cannot tell
   // "underneath the button" from "elsewhere in the email".
-  const invitationButton = html.indexOf('Accept your invitation');
+  const invitationButton = html.indexOf('Sign in to Hope Beacon');
   const fallback = html.indexOf('If the button does not work');
   ok(invitationButton >= 0 && fallback > invitationButton && fallback - invitationButton < 500,
      `${role}: the copyable address sits directly under the button (${fallback - invitationButton} chars away)`);
-  ok(html.slice(fallback, fallback + 500).includes('token_hash=abc123'),
-     `${role}: and it is the invitation link, not the app address`);
-  ok(html.includes(`href="${APP_URL}"`), `${role}: install links use the ordinary app address, never the one-time link`);
+  ok(html.slice(fallback, fallback + 500).includes('login?email='),
+     `${role}: and it is the sign-in address, not the app home`);
+  ok(html.includes(`href="${APP_URL}"`), `${role}: install links use the ordinary app address`);
+
+  // -------------------------------------------------------------------------
+  // THE CREDENTIALS, IN THE RENDERED MESSAGE, ABOVE THE BUTTON
+  // -------------------------------------------------------------------------
+  //
+  // "That email and password must be emphasized first before tapping the accept
+  // or join in to the Web app." Checked on the real render rather than on the
+  // source, because that is what a person receives. tests/the-invitation-carries
+  // -a-password.mjs reads the source; this one runs it, and this file exists
+  // precisely because reading proves nothing about what comes out.
+  //
+  // THIS SUITE IS ALSO WHAT CAUGHT THE SIGNATURE CHANGE. When inviteHtml gained
+  // two parameters, the source-reading test still passed and this one threw on
+  // the first render -- undefined reaching esc(). A rendering test earns its
+  // keep on exactly that class of mistake.
+  ok(html.includes(SIGN_IN_EMAIL), `${role}: shows the address they sign in with`);
+  ok(html.includes(TEMP_PASSWORD), `${role}: and the password itself`);
+  ok(html.indexOf(SIGN_IN_EMAIL) < invitationButton
+     && html.indexOf(TEMP_PASSWORD) < invitationButton,
+     `${role}: both appear ABOVE the button, which is the whole request`);
+  ok(html.includes('Step 1') && html.includes('Step 2')
+     && html.indexOf('Step 1') < html.indexOf('Step 2'),
+     `${role}: and the two steps are numbered in order`);
+
+  // The warning has to travel with the password, not sit in a footer.
+  const warn = html.indexOf('This password is temporary');
+  ok(warn > 0 && warn < invitationButton,
+     `${role}: the temporary-password warning sits with the password`);
+  ok(html.includes('Settings') && html.includes('Change password'),
+     `${role}: and names the screen that changes it`);
+
+  // Nothing may still promise a one-time link. A false reassurance about
+  // expiry is how somebody decides not to bother today.
+  ok(!/works\s*<strong>once<\/strong>/.test(html) && !html.includes('link works once'),
+     `${role}: nothing claims the link works only once any more`);
 
   ok(html.includes(CHURCH), `${role}: names the church`);
   ok(html.includes(roleWord(role)), `${role}: says which role they were invited as`);
@@ -126,18 +165,30 @@ ok(subjects.every((s) => s && s.length > 8), 'no subject is empty or a stub');
 // churches.name is set by an Executive Director, so it is not attacker-supplied
 // in the usual sense -- but it is user input reaching an HTML document, and the
 // cost of being wrong is a broken or hostile email sent to a congregation.
-const nasty = inviteHtml('ds', 'St <script>alert(1)</script> "Mary" & Co', URL_, APP_URL);
+const nasty = inviteHtml('ds', 'St <script>alert(1)</script> "Mary" & Co', URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD);
 ok(!nasty.includes('<script>'), 'a church name cannot inject a tag');
 ok(nasty.includes('&lt;script&gt;'), 'the angle brackets are escaped rather than dropped');
 ok(nasty.includes('&quot;Mary&quot;') && nasty.includes('&amp; Co'),
    'quotes and ampersands are escaped too, so the markup around them cannot break');
+
+// AND SO ARE THE CREDENTIALS. The generator only makes lowercase words, digits
+// and hyphens, so nothing dangerous can reach here today -- which is exactly
+// the reasoning that stops being true the day somebody changes the generator.
+// The escaping is what makes that change safe rather than a surprise.
+{
+  const odd = inviteHtml('ds', CHURCH, URL_, APP_URL,
+    'a<b>@example.org', 'pass"&<word>-123');
+  ok(!odd.includes('<b>@example.org'), 'an address with a tag in it cannot inject one');
+  ok(odd.includes('&lt;word&gt;') && odd.includes('&quot;'),
+     'and a password with markup characters is escaped, not rendered');
+}
 
 // ---------------------------------------------------------------------------
 // The empty church name still reads as a sentence.
 // ---------------------------------------------------------------------------
 // A church row with no name is a real state during setup, and "  has invited
 // you" is the kind of thing that ships because nobody rendered the blank case.
-const blank = inviteHtml('ds', '', URL_, APP_URL);
+const blank = inviteHtml('ds', '', URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD);
 ok(blank.includes('Your church'), 'a missing church name falls back to readable words');
 ok(!/>\s*has invited you/.test(blank.replace(/<strong[^>]*>[^<]*<\/strong>/g, 'X')),
    'and never leaves a sentence starting mid-air');
