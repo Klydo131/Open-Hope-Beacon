@@ -45,20 +45,26 @@ ok(handAt > -1 && inviteMailAt > handAt, 'and before Supabase Auth is asked to s
 ok(/} else if \(brevoKey\)/.test(fn),
    'the mailers are the OTHER branches, so no message can leave on this route');
 
-// ---- The one-token rule, still intact ----
+// ---- The one-token rule, now satisfied by having no tokens ----
 //
-// Two mint sites exist and both are correct: the Brevo path mints instead of
-// sending, and the fallback mints only when nothing was sent. A third, on the
-// success path, is the bug that broke every invitation this app posted.
+// This section used to count mint sites and check each was guarded, because
+// auth.users holds ONE token slot per purpose and a second mint overwrites the
+// first. That rule shaped the whole function and broke it repeatedly.
+//
+// The invitation carries a PASSWORD now. The account is created with one before
+// anything is sent, and what the Director hands over is an address, a password,
+// and a link to the ordinary sign-in page. There is no slot to race.
 const mints = (fn.match(/auth\.admin\.generateLink/g) || []).length;
-ok(mints === 4, `there are still exactly four generateLink calls, in two guarded pairs (found ${mints})`);
-ok(/if \(sendError && !joinUrl\)/.test(fn),
-   'the fallback still mints only when no message went');
+ok(mints === 0, `nothing mints a one-time token any more (found ${mints})`);
+ok(/firstPassword\(\)/.test(fn), 'the account is given a password instead');
+ok(/\/login\?email=/.test(fn), 'and the link handed over is the ordinary sign-in page');
 
-// The reply on the path where mail DID go must carry no link.
+// AND THE REPLY CARRIES THE CREDENTIALS, which used to be forbidden. Returning
+// a link once meant minting a token and killing the emailed one; returning a
+// sign-in address is returning a fact.
 const emailReply = fn.slice(fn.lastIndexOf("delivery: 'email'"));
-ok(!/link:/.test(emailReply.slice(0, emailReply.indexOf('}'))),
-   'a successful send still returns no link, because minting one would kill it');
+ok(/tempPassword/.test(emailReply), 'a successful send returns the password, so a Director can read it out');
+ok(!/token_hash|hashed_token/.test(emailReply), 'and never a one-time token');
 
 // ---- The way in ----
 const data = stripComments(read('lib/live/data.ts'));
@@ -70,12 +76,17 @@ ok(/deliver,/.test(invite.slice(0, 1600)), 'and passes it through to the functio
 const screen = read('components/LiveChurchPages.tsx');
 ok(/resend\(i, 'link'\)/.test(screen), 'a Director has a control that asks for the link');
 ok(/Get a link to send myself/.test(screen), 'named for what it does, not for how it works');
-// The panel that opens must warn, because this mint switches off whatever was
-// already sent to that person.
-ok(/only works\s*\n?\s*once/.test(screen) || /works once/.test(screen),
-   'and the panel says the link works once');
-ok(/Do not open it yourself/.test(screen),
-   'and warns the Director not to open it, which would spend it and sign them out');
+// THE PANEL MUST NOT WARN ABOUT THINGS THAT ARE NO LONGER TRUE. It used to say
+// the link worked once and that opening it would sign the Director out and
+// start somebody else's sign-up on their device. Both were true of a one-time
+// token and are false of a password, and a caution that turns out not to apply
+// teaches somebody to distrust the screen.
+ok(!/only works\s*\n?\s*once/.test(screen) && !/works, and can be used once/.test(screen),
+   'the panel no longer claims the link works only once');
+ok(!/Do not open it yourself/.test(screen),
+   'and no longer warns against opening something that is now harmless to open');
+ok(/Nothing here expires/.test(screen), 'and says plainly that nothing expires');
+ok(/handLink\.pass/.test(screen), 'and shows the password, which is what has to be passed on');
 
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');
 process.exit(bad ? 1 : 0);

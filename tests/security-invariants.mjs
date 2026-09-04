@@ -1045,20 +1045,39 @@ if (exists('supabase/functions/invite/index.ts')) {
 
   const mints = [];
   for (let i = code.indexOf('generateLink'); i !== -1; i = code.indexOf('generateLink', i + 1)) mints.push(i);
-  ok(mints.length > 0, 'the join link is still minted somewhere');
 
-  const unsafe = mints.filter((i) =>
-    i > firstSupabaseSend && !blocks.some(([a, b]) => i > a && i < b));
-  ok(unsafe.length === 0,
-     'no token is minted after a Supabase send except under a sendError guard'
-     + (unsafe.length ? ` (${unsafe.length} unguarded)` : ''));
+  // THE INVARIANT IS SATISFIED IN ITS STRONGEST FORM NOW: nothing is minted at
+  // all, so no emailed token can be overwritten by a later one.
+  //
+  // The invitation carries a PASSWORD. The account is created with one before
+  // the message leaves and the address in the message is the ordinary sign-in
+  // page, so there is no single-use slot to race. Every failure mode this
+  // invariant was written to prevent -- the dead link, the scanner that spends
+  // it, the second tap that fails -- needs a token to exist first.
+  //
+  // The ordering rule is KEPT rather than deleted, because it is the correct
+  // rule the day anybody reintroduces a token for any reason, and that day will
+  // arrive with no memory of why it mattered.
+  if (mints.length === 0) {
+    ok(true, 'no one-time token is minted anywhere, so none can ever be overwritten');
+  } else {
+    const unsafe = mints.filter((i) =>
+      i > firstSupabaseSend && !blocks.some(([a, b]) => i > a && i < b));
+    ok(unsafe.length === 0,
+       'no token is minted after a Supabase send except under a sendError guard'
+       + (unsafe.length ? ` (${unsafe.length} unguarded)` : ''));
+  }
 
-  // The success reply must not carry a link on the SUPABASE path, because
-  // producing one there would mint the token that kills the emailed one. The
-  // Brevo path already holds a link it minted itself and may return it.
+  // THE SUCCESS REPLY MAY NOW CARRY A LINK, and the reason it was once
+  // forbidden is worth keeping. Producing a link used to MINT a token, so
+  // returning one after a successful send killed the token already in the
+  // recipient's inbox. Returning a sign-in address costs nothing, because it
+  // is a fact about where to go rather than a credential.
+  //
+  // What must never come back is a token. That is the check now.
   const successReturn = code.slice(code.lastIndexOf("delivery: 'email'"));
-  ok(!/\blink\s*:/.test(successReturn),
-     'the success reply carries no link, so no second token is ever needed');
+  ok(!/token_hash|hashed_token/.test(successReturn),
+     'and no reply carries a one-time token');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

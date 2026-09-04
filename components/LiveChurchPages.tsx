@@ -130,7 +130,9 @@ export function LiveMailPage() {
   const [copyFailed, setCopyFailed] = useState(false);
   const [busy, setBusy] = useState('');
   // Set when a resend could not be emailed and must be passed on by hand.
-  const [handLink, setHandLink] = useState<{ to: string; url: string; why: string; wait?: number } | null>(null);
+  const [handLink, setHandLink] = useState<
+    { to: string; url: string; why: string; wait?: number; pass?: string } | null
+  >(null);
   const [sentTo, setSentTo] = useState('');
   const [confirmCancel, setConfirmCancel] = useState('');
   const [cancelled, setCancelled] = useState('');
@@ -164,7 +166,10 @@ export function LiveMailPage() {
         deliver,
       });
       if (result.delivery === 'link' && result.link) {
-        setHandLink({ to: invite.email, url: result.link, why: result.mailNote ?? '', wait: result.waitSeconds });
+        setHandLink({
+          to: invite.email, url: result.link, why: result.mailNote ?? '',
+          wait: result.waitSeconds, pass: result.tempPassword,
+        });
       } else {
         setSentTo(invite.email);
       }
@@ -324,17 +329,33 @@ export function LiveMailPage() {
           <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
             {handLink.why || 'No email service is set up on this project yet.'}
           </p>
+          {/* THIS PANEL USED TO CARRY TWO WARNINGS THAT ARE NOW FALSE, and a
+              false warning is worse than none: it teaches a Director to be
+              careful about the wrong thing and to distrust the screen when the
+              caution turns out not to apply.
+
+              It said the link works ONCE and that opening it would sign the
+              Director out and start somebody else's sign-up on their device.
+              Both were true of a one-time token. The invitation carries a
+              password now and this address is the ordinary sign-in page, so it
+              can be opened, forwarded and used as often as anybody likes, and
+              opening it does nothing at all to the Director's own session. */}
           <p className={`mt-1 text-sm ${handLink.wait ? 'text-blue-800' : 'text-amber-800'}`}>
-            This link works, and can be used once.
+            Nothing here expires. They can use it as often as they need, on any
+            device, and opening it yourself is harmless.
           </p>
-          {/* Said plainly because the obvious thing to do with a link you have
-              been handed is to click it, and clicking this one uses up somebody
-              else's invitation and signs you out of your own account. */}
-          <p className="mt-1 text-sm font-semibold text-amber-900">
-            Do not open it yourself. Send it to {handLink.to}. It only works
-            once, and opening it here would sign you out and start their
-            sign-up on your device.
-          </p>
+          {handLink.pass && (
+            <div className="mt-3 rounded-xl bg-white p-3 ring-1 ring-black/10">
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-500">E-mail</p>
+              <p className="break-all font-mono text-sm font-bold text-navy">{handLink.to}</p>
+              <p className="mt-2 text-xs font-bold uppercase tracking-wider text-gray-500">Password</p>
+              <p className="break-all font-mono text-lg font-bold text-navy">{handLink.pass}</p>
+              <p className="mt-2 text-xs leading-relaxed text-gray-500">
+                All small letters, with the dashes. Ask them to change it once
+                they are in, under Settings, then Password.
+              </p>
+            </div>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <input
               readOnly
