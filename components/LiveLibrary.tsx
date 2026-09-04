@@ -297,7 +297,10 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
         {items?.map((m) => (
           <Item key={m.id} m={m}>
             {pairings.length === 0 ? (
-              <span className="text-xs text-gray-400">Nobody to share with yet.</span>
+              /* "In the app" earns its place now that the button beside it
+                 shares with people who are not. Without it the row reads
+                 "Nobody to share with" next to a working share control. */
+              <span className="text-xs text-gray-400">Nobody in the app to share with yet.</span>
             ) : pairings.map((p) => (
               <button
                 key={p.id}
