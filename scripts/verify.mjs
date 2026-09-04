@@ -146,6 +146,9 @@ const staticChecks = [
   // The white noise was nearly three times as loud as the gentle sounds from
   // the same slider, and nothing measured it. "Some of it are not pleasing."
   ['the ambience is pleasant', 'tests/the-ambience-is-pleasant.mjs'],
+  // A Guide chosen on an invitation was never paired, because an invited
+  // Explorer arrives already approved and the pairing hung off an approval.
+  ['the named Guide is paired', 'tests/the-named-guide-is-paired.mjs'],
   // Evidence on a safeguarding report, and the authorisation around it: the
   // same rule as reports_read, which deliberately keeps it from the reporter
   // too, and no delete on either the row or the stored object.

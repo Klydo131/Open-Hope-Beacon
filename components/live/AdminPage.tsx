@@ -615,7 +615,11 @@ export function LiveAdminPage() {
             </label>
             {role === 'ds' && (
               <label className="block">
-                <span className="text-sm font-semibold text-gray-600">Guide after approval (optional)</span>
+                {/* NOT "after approval" any more, because for an Explorer there is
+                    no approval step: an invitation IS the approval, so choosing
+                    a Guide here pairs them the moment they finish signing up.
+                    The old label described a wait that does not happen. */}
+                <span className="text-sm font-semibold text-gray-600">Guide to walk with (optional)</span>
                 <select
                   value={guideId}
                   onChange={(event) => setGuideId(event.target.value)}
@@ -624,6 +628,11 @@ export function LiveAdminPage() {
                   <option value="">Pair later</option>
                   {guides.map((guide) => <option key={guide.id} value={guide.id}>{guide.full_name}</option>)}
                 </select>
+                <span className="mt-1 block text-xs text-gray-500">
+                  {guideId
+                    ? 'They will be walking with this Guide as soon as they finish signing up.'
+                    : 'You can pair them later on the Pairings screen.'}
+                </span>
               </label>
             )}
             <div className="sm:col-span-2">
