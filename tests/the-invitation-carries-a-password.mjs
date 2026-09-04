@@ -209,5 +209,85 @@ ok(/encodeURIComponent\(email\)/.test(fn), 'with the address escaped into it pro
      'lower-cased, because addresses are and thumbs are not');
 }
 
+// ---------------------------------------------------------------------------
+// 9. THE FOOTER DOES NOT PROMISE SOMETHING THAT STOPPED BEING TRUE
+// ---------------------------------------------------------------------------
+//
+// While an invitation carried a one-time link, the account did not exist until
+// somebody opened it, so "you can ignore this message and no account will be
+// used" was accurate. Creating the account BEFORE the message leaves made that
+// sentence false, and nothing anywhere pinned it -- it survived the rewrite and
+// rendered wrong in the first picture anybody actually looked at.
+//
+// It matters more than a wording slip. Somebody who was not expecting the
+// message is being told there is nothing to act on, while an account with a
+// working password sits at their address. The footer has to say what is true
+// and give them a way to undo it.
+{
+  ok(!/no account will be used/.test(mail),
+     'the footer no longer claims no account exists, because by then one does');
+  ok(/an account was created for you/.test(mail),
+     'it says plainly that one was made');
+  ok(/remove the account/.test(mail),
+     'and gives somebody who did not want it a way out');
+}
+
+// ---------------------------------------------------------------------------
+// 10. TAPPING THE BUTTON SIGNS THEM IN
+// ---------------------------------------------------------------------------
+//
+// THE ASK: "Make sure when the new explorer clicks, they are logged in (so they
+// can have the logic to change the password, if not then they will have the
+// temporary password)" -- then, immediately: "Not just explorers I mean, but
+// new users (EDs, D, Gs, and Es)." So it is every invited role, and the check
+// is on the door rather than on anything role-shaped.
+//
+// THE FRAGMENT IS THE WHOLE SAFETY ARGUMENT. Everything after `#` is stripped
+// by the browser before the request is built: not in the address the server
+// receives, not in an access log, not in a proxy's records, not in a Referer
+// header handed to anything the page later loads. A `?p=` would be in all five,
+// and would be the kind of mistake that is invisible until somebody reads a log
+// a year later. This checks the fragment is used AND that a query parameter
+// never creeps back in.
+{
+  ok(/#p=\$\{encodeURIComponent\(tempPassword\)\}/.test(fn),
+     'the address in the message carries the password in the fragment');
+  ok(!/[?&]p=\$\{/.test(fn),
+     'and never as a query parameter, which servers and proxies would record');
+
+  // The printed fallback address must NOT carry it: somebody pasting that line
+  // into a chat to ask for help would paste their password with it.
+  ok(/joinUrl\.split\('#'\)\[0\]/.test(mail),
+     'the printed fallback address has the password stripped out of it');
+  ok(/href="\$\{plainUrl\}"[^>]*>\$\{plainUrl\}/.test(mail),
+     'and it is the stripped one that is shown and linked');
+  ok(/<a href="\$\{url\}"/.test(mail), 'while the button keeps the full address');
+
+  const door = strip(read('components/live/DoorPages.tsx'));
+  ok(/hash\.startsWith\('#p='\)/.test(door), 'the sign-in page notices somebody arriving from an invitation');
+  ok(/live\.signIn\(email, handed\)/.test(door), 'and signs them in with what it was handed');
+
+  // ORDER MATTERS, AND IT IS NOT COSMETIC. The address bar must be cleaned
+  // BEFORE the network call, or the password sits on screen for as long as the
+  // connection is slow -- which on a phone in a church hall is the normal case,
+  // not the edge one.
+  const cleaned = door.indexOf('window.history.replaceState');
+  const signedIn = door.indexOf('live.signIn(email, handed)');
+  ok(cleaned !== -1, 'it takes the password out of the address bar');
+  ok(cleaned < signedIn, 'and does that BEFORE it starts signing in, not after');
+
+  // Once only. Re-running on every state change would be a login storm.
+  ok(/arrived\.current/.test(door), 'and it runs once rather than on every render');
+
+  // A stale password (they changed it, then tapped the old mail) must land them
+  // at the ordinary form, not at a dead end.
+  ok(/Please type the password from your invitation e-mail below/.test(door),
+     'and a password that no longer works leaves them at the form, not stuck');
+
+  // A Guide or Director arriving this way is signed in but not yet approved.
+  ok(/waiting for a Director to approve it/.test(door),
+     'somebody not yet approved is told why, rather than bounced');
+}
+
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');
 process.exit(bad ? 1 : 0);

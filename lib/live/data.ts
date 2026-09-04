@@ -2641,6 +2641,78 @@ export async function completeAssignment(id: string, done: boolean): Promise<voi
 }
 
 // ---------------------------------------------------------------------------
+// Reading, and how far through somebody is.
+// ---------------------------------------------------------------------------
+//
+// A read is recorded by the person doing the reading and by nobody else. The
+// database enforces that (`lr_write` checks `user_id = auth.uid()`), so a
+// Director cannot tick lessons off on an Explorer's behalf even by calling the
+// API directly -- which is the only reason the number on the bar means
+// anything.
+
+/** How far through a set of lessons somebody has got. */
+export interface Reading {
+  done: number;
+  total: number;
+}
+
+/**
+ * Every lesson, as an id and the series it sits in.
+ *
+ * ONE QUERY, NOT ONE PER SERIES. A Director opening a member's card wants the
+ * denominator for the whole shelf; asking `listLessons` per series turned that
+ * into a dozen round trips on a phone connection.
+ */
+export async function listLessonIndex(): Promise<{ id: string; series_id: string }[]> {
+  const { data, error } = await db().from('lessons')
+    .select('id, series_id')
+    .order('position', { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as { id: string; series_id: string }[];
+}
+
+/**
+ * The lessons a member has marked as read.
+ *
+ * Returns an empty list rather than throwing when the reader is not entitled to
+ * see them: `lr_read` simply matches no rows, which is a legitimate answer and
+ * not an error. The caller draws "nothing read yet", which is also what a
+ * genuinely empty history looks like -- and the two being indistinguishable is
+ * the point, because the alternative leaks who has a Guide.
+ */
+export async function listReadsFor(userId: string): Promise<string[]> {
+  const { data, error } = await db().from('lesson_reads')
+    .select('lesson_id')
+    .eq('user_id', userId);
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => (r as { lesson_id: string }).lesson_id);
+}
+
+/** What I have read. */
+export async function listMyReads(): Promise<string[]> {
+  return listReadsFor(await uid());
+}
+
+export async function markLessonRead(lessonId: string): Promise<void> {
+  const supabase = db();
+  const me_id = await uid();
+  const { error } = await supabase.from('lesson_reads')
+    .insert({ lesson_id: lessonId, user_id: me_id });
+  // MARKING SOMETHING TWICE IS NOT A MISTAKE WORTH REPORTING. Two taps, or a
+  // tap on a phone that had already saved it, both land here; the row exists
+  // either way, which is what the person asked for.
+  if (error && error.code !== '23505') throw new Error(error.message);
+}
+
+export async function unmarkLessonRead(lessonId: string): Promise<void> {
+  const supabase = db();
+  const me_id = await uid();
+  const { error } = await supabase.from('lesson_reads')
+    .delete().eq('lesson_id', lessonId).eq('user_id', me_id);
+  if (error) throw new Error(error.message);
+}
+
+// ---------------------------------------------------------------------------
 // Lessons and notifications.
 // ---------------------------------------------------------------------------
 

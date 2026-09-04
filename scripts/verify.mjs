@@ -161,6 +161,11 @@ const staticChecks = [
   // An Explorer reads the studies; Guides, Directors and Executive Directors
   // write them. Two copies of one rule -- the policy and the screen.
   ['an Explorer reads the studies', 'tests/an-explorer-reads-the-studies.mjs'],
+  // A study is marked read by the person who read it, and by nobody else, so a
+  // Director's progress bar is evidence rather than an opinion. Checks the
+  // policy that refuses a read written for somebody else AND the screens that
+  // do not offer what would be refused.
+  ['the reading is recorded', 'tests/the-reading-is-recorded.mjs'],
   // Evidence on a safeguarding report, and the authorisation around it: the
   // same rule as reports_read, which deliberately keeps it from the reporter
   // too, and no delete on either the row or the stored object.

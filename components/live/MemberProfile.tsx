@@ -26,6 +26,7 @@ import { isMinor } from '@/lib/minor';
 import * as live from '@/lib/live/data';
 import { humanError } from '@/lib/live/errors';
 import type { Profile } from '@/lib/types';
+import { MemberReading } from '@/components/live/ReadingProgress';
 
 /** Whole years, or null when there is no birthday to count from. */
 function age(birthday?: string): number | null {
@@ -160,6 +161,27 @@ export function MemberProfile({
         <Row label="Town or city" value={person.city_of_residence} />
         <Row label="Work" value={person.work_industry} />
       </div>
+
+      {/* HOW FAR THROUGH THE STUDIES THEY ARE.
+          THE ASK: a bar Directors and Executive Directors can look at to see
+          whether an Explorer is really reading -- the seeded samples and
+          whatever their Guide wrote alike.
+
+          IT IS A READ, LIKE EVERYTHING ELSE ON THIS CARD. The header rule for
+          this file is that a Director looks and does not annotate, and reading
+          progress belongs here precisely because it is the Explorer's own fact
+          rather than a leader's opinion of them. There is deliberately no
+          control to tick a lesson off from this side; `lr_write` would refuse
+          it anyway, and a button that always failed would be worse than none.
+
+          ONLY FOR EXPLORERS. A Director's own reading is not what this card is
+          for, and a bar on every colleague's profile turns a pastoral number
+          into a scoreboard. */}
+      {person.role === 'ds' && (
+        <div className="mt-3">
+          <MemberReading memberId={person.id} />
+        </div>
+      )}
 
       {(person.topics_of_interest ?? []).length > 0 && (
         <div className="mt-3">

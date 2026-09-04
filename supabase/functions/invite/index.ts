@@ -458,7 +458,7 @@ async function handle(req: Request): Promise<Response> {
     // scanner opening it, and works on the tenth tap as well as the first.
     const kind = 'password';
     {
-      joinUrl = `${site}/login?email=${encodeURIComponent(email)}`;
+      joinUrl = `${site}/login?email=${encodeURIComponent(email)}#p=${encodeURIComponent(tempPassword)}`;
 
       const { data: churchRow } = await admin
         .from('churches').select('name').eq('id', church).maybeSingle();
@@ -568,7 +568,7 @@ async function handle(req: Request): Promise<Response> {
     // every time and the recovery mail is what actually goes. The first call is
     // kept because a project with its own SMTP may still answer it, and because
     // its refusal is how we learn which of the two shapes applies.
-    joinUrl = `${site}/login?email=${encodeURIComponent(email)}`;
+    joinUrl = `${site}/login?email=${encodeURIComponent(email)}#p=${encodeURIComponent(tempPassword)}`;
 
     const { error: inviteMailErr } = await admin.auth.admin.inviteUserByEmail(email, {
       data: { full_name: fullName },
@@ -714,7 +714,7 @@ async function handle(req: Request): Promise<Response> {
   // that password -- both already in the reply below. A token minted here would
   // be a SECOND credential for the same account, and the whole reason this
   // function was rewritten is that one-time tokens are the fragile part.
-  if (!joinUrl) joinUrl = `${site}/login?email=${encodeURIComponent(email)}`;
+  if (!joinUrl) joinUrl = `${site}/login?email=${encodeURIComponent(email)}#p=${encodeURIComponent(tempPassword)}`;
 
   console.log(JSON.stringify({
     at: 'invite',

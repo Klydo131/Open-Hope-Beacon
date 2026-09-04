@@ -203,5 +203,30 @@ for (const role of ROLES) {
   ok(!/<img[\s>]/i.test(html), `${role}: no image, which most clients block by default`);
 }
 
+// ---------------------------------------------------------------------------
+// The message matches who is actually let straight in.
+// ---------------------------------------------------------------------------
+//
+// `handle_new_user` approves an arriving account automatically only when the
+// invited role is Explorer or Executive Director. A Guide or a Director signs
+// in with the password that worked, and meets "Your account is not approved
+// yet" -- while the message they are holding says there is nothing to set up.
+//
+// That reads as a broken password, which is the one thing this whole change
+// exists to stop somebody believing. So the two roles that wait are told they
+// wait, and the two that do not are NOT told, because for them it is untrue and
+// an invented delay costs the same trust in the other direction.
+{
+  const WAITS = /A Director then lets you in/;
+  for (const role of ['dm', 'admin']) {
+    ok(WAITS.test(bodies[role]),
+       `${role}: is told a Director still has to let them in, because they are not approved on arrival`);
+  }
+  for (const role of ['ds', 'executive']) {
+    ok(!WAITS.test(bodies[role]),
+       `${role}: is NOT told to wait, because they are approved the moment they sign in`);
+  }
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

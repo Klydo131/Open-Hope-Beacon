@@ -14,6 +14,7 @@ import { LiveBlogFeed } from '@/components/LiveBlog';
 import { LivePrayerForGuide } from '@/components/LivePrayer';
 import { LiveMeetings } from '@/components/LiveMeetings';
 import { useDraft, clearDraft } from '@/lib/drafts';
+import { MemberReading } from '@/components/live/ReadingProgress';
 import { LiveLibraryForGuide } from '@/components/LiveLibrary';
 import { LiveFollowUps, LiveNotes } from '@/components/LiveMinistry';
 import { LiveStudies } from '@/components/LiveStudies';
@@ -676,7 +677,17 @@ export function LiveConversationPage() {
             </>
           )}
 
-          {tab === 'lessons' && <LiveStudies />}
+          {tab === 'lessons' && (
+            <div className="space-y-4">
+              {/* HOW FAR THIS PERSON HAS GOT, above the studies themselves.
+                  A Guide is the one who will actually do something about a bar
+                  that has not moved, so they should not have to go and ask a
+                  Director what it says. `may_see_reading()` lets the paired
+                  Guide read it and nobody else's Guide. */}
+              <MemberReading memberId={pairing.ds_id} name={pairing.ds_name} />
+              <LiveStudies />
+            </div>
+          )}
 
           {tab === 'resources' && (
             <LiveLibraryForGuide

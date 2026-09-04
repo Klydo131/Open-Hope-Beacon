@@ -183,12 +183,96 @@ export function LiveLoginPage() {
   // Set when a sign-in was refused for a reason that an unfinished account
   // would also produce. See the comment where it is set.
   const [couldBeUnfinished, setCouldBeUnfinished] = useState(false);
+  // Runs the arrival-from-the-invitation sign-in exactly once. A second attempt
+  // after the address bar has been cleaned would have nothing to sign in with,
+  // and re-running on every render of a state change would be a login storm.
+  const arrived = useRef(false);
 
   useEffect(() => {
     if (!sessionLoading && session && profile?.is_approved) {
       router.replace(homeFor(profile.role));
     }
   }, [sessionLoading, session, profile, router]);
+
+  // ---------------------------------------------------------------------
+  // ARRIVING FROM THE INVITATION: tapping the button signs you in.
+  // ---------------------------------------------------------------------
+  //
+  // THE ASK: "Make sure when the new explorer clicks, they are logged in (so
+  // they can have the logic to change the password, if not then they will have
+  // the temporary password)" -- and then, immediately after: "Not just
+  // explorers I mean, but new users (EDs, D, Gs, and Es)." So this runs for
+  // every invited role, which is why it lives here on the door rather than in
+  // anything role-shaped.
+  //
+  // WHY THE PASSWORD TRAVELS IN THE FRAGMENT AND NEVER THE QUERY STRING.
+  // Everything after `#` is stripped by the browser before the request is
+  // built: it is not in the address the server receives, not in an access log,
+  // not in a proxy's records, and not in a Referer header sent onward to
+  // anything the page later loads. A `?p=` would be in all five. It is then
+  // taken out of the address bar below, before the sign-in is even attempted,
+  // so it does not sit in history or survive a screenshot of the browser.
+  //
+  // WHAT THIS DOES NOT PRETEND TO BE. Anybody who can read that inbox can
+  // already sign in -- the password is printed in the message, by design and at
+  // the owner's instruction. This does not widen that; it saves the person
+  // retyping something they were just shown. The answer to the underlying risk
+  // is the change-password reminder, not a worse invitation.
+  //
+  // IT IS ALLOWED TO FAIL QUIETLY. If the password has since been changed, the
+  // fragment is stale and the person is simply left at the ordinary form with
+  // their address filled in -- which is exactly where they would have been if
+  // this feature did not exist.
+  useEffect(() => {
+    if (arrived.current) return;
+    if (typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (!hash.startsWith('#p=')) return;
+    arrived.current = true;
+
+    const handed = (() => {
+      try { return decodeURIComponent(hash.slice(3)); } catch { return ''; }
+    })();
+
+    // FIRST, before any await. An address bar holding a password while a
+    // network call is in flight is a password on screen for as long as the
+    // connection is slow, which on a phone in a church hall is the normal case.
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+
+    // WITHOUT AN ADDRESS THERE IS NOTHING TO SIGN IN AS. Every invitation this
+    // app sends carries `?email=`, so this is the malformed-link case rather
+    // than the normal one -- but the notice above says "your address is filled
+    // in", and leaving that standing over an empty box is how somebody decides
+    // the app is broken rather than the link.
+    if (!handed || !emailLooksValid(email)) {
+      setNotice('');
+      setError('Enter the e-mail and password from your invitation to sign in.');
+      return;
+    }
+
+    void (async () => {
+      setBusy(true);
+      setError('');
+      setNotice('Signing you in…');
+      try {
+        const mine = await live.signIn(email, handed);
+        if (!mine.is_approved) {
+          setNotice('');
+          setError(
+            'Your password worked, but your account is waiting for a Director to approve it. '
+            + 'Ask your church to approve you, then sign in again.',
+          );
+          return;
+        }
+        window.location.replace(homeFor(mine.role));
+      } catch {
+        setNotice('');
+        setError('Please type the password from your invitation e-mail below.');
+      } finally {
+        setBusy(false);
+      }
+    })();
+  }, [email]);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

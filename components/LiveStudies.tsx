@@ -26,6 +26,7 @@ import { Linked } from '@/components/Linked';
 import { humanError } from '@/lib/live/errors';
 import { ATTACHMENT_ACCEPT } from '@/lib/live/attachments';
 import { useKeepUp, KEEP_UP_STUDIES } from '@/lib/live/keep-up';
+import { ReadingBar } from '@/components/live/ReadingProgress';
 import type { Role } from '@/lib/types';
 
 /**
@@ -108,6 +109,9 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
   const [editBody, setEditBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // WHICH OF THESE I HAVE READ. Mine alone: the database refuses a read row
+  // written for anybody else, so this never holds somebody else's answer.
+  const [reads, setReads] = useState<Set<string>>(new Set());
   const { profile } = useLiveSession();
 
   const load = useCallback(async () => {
@@ -115,6 +119,7 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
       const rows = await live.listLessons(series.id);
       setLessons(rows);
       setFiles(await live.listLessonFiles(rows.map((l) => l.id)));
+      setReads(new Set(await live.listMyReads()));
       setError('');
     } catch (cause) { setLessons([]); setError(message(cause)); }
   }, [series.id]);
@@ -137,6 +142,18 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
         <p className="text-sm text-gray-400">
           {mine ? 'No studies in here yet. Add the first one below.' : 'Nothing in here yet.'}
         </p>
+      )}
+
+      {/* MY OWN PROGRESS THROUGH THIS SERIES. Drawn from the same two numbers
+          the Director sees, so nobody is ever looking at a different figure. */}
+      {lessons !== null && lessons.length > 0 && (
+        <div className="mb-3">
+          <ReadingBar
+            done={lessons.filter((l) => reads.has(l.id)).length}
+            total={lessons.length}
+            label="You have read"
+          />
+        </div>
       )}
 
       <ol className="space-y-3">
@@ -189,6 +206,26 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
                     <Linked text={lesson.body} />
                   </p>
                 )}
+                {/* A BUTTON, NOT A SIDE EFFECT OF SCROLLING. Every lesson in an
+                    open series is on screen at once, so marking one read
+                    because it rendered would record the whole series on a
+                    single tap and hand a Director a number that measures
+                    nothing. The person says so themselves. */}
+                <button
+                  type="button"
+                  disabled={busy}
+                  aria-pressed={reads.has(lesson.id)}
+                  onClick={() => act(() => (reads.has(lesson.id)
+                    ? live.unmarkLessonRead(lesson.id)
+                    : live.markLessonRead(lesson.id)))}
+                  className={`mt-2 rounded-full px-3 py-1 text-sm font-semibold transition-colors ${
+                    reads.has(lesson.id)
+                      ? 'bg-green-100 text-green-800 ring-1 ring-green-200'
+                      : 'bg-slate-100 text-gray-600 ring-1 ring-black/5 hover:bg-slate-200'
+                  }`}
+                >
+                  {reads.has(lesson.id) ? '\u2713 Read' : 'Mark as read'}
+                </button>
               </>
             )}
             {(files[lesson.id] ?? []).length > 0 && (

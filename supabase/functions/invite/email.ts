@@ -75,7 +75,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       + 'paired with people one at a time, and each conversation stays between '
       + 'you and them.',
     steps: [
-      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first.'],
+      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first. A Director then lets you in, which can take a little while; sign in anyway, and the app will tell you where you stand.'],
       ['Meet whoever is paired with you.', 'A Guide walks with at most five people at once. Five is a ceiling, not a target.'],
       ['Share from the church library.', 'You choose what each person sees, and when they are ready for it.'],
     ],
@@ -106,7 +106,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       'They would like you to help lead as a Director. You will decide who '
       + 'joins, what they can see, and who walks with whom.',
     steps: [
-      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first.'],
+      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first. A Director then lets you in, which can take a little while; sign in anyway, and the app will tell you where you stand.'],
       ['Approve the people waiting.', 'You choose their role as you approve them, and that decides what they can see. Nobody can change their own role afterwards, including you.'],
       ['Pair every Explorer with a Guide.', 'An Explorer with no Guide is the one number worth watching. Your dashboard opens on it.'],
     ],
@@ -166,6 +166,18 @@ export function inviteHtml(
   const copy = ROLE_COPY[role];
   const church = esc(churchName || 'Your church');
   const url = esc(joinUrl);
+  // THE BUTTON CARRIES THE SIGN-IN; THE PRINTED ADDRESS DOES NOT.
+  //
+  // `joinUrl` ends with `#p=<password>` so that tapping the button puts the
+  // person straight into the app. Printing that same string underneath would
+  // undo the care taken over it: the password would appear twice in the
+  // message, once labelled and once buried in an address, and anybody copying
+  // the visible line into a chat to ask for help would paste their password
+  // with it. So the fallback line shows the address with the fragment removed.
+  // It still works -- it lands on the sign-in page with the e-mail already
+  // filled in, which is where somebody who could not use the button needs to
+  // be.
+  const plainUrl = esc(joinUrl.split('#')[0]);
   const app = esc(appUrl);
   const who = esc(signInEmail);
   const pass = esc(tempPassword);
@@ -258,7 +270,7 @@ export function inviteHtml(
 
           <p style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#5B6472;">If the button does not work, copy this address into your browser:</p>
           <p style="margin:0 0 22px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;word-break:break-all;">
-            <a href="${url}" style="color:#2F80ED;text-decoration:underline;">${url}</a>
+            <a href="${plainUrl}" style="color:#2F80ED;text-decoration:underline;">${plainUrl}</a>
           </p>
 
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-left:3px solid #E8B84B;background-color:#FFFBF0;border-radius:0 8px 8px 0;margin:0 0 26px 0;">
@@ -310,7 +322,7 @@ export function inviteHtml(
 
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;">
         <tr><td align="center" style="padding:22px 24px 0 24px;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:#8892A0;">
-          You received this because a leader at ${church} invited you. If you were not expecting it, you can ignore this message and no account will be used.
+          You received this because a leader at ${church} invited you, and an account was created for you at this address. If you were not expecting it, you can ignore this message, or ask the church to remove the account.
         </td></tr>
       </table>
 
