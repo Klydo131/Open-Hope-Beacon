@@ -155,6 +155,9 @@ const staticChecks = [
   ['the invitation carries a password', 'tests/the-invitation-carries-a-password.mjs'],
   // The example studies cited nothing, which is what AI filler looks like.
   ['the studies are sourced', 'tests/the-studies-are-sourced.mjs'],
+  // The add form never asked what a link was FOR, every row drew one button
+  // per person, and the shelf could not be searched at any length.
+  ['the library is easy to use', 'tests/the-library-is-easy-to-use.mjs'],
   // Evidence on a safeguarding report, and the authorisation around it: the
   // same rule as reports_read, which deliberately keeps it from the reporter
   // too, and no delete on either the row or the stored object.

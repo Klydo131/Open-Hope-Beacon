@@ -393,15 +393,29 @@ export default function LibraryPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-navy">
       <header className="border-b border-navy/10 bg-white">
+        {/* BACK ON THE LEFT, AND IT WAS MOVED TO THE RIGHT BY MISTAKE.
+            Reported: "It's not good for the muscle memory for users to swap
+            and click the lost back button if my eyes will go to another
+            direction."
+
+            That is the whole argument and it is correct. Back is top-LEFT on
+            every phone anybody owns -- iOS, Android, and the browser's own
+            control -- and a way out that moves is worse than one that is
+            slightly harder to find, because a person who has learned where it
+            is stops looking and starts reaching. Moving it costs them the tap
+            AND the certainty.
+
+            The arrow already points left, which is the giveaway: an arrow
+            pointing away from the thing it belongs beside. */}
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          <HopeBeaconWordmark size={36} subtitle="Live church. Real connections." nameClass="text-lg" />
           <button
             type="button"
             onClick={() => router.push(backHome)}
-            className="tap-sm rounded-xl bg-slate-50 px-3 text-sm font-bold text-navy ring-1 ring-navy/10 hover:bg-sky-50"
+            className="tap-sm shrink-0 rounded-xl bg-slate-50 px-3 text-sm font-bold text-navy ring-1 ring-navy/10 hover:bg-sky-50"
           >
             ← Back to app
           </button>
+          <HopeBeaconWordmark size={36} subtitle="Live church. Real connections." nameClass="text-lg" />
         </div>
       </header>
 

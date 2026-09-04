@@ -100,6 +100,17 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [url, setUrl] = useState('');
+  // WHAT IT IS FOR, WHICH THE FORM NEVER ASKED FOR. `addMaterial` has taken a
+  // description since the day it was written, `updateMaterial` takes one, and
+  // the row draws one -- and no screen ever offered a box to type it in. So
+  // every resource added by a real person since launch is a bare title over a
+  // grey address, and the only items on the shelf with a line explaining
+  // themselves are the ones that were seeded.
+  //
+  // That matters more here than on most screens. A link handed to somebody
+  // hesitant, with nothing saying why it is worth their time, is a link nobody
+  // taps. The field existed; the question was missing.
+  const [note, setNote] = useState('');
   const [kind, setKind] = useState<live.MaterialKind>('link');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -115,7 +126,20 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
   const [editing, setEditing] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editUrl, setEditUrl] = useState('');
+  const [editNote, setEditNote] = useState('');
   const [editKind, setEditKind] = useState<live.MaterialKind>('link');
+  // WHICH ROW IS OFFERING TO SHARE. Every row used to draw one button per
+  // person you walk with -- five Explorers meant five buttons, plus share
+  // outside, plus edit, plus remove: EIGHT controls under every single item.
+  // On a phone the thing somebody came to read was buried under the things
+  // they might do with it, and it got worse as the church grew. One control
+  // that opens the list is the same number of taps to share and four fewer
+  // things to read when you are not sharing.
+  const [sharing, setSharing] = useState('');
+  // SEARCH, ONCE THE SHELF IS LONGER THAN A SCREEN. Below a handful of rows a
+  // box is one more thing to read on the way to the row you can already see.
+  // The same rule and the same threshold as Approved accounts.
+  const [find, setFind] = useState('');
   // What this person has taken off their own shelf, and whether they are
   // looking at it. A hide with no way back is a trap, and an undo that lives
   // only in the seconds after the tap is barely an undo at all.
@@ -141,8 +165,8 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
     if (!title.trim() || !url.trim() || busy) return;
     setBusy(true); setError(''); setFlash('');
     try {
-      await live.addMaterial({ title, url, kind });
-      setTitle(''); setUrl(''); setKind('link'); setOpen(false);
+      await live.addMaterial({ title, url, kind, description: note });
+      setTitle(''); setUrl(''); setNote(''); setKind('link'); setOpen(false);
       await load();
     } catch (cause) { setError(message(cause)); }
     finally { setBusy(false); }
@@ -152,6 +176,7 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
     setEditing(m.id);
     setEditTitle(m.title);
     setEditUrl(m.external_url);
+    setEditNote(m.description ?? '');
     setEditKind(m.kind);
     setError(''); setFlash('');
   };
@@ -160,7 +185,9 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
     if (!editTitle.trim() || !editUrl.trim() || busy) return;
     setBusy(true); setError(''); setFlash('');
     try {
-      await live.updateMaterial(m.id, { title: editTitle, url: editUrl, kind: editKind });
+      await live.updateMaterial(m.id, {
+        title: editTitle, url: editUrl, kind: editKind, description: editNote,
+      });
       setEditing('');
       setFlash(`Saved the changes to \u201c${editTitle.trim()}\u201d.`);
       await load();
@@ -221,6 +248,16 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
   // draws. One rule for both buttons, because the two policies are the same
   // sentence and a screen that split them would drift from the database the
   // first time one of them changed.
+  // WHAT THE SEARCH ACTUALLY MATCHES. The title, the description and the
+  // address, because all three are things a person remembers a resource by --
+  // "the one about baptism", "the Ellen White one", "that youtube video". A
+  // search that only read titles would miss the two-thirds of those.
+  const needle = find.trim().toLowerCase();
+  const shown = (items ?? []).filter((m) => !needle
+    || m.title.toLowerCase().includes(needle)
+    || (m.description ?? '').toLowerCase().includes(needle)
+    || m.external_url.toLowerCase().includes(needle));
+
   const canManage = (m: live.Material) =>
     !!profile && (m.added_by === profile.id || profile.role === 'admin' || profile.role === 'executive');
 
@@ -273,6 +310,19 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
             placeholder="https://…"
             className="tap mt-1 w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600" />
 
+          <label className="mt-3 block text-sm font-semibold text-navy" htmlFor="mat-note">
+            What is it for <span className="font-normal text-gray-500">(optional)</span>
+          </label>
+          {/* OPTIONAL, AND WORTH ASKING FOR ANYWAY. Making it required would
+              stop somebody adding a link they are in a hurry about, and a link
+              with no note still beats no link. The placeholder does the
+              teaching instead: it shows the shape of a useful answer rather
+              than describing one. */}
+          <textarea id="mat-note" value={note} onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            placeholder="One line. Who is it for, or why it helps."
+            className="tap mt-1 w-full rounded-xl bg-white px-4 py-2 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600" />
+
           <label className="mt-3 block text-sm font-semibold text-navy" htmlFor="mat-kind">Kind</label>
           <select id="mat-kind" value={kind} onChange={(e) => setKind(e.target.value as live.MaterialKind)}
             className="tap mt-1 w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600">
@@ -289,27 +339,84 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
         </div>
       )}
 
+      {/* SEARCH, ONCE THERE IS SOMETHING TO SEARCH. Below six rows a box is one
+          more thing to read on the way to the row already on screen; at forty
+          it is the only way to reach one without scrolling past thirty-nine.
+          Same threshold and same wording as Approved accounts, because a
+          person who has learned one of these should not have to learn the
+          other. */}
+      {(items?.length ?? 0) > 6 && (
+        <div className="mt-4">
+          <input
+            value={find}
+            onChange={(e) => setFind(e.target.value)}
+            type="search"
+            inputMode="search"
+            placeholder="Search the shelf"
+            aria-label="Search the library by name or description"
+            className="tap w-full rounded-xl bg-gray-100 px-4 text-base outline-none focus:ring-2 focus:ring-teal-600"
+          />
+          {needle && (
+            <p className="mt-1.5 text-sm text-gray-500">
+              {shown.length} of {items?.length ?? 0}
+              {shown.length === 0 && ' \u00b7 nothing by that name'}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="mt-4 space-y-2">
         {items === null && <BeaconSpinner inline label="Loading the shelf" className="mt-2" />}
         {items?.length === 0 && !error && (
           <p className="text-sm text-gray-400">Nothing in the library yet.</p>
         )}
-        {items?.map((m) => (
+        {shown.map((m) => (
           <Item key={m.id} m={m}>
+            {/* ONE CONTROL THAT OPENS THE LIST, RATHER THAN ONE BUTTON PER
+                PERSON. A Guide carrying five Explorers used to see five "Share
+                with ..." buttons on EVERY row, plus share-outside, plus edit,
+                plus remove: eight controls under every item. On a phone the
+                title somebody came to read was buried under the things they
+                might do with it, and it got worse as the church grew, which is
+                the wrong direction for a screen to move in.
+
+                Sharing is still one tap to start and one to finish. What is
+                gone is four things to read when you are not sharing at all. */}
             {pairings.length === 0 ? (
               /* "In the app" earns its place now that the button beside it
                  shares with people who are not. Without it the row reads
                  "Nobody to share with" next to a working share control. */
               <span className="text-xs text-gray-400">Nobody in the app to share with yet.</span>
-            ) : pairings.map((p) => (
+            ) : sharing === m.id ? (
+              <>
+                <span className="w-full text-xs font-semibold text-gray-500">Share with</span>
+                {pairings.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => { void share(m.id, p.id, p.ds_name); setSharing(''); }}
+                    className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy ring-1 ring-black/10"
+                  >
+                    {p.ds_name.split(' ')[0]}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setSharing('')}
+                  className="rounded-full px-3 py-1 text-xs font-semibold text-gray-600 underline"
+                >
+                  Not now
+                </button>
+              </>
+            ) : (
               <button
-                key={p.id}
-                onClick={() => share(m.id, p.id, p.ds_name)}
+                onClick={() => { setSharing(m.id); setConfirming(''); }}
                 className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy ring-1 ring-black/10"
               >
-                Share with {p.ds_name.split(' ')[0]}
+                {/* The count is the useful part. "Share" alone gives no hint
+                    whether there is anybody to share with; "Share with 5" does,
+                    and a Guide at their cap can see it at a glance. */}
+                Share with {pairings.length === 1 ? pairings[0].ds_name.split(' ')[0] : `${pairings.length} people`}
               </button>
-            ))}
+            )}
             {/* OUT OF THE APP, and on every row for every role. The buttons
                 above hand a resource to somebody the church has already paired
                 you with; this one hands it to a mother, a neighbour, a group
@@ -384,6 +491,17 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
                   inputMode="url"
                   placeholder="https://…"
                   className="tap mt-1 w-full rounded-xl bg-slate-50 px-3 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
+                />
+                <label className="mt-2 block text-xs font-semibold text-navy" htmlFor={`edit-note-${m.id}`}>
+                  What it is for
+                </label>
+                <textarea
+                  id={`edit-note-${m.id}`}
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  rows={2}
+                  placeholder="One line. Who is it for, or why it helps."
+                  className="tap mt-1 w-full rounded-xl bg-slate-50 px-3 py-2 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
                 />
                 <label className="mt-2 block text-xs font-semibold text-navy" htmlFor={`edit-kind-${m.id}`}>
                   Kind
