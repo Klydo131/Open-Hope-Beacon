@@ -67,27 +67,37 @@ ok(lessonControls.length > 0 && lessonControls.includes('Attach a file'),
 
 // ---- Everybody may change a study, nobody changes it for anybody else ----
 //
-// TWO REPORTS AND TWO WRONG ANSWERS BEFORE THIS ONE.
+// THREE REPORTS AND THREE ANSWERS, AND THE THIRD IS THE OWNER'S.
 //
-// The screen asked "did I write it", so the church's shared studies were
+// The screen first asked "did I write it", so the church's shared studies were
 // editable by nobody: author_id did not exist until migration 0038 and every
-// series written before it carries NULL. Widening the gate to Directors fixed
-// that and broke something worse -- one person's edit landed on seventeen other
-// shelves, from a button that looked like an ordinary edit. The ask that
-// settled it was "privately, based on their own account, not universal".
+// series written before it carries NULL. Widening to Directors fixed that and
+// broke something worse -- one person's edit landed on seventeen other shelves
+// from a button that looked ordinary. Widening to EVERYBODY, on the ask
+// "privately, based on their own account, not universal", fixed that in turn.
 //
-// So a shared study is a TEMPLATE. The first edit copies it to the person
-// making it, and their edits land on their copy for ever after. Probed against
-// the live policies, and rolled back:
+// Then the owner narrowed it: "for Explorers they cannot edit what the sample
+// Lesson studies are, only EDs, Directors and Guides can do that." That is the
+// rule now, it is theirs to set, and it is the better shape -- a study is
+// teaching material, and somebody being walked with is not preparing the walk.
+//
+// WHAT SURVIVES ALL THREE ROUNDS is the template mechanism itself, which is
+// what the rest of this section checks: a shared study a GUIDE edits is copied
+// to them first, so the church's copy is never rewritten underneath the other
+// forty Guides. Only who may start that has changed, and
+// tests/an-explorer-reads-the-studies.mjs owns that question.
+//
+// Probed against the live policies, and rolled back:
 //
 //   guide:    make_copy=ALLOWED  original=untouched  lessons 6/6 still there
-//   explorer: copy=ALLOWED  adds_lesson=ALLOWED  publish=refused
-//             edits_shared=refused
+//   explorer: read=44  write=0  REFUSED=44  lesson_rows_edited=0
 {
   const data = read('lib/live/data.ts');
   const gate = ui.slice(ui.indexOf('const mine ='), ui.indexOf('const opened ='));
-  ok(/const mine = true;/.test(gate),
-     'the controls are drawn for everybody, because everybody may change their own copy');
+  ok(/const mine = canWriteStudies\(profile\?\.role\)/.test(gate),
+     'the controls are drawn for whoever may write studies, and nobody else');
+  ok(!/const mine = true;/.test(gate),
+     'and not for everybody, which is what it briefly said');
 
   // PUBLISHING IS THE EXCEPTION and must not share the gate: it is the one act
   // on this screen that reaches the whole church.
