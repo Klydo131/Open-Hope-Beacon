@@ -149,6 +149,12 @@ const staticChecks = [
   // A Guide chosen on an invitation was never paired, because an invited
   // Explorer arrives already approved and the pairing hung off an approval.
   ['the named Guide is paired', 'tests/the-named-guide-is-paired.mjs'],
+  // The invitation used to carry a one-time link that expired, was spent by
+  // mail scanners, and failed on the second tap. It carries a password now.
+  ['a first password', 'tests/a-first-password.mjs'],
+  ['the invitation carries a password', 'tests/the-invitation-carries-a-password.mjs'],
+  // The example studies cited nothing, which is what AI filler looks like.
+  ['the studies are sourced', 'tests/the-studies-are-sourced.mjs'],
   // Evidence on a safeguarding report, and the authorisation around it: the
   // same rule as reports_read, which deliberately keeps it from the reporter
   // too, and no delete on either the row or the stored object.
