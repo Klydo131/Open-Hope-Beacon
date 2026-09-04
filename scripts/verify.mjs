@@ -140,6 +140,9 @@ const staticChecks = [
   // policy had always allowed it; only the button was missing, which is a gap
   // that reports itself as nothing at all.
   ['a resource can be taken off the shelf', 'tests/a-resource-can-be-taken-off-the-shelf.mjs'],
+  // ARCHITECTURE.md described an app with no backend for months after the live
+  // half shipped, and nothing reported it. Stale documentation fails silently.
+  ['the docs know what shipped', 'tests/the-docs-know-what-shipped.mjs'],
   // Evidence on a safeguarding report, and the authorisation around it: the
   // same rule as reports_read, which deliberately keeps it from the reporter
   // too, and no delete on either the row or the stored object.

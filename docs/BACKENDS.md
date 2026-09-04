@@ -1,11 +1,19 @@
 # Connecting a real backend
 
-This app has no backend. That is the design, not a gap: it means a church can
-run the whole thing, on a phone, offline, before deciding anything.
+As you clone it, this app has no backend. That is the design, not a gap: it
+means a church can run the whole thing, on a phone, offline, before deciding
+anything.
 
 At some point a church stops evaluating and starts using it. Then two people
 need to see the same conversation on two different devices, and everything below
 applies.
+
+**The repository already contains one worked answer**, for Supabase: the schema
+and every permission rule in `supabase/migrations/`, the data layer in
+`lib/live/data.ts`, the screens in `components/Live*.tsx`. If that is the host
+you want, [SETUP.md](./SETUP.md) is a shorter road than this document — run the
+migrations and there is no code to write. This file is for building your own,
+against something else, and for understanding the seams either way.
 
 **Nothing here is required to run the demo.** If you are just trying the app,
 close this file.
@@ -106,6 +114,30 @@ Each one is in the source as well, because each one has cost somebody something.
    opening the network tab. If your endpoint sends email or writes rows, limit
    it server-side, and key the limit on something the caller cannot change for
    free.
+
+### There is a worked one in this repository
+
+`lib/backend/feedback.ts` is the interface; **`lib/live/feedback-sink.ts` is
+that interface implemented against a real database**, and it is about forty
+lines. It is installed in `lib/live/session.tsx` once a profile has loaded, and
+read in `components/LiveFeedbackInbox.tsx`. Read those three files alongside
+this section — a shipped example beats a snippet.
+
+Two things it does that the snippet above does not, and both are worth copying:
+
+- **It falls back to the on-device sink on every failing path.** Not signed in,
+  no database configured, the request refused, the network gone: whatever
+  happens, the message is kept where the person can still see it rather than
+  lost to a failed request.
+- **It sends what the device kept, on the next sign-in.** A message written
+  offline in March is delivered the first time that person opens the app with a
+  connection, without them doing anything.
+
+One design note in it that surprised the church: feedback goes to a **table,
+not an email**. A hosted mailer that sends two messages an hour for the whole
+project would drop feedback on exactly the days worth hearing about. A row
+arrives instantly, cannot be rate limited, and — because there is deliberately
+no delete policy on it — cannot be quietly removed by the leader it is about.
 
 ### Checking it
 

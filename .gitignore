@@ -59,3 +59,8 @@ docs/handbook/package*.json
 # with `node docs/handbook/build-pdf.js`. Committing them would give the repo two
 # copies of every guide that drift apart, and the PDF is always the stale one.
 docs/handbook/pdf/
+
+# The Supabase CLI's scratch directory. Holds the CLI version it last saw and
+# nothing anybody wrote; it appears the first time you run the CLI and is not
+# part of the project.
+supabase/.temp/

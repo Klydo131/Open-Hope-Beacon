@@ -117,6 +117,15 @@ An attachment is visible to exactly the two people in that conversation,
 with no Director exception. The files stay on the device, in IndexedDB, and never
 go into the saved database.
 
+**Nobody can change a shared thing on everybody else's behalf.** The church
+publishes example studies and a shelf of links, and anybody may edit or remove
+them — for themselves. Edit a study and you get your own copy; everybody else
+still sees the original. Remove a link somebody else added and it comes off your
+shelf and stays on theirs, with a way to put it back. Whoever added a thing, and
+whoever leads the church, can still change or delete it for real; that is the
+moderation, and it is the database that decides which of the two happens, not
+the button.
+
 It runs on Windows, macOS, Linux, Android and iPhone, and CI proves the first
 three on every push. `docs/PLATFORMS.md` says exactly what is tested and what is
 only expected, including the one thing worth checking yourself on a real iPhone.
@@ -241,6 +250,13 @@ setFeedbackSink({
   },
 });
 ```
+
+And there is a worked one in this repository to read alongside it:
+`lib/live/feedback-sink.ts` is that same interface implemented against a real
+database, installed in `lib/live/session.tsx` and read in
+`components/LiveFeedbackInbox.tsx`. About forty lines, and it falls back to the
+on-device sink on every failing path so a message is never lost to a bad
+connection.
 
 ### The one rule that matters most
 

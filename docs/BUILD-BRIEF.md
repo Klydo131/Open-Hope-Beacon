@@ -177,9 +177,15 @@ that role's workspace.
 
 ### Step 5 — The rest of the schema
 
-New numbered migrations, copying the private repo's policies:
-`0003_lessons.sql`, `0004_meetings.sql`, `0005_prayer.sql`,
-`0006_materials.sql`. Copy the **policies**, not just the tables.
+**Done.** Lessons, meetings, prayer and the library all shipped, and the numbers
+this step once guessed at were taken by other work: read
+`supabase/migrations/0007_prayer.sql`, `0008_library.sql` and `0009_meetings.sql`
+rather than writing them. Everything after `0011` is dated rather than numbered,
+so two people adding a migration on the same day do not collide.
+
+The instruction that has not changed is the one that mattered: copy the
+**policies**, not just the tables. A table without its policy is a table the
+Data API will hand to anybody who asks.
 
 ---
 

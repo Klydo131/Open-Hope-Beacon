@@ -162,9 +162,14 @@ The Director screen calls this function and shows its useful server response.
 
 ### C. Remaining future work
 
-Lessons, meetings, prayer, materials and the audit log exist in the private
-repo's migrations. Each becomes a new numbered file here — `0003_lessons.sql`
-and so on. Copy the policies, not just the tables.
+**None of this is future work any more.** Lessons, meetings, prayer, the library
+and the audit log are all in `supabase/migrations/` in this repository, along
+with everything built since. Run every file in that directory in order; there is
+nothing left to copy from anywhere else.
+
+The rule that outlives this section: copy the **policies**, not just the tables.
+A table without its policy is a table the Data API will hand to anybody who
+asks.
 
 ---
 
