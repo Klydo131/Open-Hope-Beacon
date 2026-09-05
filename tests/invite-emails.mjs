@@ -126,8 +126,16 @@ for (const role of ROLES) {
   const warn = html.indexOf('This password is temporary');
   ok(warn > 0 && warn < invitationButton,
      `${role}: the temporary-password warning sits with the password`);
-  ok(html.includes('Settings') && html.includes('Change password'),
-     `${role}: and names the screen that changes it`);
+  // IT NAMES A PLACE, NOT DIRECTIONS. This used to look for the words
+  // "Settings" and "Change password", which was the best available check while
+  // the form was a card inside a folder inside Settings and had no address of
+  // its own. It has one now, so the message can point at it -- and an address
+  // in an e-mail is something a person can tap, which a set of directions is
+  // not.
+  ok(html.includes(`${APP_URL}/password`),
+     `${role}: and links straight to the page that changes it`);
+  ok(/<a href="[^"]*\/password"/.test(html),
+     `${role}: as a real link rather than text somebody has to retype`);
 
   // Nothing may still promise a one-time link. A false reassurance about
   // expiry is how somebody decides not to bother today.

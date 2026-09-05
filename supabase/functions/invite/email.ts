@@ -59,7 +59,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       + 'shared beyond the person walking with you.',
     steps: [
       ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first.'],
-      ['Change the password.', 'Settings, then Change password. It takes a moment and it is worth doing today.'],
+      ['Change the password.', 'There is a page for it, linked above. It takes a moment and it is worth doing today.'],
       ['Someone will be paired with you.', 'A Guide from your church, who will say hello.'],
     ],
   },
@@ -255,8 +255,8 @@ export function inviteHtml(
             <tr><td style="padding:16px 20px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#7A2A20;">
               <strong style="font-size:16px;">This password is temporary. Please change it.</strong><br>
               It was created for you so you can get in today. Anybody who can read this
-              e-mail can use it, so change it to one only you know: open Hope&nbsp;Beacon,
-              go to <strong>Settings</strong>, then <strong>Change password</strong>.
+              e-mail can use it, so change it to one only you know. There is a page for
+              exactly that: <a href="${app}/password" style="color:#7A2A20;font-weight:bold;">${app}/password</a>.
               It takes a moment, and the app will remind you until you do.
             </td></tr>
           </table>

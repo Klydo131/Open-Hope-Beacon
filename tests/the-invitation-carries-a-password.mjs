@@ -128,9 +128,14 @@ ok(/encodeURIComponent\(email\)/.test(fn), 'with the address escaped into it pro
   ok(/Anybody who can read this/i.test(mail), 'and says plainly why it matters');
   ok(mail.indexOf('This password is temporary') < mail.indexOf('Sign in to Hope Beacon'),
      'and the warning sits with the password, not in a footer nobody reaches');
-  // It names where to go. An instruction with no destination is a complaint.
-  ok(/Settings/.test(mail) && /Change password/.test(mail),
-     'and names the screen that does it');
+  // IT NAMES A PLACE. An instruction with no destination is a complaint, and
+  // for a while the destination was the best that existed: a card inside a
+  // folder inside Settings, reachable only through a hash. Reported as
+  // confusing, and fairly -- a task people are SENT to needs an address. The
+  // form lives at /password now and the message links to it.
+  ok(/\/password/.test(mail), 'and names the page that does it');
+  ok(/<a href="\$\{app\}\/password"/.test(mail),
+     'as a link built from the app’s own address, not a hard-coded host');
 }
 
 // ---------------------------------------------------------------------------
@@ -287,6 +292,53 @@ ok(/encodeURIComponent\(email\)/.test(fn), 'with the address escaped into it pro
   // A Guide or Director arriving this way is signed in but not yet approved.
   ok(/waiting for a Director to approve it/.test(door),
      'somebody not yet approved is told why, rather than bounced');
+}
+
+// ---------------------------------------------------------------------------
+// 11. CHANGING IT IS A PLACE, NOT A CARD SOMEWHERE
+// ---------------------------------------------------------------------------
+//
+// REPORTED: "The change your password should have their own page, users get
+// confuse why there isn't a dedicated page for new password and it's the same
+// page for home."
+//
+// The complaint is about addressability, and it is correct. Changing a password
+// is a task people are SENT to -- by this e-mail, by the reminder in the app, by
+// a Director on the phone. A task you are sent to needs somewhere to be sent.
+// It was a card, inside a folder, inside Settings, reachable only by a hash
+// that had to be translated into a folder name first; so the instruction could
+// never be a place, only directions.
+{
+  const route = 'app/password/page.tsx';
+  const there = fs.existsSync(path.join(root, route));
+  ok(there, 'there is a page at /password');
+  // READ ONLY IF IT IS THERE. Reading it unconditionally made this suite THROW
+  // when the page was missing, so the four checks below never ran and the one
+  // failure that did print was the only thing anybody saw. A test that crashes
+  // on the fault it exists to describe reports less than it knows.
+  const page = there ? strip(read(route)) : '';
+  ok(/LivePasswordPage/.test(page), 'and it draws the password form');
+  ok(/LiveAppShell/.test(page), 'behind the same sign-in wall as every other live page');
+  ok(/'executive', 'admin', 'dm', 'ds'/.test(page),
+     'and every role may reach it, Executive Directors included');
+
+  const ui = strip(read('components/LiveAccountPages.tsx'));
+  ok(/export function LivePasswordPage/.test(ui), 'the page is a real component');
+
+  // THE FORM IS IN ONE PLACE ONLY. Two working password forms is two places to
+  // change one rule and one of them to forget.
+  const settingsAt = ui.indexOf("room === 'account'");
+  const settingsBlock = ui.slice(settingsAt, settingsAt + 1600);
+  ok(!/<PasswordCard \/>/.test(settingsBlock),
+     'Settings no longer holds a second copy of the form');
+  ok(/href="\/password"/.test(settingsBlock),
+     'it points at the page instead, so the old route still arrives somewhere sensible');
+
+  // A page somebody lands on from an e-mail needs a way out that goes where
+  // they actually live, not back to a screen they have never opened.
+  const pageBody = ui.slice(ui.indexOf('export function LivePasswordPage'));
+  ok(/homeFor\(profile\.role\)/.test(pageBody.slice(0, 900)),
+     'and leaving it goes to their own home, not to Settings they never visited');
 }
 
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');

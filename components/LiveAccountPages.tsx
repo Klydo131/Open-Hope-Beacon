@@ -18,7 +18,7 @@ import { InstallCard } from '@/components/InstallCard';
 import { SourceCard } from '@/components/SourceCard';
 import { NAVY, roleNoun } from '@/lib/brand';
 import * as live from '@/lib/live/data';
-import { useLiveSession } from '@/lib/live/session';
+import { useLiveSession, homeFor } from '@/lib/live/session';
 import { useTutorialMode } from '@/lib/tutorial';
 import type { Role } from '@/lib/types';
 import { BeaconSpinner } from '@/components/BeaconLoader';
@@ -243,6 +243,7 @@ export function LiveProfilePage() {
 export function LiveSettingsPage() {
   const { profile } = useLiveSession();
   const leads = profile?.role === 'admin' || profile?.role === 'executive';
+  const temporaryPassword = profile?.password_is_temporary === true;
 
   // THREE FOLDERS. Settings was seven cards for a member and nine for a
   // Director, at nearly seven screens on a phone: installing, where the app
@@ -310,7 +311,42 @@ export function LiveSettingsPage() {
 
       {room === 'account' && (
         <div id="password">
-          <PasswordCard />
+          {/* A SIGNPOST, NOT THE FORM ITSELF.
+              REPORTED: "The change your password should have their own page,
+              users get confuse why there isn't a dedicated page for new
+              password and it's the same page for home."
+
+              That is right, and the reason is worth naming. Changing a
+              password is a task somebody is SENT to -- by an e-mail, by a
+              reminder, by a person on the phone telling them to do it. A task
+              you are sent to needs an address. It was a card inside a folder
+              inside Settings, reachable only by a hash that had to be
+              translated into a folder name, so "go and change your password"
+              could not be said as a place; it had to be said as directions.
+
+              The form now lives at /password and this is the way in from
+              Settings, so the old route still arrives somewhere sensible
+              rather than at a page that no longer holds what it promised. */}
+          <Card className="p-5">
+            <h2 className="text-xl font-bold text-navy">Your password</h2>
+            {temporaryPassword ? (
+              <p className="mt-1 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-relaxed text-amber-900 ring-1 ring-amber-200">
+                You are still using the password from your invitation e-mail.
+                Anybody who can read that e-mail can sign in as you.
+              </p>
+            ) : (
+              <p className="mt-1 text-sm leading-relaxed text-gray-600">
+                Change the password you use to sign in.
+              </p>
+            )}
+            <Link
+              href="/password"
+              className="tap mt-4 inline-flex items-center rounded-xl px-5 text-base font-semibold text-white"
+              style={{ backgroundColor: NAVY }}
+            >
+              Change my password
+            </Link>
+          </Card>
         </div>
       )}
 
@@ -331,6 +367,57 @@ export function LiveSettingsPage() {
           <AboutCard />
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * The password page, at /password.
+ *
+ * WHY IT IS A PAGE AND NOT A CARD. Changing a password is a task somebody is
+ * SENT to: by the invitation e-mail, by the reminder in the app, by a Director
+ * on the phone saying "go and change it". A task you are sent to needs an
+ * ADDRESS, and this one did not have one -- it was a card, inside a folder,
+ * inside Settings, reachable only through a hash that had to be translated
+ * into a folder name before the card was even on the page. So the instruction
+ * could never be a place; it had to be directions, and directions are what
+ * people get lost in.
+ *
+ * IT IS DELIBERATELY THE ONLY THING HERE. No tabs, no neighbouring cards,
+ * nothing else to read. Somebody arriving from an e-mail that just told them
+ * their password is temporary should see one heading and one form.
+ */
+export function LivePasswordPage() {
+  const { profile } = useLiveSession();
+  const home = profile ? homeFor(profile.role) : '/';
+
+  return (
+    <div className="mx-auto max-w-xl space-y-4">
+      {/* BACK IS ON THE LEFT, and it goes to the person's own home rather than
+          to Settings. Most people arrive here from an e-mail, never having
+          been in Settings at all, so "back to settings" would send them
+          somewhere they have not been. */}
+      <Link href={home} className="tap inline-flex items-center text-base font-semibold text-room">
+        &larr; Back to the app
+      </Link>
+
+      <div>
+        {/* text-room, NOT text-navy. This heading and the link above sit on the
+            page itself rather than inside a Card, and the page is painted by
+            whichever room theme the person chose -- navy text on a navy ground
+            is invisible, which is a bug that has already been reported once on
+            the Announcements heading. `themes-are-readable` caught this one
+            before it shipped; the link is the same mistake in a tag that check
+            does not look at, so it is fixed here rather than left for the day
+            somebody widens the rule. */}
+        <h1 className="text-2xl font-extrabold text-room">Change your password</h1>
+        <p className="mt-1 text-sm text-room-soft">
+          This is the only place you need. Once it is changed, use the new one
+          whenever you sign in.
+        </p>
+      </div>
+
+      <PasswordCard />
     </div>
   );
 }
