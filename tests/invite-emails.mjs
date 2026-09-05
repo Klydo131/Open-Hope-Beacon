@@ -29,7 +29,7 @@ const js = ts.transpileModule(readFileSync(SRC, 'utf8'), {
 
 const mod = { exports: {} };
 new Function('module', 'exports', js)(mod, mod.exports);
-const { inviteHtml, subjectFor, roleWord } = mod.exports;
+const { inviteHtml, inviteText, subjectFor, roleWord } = mod.exports;
 
 // All four. A role the composer does not cover renders as undefined and
 // sends a blank message, which is exactly the failure this file exists for.
@@ -55,49 +55,74 @@ for (const role of ROLES) {
   bodies[role] = html;
   ok(typeof html === 'string' && html.length > 800, `${role}: renders a real message`);
 
-  // The link twice: a button that will not render is a dead end, a URL is not.
+  // THE INSTALL INSTRUCTIONS ARE GONE, AND THAT IS THE POINT OF THIS BLOCK.
+  //
+  // They were most of the message: Safari steps, other-browser steps, a "using
+  // the app" panel and a three-step list, all written for somebody being walked
+  // through their first day. The whole thing came to 13,000 characters, and the
+  // first invitation that reached a real inbox landed in Gmail's PROMOTIONS tab
+  // rather than Primary -- a wall of sections and buttons reads as marketing to
+  // a classifier however transactional every word of it is.
+  //
+  // So the message now carries what cannot be got anywhere else -- the address,
+  // the password, the warning and the way in -- and the install steps live in
+  // the app under Settings, which is where somebody is standing when they
+  // actually want them.
+  //
+  // CHECKED AS AN ABSENCE, deliberately. These assertions used to require the
+  // install steps and their ordering, and each of those rules came from a real
+  // failure. Deleting the checks silently would throw away the record; asserting
+  // the absence keeps it, and stops the wall growing back a section at a time.
+  ok(!html.includes('Safari on iPhone or iPad') && !html.includes('Other browsers'),
+     `${role}: carries no install instructions`);
+  ok(!html.includes('Using the app'),
+     `${role}: and no "using the app" tour`);
+  ok(html.includes('open <strong>Settings</strong> inside the app'),
+     `${role}: it points at Settings instead, where installing is explained`);
+
+  // THE OLD ORDERING BUG CANNOT RECUR, and it is worth naming what it was. The
+  // install steps used to come FIRST; people followed them, an installed app
+  // opens as a fresh session with no invitation in it, and some never went back
+  // to the e-mail. One Guide ended with an account that had no password and a
+  // spent link, repaired by hand against the database. With no install section
+  // at all there is nothing left to come first.
+  ok(!/install/i.test(html.slice(0, html.indexOf('Sign in to Hope Beacon'))),
+     `${role}: nothing about installing appears before the way in`);
+
+  // ONE LINK PER DESTINATION. The copyable fallback address was removed with
+  // the rest: it duplicated the button, and two links to the same place is
+  // itself a bulk-mail signal. The bare URL still exists for anybody whose
+  // client will not render the button -- in the PLAIN TEXT part, checked below,
+  // which is a better place for it than a second line of HTML.
+  ok(!html.includes('If the button does not work'),
+     `${role}: no duplicate fallback address in the HTML`);
   const hrefs = (html.match(/href="https:\/\/church\.example\.org[^"]*"/g) || []).length;
-  ok(hrefs >= 2, `${role}: the join link appears as both a button and copyable text`);
+  ok(hrefs === 2,
+     `${role}: exactly two links -- the way in and the password page (${hrefs})`);
 
-  ok(html.includes('Safari on iPhone or iPad') && html.includes('Other browsers'),
-     `${role}: gives separate Safari and other-browser install steps`);
-  ok(html.includes('Using the app') && (html.includes('Guild Room') || (html.includes('Admin') && html.includes('Security'))),
-     `${role}: explains how to return and use the right room after joining`);
-
-  // THE INVITATION COMES BEFORE THE INSTALL STEPS, and this assertion used to
-  // say the opposite.
+  // -------------------------------------------------------------------------
+  // THE PLAIN TEXT PART
+  // -------------------------------------------------------------------------
   //
-  // The old reasoning was that a recipient should not spend a one-time link
-  // before knowing which browser to use. It reads sensibly and it was wrong,
-  // because of what people did with it: they followed the install steps first,
-  // and an installed app opens as a fresh session with no invitation in it.
-  // Some never came back to the email. One Guide finished with an account that
-  // had no password and a spent link, and it had to be repaired by hand against
-  // the database.
-  //
-  // Accepting is the only step that expires, works once, and cannot be done
-  // later from anywhere else. Installing has no deadline and is explained inside
-  // the app. So the thing with a deadline goes first.
-  ok(html.indexOf('Sign in to Hope Beacon') < html.indexOf('Safari on iPhone or iPad'),
-     `${role}: puts signing in before the install steps`);
-  ok(html.indexOf('Sign in to Hope Beacon') < html.indexOf('Next: install Hope Beacon'),
-     `${role}: and the install section presents itself as what comes next`);
-  // The copyable address stays immediately under the button it backs up, which
-  // is no longer the bottom of the message. A button that will not render in
-  // somebody's mail client is a dead end; a URL beside it is not.
-  //
-  // MEASURED AS A DISTANCE, not just an order. The first version of this check
-  // asked only that the copyable address came somewhere after the button, and
-  // it passed happily while the reorder left that address stranded at the very
-  // bottom of the message, below every install step. Order alone cannot tell
-  // "underneath the button" from "elsewhere in the email".
-  const invitationButton = html.indexOf('Sign in to Hope Beacon');
-  const fallback = html.indexOf('If the button does not work');
-  ok(invitationButton >= 0 && fallback > invitationButton && fallback - invitationButton < 500,
-     `${role}: the copyable address sits directly under the button (${fallback - invitationButton} chars away)`);
-  ok(html.slice(fallback, fallback + 500).includes('login?email='),
-     `${role}: and it is the sign-in address, not the app home`);
-  ok(html.includes(`href="${APP_URL}"`), `${role}: install links use the ordinary app address`);
+  // A message with only an HTML part is one of the signals Gmail weighs between
+  // Primary and Promotions: ordinary correspondence is multipart, bulk mail very
+  // often is not. It is also what a client with styling switched off, a watch,
+  // and a screen reader all get.
+  {
+    const text = inviteText(role, CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD);
+    ok(text.length > 400, `${role}: there is a real plain-text version (${text.length} chars)`);
+    ok(!/<[a-z]/i.test(text), `${role}: with no markup left in it`);
+    ok(!/&(amp|nbsp|middot|rsquo);/.test(text),
+       `${role}: and no HTML entities, which are a bug in plain text rather than a safety measure`);
+    ok(text.includes(SIGN_IN_EMAIL) && text.includes(TEMP_PASSWORD),
+       `${role}: it carries the address and the password`);
+    ok(text.includes(`${APP_URL}/password`), `${role}: and the page that changes it`);
+    ok(text.includes(URL_.split('#')[0]), `${role}: and the way in, as a bare address`);
+    // Wrapped by a function rather than by hand: the first draft broke lines
+    // wherever the source happened to end and left "inside the app." alone.
+    const longest = Math.max(...text.split('\n').map((l) => l.length));
+    ok(longest <= 72, `${role}: wrapped for a narrow window (longest line ${longest})`);
+  }
 
   // -------------------------------------------------------------------------
   // THE CREDENTIALS, IN THE RENDERED MESSAGE, ABOVE THE BUTTON
@@ -115,6 +140,7 @@ for (const role of ROLES) {
   // keep on exactly that class of mistake.
   ok(html.includes(SIGN_IN_EMAIL), `${role}: shows the address they sign in with`);
   ok(html.includes(TEMP_PASSWORD), `${role}: and the password itself`);
+  const invitationButton = html.indexOf('Sign in to Hope Beacon');
   ok(html.indexOf(SIGN_IN_EMAIL) < invitationButton
      && html.indexOf(TEMP_PASSWORD) < invitationButton,
      `${role}: both appear ABOVE the button, which is the whole request`);

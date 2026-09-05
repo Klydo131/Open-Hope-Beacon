@@ -166,6 +166,11 @@ const staticChecks = [
   // policy that refuses a read written for somebody else AND the screens that
   // do not offer what would be refused.
   ['the reading is recorded', 'tests/the-reading-is-recorded.mjs'],
+  // The shipping script hands `git status` paths straight to `git add`, and it
+  // was reading them through a helper that trimmed -- which ate the first
+  // character of the FIRST path whenever that entry was an unstaged edit. It
+  // survived two ships and then killed a 25-minute gate run at the last step.
+  ['the ship reads git correctly', 'tests/the-ship-reads-git-correctly.mjs'],
   // Evidence on a safeguarding report, and the authorisation around it: the
   // same rule as reports_read, which deliberately keeps it from the reporter
   // too, and no delete on either the row or the stored object.

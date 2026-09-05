@@ -262,11 +262,33 @@ ok(/encodeURIComponent\(email\)/.test(fn), 'with the address escaped into it pro
 
   // The printed fallback address must NOT carry it: somebody pasting that line
   // into a chat to ask for help would paste their password with it.
+  // THE FALLBACK ADDRESS MOVED TO THE PLAIN-TEXT PART, and the rule it was
+  // protecting still holds there. The HTML used to print the address a second
+  // time under the button; that duplicated a link and, with everything else,
+  // helped put the first real invitation in Gmail's Promotions tab. What must
+  // never happen either way is the PASSWORD appearing inside a printed address:
+  // somebody copying that line into a chat to ask for help would paste their
+  // password with it.
   ok(/joinUrl\.split\('#'\)\[0\]/.test(mail),
-     'the printed fallback address has the password stripped out of it');
-  ok(/href="\$\{plainUrl\}"[^>]*>\$\{plainUrl\}/.test(mail),
-     'and it is the stripped one that is shown and linked');
+     'the printed address has the password stripped out of it');
+  ok(!/If the button does not work/.test(mail),
+     'and the HTML no longer duplicates the link under the button');
   ok(/<a href="\$\{url\}"/.test(mail), 'while the button keeps the full address');
+
+  // The bare address now lives in the text part, which is where somebody whose
+  // client will not render the button actually reads.
+  ok(/export function inviteText/.test(mail), 'there is a plain-text version');
+
+  // AND IT IS ACTUALLY SENT. Composing it and sending it are two different
+  // things, and this check exists because breaking the send on purpose failed
+  // NOTHING: every assertion here was about email.ts, so commenting out the one
+  // line in index.ts that attaches the text part left the suite green while the
+  // message went back to being HTML-only. A half that nobody checks is the half
+  // that quietly disappears.
+  ok(/payload\.textContent = inviteText\(/.test(fn),
+     'and the send attaches it, rather than composing it and throwing it away');
+  const text = mail.slice(mail.indexOf('export function inviteText'));
+  ok(/joinUrl\.split\('#'\)\[0\]/.test(text), 'and it carries the way in, without the password');
 
   const door = strip(read('components/live/DoorPages.tsx'));
   ok(/hash\.startsWith\('#p='\)/.test(door), 'the sign-in page notices somebody arriving from an invitation');

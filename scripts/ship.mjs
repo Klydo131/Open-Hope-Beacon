@@ -32,6 +32,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { changedFiles } from './lib/changed-files.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LOCK = path.join(root, '.git', 'beacon-ship.lock');
@@ -53,6 +54,10 @@ const say = (s) => process.stdout.write(`${s}\n`);
 const die = (s) => { process.stderr.write(`ship: ${s}\n`); release(); process.exit(1); };
 
 const git = (...a) => execFileSync('git', a, { cwd: root, encoding: 'utf8' }).trim();
+/** The same, WITHOUT trimming. See `changedFiles` for why that matters. */
+const gitRaw = (...a) => execFileSync('git', a, { cwd: root, encoding: 'utf8' });
+
+
 
 // ---------------------------------------------------------------------------
 // The lock. One ship at a time, per checkout.
@@ -134,8 +139,7 @@ say(`${passed[0]} · 0 failures`);
 // ---------------------------------------------------------------------------
 // Two commits, deliberately.
 // ---------------------------------------------------------------------------
-const changed = git('status', '--porcelain').split('\n').filter(Boolean)
-  .map((l) => l.slice(3).trim());
+const changed = changedFiles(gitRaw('status', '--porcelain', '-z'));
 const source = changed.filter((f) => f !== STAMP);
 const stamped = changed.includes(STAMP);
 

@@ -41,7 +41,7 @@
 // Director can send by hand, which is the reason that link exists.
 
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@2';
-import { inviteHtml, subjectFor, type InviteRole } from './email.ts';
+import { inviteHtml, inviteText, subjectFor, type InviteRole } from './email.ts';
 import { firstPassword } from './password.ts';
 
 // WHO MAY CALL THIS FROM A BROWSER.
@@ -559,6 +559,14 @@ async function handle(req: Request): Promise<Response> {
         // blank message. Three roles, three subjects, no collapsing.
         payload.subject = subjectFor(asRole);
         payload.htmlContent = inviteHtml(asRole, churchName, joinUrl, site, email, tempPassword);
+        // BOTH PARTS, AND THE TEXT ONE IS NOT DECORATION. A message carrying
+        // only HTML is one of the signals Gmail weighs between Primary and
+        // Promotions -- correspondence is normally multipart, bulk mail very
+        // often is not. The first invitation to reach a real inbox landed in
+        // Promotions, and this is the strongest lever we hold on that. It is
+        // also what a mail client with styling switched off, a watch, and a
+        // screen reader all get.
+        payload.textContent = inviteText(asRole, churchName, joinUrl, site, email, tempPassword);
       }
 
       try {

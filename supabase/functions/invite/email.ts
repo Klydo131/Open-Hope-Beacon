@@ -113,6 +113,40 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
   },
 };
 
+/**
+ * One line about what happens after they sign in.
+ *
+ * REPLACES A THREE-STEP LIST, A "USING THE APP" PANEL AND TWO SETS OF INSTALL
+ * INSTRUCTIONS. Those were written for somebody being walked through their
+ * first day, and they were most of the length of the message -- which is part
+ * of why Gmail read the whole thing as marketing and filed it under
+ * Promotions. The install steps live in the app, under Settings, where the
+ * person is standing when they actually need them.
+ */
+/**
+ * The two roles that are not let in on arrival.
+ *
+ * `handle_new_user` approves Explorers and Executive Directors automatically;
+ * a Guide or a Director signs in with a password that works and then meets
+ * "your account is not approved yet". That reads as a broken password, which is
+ * the one thing this whole design exists to stop somebody believing.
+ *
+ * IT LIVED IN THE THREE-STEP LIST THAT THIS REWRITE DELETED, and removing it
+ * was caught by the test rather than by me. Kept as its own sentence now, where
+ * shortening the message cannot take it away again by accident.
+ */
+const WAITS: Partial<Record<InviteRole, string>> = {
+  dm: 'A Director then lets you in, which can take a little while; sign in anyway and the app will tell you where you stand.',
+  admin: 'A Director then lets you in, which can take a little while; sign in anyway and the app will tell you where you stand.',
+};
+
+const AFTER: Record<InviteRole, string> = {
+  ds: 'A Guide from your church will say hello.',
+  dm: 'You will be paired with people one at a time, at most five at once.',
+  admin: 'Approvals, people and pairings are under Admin.',
+  executive: 'Appointing Directors and overseeing churches are under Admin.',
+};
+
 /** Escape anything that reaches the HTML from the database. */
 function esc(value: string): string {
   return value
@@ -166,162 +200,72 @@ export function inviteHtml(
   const copy = ROLE_COPY[role];
   const church = esc(churchName || 'Your church');
   const url = esc(joinUrl);
-  // THE BUTTON CARRIES THE SIGN-IN; THE PRINTED ADDRESS DOES NOT.
-  //
-  // `joinUrl` ends with `#p=<password>` so that tapping the button puts the
-  // person straight into the app. Printing that same string underneath would
-  // undo the care taken over it: the password would appear twice in the
-  // message, once labelled and once buried in an address, and anybody copying
-  // the visible line into a chat to ask for help would paste their password
-  // with it. So the fallback line shows the address with the fragment removed.
-  // It still works -- it lands on the sign-in page with the e-mail already
-  // filled in, which is where somebody who could not use the button needs to
-  // be.
-  const plainUrl = esc(joinUrl.split('#')[0]);
   const app = esc(appUrl);
   const who = esc(signInEmail);
   const pass = esc(tempPassword);
-  const roomUse = role === 'dm' || role === 'ds'
-    ? 'Open the <strong>Guild Room</strong> for group activity, then use the other rooms for your own journey or the people you walk with.'
-    : 'Open <strong>Admin</strong>, then choose <strong>Security</strong> to review account activity. Admin also holds approvals, people, and church work.';
-
-  const steps = copy.steps
-    .map(([head, rest], i) => `
-                    <tr>
-                      <td width="26" valign="top" style="font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;color:#2F80ED;line-height:1.5;">${i + 1}</td>
-                      <td valign="top" style="font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#22272F;${i < copy.steps.length - 1 ? 'padding-bottom:10px;' : ''}"><strong>${esc(head)}</strong> ${esc(rest)}</td>
-                    </tr>`)
-    .join('');
-
+  const afterLine = AFTER[role];
+  const waitLine = WAITS[role] ?? '';
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EEF1F6;margin:0;padding:0;width:100%;">
   <tr>
-    <td align="center" style="padding:32px 12px;">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px 0;">
-        <tr><td align="center">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center"><tr>
-            <td width="40" height="40" align="center" valign="middle" style="background-color:#2F80ED;border-radius:11px;color:#ffffff;font-family:Helvetica,Arial,sans-serif;font-size:20px;font-weight:bold;line-height:40px;">B</td>
-            <td width="10">&nbsp;</td>
-            <td valign="middle" style="font-family:Helvetica,Arial,sans-serif;font-size:21px;font-weight:bold;color:#1E2A4A;letter-spacing:-0.3px;">Hope&nbsp;Beacon</td>
-          </tr></table>
-        </td></tr>
-      </table>
+    <td align="center" style="padding:28px 12px;">
 
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background-color:#ffffff;border-radius:14px;">
-        <tr><td style="padding:40px 44px 36px 44px;font-family:Helvetica,Arial,sans-serif;">
+        <tr><td style="padding:34px 40px 30px 40px;font-family:Helvetica,Arial,sans-serif;">
 
-          <h1 style="margin:0 0 6px 0;font-family:Helvetica,Arial,sans-serif;font-size:27px;line-height:1.25;color:#1E2A4A;font-weight:bold;">${esc(copy.subject)}</h1>
+          <p style="margin:0 0 18px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;color:#1E2A4A;">Hope&nbsp;Beacon</p>
 
-          <p style="margin:0 0 20px 0;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:#5B6472;">
-            <strong style="color:#1E2A4A;">${church}</strong> has invited you. ${esc(copy.lead)}
+          <h1 style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:22px;line-height:1.3;color:#1E2A4A;font-weight:bold;">${esc(copy.subject)}</h1>
+
+          <p style="margin:0 0 22px 0;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:#22272F;">
+            <strong>${church}</strong> has invited you as ${esc(copy.word)}. ${esc(copy.lead)}
           </p>
-
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;border-top:1px solid #E4E9F0;border-bottom:1px solid #E4E9F0;">
-            <tr><td style="padding:12px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;color:#5B6472;">
-              Invited as <strong style="color:#1E2A4A;">${esc(copy.word)}</strong>
-            </td></tr>
-          </table>
 
           <!-- THE CREDENTIALS COME BEFORE THE BUTTON, and the order is the
                request: "That email and password must be emphasized first
-               before tapping the accept or join in to the Web app. Once the
-               user read the email and password, they are ready to tap."
-               Somebody who taps first and reads second arrives at a sign-in
-               box holding nothing, goes back to the mail, and half of them do
-               not come back. So the two things they will be asked for are the
-               first things on the page, in a box that cannot be mistaken for
-               body text, and the button sits underneath them. -->
-          <p style="margin:24px 0 10px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Step 1 &middot; Your sign-in details</p>
+               before tapping the accept or join in to the Web app." Somebody
+               who taps first and reads second arrives at a sign-in box holding
+               nothing, goes back to the mail, and half of them do not come
+               back. -->
+          <p style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Step 1 &middot; Your sign-in details</p>
 
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F8FF;border:2px solid #2F80ED;border-radius:10px;margin:0 0 14px 0;">
-            <tr><td style="padding:22px 24px;font-family:Helvetica,Arial,sans-serif;">
-              <p style="margin:0 0 16px 0;font-size:15px;line-height:1.5;color:#22272F;">Write these down or keep this email open. You will be asked for both.</p>
-
-              <p style="margin:0 0 4px 0;font-size:12px;font-weight:bold;color:#5B6472;letter-spacing:0.6px;text-transform:uppercase;">E-mail</p>
-              <p style="margin:0 0 16px 0;font-family:Courier,'Courier New',monospace;font-size:17px;line-height:1.4;color:#1E2A4A;font-weight:bold;word-break:break-all;">${who}</p>
-
-              <p style="margin:0 0 4px 0;font-size:12px;font-weight:bold;color:#5B6472;letter-spacing:0.6px;text-transform:uppercase;">Password</p>
-              <p style="margin:0 0 10px 0;font-family:Courier,'Courier New',monospace;font-size:22px;line-height:1.4;color:#1E2A4A;font-weight:bold;letter-spacing:0.5px;word-break:break-all;">${pass}</p>
-              <p style="margin:0;font-size:14px;line-height:1.5;color:#5B6472;">All small letters and numbers, ten characters, no spaces. Type it exactly as it appears.</p>
+            <tr><td style="padding:16px 18px;font-family:Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 3px 0;font-size:12px;font-weight:bold;color:#5B6472;letter-spacing:0.5px;text-transform:uppercase;">E-mail</p>
+              <p style="margin:0 0 12px 0;font-family:'Courier New',Courier,monospace;font-size:17px;font-weight:bold;color:#1E2A4A;word-break:break-all;">${who}</p>
+              <p style="margin:0 0 3px 0;font-size:12px;font-weight:bold;color:#5B6472;letter-spacing:0.5px;text-transform:uppercase;">Password</p>
+              <p style="margin:0 0 8px 0;font-family:'Courier New',Courier,monospace;font-size:21px;font-weight:bold;color:#1E2A4A;letter-spacing:0.5px;word-break:break-all;">${pass}</p>
+              <p style="margin:0;font-size:14px;line-height:1.5;color:#5B6472;">All small letters and numbers, ten characters, no spaces.</p>
             </td></tr>
           </table>
 
-          <!-- THE WARNING SITS WITH THE PASSWORD, not in a footer nobody
-               reaches. It is also honest about the choice being theirs: the
-               owner's instruction was a strong note to change it, "but if they
-               dont change the password from the email, it's up to the user".
-               So this urges and does not threaten, and nothing in the app
-               refuses to work until they comply. -->
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-left:4px solid #C0392B;background-color:#FDF2F0;border-radius:0 8px 8px 0;margin:0 0 26px 0;">
-            <tr><td style="padding:16px 20px;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#7A2A20;">
-              <strong style="font-size:16px;">This password is temporary. Please change it.</strong><br>
-              It was created for you so you can get in today. Anybody who can read this
-              e-mail can use it, so change it to one only you know. There is a page for
-              exactly that: <a href="${app}/password" style="color:#7A2A20;font-weight:bold;">${app}/password</a>.
-              It takes a moment, and the app will remind you until you do.
-            </td></tr>
-          </table>
-
-          <p style="margin:0 0 10px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Step 2 &middot; Open the app</p>
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px 0;">
-            <tr><td align="center" bgcolor="#1E2A4A" style="border-radius:8px;">
-              <a href="${url}" style="display:inline-block;padding:15px 34px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Sign in to Hope Beacon</a>
-            </td></tr>
-          </table>
-
-          <p style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#5B6472;">If the button does not work, copy this address into your browser:</p>
-          <p style="margin:0 0 22px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;word-break:break-all;">
-            <a href="${plainUrl}" style="color:#2F80ED;text-decoration:underline;">${plainUrl}</a>
+          <p style="margin:0 0 22px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#7A2A20;">
+            <strong>This password is temporary. Please change it.</strong> Anybody who can read this
+            e-mail can use it. There is a page for exactly that:
+            <a href="${app}/password" style="color:#7A2A20;font-weight:bold;">${app}/password</a>
           </p>
 
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-left:3px solid #E8B84B;background-color:#FFFBF0;border-radius:0 8px 8px 0;margin:0 0 26px 0;">
-            <tr><td style="padding:14px 18px;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#5B4A1E;">
-              <strong>Nothing here expires and nothing runs out.</strong> You can open this e-mail as many times as you like, on any device, and sign in whenever you are ready. If your church sends a newer invitation, use the password from the newest one.
+          <p style="margin:0 0 10px 0;font-family:Helvetica,Arial,sans-serif;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Step 2 &middot; Open the app</p>
+
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px 0;">
+            <tr><td align="center" style="background-color:#1E2A4A;border-radius:8px;">
+              <a href="${url}" style="display:inline-block;padding:13px 30px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Sign in to Hope Beacon</a>
             </td></tr>
           </table>
 
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6FA;border-radius:10px;margin:0 0 26px 0;">
-            <tr><td style="padding:20px 22px;font-family:Helvetica,Arial,sans-serif;">
-              <p style="margin:0 0 14px 0;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">What happens next</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${steps}
-              </table>
-            </td></tr>
-          </table>
+          ${waitLine ? `<p style="margin:0 0 14px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#22272F;"><strong>${esc(waitLine)}</strong></p>` : ''}
 
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F4F6FA;border-radius:10px;margin:0 0 26px 0;">
-            <tr><td style="padding:20px 22px;font-family:Helvetica,Arial,sans-serif;">
-              <p style="margin:0 0 8px 0;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Using the app</p>
-              <p style="margin:0 0 8px 0;font-size:15px;line-height:1.55;color:#22272F;">Sign in with the e-mail and password above, then change the password to one only you know. Use the Hope Beacon icon whenever you return.</p>
-              <p style="margin:0;font-size:15px;line-height:1.55;color:#22272F;">${roomUse}</p>
-            </td></tr>
-          </table>
-
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #DCE5F2;border-radius:10px;margin:0 0 20px 0;">
-            <tr><td style="padding:20px 22px;font-family:Helvetica,Arial,sans-serif;">
-              <p style="margin:0 0 8px 0;font-size:13px;font-weight:bold;color:#1E2A4A;letter-spacing:0.6px;text-transform:uppercase;">Next: install Hope Beacon</p>
-              <p style="margin:0 0 16px 0;font-size:15px;line-height:1.55;color:#22272F;">Once your account is set up, add Hope Beacon to your Home Screen so it opens like an app. There is no rush, and these steps are also inside the app under Settings.</p>
-
-              <p style="margin:0 0 6px 0;font-size:15px;line-height:1.5;color:#1E2A4A;"><strong>Safari on iPhone or iPad</strong></p>
-              <ol style="margin:0 0 16px 20px;padding:0;font-size:15px;line-height:1.55;color:#22272F;">
-                <li>Open <a href="${app}" style="color:#2F80ED;text-decoration:underline;">Hope Beacon</a> in Safari.</li>
-                <li>Tap <strong>Share</strong>, then choose <strong>Add to Home Screen</strong>.</li>
-                <li>Tap <strong>Add</strong>. Hope Beacon now opens from its own icon.</li>
-              </ol>
-
-              <p style="margin:0 0 6px 0;font-size:15px;line-height:1.5;color:#1E2A4A;"><strong>Other browsers</strong></p>
-              <ol style="margin:0 0 8px 20px;padding:0;font-size:15px;line-height:1.55;color:#22272F;">
-                <li>Open <a href="${app}" style="color:#2F80ED;text-decoration:underline;">Hope Beacon</a> in the browser you use.</li>
-                <li>Open the browser menu and choose <strong>Install app</strong> or <strong>Add to Home screen</strong>; the exact words vary by browser.</li>
-                <li>Use the new Hope Beacon icon to open the app.</li>
-              </ol>
-              <p style="margin:0;font-size:13px;line-height:1.5;color:#5B6472;">On iPhone and iPad, use Safari for the install steps above. Other iOS browsers can open Hope Beacon, but Safari is the reliable way to add it to your Home Screen.</p>
-            </td></tr>
-          </table>
+          <p style="margin:0 0 6px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#22272F;">
+            Nothing here expires. You can open this e-mail again, on any device, whenever you are ready.
+          </p>
+          <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#5B6472;">
+            ${esc(afterLine)} To add Hope&nbsp;Beacon to your Home Screen, open <strong>Settings</strong> inside the app.
+          </p>
 
         </td></tr>
       </table>
 
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;">
-        <tr><td align="center" style="padding:22px 24px 0 24px;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:#8892A0;">
+        <tr><td align="center" style="padding:18px 24px 0 24px;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.55;color:#8892A0;">
           You received this because a leader at ${church} invited you, and an account was created for you at this address. If you were not expecting it, you can ignore this message, or ask the church to remove the account.
         </td></tr>
       </table>
@@ -330,3 +274,78 @@ export function inviteHtml(
   </tr>
 </table>`;
 }
+
+/**
+ * The same invitation as plain text.
+ *
+ * WHY THIS EXISTS, AND IT IS NOT AN ACCESSIBILITY AFTERTHOUGHT. A message with
+ * only an HTML part is one of the signals Gmail weighs when deciding between
+ * the Primary and Promotions tabs: ordinary correspondence is multipart, bulk
+ * mail very often is not. The first invitation that reached a real inbox landed
+ * in Promotions, and this is the strongest lever we hold on that.
+ *
+ * It also happens to be the version that works in a mail client with images and
+ * styling switched off, on a watch, and read aloud by a screen reader -- so it
+ * is worth having twice over.
+ *
+ * NO ESCAPING HERE, deliberately. Escaping is an HTML concern; `&amp;` in a
+ * plain-text part is a bug, not a safety measure.
+ */
+export function inviteText(
+  role: InviteRole,
+  churchName: string,
+  joinUrl: string,
+  appUrl: string,
+  signInEmail: string,
+  tempPassword: string,
+): string {
+  const copy = ROLE_COPY[role];
+  const church = churchName || 'Your church';
+
+  // WRAPPED AT 72, AND BY A FUNCTION RATHER THAN BY HAND. The first draft broke
+  // its lines wherever the source happened to end, which put "open Settings" on
+  // one line and "inside the app." alone on the next. Plain text is the version
+  // somebody reads when everything else has failed; it should not look like it
+  // was assembled carelessly.
+  const wrap = (text: string): string => {
+    const out: string[] = [];
+    let line = '';
+    for (const word of text.split(' ')) {
+      if (line && (line.length + 1 + word.length) > 72) { out.push(line); line = word; }
+      else line = line ? `${line} ${word}` : word;
+    }
+    if (line) out.push(line);
+    return out.join('\n');
+  };
+
+  return [
+    copy.subject,
+    '',
+    wrap(`${church} has invited you as ${copy.word}. ${copy.lead}`),
+    '',
+    'YOUR SIGN-IN DETAILS',
+    `E-mail:   ${signInEmail}`,
+    `Password: ${tempPassword}`,
+    'All small letters and numbers, ten characters, no spaces.',
+    '',
+    wrap('This password is temporary. Please change it. Anybody who can read '
+      + 'this e-mail can use it. There is a page for exactly that:'),
+    `${appUrl}/password`,
+    '',
+    'OPEN THE APP',
+    joinUrl.split('#')[0],
+    '',
+    ...(WAITS[role] ? [wrap(WAITS[role] as string), ''] : []),
+    wrap('Nothing here expires. You can open this e-mail again, on any device, '
+      + 'whenever you are ready.'),
+    '',
+    wrap(AFTER[role]),
+    '',
+    wrap('To add Hope Beacon to your Home Screen, open Settings inside the app.'),
+    '',
+    wrap(`You received this because a leader at ${church} invited you, and an `
+      + 'account was created for you at this address. If you were not expecting '
+      + 'it, you can ignore this message, or ask the church to remove the account.'),
+  ].join('\n');
+}
+
