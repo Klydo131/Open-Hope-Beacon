@@ -129,6 +129,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const ctx = useRef<AudioContext | null>(null);
   const source = useRef<AudioBufferSourceNode | null>(null);
   const gain = useRef<GainNode | null>(null);
+  // Where the generated sound leaves the graph. See `openOutput`.
+  const sink = useRef<MediaStreamAudioDestinationNode | null>(null);
   // The shaping between the source and the master gain: a low-pass that takes
   // the hiss off, and a slowly swelling gain driven by its own oscillator so
   // the sound breathes. Held in refs because every one of them has to be
@@ -181,6 +183,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       try { node.disconnect(); } catch { /* already gone */ }
     }
     shape.current = { nodes: [], lfo: null };
+    if (sink.current && media.current) {
+      try { media.current.pause(); } catch { /* not playing */ }
+    }
   }, []);
 
   /**
@@ -242,6 +247,52 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /**
+   * Send the generated sound somewhere a phone will actually play it.
+   *
+   * WHY NOT SIMPLY `connect(ctx.destination)`, WHICH IS WHAT THIS USED TO DO.
+   * On iOS the hardware ring/silent switch mutes the Web Audio API, and does
+   * NOT mute a media element. So on an iPhone with the switch flicked to
+   * silent -- which is how a great many people keep a phone in church, and how
+   * it will be during the demo -- every ambience sound was dead silent while
+   * ordinary media still played. Nothing in the graph is wrong, and nothing in
+   * the graph can fix it: the fault is which output the sound is asked to
+   * leave by.
+   *
+   * Routing through a MediaStream attached to the player's own media element
+   * makes the browser treat it as media rather than as effects, which is what
+   * it is. It also puts the ambience under the volume buttons and into the
+   * lock screen, both of which are improvements in their own right.
+   *
+   * IT FALLS BACK, AND THE FALLBACK MATTERS MORE THAN THE FEATURE. If this
+   * route is missing or the element refuses to play, the sound goes straight
+   * to the speakers exactly as it did before. A device that works today cannot
+   * be made worse by this, which is the only condition on which it was worth
+   * changing an audio path days before a demo nobody can re-run.
+   */
+  const openOutput = useCallback((c: AudioContext, master: GainNode) => {
+    const direct = () => {
+      try { master.connect(c.destination); } catch { /* already connected */ }
+    };
+    let out: MediaStreamAudioDestinationNode;
+    try {
+      if (typeof c.createMediaStreamDestination !== 'function') { direct(); return; }
+      out = c.createMediaStreamDestination();
+      master.connect(out);
+      const el = element();
+      el.srcObject = out.stream;
+      el.muted = false;
+      sink.current = out;
+    } catch {
+      direct();
+      return;
+    }
+    // A rejected play() means the stream is going nowhere, so take the old
+    // route instead. Connecting only here keeps the two from ever both
+    // sounding at once, which would play everything at twice the level.
+    void el_play(element(), direct);
+  }, [element]);
+
   const startNoise = useCallback((key: string, v: number) => {
     if (!ctx.current) {
       const Ctor = window.AudioContext
@@ -257,7 +308,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     // a voice was renamed should sound like something.
     const voice = voiceFor(key) ?? VOICES[0];
 
-    if (!gain.current) { gain.current = c.createGain(); gain.current.connect(c.destination); }
+    if (!gain.current) {
+      gain.current = c.createGain();
+      openOutput(c, gain.current);
+    } else if (sink.current) {
+      // THE ELEMENT IS THE OUTPUT NOW, AND IT DOES NOT STAY PUT. `play()`
+      // pauses it before starting ambience and detaches the stream when a real
+      // track is chosen; `stopNoise` pauses it again on the way through here.
+      // Wiring it once when the graph was created was therefore not enough --
+      // the second voice somebody picked would build a perfect graph into an
+      // output that was paused, or detached, and play nothing at all.
+      const el = element();
+      if (el.srcObject !== sink.current.stream) {
+        el.removeAttribute('src');
+        el.srcObject = sink.current.stream;
+      }
+      el.muted = false;
+      void el_play(el, () => {});
+    }
     gain.current.gain.value = v;
 
     // -----------------------------------------------------------------------
@@ -272,8 +340,17 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       const notes = voice.notes;
       // Quiet, because a bell is a transient and a transient at the same
       // nominal level as a continuous hiss sounds twice as loud.
-      const level = 0.16;
-      const gap = voice.key === 'chapel-bells' ? 6500 : 3200;
+      // MEASURED, NOT GUESSED. Rendering every voice offline put the noise
+      // voices at 0.09-0.12 RMS and this one at 0.018 -- about six times
+      // quieter. On a phone speaker in a room that is not "soft", it is
+      // nothing, and it was reported as no audio at all. Raised until a
+      // repeated strike lands in the same range as the rest.
+      const level = 0.34;
+      // AND THE SILENCE BETWEEN THEM MATTERED AS MUCH AS THE LEVEL. At the
+      // old spacing a chime could be quiet for nearly five seconds and the
+      // bells for nearly ten, which is far longer than anybody waits before
+      // deciding a sound is broken. Still irregular, just not absent.
+      const gap = voice.key === 'chapel-bells' ? 4200 : 1900;
       const ring = () => {
         const hz = notes[Math.floor(Math.random() * notes.length)];
         strike(c, gain.current as AudioNode, hz, level);
@@ -306,7 +383,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         osc.frequency.value = hz;
 
         const swell = c.createGain();
-        const depth = 0.055;
+        // "Very soft music" was the ask, and 0.055 overshot it into inaudible:
+        // 0.05 RMS against 0.12 for the white noise, through a 900Hz lid, on a
+        // speaker the size of a coin. This is still the quietest voice here.
+        const depth = 0.10;
         swell.gain.value = depth;
 
         const lfo = c.createOscillator();
@@ -321,7 +401,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         // A gentle low-pass so the triangle's upper harmonics never get glassy.
         const soft = c.createBiquadFilter();
         soft.type = 'lowpass';
-        soft.frequency.value = 900;
+        // A PHONE SPEAKER HAS ALMOST NO OUTPUT BELOW ABOUT 500Hz. A chord this
+        // low with a 900Hz lid has nearly nothing left that a handset can
+        // actually move air with; opening it up keeps the warmth without
+        // making the triangle glassy.
+        soft.frequency.value = 1400;
         soft.Q.value = 0.6;
 
         osc.connect(soft);
@@ -395,7 +479,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     node.start();
     source.current = node;
     shape.current = { nodes: made, lfo };
-  }, [stopNoise, strike]);
+  }, [stopNoise, strike, element, openOutput]);
 
   const play = useCallback((track: Track, nextQueue?: Track[]) => {
     if (nextQueue) setQueue(nextQueue);
@@ -415,6 +499,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     stopNoise();
     const el = element();
     setLoading(true);
+    // srcObject wins over src where both are set, so a leftover ambience
+    // stream would silently swallow every track somebody chose afterwards.
+    // Detach the stream but KEEP the sink: the audio graph is still wired to
+    // it, so throwing the reference away here would leave every later ambience
+    // choice building sound into an output nothing is listening to.
+    el.srcObject = null;
     el.src = track.url ?? '';
     el.volume = volume;
     el.muted = muted;
@@ -576,6 +666,24 @@ export function clock(seconds: number): string {
   const s = whole % 60;
   const pad = (n: number) => String(n).padStart(2, '0');
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+/**
+ * Start a media element, and say so if it refuses.
+ *
+ * Split out because a rejected promise inside a `useCallback` is easy to
+ * swallow by accident, and swallowing this one is the difference between
+ * sound and silence.
+ */
+function el_play(el: HTMLVideoElement, onRefused: () => void): Promise<void> {
+  try {
+    const started = el.play();
+    if (!started || typeof started.catch !== 'function') return Promise.resolve();
+    return started.catch(() => { onRefused(); });
+  } catch {
+    onRefused();
+    return Promise.resolve();
+  }
 }
 
 /** The generated ambience, as tracks. Always available, needs no network. */

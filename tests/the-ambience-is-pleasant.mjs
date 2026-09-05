@@ -366,5 +366,61 @@ ok(new Set(VOICES.map((v) => v.key)).size === VOICES.length, 'and no two sounds 
      'and an unknown key falls back to a real sound rather than silence');
 }
 
+// ---------------------------------------------------------------------------
+// IT ACTUALLY REACHES A SPEAKER
+// ---------------------------------------------------------------------------
+//
+// REPORTED: "Ambience music are not playing, can you fix that? There's no
+// audio at all." Two separate faults, and the graph was innocent of both --
+// rendering every voice through an OfflineAudioContext showed real signal
+// coming out of all eight. What was wrong was the level it came out at, and
+// which output it was asked to leave by.
+{
+  const player = read('lib/player.tsx');
+
+  // ONE. THE NEW VOICES WERE INAUDIBLE, MEASURABLY SO. Rendered offline, the
+  // noise voices sat at 0.09-0.12 RMS and the chimes at 0.018 -- about six
+  // times quieter -- with several seconds of deliberate silence between
+  // strikes. "Very soft music" was the ask and this overshot it into nothing.
+  // These numbers are pinned because they were arrived at by measuring, and a
+  // later nudge "just to soften it" would put it straight back.
+  ok(/const level = 0\.34;/.test(player), 'a struck chime is loud enough to hear on a phone speaker');
+  ok(/const depth = 0\.10;/.test(player), 'and the held chord is too');
+  ok(!/const level = 0\.16;/.test(player), 'not the level that was reported as silence');
+  ok(!/const depth = 0\.055;/.test(player), 'nor the chord depth that went with it');
+
+  // A phone speaker moves almost no air below about 500Hz, so a low chord
+  // behind a 900Hz lid has nearly nothing left to reproduce.
+  ok(/soft\.frequency\.value = 1400;/.test(player), 'the chord is not filtered down into inaudibility');
+
+  // AND THE GAPS. A chime that can be silent for nearly five seconds, or bells
+  // for nearly ten, is indistinguishable from one that is broken.
+  ok(/'chapel-bells' \? 4200 : 1900/.test(player),
+     'and the silence between strikes is short enough not to read as broken');
+
+  // TWO. THE OUTPUT. On iOS the hardware ring/silent switch mutes the Web Audio
+  // API and does NOT mute a media element -- so with the switch on silent, the
+  // generated ambience was dead while ordinary media still played. Nothing in
+  // the graph can fix that; only the choice of output can.
+  ok(/createMediaStreamDestination/.test(player),
+     'the generated sound leaves through a media stream, which iOS does not mute with the ring switch');
+  ok(/el\.srcObject = out\.stream/.test(player), 'attached to the player’s own element');
+
+  // THE FALLBACK IS THE PART THAT MATTERS. A device that works today must not
+  // be made worse by this, which is the only basis on which an audio path is
+  // worth changing days before a demo nobody can re-run.
+  ok(/master\.connect\(c\.destination\)/.test(player),
+     'and it still falls straight back to the speakers if that route is missing');
+  ok(/onRefused/.test(player), 'including when the element refuses to start');
+
+  // THE ELEMENT DOES NOT STAY PUT, which is what made the first attempt at
+  // this wrong: it is paused when ambience starts, and detached when a real
+  // track is chosen. Wiring it once was not enough.
+  ok(/el\.srcObject !== sink\.current\.stream/.test(player),
+     'the stream is re-attached when it has been taken away, rather than assumed');
+  ok(!/sink\.current = null;/.test(player),
+     'and the sink is never thrown away while the graph is still wired to it');
+}
+
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');
 process.exit(bad ? 1 : 0);
