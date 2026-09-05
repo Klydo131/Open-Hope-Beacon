@@ -62,8 +62,26 @@ ok(new Set(WORDS).size === WORDS.length, 'and none of them is in the list twice'
   for (let i = 0; i < N; i += 1) seen.add(firstPassword());
   const ms = Date.now() - started;
   ok(true, `${N} passwords generated in ${ms}ms without hanging`);
-  // Duplicates in three thousand draws would mean the randomness is not.
-  ok(seen.size === N, `and all ${N} were different`);
+
+  // NOT "ALL OF THEM WERE DIFFERENT", WHICH IS THE WRONG TEST AND WAS FLAKY.
+  //
+  // It was right while a password was three words and a number: fifteen billion
+  // possibilities, so a repeat in three thousand draws really would have meant
+  // the randomness was broken. At ten characters the space is about eight
+  // million, and the birthday maths gives roughly half a duplicate per run --
+  // so that check would have failed at random about two runs in five. A
+  // guardrail that fails on healthy code is worse than no guardrail, because
+  // the habit it teaches is to re-run the gate until it goes quiet.
+  //
+  // So: allow the collisions chance actually produces, and fail on the far
+  // larger number a broken picker would produce. A generator stuck on one word
+  // would collide thousands of times, not six.
+  const space = 2 ** entropyBits();
+  const expected = (N * (N - 1)) / (2 * space);
+  const allowed = Math.max(5, Math.ceil(expected * 10));
+  const duplicates = N - seen.size;
+  ok(duplicates <= allowed,
+     `duplicates stay near what chance gives (${duplicates}, expected about ${expected.toFixed(2)}, allowed ${allowed})`);
 }
 
 // ---------------------------------------------------------------------------
@@ -78,27 +96,37 @@ ok(new Set(WORDS).size === WORDS.length, 'and none of them is in the list twice'
   const shortest = Math.min(...sample.map((p) => p.length));
   ok(shortest >= 10, `never shorter than the app's own 10-character rule (${shortest})`);
 
-  const wrong = sample.filter((p) => !/^[a-z]+(-[a-z]+)+-[1-9][0-9]*$/.test(p));
+  // EXACTLY TEN, NOT AT LEAST TEN. Asked for directly: "just make a word with
+  // numbers in a 10 letter password." A generator that sometimes emitted
+  // eleven would still pass a `>= 10` check while quietly ignoring the ask.
+  const lengths = new Set(sample.map((p) => p.length));
+  ok(lengths.size === 1 && lengths.has(10),
+     `every password is exactly ten characters (saw: ${[...lengths].join(', ')})`);
+
+  const wrong = sample.filter((p) => !/^[a-z]{5,6}[1-9][0-9]{3,4}$/.test(p));
   ok(wrong.length === 0,
-     wrong.length ? `every password is words-then-digits (bad: ${wrong[0]})` : 'words, hyphens, then digits');
+     wrong.length ? `every password is one word then digits (bad: ${wrong[0]})` : 'one word, then digits');
+
+  // NO HYPHEN. At ten characters a separator costs a tenth of the whole
+  // password and buys nothing, and it is a character people leave out.
+  ok(!sample.some((p) => p.includes('-')), 'and nothing to leave out, because there is no hyphen');
 
   // ALL LOWERCASE. Every capital is a shift key on a phone and a place to get
   // it wrong, and there is nothing here that needs the extra alphabet.
   ok(!sample.some((p) => /[A-Z]/.test(p)), 'nothing needs the shift key');
   // No character a person has to be told the name of.
-  ok(!sample.some((p) => /[^a-z0-9-]/.test(p)), 'and no symbol anybody has to describe out loud');
+  ok(!sample.some((p) => /[^a-z0-9]/.test(p)), 'and no symbol anybody has to describe out loud');
 
   // A NUMBER THAT NEVER STARTS WITH A ZERO. `047` gets typed as `47`, and the
   // person then cannot sign in and has no idea why.
-  const leadingZero = sample.filter((p) => /-0\d*$/.test(p));
+  const leadingZero = sample.filter((p) => /^[a-z]+0/.test(p));
   ok(leadingZero.length === 0, 'the number never starts with a zero, which people drop when typing');
 
-  // Three distinct words, so nothing reads `coral-coral-cedar`.
-  const repeated = sample.filter((p) => {
-    const parts = p.split('-').slice(0, -1);
-    return new Set(parts).size !== parts.length;
-  });
-  ok(repeated.length === 0, 'and no word appears twice in the same password');
+  // The word is a real one from the list, not a fragment of one.
+  const known = new Set(WORDS);
+  const unknown = sample.filter((p) => !known.has(p.replace(/[0-9]+$/, '')));
+  ok(unknown.length === 0,
+     unknown.length ? `a password used something that is not a word (${unknown[0]})` : 'and the word is always one from the list');
 }
 
 // ---------------------------------------------------------------------------
@@ -110,8 +138,22 @@ ok(new Set(WORDS).size === WORDS.length, 'and none of them is in the list twice'
 // rate-limited online sign-in, not a secret meant to survive an offline attack
 // -- the email says to change it and the app asks again.
 {
+  // THIS FLOOR WAS LOWERED ON PURPOSE, AND THE NUMBER IS THE POINT.
+  //
+  // Three hyphenated words and three digits was about 34 bits. One word and a
+  // number, at ten characters, is about 23 -- roughly eight million
+  // possibilities rather than fifteen billion. That is a real reduction and it
+  // was made knowingly, because a twenty-two character password wraps in a mail
+  // client and is a long way to look between reading and typing.
+  //
+  // What keeps it defensible is what the credential is: temporary, on a
+  // rate-limited online sign-in, for an account that must also be approved, with
+  // the e-mail and the app both asking the person to change it. The check stays
+  // here so that shrinking the word list further can never quietly take another
+  // few bits off every invitation the church sends.
   const bits = entropyBits();
-  ok(bits >= 30, `roughly ${bits.toFixed(1)} bits to guess, which is the floor under the first few days`);
+  ok(bits >= 22, `roughly ${bits.toFixed(1)} bits to guess, the floor under a temporary password`);
+  ok(bits < 30, 'and the report above is not silently claiming the old strength');
 }
 
 // ---------------------------------------------------------------------------
@@ -130,15 +172,23 @@ ok(new Set(WORDS).size === WORDS.length, 'and none of them is in the list twice'
   // A CHEAP EVENNESS CHECK. Not a statistical proof -- it is here to catch a
   // picker that always returns the same index, or one that never reaches the
   // end of the list, which is what a modulo bug actually looks like.
+  // STRIP THE DIGITS, DO NOT SPLIT ON A HYPHEN. This used to say
+  // `firstPassword().split('-')[0]`, which was correct while passwords had
+  // hyphens in them. Without one it returns the WHOLE password, so the map
+  // counted six thousand distinct passwords instead of the words inside them --
+  // and then cheerfully reported that the word list was reachable and no word
+  // dominated. Both assertions passed, neither measured anything, and a picker
+  // jammed on a single word would have sailed through.
+  const usable = WORDS.filter((w) => w.length === 5 || w.length === 6);
   const first = new Map();
   for (let i = 0; i < 6000; i += 1) {
-    const w = firstPassword().split('-')[0];
+    const w = firstPassword().replace(/[0-9]+$/, '');
     first.set(w, (first.get(w) ?? 0) + 1);
   }
-  ok(first.size > WORDS.length * 0.7,
-     `the whole list is reachable (${first.size} of ${WORDS.length} words seen as the first word)`);
+  ok(first.size > usable.length * 0.95,
+     `the whole list is reachable (${first.size} of ${usable.length} usable words seen)`);
   const most = Math.max(...first.values());
-  ok(most < 6000 / WORDS.length * 6,
+  ok(most < 6000 / usable.length * 3,
      `and no single word dominates (most common appeared ${most} times in 6000)`);
 }
 

@@ -241,7 +241,7 @@ export function inviteHtml(
 
               <p style="margin:0 0 4px 0;font-size:12px;font-weight:bold;color:#5B6472;letter-spacing:0.6px;text-transform:uppercase;">Password</p>
               <p style="margin:0 0 10px 0;font-family:Courier,'Courier New',monospace;font-size:22px;line-height:1.4;color:#1E2A4A;font-weight:bold;letter-spacing:0.5px;word-break:break-all;">${pass}</p>
-              <p style="margin:0;font-size:14px;line-height:1.5;color:#5B6472;">All small letters, with the dashes. Type it exactly as it appears.</p>
+              <p style="margin:0;font-size:14px;line-height:1.5;color:#5B6472;">All small letters and numbers, ten characters, no spaces. Type it exactly as it appears.</p>
             </td></tr>
           </table>
 

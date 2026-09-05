@@ -22,20 +22,35 @@
 //
 // THE SHAPE, AND WHY IT IS THIS SHAPE.
 //
-//   coral-anchor-cedar-482
+//   harbor4821        acorn48213
+//
+// ONE WORD AND SOME DIGITS, EXACTLY TEN CHARACTERS. Asked for directly: "Please
+// dont make the passwords be too long, just make a word with numbers in a 10
+// letter password." The previous shape was three hyphenated words and three
+// digits -- twenty-two characters -- which is stronger and is genuinely worse
+// to be handed. It wraps in a mail client, it is a long way to look between
+// reading and typing, and every hyphen is a character somebody leaves out.
 //
 //   * ALL LOWERCASE. Every capital is a shift key on a phone, and a shift key
 //     is a place to get it wrong. Nothing here needs the extra alphabet.
-//   * WORDS, NOT CHARACTERS. `xK7#pQ2v` cannot be read aloud, cannot be
-//     remembered for the ten seconds between the email and the sign-in box, and
-//     cannot be dictated over the phone to somebody who is stuck.
-//   * HYPHENS between the parts, so it is obvious where each word ends and no
-//     two words run together into something unreadable.
-//   * THREE DIGITS at the end, because the app requires ten characters and
-//     because some password rules want a number. They come last so the reader
-//     meets the memorable part first.
+//   * A REAL WORD FIRST. `xK7#pQ2v` cannot be read aloud, cannot be remembered
+//     for the ten seconds between the email and the sign-in box, and cannot be
+//     dictated over the phone to somebody who is stuck.
+//   * NO HYPHEN NOW. At ten characters a separator costs a tenth of the whole
+//     password to buy nothing: `harbor4821` has an obvious seam already.
+//   * DIGITS FILL THE REST, so the total is always exactly ten -- the app's own
+//     minimum, in lib/live/data.ts. Longer words get fewer digits.
 //   * NO AMBIGUOUS WORDS. Nothing that sounds like something else when read
 //     out (`their`, `there`), nothing anybody has to think about spelling.
+//
+// WHAT IT COSTS, STATED PLAINLY RATHER THAN BURIED. Three words and a number
+// was about 34 bits; one word and a number is about 23, which is roughly eight
+// million possibilities instead of fifteen billion. That is a real reduction
+// and it was asked for knowingly. What makes it defensible is what the
+// credential IS: temporary, on a rate-limited online sign-in, for an account
+// that also has to be approved before it can do anything, with the e-mail and
+// the app both asking the person to change it. It is not a secret meant to
+// survive somebody running guesses offline, and it never was.
 
 /**
  * The words. Short, ordinary, unmistakable when spoken.
@@ -90,11 +105,17 @@ export const WORDS: readonly string[] = [
   'rope', 'rosemary', 'saffron', 'sage', 'salmon', 'sandal', 'satin', 'scarf',
 ];
 
-/** Digits at the end. Three of them, so the total clears the ten-character rule. */
-const DIGITS = 3;
+/** The whole password, every time. The app's own minimum, met exactly. */
+const TOTAL = 10;
 
-/** How many words are joined. Distinct, so no password reads `coral-coral-cedar`. */
-const PARTS = 3;
+/**
+ * Which words may be drawn.
+ *
+ * Five and six letters only, so what follows is four or five digits. Shorter
+ * words would leave six digits to remember, which is the part people get wrong;
+ * longer ones leave three, which is where the guessing space gets thin.
+ */
+const USABLE = WORDS.filter((w) => w.length === 5 || w.length === 6);
 
 /**
  * How hard this is to guess, in bits, worked out rather than asserted.
@@ -109,11 +130,19 @@ const PARTS = 3;
  * again; this number is the floor under the few days in between.
  */
 export function entropyBits(): number {
-  let combinations = 1;
-  for (let i = 0; i < PARTS; i += 1) combinations *= WORDS.length - i;
-  combinations *= 900;                       // 100 through 999
+  // Summed over the real branches rather than assumed uniform: a five-letter
+  // word leaves five digits and a six-letter word leaves four, and those are
+  // very different sizes. Counting them separately is the only way this number
+  // stays true when the word list changes.
+  let combinations = 0;
+  for (const word of USABLE) {
+    const digits = TOTAL - word.length;
+    // First digit 1-9, the rest 0-9.
+    combinations += 9 * (10 ** (digits - 1));
+  }
   return Math.log2(combinations);
 }
+
 
 /**
  * A whole number below `limit`, drawn evenly.
@@ -143,24 +172,21 @@ function below(limit: number): number {
 }
 
 /**
- * A first password: three distinct words and a number, hyphenated.
+ * A first password: one word and a number, exactly ten characters.
  *
- * Example shape: `harbor-lantern-cedar-482`
+ * Example shape: `harbor4821`
  */
 export function firstPassword(): string {
-  const pool = [...WORDS];
-  const picked: string[] = [];
-  for (let i = 0; i < PARTS; i += 1) {
-    // Splice, so the same word cannot be drawn twice.
-    picked.push(pool.splice(below(pool.length), 1)[0]);
-  }
+  const word = USABLE[below(USABLE.length)];
 
   let number = '';
-  for (let i = 0; i < DIGITS; i += 1) {
+  const digits = TOTAL - word.length;
+  for (let i = 0; i < digits; i += 1) {
     // The first digit is 1-9 so the number never reads as `047`, which people
     // mistype as `47` and then cannot sign in.
     number += i === 0 ? String(1 + below(9)) : String(below(10));
   }
 
-  return `${picked.join('-')}-${number}`;
+  return `${word}${number}`;
 }
+
