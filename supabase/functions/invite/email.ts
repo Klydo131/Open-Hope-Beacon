@@ -43,7 +43,6 @@ interface RoleCopy {
   /** The sentence under the heading. */
   lead: string;
   /** Three things that happen next, as [bold opening, rest]. */
-  steps: [string, string][];
 }
 
 const ROLE_COPY: Record<InviteRole, RoleCopy> = {
@@ -57,11 +56,6 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       'Someone from the church would like to walk alongside you, at whatever '
       + 'pace suits you. Nobody else can see your journey, and nothing is '
       + 'shared beyond the person walking with you.',
-    steps: [
-      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first.'],
-      ['Change the password.', 'There is a page for it, linked above. It takes a moment and it is worth doing today.'],
-      ['Someone will be paired with you.', 'A Guide from your church, who will say hello.'],
-    ],
   },
 
   // Walking with others. The five is stated in the invitation because it is the
@@ -74,11 +68,6 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
       'They would like you to walk alongside others as a Guide. You will be '
       + 'paired with people one at a time, and each conversation stays between '
       + 'you and them.',
-    steps: [
-      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first. A Director then lets you in, which can take a little while; sign in anyway, and the app will tell you where you stand.'],
-      ['Meet whoever is paired with you.', 'A Guide walks with at most five people at once. Five is a ceiling, not a target.'],
-      ['Share from the church library.', 'You choose what each person sees, and when they are ready for it.'],
-    ],
   },
 
   // Running the church. Named plainly, because somebody accepting this should
@@ -92,11 +81,6 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
     lead:
       'They would like you to serve as an Executive Director. You will oversee '
       + 'the churches you are given, and appoint the Directors who run them.',
-    steps: [
-      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first.'],
-      ['Appoint the Directors.', 'Each church is run day to day by its own Directors, and you decide who they are.'],
-      ['Watch the one number that matters.', 'Explorers with no Guide. Everything else can wait a week; that cannot.'],
-    ],
   },
 
   admin: {
@@ -105,11 +89,6 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
     lead:
       'They would like you to help lead as a Director. You will decide who '
       + 'joins, what they can see, and who walks with whom.',
-    steps: [
-      ['Sign in with the password above.', 'Your account is already made, so there is nothing to set up first. A Director then lets you in, which can take a little while; sign in anyway, and the app will tell you where you stand.'],
-      ['Approve the people waiting.', 'You choose their role as you approve them, and that decides what they can see. Nobody can change their own role afterwards, including you.'],
-      ['Pair every Explorer with a Guide.', 'An Explorer with no Guide is the one number worth watching. Your dashboard opens on it.'],
-    ],
   },
 };
 
