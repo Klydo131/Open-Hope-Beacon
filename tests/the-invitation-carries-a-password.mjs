@@ -341,5 +341,46 @@ ok(/encodeURIComponent\(email\)/.test(fn), 'with the address escaped into it pro
      'and leaving it goes to their own home, not to Settings they never visited');
 }
 
+// ---------------------------------------------------------------------------
+// 12. A REFUSED PASSWORD IS RETRIED, NOT REPORTED
+// ---------------------------------------------------------------------------
+//
+// This project has Supabase's "prevent use of leaked passwords" enabled, which
+// rejects any password found in the HaveIBeenPwned corpus. A generated password
+// is a real word plus digits -- `harbor4821` -- which is precisely the shape
+// those lists are full of. Unlikely on one invitation; close to inevitable
+// somewhere across a launch of two dozen.
+//
+// THE FAILURE THAT WOULD CAUSE IS THE WORST KIND AVAILABLE: not a visible
+// error, but one person in twenty-five who simply never receives an invitation
+// while the Director's screen shows nothing wrong. So the draw is repeated
+// instead.
+//
+// WHETHER THE ADMIN API EVEN APPLIES THE CHECK IS UNVERIFIED -- the docs do not
+// say, and the sandbox cannot reach the API to find out. That is the argument
+// FOR the retry, not against it: if the check never fires, the loop runs once.
+{
+  ok(/for \(let attempt = 0; attempt < 3; attempt \+= 1\)/.test(fn),
+     'a refused password is tried again rather than reported');
+  ok(/if \(attempt > 0\) tempPassword = firstPassword\(\)/.test(fn),
+     'with a genuinely new password each time, not the same one resent');
+  ok(/weak\|leak\|pwned\|compromis\|breach/.test(fn),
+     'and only for a refusal about the password itself');
+  ok(/if \(!refusedThePassword\(passwordError\)\) break/.test(fn),
+     'every other failure still stops immediately, rather than being retried three times');
+
+  // THE BUG A RETRY INTRODUCES IF IT IS WRITTEN CARELESSLY. A second pass that
+  // still thinks no account exists calls createUser again and is refused as
+  // already registered -- turning one unlucky draw into a dead invitation, which
+  // is worse than the fault being fixed.
+  ok(/if \(made\?\.user\?\.id\) personId = made\.user\.id/.test(fn),
+     'and an account made on an earlier attempt is remembered, so the retry updates rather than re-creates');
+
+  ok(/let tempPassword = firstPassword\(\)/.test(fn),
+     'the password is reassignable, or the retry would mail the refused one');
+  ok(!/const tempPassword = firstPassword\(\)/.test(fn),
+     'and not pinned as a constant, which is what made it un-retryable');
+}
+
 console.log(bad ? `\n${bad} problem(s).` : '\nRESULT: ALL OK');
 process.exit(bad ? 1 : 0);

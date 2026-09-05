@@ -358,31 +358,65 @@ async function handle(req: Request): Promise<Response> {
   // signing up is refused far above this point, so `updateUserById` is only
   // ever reached for an account that was created by an earlier invitation and
   // never used. Resending to that person replaces a password they never had.
-  const tempPassword = firstPassword();
+  // A PASSWORD THE PROJECT MIGHT REFUSE, AND WHAT TO DO ABOUT IT.
+  //
+  // This project has Supabase's "prevent use of leaked passwords" turned on,
+  // which rejects any password found in the HaveIBeenPwned corpus. A generated
+  // password is a real word plus digits -- `harbor4821` -- which is exactly the
+  // shape those lists are full of, so a draw landing in the corpus is unlikely
+  // per invitation and close to inevitable across a launch of two dozen.
+  //
+  // THE FAILURE IT WOULD CAUSE IS THE WORST KIND: not an error anybody could
+  // act on, but one person out of twenty-five who never receives an invitation,
+  // while the Director sees nothing wrong. So a refusal is not reported, it is
+  // retried with a fresh draw. Three attempts, because a fourth would be
+  // telling us something other than bad luck.
+  //
+  // WHETHER THE ADMIN API APPLIES THE CHECK AT ALL IS UNVERIFIED. The
+  // documentation does not say, and this sandbox cannot reach the API to find
+  // out. That is the reason for the retry rather than an argument against it:
+  // if the check never fires, this loop runs once and costs nothing.
+  let tempPassword = firstPassword();
   let passwordError = '';
   {
     const { data: found } = await admin.rpc('member_by_email', { p_email: email });
     const existing = Array.isArray(found) ? found[0] : found;
     let personId = existing?.id ? String(existing.id) : '';
 
-    if (personId) {
-      const { error } = await admin.auth.admin.updateUserById(personId, {
-        password: tempPassword,
-        // An invitation is the church vouching for the address. Making them
-        // confirm it as well is a second hurdle for no extra safety, and it is
-        // the hurdle the one-time link already failed at.
-        email_confirm: true,
-      });
-      if (error) passwordError = String(error.message ?? error);
-    } else {
-      const { data: made, error } = await admin.auth.admin.createUser({
-        email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: { full_name: fullName },
-      });
-      if (error) passwordError = String(error.message ?? error);
-      personId = made?.user?.id ?? '';
+    /** A refusal about the password itself, rather than about the account. */
+    const refusedThePassword = (why: string) =>
+      /weak|leak|pwned|compromis|breach/i.test(why);
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      if (attempt > 0) tempPassword = firstPassword();
+      passwordError = '';
+
+      if (personId) {
+        const { error } = await admin.auth.admin.updateUserById(personId, {
+          password: tempPassword,
+          // An invitation is the church vouching for the address. Making them
+          // confirm it as well is a second hurdle for no extra safety, and it is
+          // the hurdle the one-time link already failed at.
+          email_confirm: true,
+        });
+        if (error) passwordError = String(error.message ?? error);
+      } else {
+        const { data: made, error } = await admin.auth.admin.createUser({
+          email,
+          password: tempPassword,
+          email_confirm: true,
+          user_metadata: { full_name: fullName },
+        });
+        if (error) passwordError = String(error.message ?? error);
+        // KEEP THE ID EVEN IF A LATER ATTEMPT IS NEEDED. Without this, a second
+        // pass would try to CREATE the account again and be refused as already
+        // registered, turning a recoverable draw into a dead invitation.
+        if (made?.user?.id) personId = made.user.id;
+      }
+
+      if (!passwordError) break;
+      if (!refusedThePassword(passwordError)) break;
+      console.log(JSON.stringify({ at: 'invite', warn: 'password refused', attempt }));
     }
 
     // MARK IT TEMPORARY, so the app can ask them to change it. Done after the
