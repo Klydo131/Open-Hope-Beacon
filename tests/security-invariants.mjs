@@ -953,6 +953,37 @@ if (exists('lib/canonical.ts')) {
   ok(!/endsWith\(|includes\(CANONICAL|indexOf\(CANONICAL/.test(c),
      'no suffix or substring matching, which would make a lookalike domain canonical');
 }
+
+// ---------------------------------------------------------------------------
+// AND NO SCREEN MAY ANSWER THAT QUESTION FOR ITSELF.
+// ---------------------------------------------------------------------------
+//
+// The list above is only the answer if every caller asks it, and one did not.
+// components/WhichApp.tsx -- the single screen that tells a person in red to
+// UNINSTALL what they are looking at -- compared window.location.host against
+// the SINGULAR CANONICAL_HOST. lib/canonical.ts had already been widened to a
+// list precisely because a domain move is not an instant; that screen never
+// learned it.
+//
+// So the day a second host was added, every person still on the first address
+// would have been told their install was a dead deployment that could never
+// update. False, and aimed at whoever installed earliest -- which is the exact
+// failure the list exists to prevent, arriving through the one screen that
+// states it out loud.
+//
+// It was found while planning the move, not by this file, because this file
+// only ever read the helper. A rule that checks the helper and not its callers
+// is a rule about a file rather than about the app.
+{
+  const strip = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
+  const offenders = sources
+    .filter((f) => f !== 'lib/canonical.ts' && f !== 'lib/build-info.ts')
+    .filter((f) => /(!==|===)\s*CANONICAL_HOST\b|\bCANONICAL_HOST\s*(!==|===)/.test(strip(read(f))));
+  ok(offenders.length === 0,
+     'no screen compares the address against the single canonical host itself'
+     + (offenders.length ? ` (${offenders.join(', ')}) -- ask onCanonicalHost(), which knows about the list` : ''));
+}
 if (exists('scripts/stamp-build.mjs')) {
   const st = read('scripts/stamp-build.mjs');
   ok(/split\(','\)/.test(st), 'the build stamp accepts several hosts');

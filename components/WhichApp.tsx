@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BUILD_ENV, CANONICAL_HOST } from '@/lib/build-info';
+import { CANONICAL_HOST } from '@/lib/build-info';
 import { versionLabel } from '@/lib/app-update';
-import { canonicalUrl } from '@/lib/canonical';
+import { canonicalUrl, onCanonicalHost } from '@/lib/canonical';
 import { ShareButton } from '@/components/ShareSheet';
 
 // "Which Beacon am I looking at?"
@@ -23,9 +23,13 @@ import { ShareButton } from '@/components/ShareSheet';
 export function WhichApp() {
   const [host, setHost] = useState('');
   const [installed, setInstalled] = useState(false);
+  // Starts false so a correct install never flashes red on the first paint,
+  // and is decided in the effect below because the answer reads window.
+  const [wrong, setWrong] = useState(false);
 
   useEffect(() => {
     setHost(window.location.host);
+    setWrong(!onCanonicalHost());
     setInstalled(
       window.matchMedia('(display-mode: standalone)').matches ||
         window.matchMedia('(display-mode: window-controls-overlay)').matches ||
@@ -33,13 +37,21 @@ export function WhichApp() {
     );
   }, []);
 
-  // Trust the address, never the environment label. Hosts give every deployment
-  // its own permanent URL and mark production builds 'production' on all of
-  // them, so the label cannot tell the home address apart from a frozen
-  // snapshot of one deploy. The hostname can.
-  const isPreview = BUILD_ENV === 'preview';
-  const strayHost = !!CANONICAL_HOST && !!host && host !== CANONICAL_HOST;
-  const wrong = isPreview || strayHost;
+  // ASKED OF lib/canonical.ts RATHER THAN WORKED OUT AGAIN HERE, and that is
+  // the fix rather than a tidy-up.
+  //
+  // This screen used to compare window.location.host against the SINGULAR
+  // CANONICAL_HOST. lib/canonical.ts had already been changed to a LIST for one
+  // specific reason: moving to a custom domain is not an instant, and for weeks
+  // the old address and the new one are both really the app. The comparison
+  // here never learned that. So the day a second host was added, everybody
+  // still on the first one would have opened Settings and been told, in red,
+  // that they were on a dead deployment which "can never receive a later
+  // update" and should uninstall it -- false, and aimed squarely at whoever
+  // installed earliest.
+  //
+  // The helper already folds in the preview refusal and the empty-list case, so
+  // trusting it removes the second opinion rather than adding one.
 
   return (
     <div
