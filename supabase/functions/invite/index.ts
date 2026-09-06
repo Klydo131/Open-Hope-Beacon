@@ -558,7 +558,7 @@ async function handle(req: Request): Promise<Response> {
         // invitations to one person came to read as one invitation and one
         // blank message. Three roles, three subjects, no collapsing.
         payload.subject = subjectFor(asRole);
-        payload.htmlContent = inviteHtml(asRole, churchName, joinUrl, site, email, tempPassword);
+        payload.htmlContent = inviteHtml(asRole, churchName, joinUrl, site, email, tempPassword, fullName);
         // BOTH PARTS, AND THE TEXT ONE IS NOT DECORATION. A message carrying
         // only HTML is one of the signals Gmail weighs between Primary and
         // Promotions -- correspondence is normally multipart, bulk mail very
@@ -566,7 +566,7 @@ async function handle(req: Request): Promise<Response> {
         // Promotions, and this is the strongest lever we hold on that. It is
         // also what a mail client with styling switched off, a watch, and a
         // screen reader all get.
-        payload.textContent = inviteText(asRole, churchName, joinUrl, site, email, tempPassword);
+        payload.textContent = inviteText(asRole, churchName, joinUrl, site, email, tempPassword, fullName);
       }
 
       try {

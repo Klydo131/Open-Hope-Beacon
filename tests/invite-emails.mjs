@@ -43,6 +43,10 @@ const ROLES = ['ds', 'dm', 'admin', 'executive'];
 const URL_ = 'https://church.example.org/login?email=someone%40example.org';
 const APP_URL = 'https://church.example.org';
 const CHURCH = 'Open Hope Beacon Demo Church';
+// A NAME, because the invitation greets by one now. It is an obvious
+// placeholder: this repository is public and nothing in it names a real
+// member of a real church.
+const NAME = 'Maria Santos';
 const SIGN_IN_EMAIL = 'someone@example.org';
 const TEMP_PASSWORD = 'coral-anchor-cedar-482';
 
@@ -51,7 +55,7 @@ const TEMP_PASSWORD = 'coral-anchor-cedar-482';
 // ---------------------------------------------------------------------------
 const bodies = {};
 for (const role of ROLES) {
-  const html = inviteHtml(role, CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD);
+  const html = inviteHtml(role, CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, NAME);
   bodies[role] = html;
   ok(typeof html === 'string' && html.length > 800, `${role}: renders a real message`);
 
@@ -109,7 +113,7 @@ for (const role of ROLES) {
   // often is not. It is also what a client with styling switched off, a watch,
   // and a screen reader all get.
   {
-    const text = inviteText(role, CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD);
+    const text = inviteText(role, CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, NAME);
     ok(text.length > 400, `${role}: there is a real plain-text version (${text.length} chars)`);
     ok(!/<[a-z]/i.test(text), `${role}: with no markup left in it`);
     ok(!/&(amp|nbsp|middot|rsquo);/.test(text),
@@ -199,7 +203,7 @@ ok(subjects.every((s) => s && s.length > 8), 'no subject is empty or a stub');
 // churches.name is set by an Executive Director, so it is not attacker-supplied
 // in the usual sense -- but it is user input reaching an HTML document, and the
 // cost of being wrong is a broken or hostile email sent to a congregation.
-const nasty = inviteHtml('ds', 'St <script>alert(1)</script> "Mary" & Co', URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD);
+const nasty = inviteHtml('ds', 'St <script>alert(1)</script> "Mary" & Co', URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, NAME);
 ok(!nasty.includes('<script>'), 'a church name cannot inject a tag');
 ok(nasty.includes('&lt;script&gt;'), 'the angle brackets are escaped rather than dropped');
 ok(nasty.includes('&quot;Mary&quot;') && nasty.includes('&amp; Co'),
@@ -211,7 +215,7 @@ ok(nasty.includes('&quot;Mary&quot;') && nasty.includes('&amp; Co'),
 // The escaping is what makes that change safe rather than a surprise.
 {
   const odd = inviteHtml('ds', CHURCH, URL_, APP_URL,
-    'a<b>@example.org', 'pass"&<word>-123');
+    'a<b>@example.org', 'pass"&<word>-123', NAME);
   ok(!odd.includes('<b>@example.org'), 'an address with a tag in it cannot inject one');
   ok(odd.includes('&lt;word&gt;') && odd.includes('&quot;'),
      'and a password with markup characters is escaped, not rendered');
@@ -222,7 +226,7 @@ ok(nasty.includes('&quot;Mary&quot;') && nasty.includes('&amp; Co'),
 // ---------------------------------------------------------------------------
 // A church row with no name is a real state during setup, and "  has invited
 // you" is the kind of thing that ships because nobody rendered the blank case.
-const blank = inviteHtml('ds', '', URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD);
+const blank = inviteHtml('ds', '', URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, NAME);
 ok(blank.includes('Your church'), 'a missing church name falls back to readable words');
 ok(!/>\s*has invited you/.test(blank.replace(/<strong[^>]*>[^<]*<\/strong>/g, 'X')),
    'and never leaves a sentence starting mid-air');
@@ -260,6 +264,79 @@ for (const role of ROLES) {
     ok(!WAITS.test(bodies[role]),
        `${role}: is NOT told to wait, because they are approved the moment they sign in`);
   }
+}
+
+
+// ---------------------------------------------------------------------------
+// THE GREETING, which is the whole point of reading names out of a file.
+// ---------------------------------------------------------------------------
+//
+// THE ASK: a list is uploaded as Name, Email, Role "in that way it will be more
+// customize for the email greetings." Reading the name was only half of that.
+// Until this, the name reached the recipient in exactly one place nobody looks
+// at -- the display name on the To: line -- and the message itself opened with
+// the church's name and never said theirs.
+//
+// AND WHY IT IS NOT ALWAYS THERE. The bulk panel falls back to the local part
+// of the address when a row carries no name, so what arrives can be
+// `ironhart321`. "Hi ironhart321," is worse than no greeting: it is the exact
+// tell of a machine-generated message, in an e-mail already fighting to be read
+// as correspondence rather than as a mailshot.
+{
+  const named = inviteHtml('ds', CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, 'Maria Santos');
+  ok(named.includes('Hi Maria,'), 'the invitation greets by first name');
+  ok(!named.includes('Hi Maria Santos,'),
+     'and by the FIRST name only, because the full one reads like a summons');
+  ok(named.indexOf('Hi Maria,') < named.indexOf('has invited you'),
+     'the greeting opens the message rather than turning up underneath it');
+
+  const text = inviteText('ds', CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, 'Maria Santos');
+  ok(text.includes('Hi Maria,'), 'and the plain-text half is greeted too, not just the HTML');
+
+  // What a row with no name produces once the panel has fallen back.
+  for (const notAName of ['ironhart321', 'maria.santos', 'a', '', '   ', 'x@y.org']) {
+    const anon = inviteHtml('ds', CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, notAName);
+    ok(!/Hi\s/.test(anon.replace(/<[^>]*>/g, '')),
+       `"${notAName}" is not a name, so there is no greeting rather than a bad one`);
+  }
+  ok(!inviteText('ds', CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, '').includes('Hi'),
+     'and the text half leaves no stray "Hi ," behind either');
+
+  // A list typed in lower case is normal and should still read as a name.
+  ok(inviteHtml('ds', CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, 'maria santos')
+     .includes('Hi Maria,'), 'a lower-case name is capitalised');
+  ok(inviteHtml('ds', CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, "O'Brien")
+     .includes("Hi O&#39;Brien,") || inviteHtml('ds', CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD, "O'Brien")
+     .includes("Hi O'Brien,"), 'and a name that came with capitals keeps them');
+
+  // The name comes off a file somebody uploaded, so it is user input reaching
+  // an HTML document by the shortest possible route.
+  //
+  // TWO LAYERS, AND ONLY ONE OF THEM CAN BE PROVED BY RENDERING. The filter is
+  // what actually stops this: `<script>` is not letters, so it is not a name,
+  // so there is no greeting to inject into. The escaping behind it has nothing
+  // to do given that filter -- the only characters it admits are letters, an
+  // apostrophe and a hyphen, and esc() touches none of them -- so no render can
+  // show it working. It is checked in the source instead, because the day
+  // somebody widens the filter is the day it stops being unreachable, and a
+  // check that says "the escaping is there" is worth having on that day.
+  const hostile = inviteHtml('ds', CHURCH, URL_, APP_URL, SIGN_IN_EMAIL, TEMP_PASSWORD,
+    '<script>alert(1)</script>');
+  ok(!hostile.includes('<script>alert(1)'),
+     'markup is not a name, so it is never greeted with and cannot inject a tag');
+  ok(!/Hi\s/.test(hostile.replace(/<[^>]*>/g, '')),
+     'and no half-greeting is left behind when the name is thrown away');
+  ok(/Hi \$\{esc\(hello\)\},/.test(readFileSync(SRC, 'utf8')),
+     'and the greeting still goes through esc(), for the day the filter widens');
+
+  // AND IT IS ACTUALLY SENT WITH ONE. Composing the greeting and passing the
+  // name to the composer are two different things, and the second is a single
+  // argument that a refactor drops without any of the above going red.
+  const fn = readFileSync('supabase/functions/invite/index.ts', 'utf8');
+  ok(/inviteHtml\(asRole, churchName, joinUrl, site, email, tempPassword, fullName\)/.test(fn),
+     'the send hands the name to the HTML half');
+  ok(/inviteText\(asRole, churchName, joinUrl, site, email, tempPassword, fullName\)/.test(fn),
+     'and to the plain-text half');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

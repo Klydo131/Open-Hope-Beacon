@@ -168,6 +168,33 @@ export function roleWord(role: InviteRole): string {
  * you install before you have an account is an app that opens on a sign-in
  * screen you cannot pass.
  */
+/**
+ * The name to greet somebody by, or '' when there is nothing worth using.
+ *
+ * WHY THIS IS FUSSY ABOUT WHAT COUNTS AS A NAME. The bulk panel falls back to
+ * the local part of the address when a row has no name, so what arrives here
+ * can be `ironhart321` or `maria.santos`. "Hi ironhart321," is worse than no
+ * greeting at all: it is the exact tell of a machine-generated message, and
+ * this e-mail is already fighting to be read as correspondence rather than as
+ * a mailshot. So a greeting is used only when the first word looks like
+ * something a person is actually called.
+ *
+ * FIRST NAME ONLY, because "Hi Maria Santos," reads like a summons and nobody
+ * writes that to somebody they are inviting to church.
+ */
+export function greetingName(fullName: string): string {
+  const first = (fullName ?? '').trim().split(/\s+/)[0] ?? '';
+  if (first.length < 2 || first.length > 24) return '';
+  // Letters, and the two punctuation marks that live inside real names. A
+  // digit, a dot or an @ means this came from an address rather than a person.
+  if (!/^[\p{L}][\p{L}'\u2019-]*$/u.test(first)) return '';
+  // A list typed in lower case should still read as a name, but MacLeod and
+  // O'Brien keep the capitals they arrived with.
+  return first === first.toLowerCase()
+    ? first[0].toUpperCase() + first.slice(1)
+    : first;
+}
+
 export function inviteHtml(
   role: InviteRole,
   churchName: string,
@@ -175,6 +202,7 @@ export function inviteHtml(
   appUrl: string,
   signInEmail: string,
   tempPassword: string,
+  fullName: string,
 ): string {
   const copy = ROLE_COPY[role];
   const church = esc(churchName || 'Your church');
@@ -184,6 +212,7 @@ export function inviteHtml(
   const pass = esc(tempPassword);
   const afterLine = AFTER[role];
   const waitLine = WAITS[role] ?? '';
+  const hello = greetingName(fullName);
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EEF1F6;margin:0;padding:0;width:100%;">
   <tr>
     <td align="center" style="padding:28px 12px;">
@@ -194,6 +223,8 @@ export function inviteHtml(
           <p style="margin:0 0 18px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;color:#1E2A4A;">Hope&nbsp;Beacon</p>
 
           <h1 style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:22px;line-height:1.3;color:#1E2A4A;font-weight:bold;">${esc(copy.subject)}</h1>
+
+          ${hello ? `<p style="margin:0 0 12px 0;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:#22272F;">Hi ${esc(hello)},</p>` : ''}
 
           <p style="margin:0 0 22px 0;font-family:Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;color:#22272F;">
             <strong>${church}</strong> has invited you as ${esc(copy.word)}. ${esc(copy.lead)}
@@ -277,9 +308,11 @@ export function inviteText(
   appUrl: string,
   signInEmail: string,
   tempPassword: string,
+  fullName: string,
 ): string {
   const copy = ROLE_COPY[role];
   const church = churchName || 'Your church';
+  const hello = greetingName(fullName);
 
   // WRAPPED AT 72, AND BY A FUNCTION RATHER THAN BY HAND. The first draft broke
   // its lines wherever the source happened to end, which put "open Settings" on
@@ -300,6 +333,7 @@ export function inviteText(
   return [
     copy.subject,
     '',
+    ...(hello ? [`Hi ${hello},`, ''] : []),
     wrap(`${church} has invited you as ${copy.word}. ${copy.lead}`),
     '',
     'YOUR SIGN-IN DETAILS',
