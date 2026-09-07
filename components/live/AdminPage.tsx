@@ -972,11 +972,12 @@ export function LiveAdminPage() {
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">Pair a Guide and Explorer</h2>
           <form onSubmit={pair} className="mt-4 grid gap-3 sm:grid-cols-2">
-            <SelectPerson label="Guide" value={dmId} onChange={setDmId} people={guides} />
+            <SelectPerson label="Guide" value={dmId} onChange={setDmId} people={guides} loading={loading} />
             <SelectPerson
               label="Explorer"
               value={dsId}
               onChange={setDsId}
+              loading={loading}
               people={explorers.filter((explorer) => !pairings.some((p) => p.ds_id === explorer.id && p.status === 'active'))}
             />
             <div className="sm:col-span-2">

@@ -221,6 +221,12 @@ const staticChecks = [
   // addresses, and every one of those was reaching the screen as literal
   // punctuation or dead text. Fifteen of sixteen studies were affected.
   ['studies are formatted', 'tests/studies-are-formatted.mjs'],
+  // Reported from a Xiaomi phone as "I dont see the names when it comes to
+  // pairing". The names were all there: forty-one approved Guides, all named,
+  // all readable by that Director. The pairing form was simply drawn before
+  // they arrived, and a native <select> that is already open never takes new
+  // options. A phone on mobile data loses that race every time.
+  ['the pairing pickers say what they know', 'tests/the-pairing-pickers-say-what-they-know.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

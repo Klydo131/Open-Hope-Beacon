@@ -587,23 +587,76 @@ export function Field({
 }
 
 
+/**
+ * Pick a person from a list.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY IT KNOWS WHETHER IT IS STILL LOADING, reported from a Xiaomi phone as
+ * "I dont see the names when it comes to pairing".
+ *
+ * The names were all there. The church has forty-one approved Guides, every
+ * one of them named, and the signed-in Executive Director could read all
+ * forty-one. What went wrong was WHEN.
+ *
+ * LiveAdminPage keeps a `loading` flag and used it for the account lists, but
+ * the pairing form was drawn regardless. So for as long as the fetch took, both
+ * of these were on screen, fully tappable, holding nothing but their own
+ * placeholder. And a native `<select>` that is ALREADY OPEN does not take new
+ * options: the list arrives, the open sheet keeps showing what it had, and it
+ * stays empty until the person closes it and opens it again. Nobody does that.
+ * They report that the names are missing.
+ *
+ * It reads as a phone-specific fault and is not one. It is a race, and a phone
+ * on mobile data loses it every time while a laptop on office wifi finishes
+ * loading before a hand can reach the control. That is the whole reason it was
+ * seen on a Xiaomi and not here.
+ *
+ * So: disabled until the answer is known, and it says which of the three
+ * states it is in rather than looking identical in all of them.
+ * ---------------------------------------------------------------------------
+ */
 export function SelectPerson({
   label,
   value,
   onChange,
   people,
+  loading = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   people: Profile[];
+  /** True while the list is still being fetched. */
+  loading?: boolean;
 }) {
+  const noun = label.toLowerCase();
+  // Three states, three sentences. "Choose guide" over an empty list is the
+  // one that cost an evening: it is indistinguishable from a working control.
+  const placeholder = loading
+    ? `Loading ${noun}s…`
+    : people.length === 0
+      ? `No ${noun}s to choose yet`
+      : `Choose ${noun}`;
+
   return (
     <label className="block">
       <span className="text-sm font-semibold text-gray-600">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} className="tap mt-1 w-full rounded-xl bg-gray-100 px-3 text-base">
-        <option value="">Choose {label.toLowerCase()}</option>
-        {people.map((person) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={loading || people.length === 0}
+        className="tap mt-1 w-full rounded-xl bg-gray-100 px-3 text-base disabled:opacity-60"
+      >
+        <option value="">{placeholder}</option>
+        {people.map((person) => (
+          // A NAME, OR SOMETHING. An option whose text is empty draws as a
+          // blank row, which is the same "no names" report by another route.
+          // Nobody in this church has a blank name today; that is a fact about
+          // the data, not a guarantee about it.
+          <option key={person.id} value={person.id}>
+            {person.full_name?.trim() || 'Somebody with no name set'}
+          </option>
+        ))}
       </select>
     </label>
   );
