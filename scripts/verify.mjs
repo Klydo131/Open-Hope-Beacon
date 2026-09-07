@@ -227,6 +227,13 @@ const staticChecks = [
   // they arrived, and a native <select> that is already open never takes new
   // options. A phone on mobile data loses that race every time.
   ['the pairing pickers say what they know', 'tests/the-pairing-pickers-say-what-they-know.mjs'],
+  // And the reason those pickers were empty for two real Executive Directors,
+  // which was not the screen at all. An executive's authority rests entirely on
+  // a row in church_executives; handle_new_user never wrote one, so an
+  // executive who was INVITED could read exactly one profile, their own, on
+  // every screen. The third time this shape has been fixed, so this one checks
+  // the cause rather than the symptom.
+  ['an invited executive can see their church', 'tests/an-invited-executive-can-see-their-church.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:
