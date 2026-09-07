@@ -234,6 +234,11 @@ const staticChecks = [
   // every screen. The third time this shape has been fixed, so this one checks
   // the cause rather than the symptom.
   ['an invited executive can see their church', 'tests/an-invited-executive-can-see-their-church.mjs'],
+  // The invitation carries a password now, so nobody sees the sign-up form and
+  // signup_completed_at is never stamped. Eight people who were using the app
+  // were still on the Director's re-send list, and Re-send would have REPLACED
+  // the password they were signing in with.
+  ['signing in is joining', 'tests/signing-in-is-joining.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

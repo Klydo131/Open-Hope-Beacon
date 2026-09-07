@@ -486,13 +486,18 @@ export function LiveMailPage() {
                         {!i.has_account && (
                           <span className="ml-1 font-semibold text-amber-700">· never sent</span>
                         )}
-                        {/* The link was used, and the sign-up was not finished.
-                            Most often that is the Director opening it to check
-                            it works — which uses the link up, so this row needs
-                            a fresh one rather than a reminder. */}
-                        {i.opened_at && (
-                          <span className="ml-1 text-gray-500">· link opened, no password set yet</span>
-                        )}
+                        {/* THE BADGE THAT USED TO SIT HERE SAID THE OPPOSITE OF
+                            THE TRUTH, and it is gone rather than reworded.
+                            It read "link opened, no password set yet" and was
+                            drawn from `opened_at`, which church_invitations
+                            fills from auth.users.last_sign_in_at. So it appeared
+                            for people who had SIGNED IN -- it announced that
+                            somebody using the app had no password, beside a
+                            Re-send button that would then replace the password
+                            they were using.
+                            Now that signing in counts as joining, those rows
+                            are in Accepted below and this list cannot contain
+                            one, so there is nothing left for it to label. */}
                       </p>
                     </div>
 {/* NOT `shrink-0`. It was, and `shrink-0` with `flex-wrap` are a
