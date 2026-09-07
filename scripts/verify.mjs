@@ -239,6 +239,12 @@ const staticChecks = [
   // were still on the Director's re-send list, and Re-send would have REPLACED
   // the password they were signing in with.
   ['signing in is joining', 'tests/signing-in-is-joining.mjs'],
+  // Sharing wrote a row that no screen ever read. "Shared with you" listed
+  // everything the caller had permission to read, so an Explorer saw their own
+  // resources under a heading saying their Guide sent them, and the same rows
+  // again in the shelf directly above. The picker also closed on the first tap,
+  // which is why a Guide with several Explorers reported it half working.
+  ['sharing a resource goes both ways', 'tests/sharing-a-resource-goes-both-ways.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

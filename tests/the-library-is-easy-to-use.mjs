@@ -93,12 +93,28 @@ const data = strip(read('lib/live/data.ts'));
   ok(firstMap > picker,
      'and no button-per-person is drawn before the picker opens');
 
-  // Sharing must still be reachable in the same number of taps as before, and
-  // choosing somebody must close the picker rather than leave it open over the
-  // next row.
-  ok(/void share\(m\.id, p\.id, p\.ds_name\); setSharing\(''\)/.test(ui),
-     'choosing somebody shares and closes the picker');
-  ok(/Not now/.test(ui), 'and there is a way to back out without sharing');
+  // THE PICKER STAYS OPEN NOW, AND THIS CHECK USED TO SAY THE OPPOSITE.
+  //
+  // It pinned "choosing somebody shares and closes the picker", which was a
+  // reasonable thing to want when a Guide had one Explorer. With two or more it
+  // is the bug: share with the first, the list vanishes, find the row again for
+  // the second. And tapping a name that already had it was refused with "That
+  // is already shared with them", so the control read as "sometimes it works,
+  // most of the time it doesn't" -- which is how it was reported.
+  //
+  // So the requirement changed rather than the test being wrong before. What
+  // has to stay true is that the picker can still be CLOSED, and that is
+  // checked on line 84 above.
+  ok(!/void share\(m\.id, p\.id, p\.ds_name\); setSharing\(''\)/.test(ui),
+     'choosing somebody does NOT close the picker, so several people can be given it');
+  ok(/Done/.test(ui), 'and there is a way to close it when finished');
+
+  // Somebody who already has it is shown as having it rather than offered a tap
+  // that will be refused. Without this the "stays open" change above would make
+  // the duplicate refusal EASIER to hit, not harder.
+  ok(/alreadyShared\.get\(m\.id\)\?\.has\(p\.id\)/.test(ui),
+     'the picker knows who already has each resource');
+  ok(/disabled=\{has\}/.test(ui), 'and does not offer a tap that would be refused');
 
   // The count tells a Guide whether there is anybody to share with at all,
   // which a bare "Share" does not.

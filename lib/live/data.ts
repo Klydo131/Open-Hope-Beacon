@@ -1573,6 +1573,77 @@ export async function addMaterial(m: {
   return data.id as string;
 }
 
+/** One resource somebody handed to you, and who handed it over. */
+export interface SharedWithMe {
+  share_id: string;
+  material: Material;
+  shared_by: string;
+  shared_by_name: string;
+  note: string | null;
+  created_at: string;
+}
+
+/**
+ * What OTHER PEOPLE have put in front of you.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THIS EXISTS, reported as "the shared sources for Explorer also appears
+ * in its shared sources location which is weird to look and not helpful".
+ *
+ * The card headed "Shared with you -- from your Guide" called listMaterials(),
+ * which is everything the caller may READ. For an Explorer the policy makes
+ * that their own additions plus whatever was shared into their pairings, so
+ * that card showed an Explorer their OWN resources under a heading saying their
+ * Guide had sent them. It also showed exactly the same rows as the shelf card
+ * sitting directly above it, because on that screen both were the same query.
+ *
+ * The share rows were there the whole time -- twenty of them across twelve
+ * pairings -- and no screen had ever read one. Sharing wrote a row that nothing
+ * displayed, so it looked like sharing did nothing.
+ *
+ * `shares_read` is `in_pairing(pairing_id)`, so the database returns only
+ * pairings this person is actually in. The one thing left to do here is drop
+ * what they shared themselves: a Guide and an Explorer share into the SAME
+ * pairing row, so without this every share comes back to the person who sent
+ * it, which is the duplicate all over again from the other end.
+ * ---------------------------------------------------------------------------
+ */
+export async function listSharedWithMe(): Promise<SharedWithMe[]> {
+  const supabase = db();
+  const me = await uid();
+
+  const { data, error } = await supabase
+    .from('material_shares')
+    .select('id, material_id, pairing_id, shared_by, note, created_at, materials(*)')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []) as unknown as (MaterialShare & { materials: Material | null })[];
+  const theirs = rows.filter((r) => r.shared_by !== me && r.materials);
+
+  // NAMES ARE A SEPARATE QUERY AND A SOFT ONE. A missing name is a worse
+  // sentence, not a broken card, so a failure here leaves "Someone" rather
+  // than taking the whole shelf down.
+  const names = new Map<string, string>();
+  const ids = [...new Set(theirs.map((r) => r.shared_by))];
+  if (ids.length) {
+    const { data: people } = await supabase
+      .from('profiles').select('id, full_name').in('id', ids);
+    for (const p of (people ?? []) as { id: string; full_name: string | null }[]) {
+      if (p.full_name?.trim()) names.set(p.id, p.full_name.trim());
+    }
+  }
+
+  return theirs.map((r) => ({
+    share_id: r.id,
+    material: r.materials as Material,
+    shared_by: r.shared_by,
+    shared_by_name: names.get(r.shared_by) ?? 'Someone',
+    note: r.note,
+    created_at: r.created_at,
+  }));
+}
+
 /** What has been shared into one pairing. Both people in it may read this. */
 export async function listShares(pairingId: string): Promise<MaterialShare[]> {
   const { data, error } = await db()

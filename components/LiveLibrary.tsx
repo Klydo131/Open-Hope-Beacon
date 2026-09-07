@@ -147,16 +147,59 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
   const [showPutAway, setShowPutAway] = useState(false);
   const { profile } = useLiveSession();
 
+  // WHICH RESOURCES SOMEBODY ELSE HANDED TO ME, and which pairings already
+  // have each one. Two different jobs, one query.
+  const [alreadyShared, setAlreadyShared] = useState<Map<string, Set<string>>>(new Map());
+
   const load = useCallback(async () => {
     try {
-      const [shelf, off] = await Promise.all([
+      const [shelf, off, given] = await Promise.all([
         live.listMaterials(),
         live.listHiddenMaterials(),
+        // Soft: the shelf is still a shelf without this, so a failure here
+        // must not empty the room.
+        live.listSharedWithMe().catch(() => [] as live.SharedWithMe[]),
       ]);
-      setItems(shelf); setPutAway(off); setError('');
+
+      // THE SHELF AND "SHARED WITH YOU" MUST NOT BE THE SAME LIST.
+      //
+      // listMaterials() returns everything the caller may READ, and the policy
+      // makes that, for an Explorer, their own additions plus whatever was
+      // shared into their pairings. So on the Explorer's screen this card and
+      // the card underneath it drew the identical rows, under two headings that
+      // promised different things. Reported as "the shared sources for Explorer
+      // also appears in its shared sources location which is weird to look and
+      // not helpful".
+      //
+      // A row I added is mine and belongs on my shelf even after I have shared
+      // it. A row whose only claim on me is that SOMEBODY ELSE handed it over
+      // belongs in the other card and nowhere else.
+      const mine = new Set(given.filter((g) => g.material.added_by !== profile?.id)
+        .map((g) => g.material.id));
+      setItems(shelf.filter((m) => !mine.has(m.id)));
+      setPutAway(off);
+      setError('');
     }
     catch (cause) { setItems([]); setError(message(cause)); }
-  }, []);
+  }, [profile?.id]);
+
+  // WHO ALREADY HAS EACH RESOURCE, so the picker can say so instead of letting
+  // somebody tap a name and be told "That is already shared with them."
+  const loadShared = useCallback(async () => {
+    if (!pairings.length) return;
+    try {
+      const lists = await Promise.all(pairings.map((p) => live.listShares(p.id)));
+      const map = new Map<string, Set<string>>();
+      pairings.forEach((p, i) => {
+        for (const share of lists[i]) {
+          if (!map.has(share.material_id)) map.set(share.material_id, new Set());
+          map.get(share.material_id)!.add(p.id);
+        }
+      });
+      setAlreadyShared(map);
+    } catch { /* the picker still works without it */ }
+  }, [pairings]);
+  useEffect(() => { void loadShared(); }, [loadShared]);
   useEffect(() => { void load(); }, [load]);
   // The screen keeps up when somebody else changes something.
   useKeepUp(KEEP_UP_LIBRARY, load);
@@ -266,6 +309,15 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
     try {
       await live.shareMaterial(materialId, pairingId);
       setFlash(`Shared with ${who}.`);
+      // So the name turns into "has it" straight away rather than after a
+      // reload, and a second tap cannot reach the duplicate refusal.
+      setAlreadyShared((was) => {
+        const next = new Map(was);
+        const to = new Set(next.get(materialId) ?? []);
+        to.add(pairingId);
+        next.set(materialId, to);
+        return next;
+      });
     } catch (cause) { setError(message(cause)); }
   };
 
@@ -390,20 +442,35 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
             ) : sharing === m.id ? (
               <>
                 <span className="w-full text-xs font-semibold text-gray-500">Share with</span>
-                {pairings.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => { void share(m.id, p.id, p.ds_name); setSharing(''); }}
-                    className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy ring-1 ring-black/10"
-                  >
-                    {p.ds_name.split(' ')[0]}
-                  </button>
-                ))}
+                {/* THE PICKER STAYS OPEN, AND THAT IS THE BUG IT FIXES.
+                    It closed on the first tap, so a Guide with three Explorers
+                    shared with one, watched the list vanish, and had to find
+                    the row again for the second. Tapping the same person twice
+                    was refused with "That is already shared with them", so the
+                    whole control read as "sometimes it works, most of the time
+                    it doesn't" -- which is exactly how it was reported.
+                    Somebody who already has it is now shown as having it
+                    rather than being offered a tap that fails. */}
+                {pairings.map((p) => {
+                  const has = alreadyShared.get(m.id)?.has(p.id) ?? false;
+                  return (
+                    <button
+                      key={p.id}
+                      disabled={has}
+                      onClick={() => void share(m.id, p.id, p.ds_name)}
+                      className={has
+                        ? 'rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-800 ring-1 ring-green-200'
+                        : 'rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy ring-1 ring-black/10'}
+                    >
+                      {has ? `✓ ${p.ds_name.split(' ')[0]} has it` : p.ds_name.split(' ')[0]}
+                    </button>
+                  );
+                })}
                 <button
                   onClick={() => setSharing('')}
                   className="rounded-full px-3 py-1 text-xs font-semibold text-gray-600 underline"
                 >
-                  Not now
+                  Done
                 </button>
               </>
             ) : (
@@ -567,7 +634,7 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
 // What the Explorer has been given.
 // ---------------------------------------------------------------------------
 export function LiveSharedWithMe() {
-  const [items, setItems] = useState<live.Material[] | null>(null);
+  const [items, setItems] = useState<live.SharedWithMe[] | null>(null);
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
 
@@ -590,7 +657,12 @@ export function LiveSharedWithMe() {
 
   useEffect(() => {
     let alive = true;
-    live.listMaterials()
+    // WHAT SOMEBODY HANDED YOU, not everything you are allowed to read.
+    // This card used to call listMaterials(), which for an Explorer is their
+    // own additions PLUS what was shared with them -- so it showed them their
+    // own resources under a heading saying their Guide had sent them, and it
+    // showed exactly the same rows as the shelf card directly above it.
+    live.listSharedWithMe()
       .then((r) => { if (alive) { setItems(r); setError(''); } })
       .catch((cause) => { if (alive) { setItems([]); setError(message(cause)); } });
     return () => { alive = false; };
@@ -607,7 +679,9 @@ export function LiveSharedWithMe() {
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-700">Your library</p>
             <h2 className="mt-0.5 text-2xl font-extrabold text-navy">Shared with you</h2>
-            <p className="mt-1 text-sm leading-relaxed text-gray-600">From your Guide, for whenever you want it.</p>
+            <p className="mt-1 text-sm leading-relaxed text-gray-600">
+              Handed to you by somebody walking with you, for whenever you want it.
+            </p>
           </div>
         </div>
       </div>
@@ -615,9 +689,17 @@ export function LiveSharedWithMe() {
       <Err msg={error} />
       {flash && <p className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-800">{flash}</p>}
       <div className="mt-3 space-y-2">
-        {items.map((m) => (
-          <Item key={m.id} m={m}>
-            <SendOut onSend={() => void sendOut(m)} />
+        {items.map((s) => (
+          <Item key={s.share_id} m={s.material}>
+            {/* WHO GAVE IT TO YOU. The card claimed "from your Guide" for
+                everything, including an Explorer's own rows. Now it says who,
+                per row, because with two Guides or a Director in the picture
+                the answer is not always the same person. */}
+            <span className="text-xs font-semibold text-blue-700">
+              from {s.shared_by_name.split(' ')[0]}
+            </span>
+            {s.note && <span className="text-xs text-gray-600">&ldquo;{s.note}&rdquo;</span>}
+            <SendOut onSend={() => void sendOut(s.material)} />
           </Item>
         ))}
       </div>
