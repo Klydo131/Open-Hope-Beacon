@@ -18,11 +18,11 @@
 // what they had just written until they published it, which makes writing it
 // impossible.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { Button, Card } from '@/components/ui';
-import { Linked } from '@/components/Linked';
+import { Rich } from '@/components/Rich';
 import { humanError } from '@/lib/live/errors';
 import { ATTACHMENT_ACCEPT } from '@/lib/live/attachments';
 import { useKeepUp, KEEP_UP_STUDIES } from '@/lib/live/keep-up';
@@ -96,6 +96,48 @@ function FileRow({ file, canRemove, onRemove }: {
  * a control: the database refuses a write from anybody else regardless of what
  * this component draws.
  */
+/**
+ * What a Guide can actually do in that box, said where they are standing.
+ *
+ * THE SECOND HALF OF THE ASK, and the half that decides whether the first one
+ * matters: "Make sure those who are making those Lesson studies (such as
+ * guides) are aware of this functions."
+ *
+ * The box used to promise one thing in its placeholder text -- "Links become
+ * clickable" -- which vanishes the moment somebody starts typing, and said
+ * nothing at all about the bold and italic marks that fifteen of the sixteen
+ * studies on the shelf were already using. Somebody was formatting their
+ * studies and being shown asterisks, with no way to learn from the app whether
+ * that was their mistake or its own.
+ *
+ * Under the box rather than inside it, so it is still there while they write.
+ */
+function WritingHints() {
+  const Mark = ({ children }: { children: ReactNode }) => (
+    <code className="rounded bg-white px-1 py-0.5 font-mono text-[11px] ring-1 ring-black/5">
+      {children}
+    </code>
+  );
+  return (
+    <div className="rounded-xl bg-gray-100 px-3 py-2 text-xs leading-relaxed text-gray-600">
+      <p className="font-semibold text-gray-700">Three things you can do here</p>
+      <ul className="mt-1 space-y-0.5">
+        <li>
+          <Mark>**Read:**</Mark> makes a bold opening, the way the sample studies
+          head each section.
+        </li>
+        <li>
+          <Mark>*The Desire of Ages*</Mark> slants a title.
+        </li>
+        <li>
+          A web address becomes tappable on its own.{' '}
+          <Mark>adventist.org/beliefs</Mark> is enough, with no https in front of it.
+        </li>
+      </ul>
+    </div>
+  );
+}
+
 function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean }) {
   const [lessons, setLessons] = useState<live.Lesson[] | null>(null);
   const [files, setFiles] = useState<Record<string, live.LessonFile[]>>({});
@@ -175,9 +217,10 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
                   value={editBody}
                   onChange={(e) => setEditBody(e.target.value)}
                   rows={5}
-                  placeholder="Write the study here. Links become clickable."
+                  placeholder="Write the study here."
                   className="rounded-xl border border-gray-300 px-3 py-2 text-sm"
                 />
+                <WritingHints />
                 <div className="flex flex-wrap items-center gap-3">
                   <Button
                     disabled={busy || !editTitle.trim()}
@@ -203,7 +246,7 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
                 <p className="font-semibold text-navy">{i + 1}. {lesson.title}</p>
                 {lesson.body && (
                   <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">
-                    <Linked text={lesson.body} />
+                    <Rich text={lesson.body} />
                   </p>
                 )}
                 {/* A BUTTON, NOT A SIDE EFFECT OF SCROLLING. Every lesson in an
@@ -306,9 +349,10 @@ function SeriesBody({ series, mine }: { series: live.LessonSeries; mine: boolean
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={4}
-            placeholder="Write the study here. Links become clickable."
+            placeholder="Write the study here."
             className="rounded-xl border border-gray-300 px-3 py-2"
           />
+          <WritingHints />
           <div>
             <Button
               disabled={busy || !title.trim()}
@@ -536,7 +580,7 @@ export function LiveStudies() {
                     </div>
                     {s.description && (
                       <p className="pl-[1.1rem] text-sm leading-snug text-gray-500">
-                        <Linked text={s.description} />
+                        <Rich text={s.description} />
                       </p>
                     )}
                     {renaming === s.id && (

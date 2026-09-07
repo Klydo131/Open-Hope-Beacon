@@ -217,6 +217,10 @@ const staticChecks = [
   ['iPhone install', 'tests/ios-install.mjs'],
   ['plain words', 'tests/plain-words.mjs'],
   ['accounts and sessions', 'tests/accounts-and-sessions.mjs'],
+  // A study is written with **bold** headings, *slanted* titles and bare
+  // addresses, and every one of those was reaching the screen as literal
+  // punctuation or dead text. Fifteen of sixteen studies were affected.
+  ['studies are formatted', 'tests/studies-are-formatted.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

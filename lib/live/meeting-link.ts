@@ -178,8 +178,18 @@ export function joinLabel(href: string): string {
  * difference from the online field. That field is labelled "link to join the
  * call", so a lone token like `meet.google.com/x` can only be a link. This one
  * is labelled "Church cafe, 12 Rizal St", where `St.Mary` is a place and would
- * become `https://St.Mary`. linkifyParts requires a scheme or a leading www.,
- * which is exactly the line wanted here.
+ * become `https://St.Mary`.
+ *
+ * WHAT KEEPS THAT TRUE HAS CHANGED, so the reasoning is written out rather
+ * than left as a rule of thumb. linkifyParts used to require a scheme or a
+ * leading `www.`; it now also reads a bare domain, because every link in every
+ * lesson study was written that way and every one of them was dead text. What
+ * stops `St.Mary` becoming a link is no longer the absence of bare-domain
+ * matching but the ENDING: `Mary` is not on the list of endings, and no ending
+ * that is also an English word ever will be. `12 Rizal St` has no dot at all.
+ *
+ * A place field holding `meet.google.com` does now become a link rather than a
+ * map search, which is the honest consequence and the better answer anyway.
  */
 export function placeUrl(mode: MeetingMode, where: string | null | undefined): string | null {
   if (mode !== 'in_person') return null;
