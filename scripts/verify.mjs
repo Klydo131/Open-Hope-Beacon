@@ -261,6 +261,10 @@ const staticChecks = [
   // Private by default now, with the church shelf a deliberate act of
   // leadership's, guarded in the database rather than on a screen.
   ['a resource is personal until it is shared', 'tests/a-resource-is-personal-until-it-is-shared.mjs'],
+  // Thirty-seven tables cascade off profiles, so a record meant to outlive an
+  // account cannot hold a foreign key to one. That is the check that matters
+  // here; the rest keep a name out of it and row level security on.
+  ['a record that outlives the people in it', 'tests/a-record-that-outlives-the-people-in-it.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:
