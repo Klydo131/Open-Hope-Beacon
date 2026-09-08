@@ -95,7 +95,22 @@ function Item({ m, children }: { m: live.Material; children?: React.ReactNode })
 //
 // The component keeps its old name because a dozen call sites use it and
 // renaming them would be a large diff to settle a comment.
-export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_name: string }[] }) {
+export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
+  pairings: { id: string; ds_name: string }[];
+  /**
+   * WHICH SHARES ARE DRAWN IN THE CARD NEXT TO THIS SHELF, if any.
+   *
+   * The shelf subtracts rows somebody else handed over, because those belong in
+   * the "Shared with you" card and not here. That subtraction has to be scoped
+   * the same way the card is or something disappears from both: a Guide's
+   * per-Explorer screen shows one relationship, so a resource a DIFFERENT
+   * Explorer shared must stay on the shelf, where it is an ordinary church
+   * library row, rather than vanish because a card on another tab has it.
+   *
+   * Left out on the Explorer's screen, where the card shows everything.
+   */
+  sharesShownFor?: string;
+}) {
   const [items, setItems] = useState<live.Material[] | null>(null);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -158,7 +173,7 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
         live.listHiddenMaterials(),
         // Soft: the shelf is still a shelf without this, so a failure here
         // must not empty the room.
-        live.listSharedWithMe().catch(() => [] as live.SharedWithMe[]),
+        live.listSharedWithMe(sharesShownFor).catch(() => [] as live.SharedWithMe[]),
       ]);
 
       // THE SHELF AND "SHARED WITH YOU" MUST NOT BE THE SAME LIST.
@@ -181,7 +196,7 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
       setError('');
     }
     catch (cause) { setItems([]); setError(message(cause)); }
-  }, [profile?.id]);
+  }, [profile?.id, sharesShownFor]);
 
   // WHO ALREADY HAS EACH RESOURCE, so the picker can say so instead of letting
   // somebody tap a name and be told "That is already shared with them."
@@ -434,6 +449,16 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
 
                 Sharing is still one tap to start and one to finish. What is
                 gone is four things to read when you are not sharing at all. */}
+            {/* WHAT THIS PERSON ALREADY HAS, ON THE ROW. It was known only
+                inside the picker, so a Guide wanting to see what they had
+                already given somebody had to open every row in turn. On a
+                screen about one Explorer there is one answer per row and it
+                costs a chip. */}
+            {pairings.length === 1 && (alreadyShared.get(m.id)?.has(pairings[0].id) ?? false) && (
+              <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-800 ring-1 ring-green-200">
+                &#10003; {pairings[0].ds_name.split(' ')[0]} has this
+              </span>
+            )}
             {pairings.length === 0 ? (
               /* "In the app" earns its place now that the button beside it
                  shares with people who are not. Without it the row reads
@@ -631,9 +656,31 @@ export function LiveLibraryForGuide({ pairings }: { pairings: { id: string; ds_n
 }
 
 // ---------------------------------------------------------------------------
-// What the Explorer has been given.
+// What somebody has been handed. BOTH WAYS.
 // ---------------------------------------------------------------------------
-export function LiveSharedWithMe() {
+//
+// Reported by a Guide, looking at one Explorer's Resources tab: "As a guide I
+// can't see what source or resource shared by the Explorer here."
+//
+// Nothing was wrong in the database. `shares_create` has let either end of a
+// pairing share since the library was opened up, `shares_read` is
+// `in_pairing(pairing_id)` so both ends may read what was shared into it, and
+// the rows were being written. This card -- the only thing in the app that
+// draws a share -- was mounted on the Explorer's screen alone.
+//
+// It was worse than merely absent. The shelf beside it SUBTRACTS rows somebody
+// else handed over, so that they appear here instead. On a Guide's screen the
+// subtraction ran and nothing drew the result: what an Explorer shared was
+// taken off the Guide's shelf and shown nowhere at all. That subtraction came
+// in yesterday with the fix for the Explorer's duplicate card, so a share from
+// an Explorer went from indistinguishable to invisible.
+// ---------------------------------------------------------------------------
+export function LiveSharedWithMe({ pairingId, heading, intro }: {
+  /** One relationship only. Left out on the Explorer's screen, which has one. */
+  pairingId?: string;
+  heading?: string;
+  intro?: string;
+} = {}) {
   const [items, setItems] = useState<live.SharedWithMe[] | null>(null);
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
@@ -662,11 +709,11 @@ export function LiveSharedWithMe() {
     // own additions PLUS what was shared with them -- so it showed them their
     // own resources under a heading saying their Guide had sent them, and it
     // showed exactly the same rows as the shelf card directly above it.
-    live.listSharedWithMe()
+    live.listSharedWithMe(pairingId)
       .then((r) => { if (alive) { setItems(r); setError(''); } })
       .catch((cause) => { if (alive) { setItems([]); setError(message(cause)); } });
     return () => { alive = false; };
-  }, []);
+  }, [pairingId]);
 
   if (items === null) return null;
   if (items.length === 0 && !error) return null;
@@ -678,9 +725,9 @@ export function LiveSharedWithMe() {
           <span aria-hidden className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-700 text-2xl shadow-sm">📚</span>
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.14em] text-blue-700">Your library</p>
-            <h2 className="mt-0.5 text-2xl font-extrabold text-navy">Shared with you</h2>
+            <h2 className="mt-0.5 text-2xl font-extrabold text-navy">{heading ?? 'Shared with you'}</h2>
             <p className="mt-1 text-sm leading-relaxed text-gray-600">
-              Handed to you by somebody walking with you, for whenever you want it.
+              {intro ?? 'Handed to you by somebody walking with you, for whenever you want it.'}
             </p>
           </div>
         </div>

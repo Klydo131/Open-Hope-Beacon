@@ -15,7 +15,7 @@ import { LivePrayerForGuide } from '@/components/LivePrayer';
 import { LiveMeetings } from '@/components/LiveMeetings';
 import { useDraft, clearDraft } from '@/lib/drafts';
 import { MemberReading } from '@/components/live/ReadingProgress';
-import { LiveLibraryForGuide } from '@/components/LiveLibrary';
+import { LiveLibraryForGuide, LiveSharedWithMe } from '@/components/LiveLibrary';
 import { LiveFollowUps, LiveNotes } from '@/components/LiveMinistry';
 import { LiveStudies } from '@/components/LiveStudies';
 import { NewBadge } from '@/components/NewBadge';
@@ -690,9 +690,24 @@ export function LiveConversationPage() {
           )}
 
           {tab === 'resources' && (
-            <LiveLibraryForGuide
-              pairings={[{ id: pairing.id, ds_name: pairing.ds_name }]}
-            />
+            <div className="space-y-4">
+              {/* WHAT THEY SENT YOU, FIRST. Reported as "As a guide I can't see
+                  what source or resource shared by the Explorer here." Sharing
+                  has run both ways since the library was opened up and the rows
+                  were being written; the only card that draws one was mounted
+                  on the Explorer's screen and nowhere else. Above the shelf,
+                  because a thing somebody handed you is news and your own shelf
+                  is not. */}
+              <LiveSharedWithMe
+                pairingId={pairing.id}
+                heading={`What ${pairing.ds_name.split(' ')[0]} has shared with you`}
+                intro={`Links ${pairing.ds_name.split(' ')[0]} has handed to you. Tap one to open it.`}
+              />
+              <LiveLibraryForGuide
+                pairings={[{ id: pairing.id, ds_name: pairing.ds_name }]}
+                sharesShownFor={pairing.id}
+              />
+            </div>
           )}
         </div>
       )}

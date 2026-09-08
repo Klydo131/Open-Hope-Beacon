@@ -61,7 +61,7 @@ const data = strip(read('lib/live/data.ts'));
 // ---------------------------------------------------------------------------
 {
   const card = ui.slice(ui.indexOf('export function LiveSharedWithMe'));
-  ok(/live\.listSharedWithMe\(\)/.test(card),
+  ok(/live\.listSharedWithMe\(pairingId\)/.test(card),
      'the card reads what was actually shared with this person');
   ok(!/live\.listMaterials\(\)/.test(card),
      'and no longer everything they merely have permission to read');
@@ -94,7 +94,7 @@ const data = strip(read('lib/live/data.ts'));
 // readable, fixing the card above would have left the duplicate exactly where
 // it was.
 {
-  ok(/live\.listSharedWithMe\(\)\.catch/.test(ui),
+  ok(/live\.listSharedWithMe\(sharesShownFor\)\.catch/.test(ui),
      'the shelf asks what was handed to this person');
   ok(/g\.material\.added_by !== profile\?\.id/.test(ui),
      'and keeps rows they added themselves, which are theirs to share on');
@@ -146,6 +146,55 @@ const data = strip(read('lib/live/data.ts'));
   // assertion that can never fail and therefore is not one.
   ok(/shares_read/.test(read('supabase/migrations/0008_library.sql')),
      'the share policy is still the one in 0008, untouched by this change');
+}
+
+// ---------------------------------------------------------------------------
+// 6. AND THE GUIDE CAN SEE IT COMING THE OTHER WAY
+// ---------------------------------------------------------------------------
+//
+// Reported after the above shipped: "As a guide I can't see what source or
+// resource shared by the Explorer here."
+//
+// The database was never the problem here either. `shares_create` has let
+// EITHER end of a pairing share since 20260901090000, `shares_read` is
+// in_pairing(pairing_id) so both ends may read what was shared into it, and the
+// rows were being written. The card that draws them was mounted on the
+// Explorer's screen and nowhere else.
+//
+// AND IT WAS WORSE THAN ABSENT, which is the part worth a check of its own.
+// Check 3 above makes the shelf SUBTRACT rows somebody else handed over, so
+// they appear in the card instead. On a Guide's screen that subtraction ran
+// with no card to catch the result: what an Explorer shared was taken off the
+// Guide's shelf and drawn nowhere. Yesterday's fix for the Explorer's duplicate
+// turned a share from an Explorer from indistinguishable into invisible.
+{
+  const guide = strip(read('components/live/GuidePages.tsx'));
+  const room = guide.slice(guide.indexOf("tab === 'resources'"));
+  ok(/<LiveSharedWithMe/.test(room),
+     'a Guide is shown what their Explorer handed them');
+  ok(/pairingId=\{pairing\.id\}/.test(room),
+     'for the person whose screen they are on, not all five at once');
+  ok(room.indexOf('<LiveSharedWithMe') < room.indexOf('<LiveLibraryForGuide'),
+     'above their own shelf, because what somebody sent you is the news');
+
+  // THE TWO MUST AGREE ON SCOPE. The shelf hides what the card shows. Scope one
+  // and not the other and a resource from a DIFFERENT Explorer is subtracted
+  // from the shelf while no card on this screen draws it -- the same
+  // disappearance, one Explorer along.
+  ok(/sharesShownFor=\{pairing\.id\}/.test(room),
+     'and the shelf hides exactly what the card beside it is showing');
+
+  ok(/\(!pairingId \|\| r\.pairing_id === pairingId\)/.test(data),
+     'narrowing to one relationship is done where the rows are read');
+  // A Guide walks from one Explorer to the next on the same component. If the
+  // shelf does not re-read when the scope changes, the second person's screen
+  // hides what was subtracted for the first.
+  ok(/\}, \[profile\?\.id, sharesShownFor\]\);/.test(ui),
+     'and the shelf re-reads when the Guide moves to a different Explorer');
+
+  // What the Guide has already given, without opening every row to find out.
+  ok(/\{pairings\[0\]\.ds_name\.split\(' '\)\[0\]\} has this/.test(ui),
+     'and a row says when this Explorer already has it');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

@@ -1681,9 +1681,15 @@ export interface SharedWithMe {
  * what they shared themselves: a Guide and an Explorer share into the SAME
  * pairing row, so without this every share comes back to the person who sent
  * it, which is the duplicate all over again from the other end.
+ *
+ * `pairingId` NARROWS THE ANSWER TO ONE RELATIONSHIP, and it is not a security
+ * filter -- see rule 1 at the top of this file. The database has already
+ * decided which pairings this person may read. A Guide walks with up to five
+ * people and their screen is one Explorer at a time, so a card headed "what
+ * Esperanza has shared with you" must not quietly list what somebody else did.
  * ---------------------------------------------------------------------------
  */
-export async function listSharedWithMe(): Promise<SharedWithMe[]> {
+export async function listSharedWithMe(pairingId?: string): Promise<SharedWithMe[]> {
   const supabase = db();
   const me = await uid();
 
@@ -1694,7 +1700,8 @@ export async function listSharedWithMe(): Promise<SharedWithMe[]> {
   if (error) throw new Error(error.message);
 
   const rows = (data ?? []) as unknown as (MaterialShare & { materials: Material | null })[];
-  const theirs = rows.filter((r) => r.shared_by !== me && r.materials);
+  const theirs = rows.filter((r) => r.shared_by !== me && r.materials
+    && (!pairingId || r.pairing_id === pairingId));
 
   // NAMES ARE A SEPARATE QUERY AND A SOFT ONE. A missing name is a worse
   // sentence, not a broken card, so a failure here leaves "Someone" rather
