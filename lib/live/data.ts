@@ -45,6 +45,7 @@ import { uuid } from '@/lib/uuid';
 import { shrinkImage } from '@/lib/live/shrink-image';
 import type { Session } from '@supabase/supabase-js';
 import type { Profile, Pairing, Message, Stage, Track, Role, JourneyEvent, MeetingMode } from '@/lib/types';
+import { STAGE_ORDER } from '@/lib/brand';
 
 /** Thrown when a live call is made with no database configured. */
 class NotLive extends Error {
@@ -661,6 +662,80 @@ export async function getMyPairing(): Promise<MyPairing | null> {
     ...(data as Omit<MyPairing, 'dm_name'>),
     dm_name: (guide as { full_name: string | null } | null)?.full_name ?? 'your Guide',
   };
+}
+
+/** How far along the journey somebody is, as a position and nothing else. */
+export interface JourneyProgress {
+  /** 1-based position along the journey. */
+  step: number;
+  /** How many positions there are. */
+  total: number;
+}
+
+/**
+ * The Explorer's own place on the journey, as a NUMBER, never as a name.
+ *
+ * ---------------------------------------------------------------------------
+ * THE ASK: "There must be a progressive bar that the Explorers can see too that
+ * is aligned with the Journey that the Guide sees, so when the Guide progresses
+ * the Explorer, the Explorer can appreciate and affirm that he/she progresses
+ * in the Journey with the Guide (no labels yet for the Explorer to see)."
+ *
+ * WHY THIS IS ITS OWN FUNCTION AND NOT A COLUMN ADDED TO getMyPairing(). Rule 4
+ * at the top of this file says an Explorer is never HANDED their own stage, and
+ * getMyPairing() enforces it by listing the columns rather than selecting all
+ * of them, so a future edit reaching for the stage fails to compile. That rule
+ * is worth keeping exactly as it is. This is a separate, named, deliberate
+ * channel with a different job, so the old guarantee is not quietly widened by
+ * a feature request landing on top of it.
+ *
+ * WHAT IT DOES AND DOES NOT PROTECT, stated plainly rather than implied.
+ *
+ * The stage NAME never leaves the database through here. What does leave is the
+ * POSITION, because a bar cannot be drawn without one, and a position in a
+ * six-step journey is convertible to a name by anybody who reads the public
+ * source. So this is not a secret; it is an interface decision. The screen shows
+ * movement rather than a category, which is the thing that was actually asked
+ * for and the thing that matters to the person looking at it.
+ *
+ * IT ALSO TAKES NOTHING AWAY THAT WAS BEING WITHHELD. Checked against the live
+ * policies rather than assumed: `pairings_read` already lets an Explorer select
+ * their own pairing row, journey_stage included. The column restriction in
+ * getMyPairing() is a choice this app makes about what to LOOK at, not a wall
+ * the database holds up. So drawing this bar widens no permission at all.
+ *
+ * THE STAGE NAME STILL MAY NOT BE RENDERED. tests/e2e/seeker-no-stage.js walks
+ * every screen an Explorer can reach and fails if any of the six words appears.
+ * That rule is untouched and this bar carries no label, by request and because
+ * it is right: a person is not a category, and "a relationship, not a score" is
+ * written on the same screen.
+ * ---------------------------------------------------------------------------
+ */
+export async function myJourneyProgress(): Promise<JourneyProgress | null> {
+  const me = await uid();
+  const client = db();
+
+  // NEWEST ACTIVE ONE, not maybeSingle(). Same reasoning as getMyPairing above:
+  // an Explorer with two pairings is a state the database has allowed before,
+  // and an exception here would take out the whole screen rather than one bar.
+  const { data: rows, error } = await client
+    .from('pairings')
+    .select('journey_stage')
+    .eq('ds_id', me)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) throw new Error(error.message);
+
+  const row = rows?.[0] as { journey_stage: Stage } | undefined;
+  if (!row) return null;
+
+  const at = STAGE_ORDER.indexOf(row.journey_stage);
+  // An unknown stage means the journey grew and this did not. Showing the
+  // start is wrong and showing nothing is honest.
+  if (at < 0) return null;
+
+  return { step: at + 1, total: STAGE_ORDER.length };
 }
 
 export async function createPairing(dmId: string, dsId: string, track: Track): Promise<void> {

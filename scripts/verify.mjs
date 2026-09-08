@@ -245,6 +245,12 @@ const staticChecks = [
   // again in the shelf directly above. The picker also closed on the first tap,
   // which is why a Guide with several Explorers reported it half working.
   ['sharing a resource goes both ways', 'tests/sharing-a-resource-goes-both-ways.mjs'],
+  // The Guide has had the journey all along, as six named stages. The Explorer
+  // had nothing, and could be moved forward without ever knowing. This runs the
+  // bar they see now and holds the two rules that pull against each other: the
+  // width is the position the Guide moved them to, and nothing on the card a
+  // person reads is a stage name or a number.
+  ['the Explorer sees their journey', 'tests/the-explorer-sees-their-journey.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

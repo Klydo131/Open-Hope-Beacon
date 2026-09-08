@@ -15,6 +15,7 @@ import { LiveStudies } from '@/components/LiveStudies';
 import { Avatar, Card } from '@/components/ui';
 import { Conversation, Notice, errorText } from '@/components/live/shared';
 import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
+import { JourneyBar } from '@/components/live/JourneyBar';
 import { LiveAnnouncements } from '@/components/LiveAnnouncements';
 import { LiveBlogFeed } from '@/components/LiveBlog';
 
@@ -177,6 +178,24 @@ export function LiveExplorerPage() {
                 Journey is not looking for the church, they are looking for
                 their person. */}
             {pairing && <GuideCard pairing={pairing} />}
+
+            {/* AND HOW FAR THE TWO OF THEM HAVE COME, directly under the person
+                it was travelled with. Asked for in these words: "There must be
+                a progressive bar that the Explorers can see too that is aligned
+                with the Journey that the Guide sees, so when the Guide
+                progresses the Explorer, the Explorer can appreciate and affirm
+                that he/she progresses in the Journey with the Guide."
+
+                The Guide has had this all along, as six named stages on their
+                own screen. The Explorer had nothing: somebody could be moved
+                forward and never know it happened. This is the same journey,
+                drawn as movement rather than as a category -- no stage name, no
+                fraction, no ticks, each of those a decision explained in the
+                component itself.
+
+                It draws nothing without a pairing, which is why it can sit
+                outside the branch below that handles that case. */}
+            {pairing && <JourneyBar guideName={pairing.dm_name} />}
 
             {/* THE CHURCH, BETWEEN THE PERSON AND THE TALKING. Asked for in
                 exactly those words: after the Guide's name box and before the
