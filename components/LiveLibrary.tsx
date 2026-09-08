@@ -319,6 +319,24 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
   const canManage = (m: live.Material) =>
     !!profile && (m.added_by === profile.id || profile.role === 'admin' || profile.role === 'executive');
 
+  // PUTTING SOMETHING IN FRONT OF THE WHOLE CHURCH IS A DIFFERENT ACT from
+  // correcting a typo on it, so it is a different test. Leadership only, and
+  // the database refuses everybody else whatever this draws -- see the trigger
+  // in migration 20260908120000. Drawing it for a Guide would only produce a
+  // button that fails.
+  const canPublish = profile?.role === 'admin' || profile?.role === 'executive';
+
+  const publish = async (m: live.Material, next: boolean) => {
+    setError(''); setFlash('');
+    try {
+      await live.setMaterialPublished(m.id, next);
+      setFlash(next
+        ? `\u201c${m.title}\u201d is on the church shelf. Everyone in the church can find it.`
+        : `Took \u201c${m.title}\u201d off the church shelf. Whoever you shared it with still has it.`);
+      await load();
+    } catch (cause) { setError(message(cause)); }
+  };
+
   const share = async (materialId: string, pairingId: string, who: string) => {
     setError(''); setFlash('');
     try {
@@ -515,6 +533,23 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
                 chat — the people an Explorer actually wants to send a good
                 link to, none of whom have accounts. */}
             <SendOut onSend={() => void sendOut(m)} />
+            {/* WHO CAN SEE THIS BESIDES THE PEOPLE YOU GAVE IT TO. Silence used
+                to mean "the whole church", which is the wrong way round for a
+                thing nobody was asked about. It is said out loud now, and only
+                on the rows where it is true. */}
+            {m.is_published && (
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-800 ring-1 ring-sky-200">
+                On the church shelf
+              </span>
+            )}
+            {canPublish && (
+              <button
+                onClick={() => void publish(m, !m.is_published)}
+                className="rounded-full px-3 py-1 text-xs font-semibold text-navy underline"
+              >
+                {m.is_published ? 'Take it off the church shelf' : 'Put it on the church shelf'}
+              </button>
+            )}
             {canManage(m) && editing !== m.id && (
               /* Before the red one, and quiet. Correcting a typo is the far
                  commoner errand and the reversible one. */

@@ -256,6 +256,11 @@ const staticChecks = [
   // the line the seeded series already had. Plus the sidebar door that says
   // Resources and holds nothing anybody shared.
   ['a series can say what it is', 'tests/a-series-can-say-what-it-is.mjs'],
+  // is_published defaulted to true and no screen ever set it, so every resource
+  // anybody added was readable by every Guide and every Director in the church.
+  // Private by default now, with the church shelf a deliberate act of
+  // leadership's, guarded in the database rather than on a screen.
+  ['a resource is personal until it is shared', 'tests/a-resource-is-personal-until-it-is-shared.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

@@ -1689,6 +1689,35 @@ export interface SharedWithMe {
  * Esperanza has shared with you" must not quietly list what somebody else did.
  * ---------------------------------------------------------------------------
  */
+/**
+ * Put a resource in front of the whole church, or take it back off.
+ *
+ * ---------------------------------------------------------------------------
+ * THE SHELF IS A DECISION NOW. `materials.is_published` defaulted to true and
+ * no screen ever set it, so every resource anybody added was readable by every
+ * Guide and every Director in the church -- including an Explorer's own
+ * addition and another Guide's private bookmark. Nobody chose that; the column
+ * was designed for a decision the app never asked anybody to make.
+ *
+ * Migration 20260908120000 makes the default false and refuses a promotion from
+ * anybody who does not manage the church. This function is the door for the
+ * people who may; for everybody else the database says no, which is the only
+ * place saying it would mean anything.
+ *
+ * ASKS FOR THE ROW BACK, for the same reason updateLessonSeries does: an UPDATE
+ * matching no rows is not an error, so without this a refusal would look
+ * exactly like success and the screen would say "Saved" over nothing.
+ * ---------------------------------------------------------------------------
+ */
+export async function setMaterialPublished(id: string, next: boolean): Promise<void> {
+  const { data, error } = await db()
+    .from('materials').update({ is_published: next }).eq('id', id).select('id');
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) {
+    throw new Error('That did not save. Only a Director can put a resource on the church shelf.');
+  }
+}
+
 export async function listSharedWithMe(pairingId?: string): Promise<SharedWithMe[]> {
   const supabase = db();
   const me = await uid();
