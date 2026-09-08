@@ -251,6 +251,11 @@ const staticChecks = [
   // width is the position the Guide moved them to, and nothing on the card a
   // person reads is a stage name or a number.
   ['the Explorer sees their journey', 'tests/the-explorer-sees-their-journey.mjs'],
+  // A series could never be given the line that appears under its title,
+  // because no form ever offered the box -- and renaming one silently erased
+  // the line the seeded series already had. Plus the sidebar door that says
+  // Resources and holds nothing anybody shared.
+  ['a series can say what it is', 'tests/a-series-can-say-what-it-is.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

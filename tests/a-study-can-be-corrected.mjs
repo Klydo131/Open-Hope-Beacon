@@ -38,8 +38,30 @@ for (const fn of ['updateLesson', 'updateLessonSeries']) {
      `lib/live/data.ts exports ${fn}`);
 }
 ok(/from\('lessons'\)\.update\(/.test(data), 'updateLesson writes to the lessons table');
-ok(/from\('lesson_series'\)\.update\(\{\s*\n?\s*title/.test(data),
-   'updateLessonSeries writes the title back');
+// READS THE FUNCTION, NOT ONE SHAPE OF IT. This asserted the literal
+// `.update({ title` and went red the day the call started building its patch
+// as an object -- because the description must be written only when one was
+// offered, or renaming a series erases the line underneath it. The rule is
+// that the new title reaches the table; how the call is assembled is not the
+// rule.
+{
+  const fn = data.slice(data.indexOf('export async function updateLessonSeries'));
+  const body = fn.slice(0, fn.indexOf('\n}') + 2);
+  ok(/from\('lesson_series'\)\.update\(/.test(body),
+     'updateLessonSeries writes to the lesson_series table');
+  // READ THE NAME OFF THE CALL, THEN GO AND FIND IT. Written this way so a
+  // rename cannot turn it red for a change that breaks nothing -- the first
+  // repair of this check anchored on the literal word `patch` and did exactly
+  // that. It also caught a version that passed on a function which had stopped
+  // writing the title at all, because a loose search for "title:" matches the
+  // function's own SIGNATURE.
+  const sent = body.match(/\.update\((\w+)\)/)?.[1];
+  ok(!!sent && new RegExp(`const ${sent}\\b`).test(body),
+     'and sends the patch it just built, not an empty object');
+  const patch = sent ? body.slice(body.indexOf(`const ${sent}`), body.indexOf('.update(')) : '';
+  ok(/^\s*title,\s*$/m.test(patch),
+     'updateLessonSeries writes the title back');
+}
 
 // A title is what the study is called in every list, so an empty one is not a
 // correction, it is a study nobody can find again.

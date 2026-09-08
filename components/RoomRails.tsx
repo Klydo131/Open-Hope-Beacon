@@ -114,6 +114,21 @@ export function railGroupsFor(
   // tells somebody they are missing something.
   const office = { href: '/office', label: 'Office', icon: '🗂️' };
 
+  // MY FILES, AND IT USED TO BE CALLED RESOURCES.
+  //
+  // Three screens in this app were called Resources and only two of them hold
+  // anything somebody handed you: the church shelf inside the Office, and the
+  // Resources tab on one Explorer's page, which is where sharing lands. This
+  // door is neither. It opens a person's OWN media, saved on their own device,
+  // with playlists and favourites -- nothing shared, nothing from anybody else.
+  //
+  // A Guide looking for what their Explorer had sent them came here first,
+  // reasonably, and found their own files. The room was not wrong; its name
+  // was. It also had two names for the same page -- an Explorer saw "My
+  // Library" and everybody else saw "Resources" -- so a Guide reading an
+  // Explorer's screen over their shoulder saw a room they did not have.
+  const myFiles = { href: '/library', label: 'My Files', icon: '📚' };
+
   // PUBLISH, for every role. Writing was scattered across the screens people
   // READ: the blog desk on an Explorer's journey, on a Guide's Office and in a
   // Director's admin tab, and the announcement composer on top of the church
@@ -132,7 +147,7 @@ export function railGroupsFor(
           home,
           { href: '/ds', label: 'My Journey', icon: '🎯' },
           guildRoom,
-          { href: '/library', label: 'My Library', icon: '📚' },
+          myFiles,
           publish,
           cases,
         ],
@@ -151,7 +166,7 @@ export function railGroupsFor(
           guildRoom,
           office,
           publish,
-          { href: '/library', label: 'Resources', icon: '📚' },
+          myFiles,
           cases,
         ],
       },
@@ -168,7 +183,7 @@ export function railGroupsFor(
         { href: '/admin', label: 'Admin', icon: '🛡️', badge: counts.approvals },
         office,
         publish,
-        { href: '/library', label: 'Resources', icon: '📚' },
+        myFiles,
         cases,
       ],
     },

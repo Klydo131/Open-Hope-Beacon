@@ -388,11 +388,26 @@ export function LiveStudies() {
   const [open, setOpen] = useState('');
   const [title, setTitle] = useState('');
   const [topic, setTopic] = useState('');
+  // THE LINE UNDER THE TITLE, which no form has ever asked for.
+  //
+  // `lesson_series.description` has existed since the table was created,
+  // addLessonSeries has taken one since the day it was written, and the row
+  // below draws one when it is there. No screen ever offered a box to type it
+  // in, so the only series carrying that line are the ones that were seeded,
+  // and a Guide writing their own could not have it however hard they tried.
+  //
+  // Reported by typing into the box that was there -- "Area of interest" --
+  // pressing Save, and watching the row not change: that box is the GROUPING,
+  // drawn as the heading above, so from the row's point of view nothing
+  // happened. The answer is the missing field, not a different meaning for the
+  // one that was already there.
+  const [desc, setDesc] = useState('');
   // Which series is being renamed. Same one-at-a-time rule as the studies
   // inside them.
   const [renaming, setRenaming] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newTopic, setNewTopic] = useState('');
+  const [newDesc, setNewDesc] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -436,29 +451,46 @@ export function LiveStudies() {
       {error && <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800 ring-1 ring-red-200">{error}</p>}
 
       {canWrite && (
-        <div className="mt-5 grid gap-2 rounded-2xl bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto] sm:p-4">
+        <div className="mt-5 grid gap-2 rounded-2xl bg-slate-50 p-3 sm:p-4">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="New series title"
+              aria-label="New series title"
+              className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
+            />
+            {/* SAYS WHAT IT DOES NOW. "Area of interest" alone reads like a
+                description, so it was typed into as one, and the row did not
+                change because this field is the heading the series is filed
+                under. The example is the whole fix for that. */}
+            <input
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              placeholder="Files it under… (e.g. Prayer)"
+              aria-label="Area of interest, which this series is filed under"
+              className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
           <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="New series title"
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            placeholder="One line about it, shown under the title"
+            aria-label="One line about the series"
             className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
           />
-          <input
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="Area of interest"
-            className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
-          />
-          <Button
-            disabled={busy || !title.trim()}
-            onClick={() => act(async () => {
-              const id = await live.addLessonSeries({ title, topic });
-              setTitle(''); setTopic('');
-              setOpen(id);
-            })}
-          >
-            Create
-          </Button>
+          <div>
+            <Button
+              disabled={busy || !title.trim()}
+              onClick={() => act(async () => {
+                const id = await live.addLessonSeries({ title, topic, description: desc });
+                setTitle(''); setTopic(''); setDesc('');
+                setOpen(id);
+              })}
+            >
+              Create
+            </Button>
+          </div>
         </div>
       )}
 
@@ -552,6 +584,7 @@ export function LiveStudies() {
                               setRenaming(renaming === s.id ? '' : s.id);
                               setNewTitle(s.title);
                               setNewTopic(s.topic || '');
+                              setNewDesc(s.description || '');
                             }}
                             className="text-xs font-semibold text-navy underline"
                           >
@@ -584,17 +617,28 @@ export function LiveStudies() {
                       </p>
                     )}
                     {renaming === s.id && (
-                      <div className="mt-2 grid gap-2 rounded-xl bg-white p-3 ring-1 ring-navy/10 sm:grid-cols-[1fr_1fr_auto]">
+                      <div className="mt-2 grid gap-2 rounded-xl bg-white p-3 ring-1 ring-navy/10">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <input
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                            placeholder="Series title"
+                            aria-label="Series title"
+                            className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
+                          />
+                          <input
+                            value={newTopic}
+                            onChange={(e) => setNewTopic(e.target.value)}
+                            placeholder="Files it under… (e.g. Prayer)"
+                            aria-label="Area of interest, which this series is filed under"
+                            className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
+                          />
+                        </div>
                         <input
-                          value={newTitle}
-                          onChange={(e) => setNewTitle(e.target.value)}
-                          placeholder="Series title"
-                          className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
-                        />
-                        <input
-                          value={newTopic}
-                          onChange={(e) => setNewTopic(e.target.value)}
-                          placeholder="Area of interest"
+                          value={newDesc}
+                          onChange={(e) => setNewDesc(e.target.value)}
+                          placeholder="One line about it, shown under the title"
+                          aria-label="One line about the series"
                           className="tap rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-blue-600"
                         />
                         <div className="flex items-center gap-3">
@@ -602,7 +646,7 @@ export function LiveStudies() {
                             disabled={busy || !newTitle.trim()}
                             onClick={() => act(async () => {
                               await live.updateLessonSeries(s.id, {
-                                title: newTitle, topic: newTopic,
+                                title: newTitle, topic: newTopic, description: newDesc,
                               });
                               setRenaming('');
                             })}

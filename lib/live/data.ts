@@ -2490,11 +2490,18 @@ export async function updateLessonSeries(
   // database turned out to allow it for all forty-four of them, which is
   // precisely why a silent no-op is so expensive to diagnose -- it looks
   // identical whether the cause is permissions, a stale build, or a bug here.
-  const { data, error } = await db().from('lesson_series').update({
+  // ONLY WRITE THE LINE WHEN A LINE WAS OFFERED. This wrote
+  // `description: null` whenever the caller left it out, and the Rename form
+  // left it out -- so renaming one of the seeded series silently erased the
+  // sentence underneath it, and nothing on screen said a word about it.
+  const patch: Record<string, string | null> = {
     title,
     topic: m.topic.trim() || 'General',
-    description: m.description?.trim() || null,
-  }).eq('id', mineId).select('id');
+  };
+  if (m.description !== undefined) patch.description = m.description?.trim() || null;
+
+  const { data, error } = await db().from('lesson_series').update(patch)
+    .eq('id', mineId).select('id');
   if (error) throw new Error(error.message);
   if (!data || data.length === 0) {
     throw new Error('That did not save. Close the series, open it again, and retry.');
