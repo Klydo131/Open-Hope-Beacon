@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { useKeepUp, KEEP_UP_GUILDS } from '@/lib/live/keep-up';
+import { useKeepUp, KEEP_UP_GUILDS, KEEP_UP_GUILD } from '@/lib/live/keep-up';
 import * as live from '@/lib/live/data';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { Button, Card } from '@/components/ui';
@@ -68,10 +68,14 @@ export function LiveGuildActivity() {
   // The Guild Room is the one room where several people are looking at the
   // same wall at once, so it is the one where a stale screen is most obvious.
   useKeepUp(KEEP_UP_GUILDS, loadGuilds);
-  // NO SUBSCRIPTION FOR loadPosts. The two tables behind the wall have no read
-  // policy, so realtime would deliver nothing, and the only way to give them
-  // one is to expose the author column the feed deliberately hides behind a
-  // label. See KEEP_UP_GUILD's headstone in lib/live/keep-up.ts.
+  // AND THE WALL ITSELF, which was the last room in the app still needing a
+  // manual refresh. It does NOT subscribe to the posts: those carry `author_id`
+  // and the feed deliberately shows a label instead, so putting them on the
+  // wire would undo the pseudonymity. It watches `guild_wall_pulse`, one row
+  // per guild that says a wall changed and nothing about who changed it, and
+  // then re-asks `list_guild_activity` -- which redacts exactly as before.
+  // Readable only by a member of that guild. See lib/live/keep-up.ts.
+  useKeepUp(KEEP_UP_GUILD, loadPosts);
 
   const post = async (event: React.FormEvent) => {
     event.preventDefault();

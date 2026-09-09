@@ -77,6 +77,16 @@ for (const file of fs.readdirSync(path.join(root, dir)).filter((f) => f.endsWith
       if (drops) published.delete(t[1]); else published.add(t[1]);
     }
   }
+  // AND THE PLAIN STATEMENT FORM, which is equally valid SQL and is how a
+  // SINGLE table gets published -- the array idiom above is how the big
+  // migrations publish many at once. Not reading this form meant a table
+  // published by one statement read as unpublished, which is exactly why
+  // `messages` needed a hardcoded exception in the sibling check: it was
+  // published that way and the parser could not see it.
+  for (const m of text.matchAll(
+    /alter\s+publication\s+supabase_realtime\s+(add|drop)\s+table\s+(?:public\.)?(\w+)/gi)) {
+    if (m[1].toLowerCase() === 'drop') published.delete(m[2]); else published.add(m[2]);
+  }
 }
 ok(published.size >= 15, `it publishes the tables the screens watch (${published.size})`);
 

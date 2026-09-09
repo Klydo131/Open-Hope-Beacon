@@ -58,7 +58,13 @@ ok(/box\.scrollTop = box\.scrollHeight/.test(guideRoom) && !/scrollIntoView/.tes
 
 ok(/filter\(\(guild\) => guild\.i_am_in_it\)/.test(board),
    'the Guild page lists only the signed-in member’s Guilds');
-ok(!/author_id|\.members/.test(board),
+// COMMENTS DO NOT RENDER, so they are stripped before this looks. The rule is
+// about a rendering path, and the file now carries a comment explaining WHY the
+// author column must never be subscribed to -- naming the column in order to
+// forbid it is the opposite of leaking it. Same treatment as the scroll check
+// above. A real `{post.author_id}` is code, not a comment, and still fails.
+const boardCode = board.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+ok(!/author_id|\.members/.test(boardCode),
    'the Guild page has no roster or author-id rendering path');
 ok(/break-words/.test(board) && /break-words/.test(audit),
    'long pasted text or names cannot widen the Guild or audit cards on phones');

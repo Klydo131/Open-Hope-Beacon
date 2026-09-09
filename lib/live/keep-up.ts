@@ -87,39 +87,51 @@ export const KEEP_UP_LIBRARY = ['materials', 'material_shares'] as const;
 export const KEEP_UP_MEETINGS = ['meetings'] as const;
 export const KEEP_UP_PEOPLE = ['profiles', 'pairings', 'pairing_requests', 'invites', 'recommendations'] as const;
 export const KEEP_UP_BELL = ['notifications'] as const;
-// NO SET FOR THE GUILD ROOM'S WALL, and this one is a genuine dead end rather
-// than an oversight. `guild_activity_posts` and `guild_activity_amens` have row
-// level security on and no policy, so a subscription to them is silent -- and
-// unlike the security audit and the library record, there is no other table
-// that changes when somebody posts, so there is nothing safe to watch instead.
+// THE GUILD ROOM'S WALL, AND THE ONE WAY IT COULD BE MADE LIVE SAFELY.
 //
-// The obvious repair, a read policy on the posts, is the one thing that must
-// not happen: `list_guild_activity` computes an `author_label` rather than
-// returning `author_id`, so the feed deliberately decides how much of a
-// writer's identity each reader sees. A row policy hands over the raw column
-// and undoes that. A wall that reloads is a smaller cost than a wall that
-// quietly names its authors.
+// This used to be a headstone. It said the wall was a genuine dead end: the two
+// tables behind it have row level security on with no read policy, so a
+// subscription to them is silent, and there was "no other table that changes
+// when somebody posts, so there is nothing safe to watch instead".
 //
-// KEEP_UP_GUILD used to be declared here and named those two tables. It was a
-// subscription to silence: it looked wired, passed every check that only asks
-// whether a screen subscribed, and delivered nothing.
+// The first half is still true and must stay true. `list_guild_activity` never
+// returns `author_id`; it computes a label -- 'You', 'A Guide', 'A fellow
+// Explorer' -- and exposes amens only as a count. The wall is PSEUDONYMOUS.
+// Realtime delivers THE ROW, not the function's output, so a read policy on
+// `guild_activity_posts` or `guild_activity_amens` would put `author_id` and
+// `person_id` on the wire and let any member map every post and every amen back
+// to a person. That is still the one repair that must not happen.
 //
-// FIVE TABLES ARE PUBLISHED THAT NOTHING CAN EVER RECEIVE, and the list is here
-// so the next person does not rediscover it the expensive way. Checked against
-// the live publication rather than against the migrations:
+// The second half was only true because the table did not exist yet. Migration
+// 20260909180000 adds `guild_wall_pulse`: ONE ROW PER GUILD saying that its wall
+// changed and how many times, with no author, no body and no post id in it.
+// Triggers on both tables bump it. A member of that guild may read their own
+// guild's row -- the policy calls `private.active_guild_member`, the same test
+// the feed applies, rather than restating it -- and nobody else may read any of
+// it.
+//
+// So the browser hears "something changed here" and re-asks
+// `list_guild_activity`, which redacts exactly as it always has. The raw row
+// never leaves the database. Watch the cause, not the ledger: the same shape
+// KEEP_UP_LIBRARY_RECORD already uses.
+export const KEEP_UP_GUILD = ['guild_wall_pulse'] as const;
+
+// STILL PUBLISHED AND STILL UNREACHABLE, and the list is here so the next
+// person does not rediscover it the expensive way. Checked against the live
+// publication rather than against the migrations:
 //
 //     blog_views · guild_activity_amens · guild_activity_posts
 //     library_activity · library_blocks
 //
 // Each has RLS on and NO read policy, so realtime has nothing to evaluate and
-// drops every event -- the same silence KEEP_UP_GUILD died of. They are read
-// through SECURITY DEFINER functions instead, which is why the screens that use
-// them work perfectly on load and never move afterwards.
+// drops every event. They are read through SECURITY DEFINER functions instead,
+// which is why the screens that use them work perfectly on load.
 //
-// Nothing in this file names any of them, so no room is currently deaf. Do not
-// add one to a set here expecting it to work. Making one live is a decision
-// about who may read the table, taken in a migration, and for the Guild wall
-// that decision has already been made the other way, above.
+// Nothing in this file names any of them, and the Guild Room is now the worked
+// example of why: it is live, and it got there by watching a signal that
+// carries no identity rather than by opening the table. Do not add one of these
+// to a set here expecting it to work -- and if one of them ever needs to be
+// live, this is the pattern.
 
 // ---------------------------------------------------------------------------
 // THE ROOMS THAT WERE LEFT OUT.

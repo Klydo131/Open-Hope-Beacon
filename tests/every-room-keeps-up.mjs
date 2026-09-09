@@ -143,6 +143,13 @@ const STAYS_ON_A_RELOAD = new Set([
   for (const m of sql.matchAll(/text\[\] := array\[([\s\S]*?)\];/g)) {
     for (const t of m[1].matchAll(/'([a-z_]+)'/g)) published.add(t[1]);
   }
+  // The single-table form too. See the note in the-screen-keeps-up.mjs: a
+  // table published by a plain `alter publication ... add table` is published,
+  // and reading only the array idiom made one look deaf when it was not.
+  for (const m of sql.matchAll(
+    /alter\s+publication\s+supabase_realtime\s+add\s+table\s+(?:public\.)?(\w+)/gi)) {
+    published.add(m[1]);
+  }
   published.add('messages'); // published before either migration existed
 
   const deaf = [...watched].filter((t) => !published.has(t)).sort();
