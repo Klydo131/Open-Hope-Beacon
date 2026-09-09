@@ -1,7 +1,7 @@
 # Notices
 
-Third-party code and content in Open Hope Beacon, and the terms it is used
-under. Open Hope Beacon itself is licensed under the AGPL-3.0 — see
+Third-party code and content in Open Sentry Beacon, and the terms it is used
+under. Open Sentry Beacon itself is licensed under the AGPL-3.0 — see
 [LICENSE](LICENSE).
 
 ---
@@ -17,13 +17,13 @@ Morbital, a local-first music player by the same author as this project.
 
 **The reason this section exists has changed, and the record should say so.**
 
-When the playlists were ported, Open Hope Beacon was MIT. Open Morbital is
+When the playlists were ported, Open Sentry Beacon was MIT. Open Morbital is
 AGPL-3.0, and taking AGPL code into an MIT project under its published terms
-would have made the whole of Open Hope Beacon AGPL — contradicting a README
+would have made the whole of Open Sentry Beacon AGPL — contradicting a README
 that promised forks "no strings". Klydo131 holds the copyright in both projects
 and granted this use under MIT terms instead, which is what kept the promise.
 
-**Open Hope Beacon became AGPL-3.0 itself in August 2026**, so that conflict no
+**Open Sentry Beacon became AGPL-3.0 itself in August 2026**, so that conflict no
 longer exists: Open Morbital's own terms would have been fine. The MIT grant
 still stands and is not withdrawn — it simply is not load-bearing any more.
 Either way, this material is redistributed as part of an AGPL-3.0 work.

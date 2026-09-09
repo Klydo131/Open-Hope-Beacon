@@ -15,7 +15,7 @@ import { LeftRail, RightRail, railGroupsFor } from './RoomRails';
 import { useRoom } from '@/lib/room-theme';
 import { emitQuest } from '@/lib/quest';
 import { useLocale } from '@/lib/i18n';
-import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { BackButton } from '@/components/BackButton';
 import { useIsLive } from '@/lib/tutorial';
 import { ModeSwitch } from '@/components/ModeSwitch';
@@ -199,11 +199,11 @@ function DemoAppShell({
             <Link
               href={NAV[currentUser.role][0].href}
               className="flex shrink-0 items-center gap-2 sm:gap-3"
-              aria-label="Hope Beacon home"
+              aria-label="Sentry Beacon home"
             >
-              <HopeBeaconMark size={38} />
+              <SentryBeaconMark size={38} />
               <div className="hidden leading-tight sm:block">
-                <p className="text-xl font-extrabold tracking-tight">Hope Beacon</p>
+                <p className="text-xl font-extrabold tracking-tight">Sentry Beacon</p>
                 <p className="text-xs text-white/60">Disciple-making journey</p>
               </div>
             </Link>

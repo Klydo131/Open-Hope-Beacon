@@ -6,8 +6,8 @@ reads them.
 
 | File | Paste into | Subject line to set |
 |---|---|---|
-| `invite.html` | Authentication → Emails → **Invite user** | `You're invited to Hope Beacon` |
-| `recovery.html` | Authentication → Emails → **Reset password** | `Set your Hope Beacon password` |
+| `invite.html` | Authentication → Emails → **Invite user** | `You're invited to Sentry Beacon` |
+| `recovery.html` | Authentication → Emails → **Reset password** | `Set your Sentry Beacon password` |
 
 Paste the **whole file**, replacing everything already in the box.
 

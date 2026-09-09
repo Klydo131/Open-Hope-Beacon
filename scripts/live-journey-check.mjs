@@ -31,7 +31,7 @@ let bad = 0;
 const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); };
 
 const PLACEHOLDER = /This live screen is being connected/i;
-const SIGNIN = /Sign in to Hope Beacon/i;
+const SIGNIN = /Sign in to Sentry Beacon/i;
 
 (async () => {
   const b = await chromium.launch(launchOptions);

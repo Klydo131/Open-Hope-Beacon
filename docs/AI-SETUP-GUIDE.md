@@ -1,4 +1,4 @@
-# Setting up Hope Beacon with an AI assistant
+# Setting up Sentry Beacon with an AI assistant
 
 **For IT people who would rather describe the job than type it.**
 
@@ -35,7 +35,7 @@ one of those if you can. If you are using a chat window, paste the real file.
 
 **Setting up:**
 
-> I am setting up Open Hope Beacon from `github.com/klydo131/open-hope-beacon`.
+> I am setting up Open Sentry Beacon from `github.com/klydo131/open-sentry-beacon`.
 > Read `docs/START-HERE.md` and `docs/SETUP.md`. I am on Part 3 Step 3 and the
 > SQL editor returned this error: `<paste the exact error>`. What went wrong and
 > what do I run instead?
@@ -88,7 +88,7 @@ Workspace), one message at a time. Wait for each answer.
 
 **1. Orient it**
 
-> Clone `https://github.com/klydo131/open-hope-beacon` and read
+> Clone `https://github.com/klydo131/open-sentry-beacon` and read
 > `docs/START-HERE.md`, `docs/SETUP.md`, and every file in
 > `supabase/migrations/`. Then tell me, in your own words, what this app does,
 > what the four services are for, and what order I have to do things in. Do not

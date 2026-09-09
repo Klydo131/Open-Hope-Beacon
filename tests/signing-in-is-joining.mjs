@@ -4,7 +4,7 @@
 // REPORTED TWICE IN ONE BREATH, and both are one column.
 //
 //   "some e-mails are already in the system but still in the re-send mail
-//    list, any e-mail that is already part of the Open Hope Beacon should not
+//    list, any e-mail that is already part of the Open Sentry Beacon should not
 //    be in the re-send mail list."
 //
 //   "once the user clicked and used the account the e-mail password that was
@@ -102,7 +102,7 @@ function lastDefinition(name) {
   const invite = read('supabase/functions/invite/index.ts');
   ok(/if \(existing && existing\.completed_at\)/.test(invite),
      'and the invite function still refuses an address that has joined');
-  ok(/already has a Hope Beacon account|is already \$\{who\} in this church/.test(invite)
+  ok(/already has a Sentry Beacon account|is already \$\{who\} in this church/.test(invite)
      || /already/.test(invite),
      'with a refusal rather than a silent password reset');
 }

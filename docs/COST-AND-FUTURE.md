@@ -1,6 +1,6 @@
 # What it costs, how to keep it running, and where it goes next
 
-**Open Hope Beacon · 1 September 2026**
+**Open Sentry Beacon · 1 September 2026**
 
 Every number in Part 1 was read from the live project on the day this was
 written, not estimated. Where something could not be checked from here, it says

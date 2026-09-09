@@ -1,4 +1,4 @@
-# How to use Hope Beacon
+# How to use Sentry Beacon
 
 **An illustrated walk through the app, for the people using it**
 
@@ -13,7 +13,7 @@ people.
 
 ## Part 1 — Getting it on your phone
 
-Hope Beacon is a website that behaves like an app. There is nothing to find in
+Sentry Beacon is a website that behaves like an app. There is nothing to find in
 the App Store or Play Store, and nothing to pay for. You open a link once and
 then keep it on your home screen.
 

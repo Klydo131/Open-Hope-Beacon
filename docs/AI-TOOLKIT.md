@@ -1,6 +1,6 @@
 # Presenting with Claude, Codex and Gemini
 
-A plan for building and running the Open Hope Beacon demo using three AI tools
+A plan for building and running the Open Sentry Beacon demo using three AI tools
 together, and for getting the result into Canva and Google Slides where the
 actual presenting happens.
 

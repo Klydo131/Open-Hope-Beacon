@@ -117,7 +117,7 @@ export function LiveBell({ me }: { me: Profile }) {
     // between a setting and a promise.
     if (result === 'granted') {
       await showLocalNotification(
-        'Hope Beacon',
+        'Sentry Beacon',
         'Alerts are on for this device. This is what one looks like.',
         '/church',
       );
@@ -152,7 +152,7 @@ export function LiveBell({ me }: { me: Profile }) {
         allowed: permission() === 'granted',
       });
       const summary = async (count: number) => showLocalNotification(
-        'Hope Beacon', `${count} things are waiting for you.`, '/church',
+        'Sentry Beacon', `${count} things are waiting for you.`, '/church',
       );
       const single = async (n: live.AppNotification) => showLocalNotification(
         n.title, n.body ?? undefined, routeFor(n.type, me.role),

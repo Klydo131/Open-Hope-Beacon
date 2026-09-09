@@ -51,7 +51,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
   // that nobody else can see any of it.
   ds: {
     word: 'Explorer',
-    subject: 'You are invited to Hope Beacon',
+    subject: 'You are invited to Sentry Beacon',
     lead:
       'Someone from the church would like to walk alongside you, at whatever '
       + 'pace suits you. Nobody else can see your journey, and nothing is '
@@ -85,7 +85,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
 
   admin: {
     word: 'Director',
-    subject: 'You have been asked to help lead Hope Beacon',
+    subject: 'You have been asked to help lead Sentry Beacon',
     lead:
       'They would like you to help lead as a Director. You will decide who '
       + 'joins, what they can see, and who walks with whom.',
@@ -258,7 +258,7 @@ export function inviteHtml(
 
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px 0;">
             <tr><td align="center" style="background-color:#1E2A4A;border-radius:8px;">
-              <a href="${url}" style="display:inline-block;padding:13px 30px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Sign in to Hope Beacon</a>
+              <a href="${url}" style="display:inline-block;padding:13px 30px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Sign in to Sentry Beacon</a>
             </td></tr>
           </table>
 
@@ -354,7 +354,7 @@ export function inviteText(
     '',
     wrap(AFTER[role]),
     '',
-    wrap('To add Hope Beacon to your Home Screen, open Settings inside the app.'),
+    wrap('To add Sentry Beacon to your Home Screen, open Settings inside the app.'),
     '',
     wrap(`You received this because a leader at ${church} invited you, and an `
       + 'account was created for you at this address. If you were not expecting '

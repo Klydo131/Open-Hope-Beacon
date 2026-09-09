@@ -2,7 +2,7 @@
 
 // Where this app's source code is — offered from inside the app, on purpose.
 //
-// THIS IS A LICENCE OBLIGATION, NOT A COURTESY. Open Hope Beacon is AGPL-3.0,
+// THIS IS A LICENCE OBLIGATION, NOT A COURTESY. Open Sentry Beacon is AGPL-3.0,
 // and section 13 says that anyone who MODIFIES the program and lets people use
 // it over a network must prominently offer those people the source of the
 // version they are actually using. A link on the signed-out front page is not
@@ -19,14 +19,14 @@ import Link from 'next/link';
 import { Card } from '@/components/ui';
 
 /** Change this if you deploy a modified version. See the note above. */
-const SOURCE_URL = 'https://github.com/Klydo131/Open-Hope-Beacon';
+const SOURCE_URL = 'https://github.com/Klydo131/Open-Sentry-Beacon';
 
 export function SourceCard() {
   return (
     <Card className="p-5">
       <h2 className="text-xl font-bold text-navy">📖 This app is free software</h2>
       <p className="mt-1 text-sm text-gray-600">
-        Hope Beacon is open source under the GNU AGPL-3.0. You are welcome to
+        Sentry Beacon is open source under the GNU AGPL-3.0. You are welcome to
         read it, run it for your own church, and change it. If you change it and
         run it for other people, you pass those same freedoms on to them.
       </p>

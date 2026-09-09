@@ -1,4 +1,4 @@
-# Setting up Open Hope Beacon for the demo
+# Setting up Open Sentry Beacon for the demo
 
 Written as a handover. Everything below is either **done**, **yours to click**,
 or **a task another agent can pick up**. Nothing assumes you remember a
@@ -80,7 +80,7 @@ with a message the dashboard setting does not explain.
 
 ### 4. Vercel
 
-New project → import `klydo131/open-hope-beacon` → add two environment
+New project → import `klydo131/open-sentry-beacon` → add two environment
 variables:
 
 ```
@@ -92,7 +92,7 @@ Leave both **unset** to deploy the sample-data fallback instead. That is the
 whole switch — see `lib/mode.ts`.
 
 > **The project named above is ours, and it is named on purpose.** It is the
-> published Hope Beacon demo backend, here so you can point a checkout at a
+> published Sentry Beacon demo backend, here so you can point a checkout at a
 > working database and see the thing running before deciding whether you want
 > it. Evaluate against it freely.
 >

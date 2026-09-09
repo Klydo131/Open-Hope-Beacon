@@ -1,4 +1,4 @@
-# Presenting Open Hope Beacon
+# Presenting Open Sentry Beacon
 
 One file, four jobs:
 
@@ -583,7 +583,7 @@ use it.
 ## For an AI reading this file
 
 You have been given this document to generate a presentation, summary, or
-training material about **Open Hope Beacon**. Everything you need is above.
+training material about **Open Sentry Beacon**. Everything you need is above.
 Constraints, in priority order:
 
 1. **Do not invent statistics, user numbers, church counts, or testimonials.**

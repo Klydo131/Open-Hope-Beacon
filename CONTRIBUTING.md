@@ -9,8 +9,8 @@ nothing and can stop reading. If you want to send something back, this is how.
 ## Get it running
 
 ```bash
-git clone https://github.com/Klydo131/Open-Hope-Beacon
-cd Open-Hope-Beacon
+git clone https://github.com/Klydo131/Open-Sentry-Beacon
+cd Open-Sentry-Beacon
 npm install
 npm run dev            # http://localhost:3000
 ```
@@ -176,7 +176,7 @@ does.
 ## Reporting a vulnerability
 
 **Not** in a public issue. Use GitHub's private
-[Security Advisories](https://github.com/Klydo131/Open-Hope-Beacon/security/advisories/new).
+[Security Advisories](https://github.com/Klydo131/Open-Sentry-Beacon/security/advisories/new).
 See [docs/SECURITY.md](./docs/SECURITY.md) for what to include and what to
 expect.
 

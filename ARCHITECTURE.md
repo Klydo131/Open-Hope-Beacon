@@ -1,4 +1,4 @@
-# How Open Hope Beacon is built
+# How Open Sentry Beacon is built
 
 Written for a developer who has just cloned this and wants to know where things
 are before changing anything. No prior knowledge of the project is assumed.

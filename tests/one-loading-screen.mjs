@@ -1,7 +1,7 @@
 // One loading screen, and it is the one that was designed.
 //
 // THE REPORT: "I want the same Loading screen of the Local church project to
-// the Open Hope Beacon."
+// the Open Sentry Beacon."
 //
 // The reason the two looked different was not styling. This repository had
 // THREE waiting states and showed the plainest one:
@@ -52,7 +52,7 @@ const shell = strip(readFileSync('components/LiveAppShell.tsx', 'utf8'));
 // 2. It draws the app's own mark, not a picture of one.
 // ---------------------------------------------------------------------------
 {
-  ok(/HopeBeaconMark/.test(clean),
+  ok(/SentryBeaconMark/.test(clean),
      'the loading mark is the real logo');
   ok(!/<path d="M60 20 L75 75 H45 Z"/.test(clean),
      'and not a lighthouse drawn a second time in this file');

@@ -8,7 +8,7 @@ import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { clearBrowserSession, saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
 import type { Role } from '@/lib/types';
-import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { useTutorialMode } from '@/lib/tutorial';
 import { InstallHomeButton } from '@/components/InstallHomeButton';
 import { Button, Card } from '@/components/ui';
@@ -32,7 +32,7 @@ function PublicHeader({ title, subtitle }: { title: string; subtitle: string }) 
         <Link href="/" className="text-sm text-white/60 underline">
           ← Home
         </Link>
-        <HopeBeaconMark size={58} className="mt-3" />
+        <SentryBeaconMark size={58} className="mt-3" />
         <h1 className="mt-3 text-3xl font-extrabold">{title}</h1>
         <p className="mt-1 text-white/70">{subtitle}</p>
       </div>
@@ -64,9 +64,9 @@ export function LiveHomePage() {
             one screen that is only ever a first impression, it behaves like
             one. Scenery: aria-hidden, and the glow cannot take a tap. */}
         <span className="beacon-glow" aria-hidden>
-          <HopeBeaconMark size={92} />
+          <SentryBeaconMark size={92} />
         </span>
-        <h1 className="mt-6 text-5xl font-extrabold tracking-tight">Hope Beacon</h1>
+        <h1 className="mt-6 text-5xl font-extrabold tracking-tight">Sentry Beacon</h1>
         {/* THE THEME FIRST, THE MECHANISM SECOND. This door used to lead with
             "One person, walking with one person" — true, and a description of
             how the app works rather than what it is for. Somebody arriving from
@@ -141,7 +141,7 @@ export function LiveHomePage() {
         </div>
 
         <a
-          href="https://github.com/Klydo131/Open-Hope-Beacon"
+          href="https://github.com/Klydo131/Open-Sentry-Beacon"
           target="_blank"
           rel="noopener noreferrer"
           className="mt-9 text-sm text-white/65 underline underline-offset-4"
@@ -363,7 +363,7 @@ export function LiveLoginPage() {
 
   return (
     <div className="min-h-screen">
-      <PublicHeader title="Sign in to Hope Beacon" subtitle="Use your live church account." />
+      <PublicHeader title="Sign in to Sentry Beacon" subtitle="Use your live church account." />
       <div className="mx-auto max-w-md space-y-5 px-4 py-8">
         <Card className="p-5">
           <form onSubmit={submit} className="space-y-4">
@@ -484,12 +484,12 @@ export function LiveLoginPage() {
 export function LiveSignupPage() {
   return (
     <div className="min-h-screen">
-      <PublicHeader title="Join Hope Beacon" subtitle="There is no public registration." />
+      <PublicHeader title="Join Sentry Beacon" subtitle="There is no public registration." />
       <div className="mx-auto max-w-md space-y-5 px-4 py-8">
         <Card className="p-6">
           <h2 className="text-xl font-bold text-navy">Open your invitation e-mail</h2>
           <p className="mt-2 text-gray-600">
-            Tap its invitation button. Hope Beacon will verify the e-mail, ask you to set a password,
+            Tap its invitation button. Sentry Beacon will verify the e-mail, ask you to set a password,
             and place your account in the role chosen by your church.
           </p>
         </Card>
@@ -510,7 +510,7 @@ export function LiveSignupPage() {
 
 // The invited person's front door.
 //
-// This is the ONE screen where somebody who has never used Hope Beacon, was
+// This is the ONE screen where somebody who has never used Sentry Beacon, was
 // sent a link by their church, and has no account yet, becomes a member. Three
 // separate things had to be right for that to happen and none of them were:
 //
@@ -1002,7 +1002,7 @@ export function LiveJoinPage() {
   return (
     <div className="min-h-screen">
       <PublicHeader
-        title={recovery ? 'Set a new password' : 'You’re invited to Hope Beacon'}
+        title={recovery ? 'Set a new password' : 'You’re invited to Sentry Beacon'}
         subtitle={
           recovery
             ? 'Choose a password only you know.'
@@ -1100,7 +1100,7 @@ export function LiveJoinPage() {
                 <p className="font-semibold text-navy">Choose a password only you know.</p>
                 <p className="mt-1">
                   On iPhone, iPad, or Mac, Safari may offer a strong password. That suggestion comes from your device,
-                  not Hope Beacon. You can use it or type a password of your own.
+                  not Sentry Beacon. You can use it or type a password of your own.
                 </p>
                 <p className="mt-1">
                   After it fills, use <strong>Show password</strong> to check it before saving. The confirmation must match.
@@ -1262,7 +1262,7 @@ export function LiveJoinPage() {
                 className="w-full"
                 disabled={busy || (!recovery && !consent)}
               >
-                {busy ? 'Saving…' : recovery ? 'Save new password' : 'Join Hope Beacon →'}
+                {busy ? 'Saving…' : recovery ? 'Save new password' : 'Join Sentry Beacon →'}
               </Button>
               {!recovery && !consent && (
                 <p className="text-xs text-gray-500">Tick the permission box above to continue.</p>

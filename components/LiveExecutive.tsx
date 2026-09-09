@@ -180,7 +180,7 @@ export function LiveBoardReport({ churchName }: { churchName?: string }) {
           .map((s) => `${STAGE_LABEL[s]}: ${active.filter((p) => p.journey_stage === s).length}`)
           .join(' · ');
         setLines([
-          `${churchName ?? 'This church'} · Hope Beacon report`,
+          `${churchName ?? 'This church'} · Sentry Beacon report`,
           `Prepared ${new Date().toLocaleDateString()}`,
           '',
           `Guides serving: ${members.filter((m) => m.role === 'dm' && m.is_approved).length}`,
@@ -260,7 +260,7 @@ function downloadPdf(lines: string[], churchName?: string | null) {
   // A navy band at the top, so the page is recognisably from this app when it
   // is printed and passed round a table.
   pdf.rect(0, 0, pdf.W, 64, [30, 42, 74]);
-  pdf.text(40, 34, 'Hope Beacon', { size: 20, bold: true, color: [255, 255, 255] });
+  pdf.text(40, 34, 'Sentry Beacon', { size: 20, bold: true, color: [255, 255, 255] });
   pdf.text(40, 52, 'Report for the board', { size: 10, color: [220, 225, 235] });
 
   let y = 104;

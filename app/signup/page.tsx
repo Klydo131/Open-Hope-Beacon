@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { NAVY } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
-import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { useIsLive } from '@/lib/tutorial';
 import { LiveSignupPage } from '@/components/LiveCorePages';
 
@@ -57,8 +57,8 @@ function DemoSignupPage() {
           <Link href="/" className="text-sm text-white/50 underline">
             ← Home
           </Link>
-          <HopeBeaconMark size={56} className="rise rise-1 mt-3" />
-          <h1 className="rise rise-2 mt-3 text-3xl font-extrabold">Join Hope Beacon</h1>
+          <SentryBeaconMark size={56} className="rise rise-1 mt-3" />
+          <h1 className="rise rise-2 mt-3 text-3xl font-extrabold">Join Sentry Beacon</h1>
           <p className="rise rise-3 mt-1 text-white/70">
             Your church invites you. Beacon has no public sign-up.
           </p>

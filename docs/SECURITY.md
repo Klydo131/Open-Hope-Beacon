@@ -1,6 +1,6 @@
 # Security
 
-Read this before connecting Open Hope Beacon to anything real. It is short on
+Read this before connecting Open Sentry Beacon to anything real. It is short on
 purpose, and it tries to be honest rather than reassuring.
 
 ---
@@ -8,7 +8,7 @@ purpose, and it tries to be honest rather than reassuring.
 ## Reporting a vulnerability
 
 **Do not open a public issue.** Use GitHub's private
-[Security Advisories](https://github.com/Klydo131/Open-Hope-Beacon/security/advisories/new)
+[Security Advisories](https://github.com/Klydo131/Open-Sentry-Beacon/security/advisories/new)
 on this repository, which is visible only to maintainers until a fix is
 published.
 

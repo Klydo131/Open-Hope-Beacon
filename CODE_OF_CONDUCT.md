@@ -37,7 +37,7 @@ Reports are read. Anything credible is acted on: a warning, removal of content,
 or a block, depending on what happened.
 
 **A security vulnerability is not a conduct report.** Use the private
-[Security Advisories](https://github.com/Klydo131/Open-Hope-Beacon/security/advisories/new)
+[Security Advisories](https://github.com/Klydo131/Open-Sentry-Beacon/security/advisories/new)
 route instead — see [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Scope

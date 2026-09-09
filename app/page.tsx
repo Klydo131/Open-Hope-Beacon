@@ -9,7 +9,7 @@ import { NAVY, TUTORIAL_PURPLE, roleNoun, APP_SHORT_NAME } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 import type { Role } from '@/lib/types';
-import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { useIsLive } from '@/lib/tutorial';
 import { LiveHomePage } from '@/components/LiveCorePages';
 
@@ -90,7 +90,7 @@ function DemoHome() {
                   'radial-gradient(circle, rgba(47,128,237,0.28) 0%, rgba(47,128,237,0) 68%)',
               }}
             />
-            <HopeBeaconMark size={92} className="relative mx-auto" />
+            <SentryBeaconMark size={92} className="relative mx-auto" />
           </div>
 
           <h1 className="mt-6 text-5xl font-extrabold tracking-tight">

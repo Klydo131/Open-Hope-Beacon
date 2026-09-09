@@ -6,7 +6,7 @@ import { useEffect } from 'react';
 import { roleLabel, NAVY } from '@/lib/brand';
 import type { Role } from '@/lib/types';
 import { homeFor, useLiveSession } from '@/lib/live/session';
-import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { BeaconSplash } from '@/components/BeaconLoader';
 import { Avatar, Button, Card } from '@/components/ui';
 import { LeftRail, RightRail, railGroupsFor } from '@/components/RoomRails';
@@ -233,11 +233,11 @@ export function LiveAppShell({
           <Link
             href={homeFor(profile.role)}
             className="flex min-w-0 flex-1 items-center gap-3"
-            aria-label="Hope Beacon home"
+            aria-label="Sentry Beacon home"
           >
-            <HopeBeaconMark size={40} />
+            <SentryBeaconMark size={40} />
             <div className="min-w-0">
-              <p className="truncate text-lg font-extrabold sm:text-xl">Hope Beacon</p>
+              <p className="truncate text-lg font-extrabold sm:text-xl">Sentry Beacon</p>
               <p className="truncate text-xs text-white/60">Live church app</p>
             </div>
           </Link>
@@ -353,7 +353,7 @@ function CenteredCard({ title, children }: { title: string; children: React.Reac
   return (
     <div className="grid min-h-screen place-items-center px-4" style={{ backgroundColor: NAVY }}>
       <Card className="w-full max-w-md p-6 text-center">
-        <HopeBeaconMark size={56} className="mx-auto" />
+        <SentryBeaconMark size={56} className="mx-auto" />
         <h1 className="mt-4 text-2xl font-extrabold text-navy">{title}</h1>
         <div className="mt-3">{children}</div>
       </Card>

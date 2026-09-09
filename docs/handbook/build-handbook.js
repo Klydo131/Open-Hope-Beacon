@@ -53,7 +53,7 @@ const push = (...x) => body.push(...x);
 
 // ---------------- Cover ----------------
 push(
-  new Paragraph({ text:'Open Hope Beacon', style:'Title', spacing:{before:2000,after:60} }),
+  new Paragraph({ text:'Open Sentry Beacon', style:'Title', spacing:{before:2000,after:60} }),
   new Paragraph({ spacing:{after:240}, children:[new TextRun({text:'Installation & Contribution Handbook', size:30, bold:true, color:GOLD})] }),
   new Paragraph({ spacing:{after:520}, children:[new TextRun({text:'For the IT person standing up their own instance.', size:23, color:GREY, italics:true})] }),
   Rule(),
@@ -75,7 +75,7 @@ push(
   new Paragraph({text:'The one-hour path',heading:HeadingLevel.HEADING_1}),
   Lead('Vercel + Supabase + Brevo + Claude, all free tiers. Follow it top to bottom and you will have a working church app with people in it.'),
   T(['#','Step','Time','You are done when'],[
-    ['1','Fork github.com/klydo131/open-hope-beacon on GitHub','2 min','It is under your own account'],
+    ['1','Fork github.com/klydo131/open-sentry-beacon on GitHub','2 min','It is under your own account'],
     ['2','supabase.com \u2192 New project. Pick a region near you. Save the database password.','5 min','Project says ACTIVE'],
     ['3','SQL editor \u2192 run every file in supabase/migrations/ in filename order','10 min','No red errors; tables exist'],
     ['4','vercel.com \u2192 Add New Project \u2192 import your fork \u2192 Deploy','5 min','A live URL that loads'],
@@ -92,7 +92,7 @@ push(
   Note('If you only have thirty minutes','stop after step 9. Steps 10\u201313 are email, and the app is fully usable without it \u2014 invitation links appear on screen to send by hand.'),
   new Paragraph({text:'Where Claude fits',heading:HeadingLevel.HEADING_2}),
   P('The free tier of Claude is enough for all of it, because none of these steps need code written. Use it as the person who has read the repository, and paste its answers rather than guessing.'),
-  Prompt2(['Good first message, with the repository open in front of you:','','"I am setting up Open Hope Beacon from github.com/klydo131/open-hope-beacon.','Read its README and docs/SETUP.md. I am on step 3 of the one-hour path','and the SQL editor gave me this error: <paste it>. What do I do?"']),
+  Prompt2(['Good first message, with the repository open in front of you:','','"I am setting up Open Sentry Beacon from github.com/klydo131/open-sentry-beacon.','Read its README and docs/SETUP.md. I am on step 3 of the one-hour path','and the SQL editor gave me this error: <paste it>. What do I do?"']),
   P('It is worth telling it two things about this project up front, because both are unusual and it will otherwise guess: the security lives in the database rather than in the screens, and the app is designed to run with no backend at all so an empty-looking install is often correct rather than broken.'),
   Warn('One rule for the room.','If an assistant tells you something is secure, working or deployed, ask it how it knows. The honest answer names what it actually checked. The separate AI guide is entirely about this.'),
 );
@@ -100,7 +100,7 @@ push(
 // ---------------- 1 ----------------
 push(
   new Paragraph({ text:'1. What you are deploying', heading:HeadingLevel.HEADING_1 }),
-  P('Hope Beacon pairs one member of a church with one person exploring faith, and helps them walk together through six stages. Everything else in the app — the library, lessons, prayer, meetings — exists to support that one relationship.'),
+  P('Sentry Beacon pairs one member of a church with one person exploring faith, and helps them walk together through six stages. Everything else in the app — the library, lessons, prayer, meetings — exists to support that one relationship.'),
   P('Four roles, and the words appear on every screen:'),
   T(['Role','Who they are'],[
     ['Explorer','Someone exploring faith, at their own pace'],
@@ -136,7 +136,7 @@ push(Break(),
 push(Break(),
   new Paragraph({ text:'3. Run it with no backend', heading:HeadingLevel.HEADING_1 }),
   P('Fifteen minutes, no accounts, no keys. Do this first — it proves the app works on your machine before any infrastructure is involved.'),
-  Code(['git clone https://github.com/klydo131/open-hope-beacon','cd open-hope-beacon','npm install','npm run dev','','# open http://localhost:3000']),
+  Code(['git clone https://github.com/klydo131/open-sentry-beacon','cd open-sentry-beacon','npm install','npm run dev','','# open http://localhost:3000']),
   P('You should get a working app with a sample church in it: Directors, Guides, Explorers, conversations, a library, lessons and a prayer wall. Sign in as any of the sample people.'),
   P('Requirements: Node.js 20 or newer, and git. Nothing else.'),
   Note('This is also your fallback.','A deployment with no database configured runs in exactly this mode. If anything goes wrong on the day of a presentation, removing two environment variables gets you back to something that cannot fail.'),
@@ -208,7 +208,7 @@ push(Break(),
   Num('Open supabase/seed/01_make_me_the_first_director.sql. Change the two lines at the top to your address and your church name, then paste the whole file into the Supabase SQL editor and run it.'),
   Num('Sign out and back in. You are now Executive Director.'),
   new Paragraph({text:'Give yourself something to look at',heading:HeadingLevel.HEADING_2}),
-  P('A correctly installed Hope Beacon is indistinguishable from a broken one until somebody is in it: every screen works and every screen is empty. That is a terrible first five minutes and it makes a demonstration impossible.'),
+  P('A correctly installed Sentry Beacon is indistinguishable from a broken one until somebody is in it: every screen works and every screen is empty. That is a terrible first five minutes and it makes a demonstration impossible.'),
   Num('Run supabase/seed/02_demo_congregation.sql. No edits needed.'),
   P('You now have two Guides, three Explorers, a conversation, a published blog post and a draft, prayer requests, a library, meetings, lesson series, and one member deliberately left unapproved so there is something for a Director to approve in front of an audience.'),
   Code(['Sign in as any of these \u2014 password HopeBeacon2026!','','  maria@example.test    Guide','  david@example.test    Guide','  john@example.test     Explorer (paired with Maria)','  grace@example.test    Explorer','  pastor@example.test   Director']),
@@ -289,8 +289,8 @@ push(Break(),
 );
 
 const doc = new Document({
-  creator:'Open Hope Beacon',
-  title:'Open Hope Beacon — Installation & Contribution Handbook',
+  creator:'Open Sentry Beacon',
+  title:'Open Sentry Beacon — Installation & Contribution Handbook',
   description:'For IT staff deploying their own instance.',
   numbering:{ config:[
     { reference:'dots', levels:[{ level:0, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT,
@@ -313,4 +313,4 @@ const doc = new Document({
     margin:{ top:1100, bottom:1100, left:1440, right:1440 } } }, children: body }],
 });
 
-Packer.toBuffer(doc).then(b => { fs.writeFileSync('Open-Hope-Beacon-Handbook.docx', b); console.log('written', b.length, 'bytes'); });
+Packer.toBuffer(doc).then(b => { fs.writeFileSync('Open-Sentry-Beacon-Handbook.docx', b); console.log('written', b.length, 'bytes'); });

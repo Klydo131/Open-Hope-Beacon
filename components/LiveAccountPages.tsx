@@ -617,7 +617,7 @@ function NotificationCard() {
       // constructor only as a last-resort fallback in a try/catch. The demo
       // settings screen has always called it; this one was the copy that
       // reached for the raw API.
-      await showLocalNotification('Hope Beacon', 'Alerts are on for this device.', '/settings');
+      await showLocalNotification('Sentry Beacon', 'Alerts are on for this device.', '/settings');
     } else {
       setNote('Your browser refused. You can change it in the site settings for this page.');
     }
@@ -642,7 +642,7 @@ function NotificationCard() {
           reasonably call that broken, so the card says which kind it is
           rather than letting them find out by being missed. */}
       <p className="mb-4 rounded-xl bg-sky-50 p-3 text-sm text-gray-600">
-        These reach you while Hope Beacon is open or running in the background.
+        These reach you while Sentry Beacon is open or running in the background.
         Your phone is not woken when the app is fully closed.
       </p>
 
@@ -761,12 +761,12 @@ function AboutCard() {
     <Card className="p-5">
       <h2 className="mb-1 text-xl font-bold text-navy">About</h2>
       <p className="text-sm text-gray-600">
-        Hope Beacon is free and open source. The code that runs this church is
+        Sentry Beacon is free and open source. The code that runs this church is
         readable by anyone, which is the point: nothing about how your data is
         handled is hidden from you.
       </p>
       <a
-        href="https://github.com/klydo131/open-hope-beacon"
+        href="https://github.com/klydo131/open-sentry-beacon"
         target="_blank" rel="noopener noreferrer"
         className="mt-3 inline-block font-semibold text-navy underline"
       >

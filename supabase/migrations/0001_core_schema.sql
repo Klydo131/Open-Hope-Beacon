@@ -1,4 +1,4 @@
--- Open Hope Beacon — the core schema.
+-- Open Sentry Beacon — the core schema.
 --
 -- ONE FILE, ON PURPOSE. The private repo this came from has forty-four
 -- migrations, because it grew a church at a time and each step had to be

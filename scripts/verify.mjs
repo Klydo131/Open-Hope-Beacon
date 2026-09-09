@@ -94,6 +94,12 @@ const staticChecks = [
   ['no backend, no pipelines', 'tests/no-backend.js'],
   ['test portability', 'tests/test-portability.mjs'],
   ['brand consistency', 'tests/brand-consistency.mjs'],
+  // brand-consistency only ever compared the LOGO DRAWING between its copies --
+  // it never looked at the name, while lib/brand.ts claimed it did. This is the
+  // check that claim described: the old name is gone everywhere, the two
+  // localStorage ADDRESSES that carry it survived untouched, and the
+  // hard-coded surface is pinned so it cannot grow behind a promise again.
+  ['the brand is one name', 'tests/the-brand-is-one-name.mjs'],
   ['media guardrails', 'tests/media-guardrails.js'],
   // Reads the CSP header itself. Every live data call is made from the browser,
   // so a policy that omits the backend origin kills the whole app in the

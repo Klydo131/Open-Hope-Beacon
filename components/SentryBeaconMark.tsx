@@ -37,7 +37,7 @@ const TAIL =
 
 let seq = 0;
 
-export function HopeBeaconMark({
+export function SentryBeaconMark({
   size = 34,
   tone = 'brand',
   title,
@@ -95,7 +95,7 @@ export function HopeBeaconMark({
 // everywhere it appears at all. Keeping the two together stops them drifting:
 // the old header carried its own private copy of the mark and its own hardcoded
 // name, so changing the brand meant finding both.
-export function HopeBeaconWordmark({
+export function SentryBeaconWordmark({
   size = 34,
   onDark = false,
   subtitle,
@@ -108,7 +108,7 @@ export function HopeBeaconWordmark({
 }) {
   return (
     <span className="flex shrink-0 items-center gap-2 sm:gap-3">
-      <HopeBeaconMark size={size} />
+      <SentryBeaconMark size={size} />
       <span className="leading-tight">
         <span
           className={`block font-extrabold tracking-tight ${nameClass} ${

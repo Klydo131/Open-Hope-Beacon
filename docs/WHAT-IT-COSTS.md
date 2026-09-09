@@ -19,7 +19,7 @@ There are also **two projects** on that organisation, not one:
 
 | Project | Created | Size | Accounts | Last sign-in |
 |---|---|---|---|---|
-| **Open-Hope-Beacon** | 12 Aug 2026 | 16 MB | 63 | live, today |
+| **Open-Sentry-Beacon** | 12 Aug 2026 | 16 MB | 63 | live, today |
 | Local Church App Project | 20 Jul 2026 | 14 MB | 9 | 26 Aug 2026 |
 
 The second is the predecessor with nine accounts on it. Supabase charges per

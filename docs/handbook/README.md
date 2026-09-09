@@ -56,7 +56,7 @@ node build-ai-guide.js
 To preview without Word:
 
 ```bash
-soffice --headless --convert-to pdf Open-Hope-Beacon-Handbook.docx
+soffice --headless --convert-to pdf Open-Sentry-Beacon-Handbook.docx
 ```
 
 The generated `.docx` files are deliberately **not** committed — they are build

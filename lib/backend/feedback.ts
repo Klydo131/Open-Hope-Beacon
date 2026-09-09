@@ -3,7 +3,7 @@
 // THIS FILE IS THE POINT OF THE PROJECT, so it is worth reading even if you skip
 // everything else.
 //
-// Open Hope Beacon has no backend. Every screen runs from a store in the
+// Open Sentry Beacon has no backend. Every screen runs from a store in the
 // browser, so the app installs, works offline and demonstrates itself with no
 // account, no database and no configuration. That is deliberate: a church should
 // be able to try the whole thing before deciding anything.

@@ -52,7 +52,7 @@ async function readCard(browser, userAgent, viewport) {
   // Without this the test below proves nothing: a card that never mentions
   // Safari at all would "pass" the Messenger check.
   const safari = await readCard(browser, IPHONE_SAFARI, { width: 390, height: 844 });
-  ok(/Add Hope Beacon to your Home Screen/i.test(safari),
+  ok(/Add Sentry Beacon to your Home Screen/i.test(safari),
     'real Safari is still offered the install, in the words its own menu uses');
   ok(/Add to Home Screen/i.test(safari), 'real Safari gets the Add to Home Screen step');
   ok(!/built-in browser|Open in Safari/i.test(safari),

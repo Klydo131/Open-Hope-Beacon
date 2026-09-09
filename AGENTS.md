@@ -1,4 +1,4 @@
-# AGENTS.md — working brief for Open Hope Beacon
+# AGENTS.md — working brief for Open Sentry Beacon
 
 Two agents work in this repository, Claude and Codex, usually not at the same
 time and never with the same context. Everything below exists because one of us

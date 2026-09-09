@@ -1,6 +1,6 @@
 -- A recovery link does not fire auth.users' INSERT trigger.
 --
--- A person can have an old, unassigned Hope Beacon account and later receive
+-- A person can have an old, unassigned Sentry Beacon account and later receive
 -- a real invitation. Supabase correctly sends that person a recovery email,
 -- because the account already exists. The `handle_new_user` trigger therefore
 -- cannot run again to copy the invitation's church and role into the profile.

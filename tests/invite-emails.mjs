@@ -42,7 +42,7 @@ const ROLES = ['ds', 'dm', 'admin', 'executive'];
 // message is the ordinary sign-in page with the person's own e-mail in it.
 const URL_ = 'https://church.example.org/login?email=someone%40example.org';
 const APP_URL = 'https://church.example.org';
-const CHURCH = 'Open Hope Beacon Demo Church';
+const CHURCH = 'Open Sentry Beacon Demo Church';
 // A NAME, because the invitation greets by one now. It is an obvious
 // placeholder: this repository is public and nothing in it names a real
 // member of a real church.
@@ -90,7 +90,7 @@ for (const role of ROLES) {
   // to the e-mail. One Guide ended with an account that had no password and a
   // spent link, repaired by hand against the database. With no install section
   // at all there is nothing left to come first.
-  ok(!/install/i.test(html.slice(0, html.indexOf('Sign in to Hope Beacon'))),
+  ok(!/install/i.test(html.slice(0, html.indexOf('Sign in to Sentry Beacon'))),
      `${role}: nothing about installing appears before the way in`);
 
   // ONE LINK PER DESTINATION. The copyable fallback address was removed with
@@ -144,7 +144,7 @@ for (const role of ROLES) {
   // keep on exactly that class of mistake.
   ok(html.includes(SIGN_IN_EMAIL), `${role}: shows the address they sign in with`);
   ok(html.includes(TEMP_PASSWORD), `${role}: and the password itself`);
-  const invitationButton = html.indexOf('Sign in to Hope Beacon');
+  const invitationButton = html.indexOf('Sign in to Sentry Beacon');
   ok(html.indexOf(SIGN_IN_EMAIL) < invitationButton
      && html.indexOf(TEMP_PASSWORD) < invitationButton,
      `${role}: both appear ABOVE the button, which is the whole request`);

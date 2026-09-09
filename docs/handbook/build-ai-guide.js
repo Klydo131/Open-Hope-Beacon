@@ -33,7 +33,7 @@ function T(h,rows,w){
 const b=[]; const push=(...x)=>b.push(...x);
 
 push(
-  new Paragraph({text:'Open Hope Beacon',style:'Title',spacing:{before:2000,after:60}}),
+  new Paragraph({text:'Open Sentry Beacon',style:'Title',spacing:{before:2000,after:60}}),
   new Paragraph({spacing:{after:240},children:[new TextRun({text:'Building It With an AI Assistant',size:30,bold:true,color:GOLD})]}),
   new Paragraph({spacing:{after:520},children:[new TextRun({text:'A guide for developers using Claude, Codex, Cursor, Copilot or similar to stand up their own instance.',size:23,color:GREY,italics:true})]}),
   Rule(),
@@ -140,8 +140,8 @@ push(Break(),
 );
 
 const doc=new Document({
-  creator:'Open Hope Beacon',
-  title:'Open Hope Beacon — Building It With an AI Assistant',
+  creator:'Open Sentry Beacon',
+  title:'Open Sentry Beacon — Building It With an AI Assistant',
   description:'For developers using an AI coding assistant to deploy their own instance.',
   numbering:{config:[
     {reference:'dots',levels:[{level:0,format:LevelFormat.BULLET,text:'•',alignment:AlignmentType.LEFT,style:{paragraph:{indent:{left:460,hanging:240}}}}]},
@@ -154,4 +154,4 @@ const doc=new Document({
   ]},
   sections:[{properties:{page:{size:{width:12240,height:15840},margin:{top:1100,bottom:1100,left:1440,right:1440}}},children:b}],
 });
-Packer.toBuffer(doc).then(x=>{fs.writeFileSync('Open-Hope-Beacon-AI-Build-Guide.docx',x);console.log('written',x.length,'bytes');});
+Packer.toBuffer(doc).then(x=>{fs.writeFileSync('Open-Sentry-Beacon-AI-Build-Guide.docx',x);console.log('written',x.length,'bytes');});

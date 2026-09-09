@@ -62,7 +62,7 @@ export function FrozenCopy() {
           href={home}
           className="tap mt-3 inline-flex items-center rounded-xl bg-amber-900 px-4 font-bold text-white"
         >
-          Open the real Hope Beacon
+          Open the real Sentry Beacon
         </a>
         <p className="mt-2 break-all text-xs text-amber-800">{home}</p>
       </div>

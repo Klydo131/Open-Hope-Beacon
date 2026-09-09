@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Card, EmptyState } from '@/components/ui';
-import { HopeBeaconWordmark } from '@/components/HopeBeaconMark';
+import { SentryBeaconWordmark } from '@/components/SentryBeaconMark';
 import { NAVY } from '@/lib/brand';
 import { downloadBlob } from '@/lib/pdf';
 import { safeExternalUrl } from '@/lib/url';
@@ -415,14 +415,14 @@ export default function LibraryPage() {
           >
             ← Back to app
           </button>
-          <HopeBeaconWordmark size={36} subtitle="Live church. Real connections." nameClass="text-lg" />
+          <SentryBeaconWordmark size={36} subtitle="Live church. Real connections." nameClass="text-lg" />
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl space-y-8 px-4 pb-10 pt-7 sm:px-6 lg:px-8">
         <section className="grid gap-6 rounded-3xl bg-gradient-to-br from-navy via-[#173d77] to-[#056e81] p-6 text-white shadow-sm md:grid-cols-[1.3fr_0.7fr] md:p-8">
           <div>
-            <p className="text-sm font-bold uppercase tracking-[0.18em] text-teal-200">Hope Beacon Library</p>
+            <p className="text-sm font-bold uppercase tracking-[0.18em] text-teal-200">Sentry Beacon Library</p>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">Learn, grow, and come back anytime.</h1>
             <p className="mt-3 max-w-2xl text-base leading-relaxed text-white/80">
               Trusted Bible, devotional, and church resources in one clear place. Save favorites on this device, share a resource, or build your own offline shelf below.
@@ -547,7 +547,7 @@ export default function LibraryPage() {
           <div className="max-w-3xl">
             <p className="text-sm font-bold uppercase tracking-[0.15em] text-teal-700">Your device library</p>
             <h2 id="your-device-library-heading" className="mt-1 text-2xl font-extrabold text-navy">Keep your own media close.</h2>
-            <p className="mt-2 text-sm leading-relaxed text-gray-600">Files and links below are stored only on this device. Hope Beacon does not upload them to a server.</p>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">Files and links below are stored only on this device. Sentry Beacon does not upload them to a server.</p>
           </div>
 
           <div className="mt-5 grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">

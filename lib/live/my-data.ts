@@ -149,7 +149,7 @@ export async function collectMyData(): Promise<MyDataFile> {
 
   return {
     what_this_is:
-      'Everything Open Hope Beacon holds about you that can be handed over automatically. '
+      'Everything Open Sentry Beacon holds about you that can be handed over automatically. '
       + 'Read not_included below: some things are deliberately left out, and it says why and who to ask.',
     made_at: new Date().toISOString(),
     about: out.my_profile ?? null,
@@ -190,5 +190,5 @@ export async function collectMyData(): Promise<MyDataFile> {
 /** The filename somebody sees in their downloads folder a year from now. */
 export function myDataFilename(name?: string | null): string {
   const who = (name ?? 'my').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'my';
-  return `hope-beacon-${who}-data-${new Date().toISOString().slice(0, 10)}.json`;
+  return `open-sentry-beacon-${who}-data-${new Date().toISOString().slice(0, 10)}.json`;
 }

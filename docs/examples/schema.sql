@@ -1,4 +1,4 @@
--- Open Hope Beacon — an example schema and permission rules for Postgres.
+-- Open Sentry Beacon — an example schema and permission rules for Postgres.
 --
 -- THIS FILE HAS BEEN RUN. Every statement was applied to a real PostgreSQL 16
 -- database and then attacked from a second account; prove-the-rules.sql is that

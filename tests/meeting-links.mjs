@@ -56,8 +56,8 @@ for (const [url, expected] of [
   ['https://us02web.zoom.us/j/8899?pwd=abc', 'Join the Zoom call'],
   ['https://meet.google.com/abc-defg-hij', 'Join on Google Meet'],
   ['https://teams.microsoft.com/l/meetup-join/x', 'Join on Teams'],
-  ['https://whereby.com/hope-beacon', 'Join on Whereby'],
-  ['https://meet.jit.si/HopeBeacon', 'Join on Jitsi'],
+  ['https://whereby.com/sentry-beacon', 'Join on Whereby'],
+  ['https://meet.jit.si/SentryBeacon', 'Join on Jitsi'],
   ['https://m.me/j/AbCdEf', 'Join on Messenger'],
 ]) {
   const href = joinUrl('online', url);
@@ -86,7 +86,7 @@ for (const [pasted, expect] of [
   ['meet.google.com/idn-soex-nkb', 'https://meet.google.com/idn-soex-nkb'],
   ['zoom.us/j/9876543210', 'https://zoom.us/j/9876543210'],
   ['teams.microsoft.com/l/meetup-join/x', 'https://teams.microsoft.com/l/meetup-join/x'],
-  ['meet.jit.si/HopeBeacon', 'https://meet.jit.si/HopeBeacon'],
+  ['meet.jit.si/SentryBeacon', 'https://meet.jit.si/SentryBeacon'],
 ]) {
   ok(joinUrl('online', pasted) === expect, `pasted without https:// still joins (${pasted})`);
 }

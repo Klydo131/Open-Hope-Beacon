@@ -1,20 +1,42 @@
 import type { Stage, Track } from './types';
 
 // ---------------------------------------------------------------------------
-// Your church's name for this app. Change these lines and nothing else.
+// Your church's name for this app. Start here, and read the next paragraph.
 //
 // This is the first thing most forks want to change, so it is deliberately the
-// first thing in the first file. Every place a person reads the name — the
-// browser tab, the header, the installed app on a phone home screen — comes
-// from here. Nothing hard-codes it, and tests/brand-consistency.mjs fails if
-// something starts to.
+// first thing in the first file. The browser tab, the installed app's name on a
+// phone home screen, and the link preview all come from these constants.
+//
+// WHAT THIS FILE USED TO CLAIM, AND WHY IT NO LONGER DOES. It said "change
+// these lines and nothing else", that nothing hard-codes the name, and that
+// tests/brand-consistency.mjs fails if something starts to. All three were
+// false. That test only ever compared the LOGO DRAWING between its copies; it
+// never looked at the name once. So fifty-one hard-coded occurrences across
+// twenty-three screens accumulated behind a promise nobody was testing, and
+// the rename from the app's first name had to visit eighty-four files.
+//
+// tests/the-brand-is-one-name.mjs now checks the thing the old comment only
+// asserted: the previous name appears nowhere, and the number of hard-coded
+// occurrences is pinned so it cannot quietly grow again. Making it genuinely
+// one line is a separate, larger change -- fifty-one call sites, most of them
+// inside sentences rather than labels -- and the honest state until then is
+// written here rather than promised away.
 // ---------------------------------------------------------------------------
 
+// AND ONE THING A RENAME MUST NOT TOUCH. Two localStorage keys carry the app's
+// old name -- `hope-beacon.feedback.local` and `hope-beacon:library-favorites`.
+// A storage key is an ADDRESS, not a label: renaming one does not move what is
+// stored there, it points the browser at a drawer nothing has ever written to,
+// and somebody's unsent feedback or saved favourites are gone with no error and
+// no way back. They keep their original spelling forever, and
+// tests/the-brand-is-one-name.mjs goes red if either is swept up by the next
+// find-and-replace.
+
 /** The full name. Browser tab, installed app, the "about" line. */
-export const APP_NAME = 'Open Hope Beacon';
+export const APP_NAME = 'Open Sentry Beacon';
 
 /** The short name. Used where space is tight: the header, a home-screen label. */
-export const APP_SHORT_NAME = 'Hope Beacon';
+export const APP_SHORT_NAME = 'Sentry Beacon';
 
 /**
  * One sentence. Shown by link previews and by an installer.
@@ -112,7 +134,7 @@ export function trackColor(track: Track): string {
 //   'Guide' rather than 'Digital Missionary'  — describes what the person does
 //                                               rather than a title to live up to.
 //   'Director' rather than 'Admin'            — the job is leading the church's
-//                                               Hope Beacon ministry, not
+//                                               Sentry Beacon ministry, not
 //                                               administering people.
 //   'Executive Director' above that           — the same job across more than
 //                                               one church.

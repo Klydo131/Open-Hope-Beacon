@@ -1,6 +1,6 @@
 # Start here
 
-**The one document for anyone setting up their own Hope Beacon.**
+**The one document for anyone setting up their own Sentry Beacon.**
 
 This answers eight questions in order. Read it straight through if you are new.
 Jump to the one you need if you are not.
@@ -102,7 +102,7 @@ volunteer doing this on a Saturday, shortest path is the right criterion.
 
 ### Why Brevo
 
-Hope Beacon is invitation-only. There is no public sign-up page — the *only* way
+Sentry Beacon is invitation-only. There is no public sign-up page — the *only* way
 in is a Director sending someone an invitation. So sending email is not a
 feature, it is the front door.
 
@@ -130,7 +130,7 @@ wrong tool, and no amount of care with sharing settings fixes it.
 
 ### What it is
 
-Open Hope Beacon is a free, open-source app for churches walking alongside
+Open Sentry Beacon is a free, open-source app for churches walking alongside
 people who want to know more about faith. One Guide, one Explorer, one
 conversation, and a record of it that only the right people can see.
 
@@ -154,7 +154,7 @@ no telemetry, no "phone home".
 
 ### The repository
 
-`https://github.com/klydo131/open-hope-beacon`
+`https://github.com/klydo131/open-sentry-beacon`
 
 ```
 app/          the screens people see
@@ -229,8 +229,8 @@ Node is not installed — go back and run the installer.
 ### Step 1 — Get the code
 
 ```bash
-git clone https://github.com/klydo131/open-hope-beacon.git
-cd open-hope-beacon
+git clone https://github.com/klydo131/open-sentry-beacon.git
+cd open-sentry-beacon
 npm install
 npm run dev
 ```
@@ -410,7 +410,7 @@ Getting it onto the internet, where your congregation can reach it.
    > mails everybody a link to `http://localhost:3000`, a machine they do not
    > have. The send reports success. Nobody can tell from inside the app.
    >
-   > Hope Beacon works around this by also showing the Director a working link
+   > Sentry Beacon works around this by also showing the Director a working link
    > on screen after every invitation, built from `SITE_URL` rather than from
    > the dashboard. Set these two anyway.
 
@@ -448,7 +448,7 @@ one of those if you can. If you are using a chat window, paste the real file.
 
 **Setting up:**
 
-> I am setting up Open Hope Beacon from `github.com/klydo131/open-hope-beacon`.
+> I am setting up Open Sentry Beacon from `github.com/klydo131/open-sentry-beacon`.
 > Read `docs/START-HERE.md` and `docs/SETUP.md`. I am on Part 3 Step 3 and the
 > SQL editor returned this error: `<paste the exact error>`. What went wrong and
 > what do I run instead?
@@ -564,7 +564,7 @@ Fixed, and worth knowing why, because the same confusion bites other apps.
 
 Sending an invitation **creates the person's account before the message goes**.
 So neither "an account exists" nor "the link was opened" means anybody arrived —
-and opening the link is something *you* do when you test it. Hope Beacon now
+and opening the link is something *you* do when you test it. Sentry Beacon now
 counts somebody as joined only when they have finished the form and chosen their
 own password. Everyone else stays under **Waiting**, with a **Re-send** button.
 
@@ -634,8 +634,8 @@ terminal, git, and SQL.
 
 ```bash
 # 1. Code
-git clone https://github.com/klydo131/open-hope-beacon.git
-cd open-hope-beacon && npm install
+git clone https://github.com/klydo131/open-sentry-beacon.git
+cd open-sentry-beacon && npm install
 
 # 2. Runs with no backend at all — this is the design, not a fallback
 npm run dev            # localhost:3000, sample data, in-browser only
@@ -738,10 +738,10 @@ node --version
 Type these one at a time, pressing Enter after each and waiting for it to finish:
 
 ```
-git clone https://github.com/klydo131/open-hope-beacon.git
+git clone https://github.com/klydo131/open-sentry-beacon.git
 ```
 ```
-cd open-hope-beacon
+cd open-sentry-beacon
 ```
 ```
 npm install
@@ -757,7 +757,7 @@ npm run dev
 
 Open your web browser and go to `http://localhost:3000`.
 
-> **You should see** Hope Beacon with sample people in it. **This is the whole
+> **You should see** Sentry Beacon with sample people in it. **This is the whole
 > app.** Click around — it is not connected to anything and you cannot break it.
 
 Leave this window running. To stop it later, press `Ctrl+C`.
@@ -776,7 +776,7 @@ Leave this window running. To stop it later, press `Ctrl+C`.
 Open a **second** terminal window (leave the first running). Then:
 
 ```
-cd open-hope-beacon
+cd open-sentry-beacon
 ```
 ```
 npm run setup
@@ -795,7 +795,7 @@ This is the longest step. It is repetitive, not hard.
 
 In Supabase, click **SQL Editor** in the left sidebar.
 
-On your computer, open the `open-hope-beacon` folder, then `supabase`, then
+On your computer, open the `open-sentry-beacon` folder, then `supabase`, then
 `migrations`. You will see files numbered `0001`, `0001a`, `0002`, and so on.
 
 **For each file, in order, top to bottom:**
@@ -837,12 +837,12 @@ Sign out of the app and sign back in.
 ### Step 10 — Put it on the internet *(10 minutes)*
 
 1. Go to [vercel.com](https://vercel.com) and sign in **with GitHub**.
-2. **Add New → Project.** Find `open-hope-beacon` and click **Import**.
+2. **Add New → Project.** Find `open-sentry-beacon` and click **Import**.
 3. Before clicking Deploy, expand **Environment Variables** and add two. They
    are in the `.env.local` file that Step 6 created in your project folder —
    open it and copy both lines.
 4. Click **Deploy** and wait about a minute.
-5. It gives you an address like `open-hope-beacon-xyz.vercel.app`. **That is your
+5. It gives you an address like `open-sentry-beacon-xyz.vercel.app`. **That is your
    app.** Open it on your phone.
 
 ### Step 11 — Turn on invitations *(10 minutes)*
@@ -894,5 +894,5 @@ Step 7.
 | [UPDATES.md](UPDATES.md) | Keeping your copy current |
 
 **Stuck?** Open an Issue at
-`https://github.com/klydo131/open-hope-beacon/issues`. Include what you did,
+`https://github.com/klydo131/open-sentry-beacon/issues`. Include what you did,
 what you expected, and the exact error. That is a contribution too.

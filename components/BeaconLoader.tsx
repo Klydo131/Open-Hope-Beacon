@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { APP_NAME } from '@/lib/brand';
 
 // -------------------------------------------------------------------------
@@ -29,7 +29,7 @@ import { APP_NAME } from '@/lib/brand';
 // rather than designed. The church app that came before this one had already
 // worked that out and fixed it; this is the same fix, brought across.
 //
-// `HopeBeaconMark` is the mark. The animation stays around it: a halo that
+// `SentryBeaconMark` is the mark. The animation stays around it: a halo that
 // breathes behind, stopped under prefers-reduced-motion like everything else.
 //
 // `beacon-halo`, NOT `beacon-glow`. There are two different `.beacon-glow`
@@ -44,7 +44,7 @@ function Mark({ size = 96 }: { size?: number }) {
         style={{ backgroundColor: '#2F80ED' }}
         aria-hidden
       />
-      <HopeBeaconMark size={size} className="relative" />
+      <SentryBeaconMark size={size} className="relative" />
     </div>
   );
 }

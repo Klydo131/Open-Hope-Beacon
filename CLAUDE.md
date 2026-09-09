@@ -1,4 +1,4 @@
-# CLAUDE.md — Open Hope Beacon
+# CLAUDE.md — Open Sentry Beacon
 
 Claude and Codex work from one map. The brief is [`AGENTS.md`](./AGENTS.md):
 the two halves of the app, the product rules that outrank a request, how

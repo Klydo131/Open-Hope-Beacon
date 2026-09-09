@@ -124,7 +124,7 @@ const DATA = 'lib/live/data.ts';
      'the password visibility control uses clear words instead of an icon alone');
   ok((doorCode.match(/autoComplete="new-password"/g) || []).length === 2,
      'both password fields keep the browser new-password hint');
-  ok(/suggestion comes from your device,[\s\S]*not Hope Beacon/.test(doorCode),
+  ok(/suggestion comes from your device,[\s\S]*not Sentry Beacon/.test(doorCode),
      'the invitation screen explains that the app never generates a password');
 }
 

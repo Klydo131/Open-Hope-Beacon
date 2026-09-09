@@ -2,7 +2,7 @@
 //
 //   npm run icons
 //
-// Run this after changing the logo (components/HopeBeaconMark.tsx) or the brand
+// Run this after changing the logo (components/SentryBeaconMark.tsx) or the brand
 // colours (lib/brand.ts), and commit what it writes. tests/brand-consistency.mjs
 // fails if you forget, which is the whole reason it exists — "the logo didn't
 // change on my phone" was a real bug, and the cause was a regenerated component
@@ -44,7 +44,7 @@ const FROM = brandColor('BRAND_FROM', '#2F80ED');
 const TO = brandColor('BRAND_TO', '#3EB489');
 const NAVY = brandColor('NAVY', '#1E2A4A');
 
-// Kept identical to components/HopeBeaconMark.tsx; tests/brand-consistency.mjs
+// Kept identical to components/SentryBeaconMark.tsx; tests/brand-consistency.mjs
 // fails if these two ever stop matching.
 const STROKE = 12.5;
 const RING = 'M 29.4 72.7 A 34 34 0 1 1 60.6 81.8';

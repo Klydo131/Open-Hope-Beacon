@@ -2,7 +2,7 @@
 
 **This is not legal advice, and it is not a compliance certificate.** It is what
 an engineer can establish by reading the schema and the access rules: what
-personal data Open Hope Beacon collects, where it goes, who can see it, and how
+personal data Open Sentry Beacon collects, where it goes, who can see it, and how
 long it stays. A lawyer or a Data Protection Officer needs that map before they
 can write a privacy notice or answer a regulator, and until today it did not
 exist.
@@ -23,7 +23,7 @@ congregation with one member in Europe is inside it.
 **This app processes sensitive personal information.**
 
 RA 10173 §3(l) defines sensitive personal information to include a person's
-**age**, **marital status**, and **religious affiliation**. Open Hope Beacon
+**age**, **marital status**, and **religious affiliation**. Open Sentry Beacon
 records a birthday, a life status, and the whole of somebody's participation in
 a church's discipleship programme. Membership of the app *is* a religious
 affiliation, so every row in it is sensitive whether or not the column looks it.

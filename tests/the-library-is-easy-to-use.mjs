@@ -172,7 +172,7 @@ const data = strip(read('lib/live/data.ts'));
   const page = read('app/library/page.tsx');
   const header = page.slice(page.indexOf('<header'), page.indexOf('</header>'));
   const backAt = header.indexOf('Back to app');
-  const markAt = header.indexOf('HopeBeaconWordmark');
+  const markAt = header.indexOf('SentryBeaconWordmark');
   ok(backAt !== -1, 'the library page has a way back to the app');
   ok(markAt !== -1, 'and the wordmark');
   ok(backAt < markAt, 'and Back comes FIRST, so it draws on the left where a thumb expects it');

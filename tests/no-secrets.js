@@ -161,7 +161,7 @@ if (tracked.includes(seed)) {
 // 6. Only the demo project may be named. Any other is a leak.
 //
 // This repository DOES name a live Supabase project on purpose. It is the
-// maintainers' own, published so a developer evaluating Hope Beacon can see a
+// maintainers' own, published so a developer evaluating Sentry Beacon can see a
 // working backend rather than assemble one before learning whether they want
 // it. That is a deliberate choice by its owner, not an accident, and this check
 // is not here to reverse it.
@@ -178,7 +178,7 @@ if (tracked.includes(seed)) {
 // delete the check — the value is in what it refuses, not what it permits.
 // ---------------------------------------------------------------------------
 const DEMO_REFS = new Set([
-  'bcpuushjwcejytdthlnn', // Open Hope Beacon — the published demo backend
+  'bcpuushjwcejytdthlnn', // Open Sentry Beacon — the published demo backend
 ]);
 
 // Refs are exactly twenty lowercase letters. That shape also matches ordinary

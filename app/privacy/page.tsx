@@ -26,7 +26,7 @@
 
 import Link from 'next/link';
 import { NAVY } from '@/lib/brand';
-import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { Card } from '@/components/ui';
 
 function Blank({ what }: { what: string }) {
@@ -42,7 +42,7 @@ export default function PrivacyPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="px-4 py-8 text-center text-white" style={{ backgroundColor: NAVY }}>
         <div className="mx-auto flex max-w-2xl flex-col items-center">
-          <HopeBeaconMark size={48} />
+          <SentryBeaconMark size={48} />
           <h1 className="mt-3 text-3xl font-extrabold">What we do with what you tell us</h1>
           <p className="mt-1 text-white/75">
             The short version: it stays inside your church, and you can ask for it back
@@ -180,7 +180,7 @@ export default function PrivacyPage() {
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">This is a starting point</h2>
           <p className="mt-2 text-gray-700">
-            Open Hope Beacon is free software, and this notice ships with it as a draft.
+            Open Sentry Beacon is free software, and this notice ships with it as a draft.
             Any church running it should read it, fill in the blanks, and have somebody
             qualified check it against the law where they are. It is
             <code className="mx-1 rounded bg-gray-100 px-1.5 py-0.5 text-sm">app/privacy/page.tsx</code>
@@ -194,7 +194,7 @@ export default function PrivacyPage() {
 
         <div className="pb-10 text-center">
           <Link href="/" className="font-semibold text-navy underline underline-offset-4">
-            ← Back to Hope Beacon
+            ← Back to Sentry Beacon
           </Link>
         </div>
       </div>

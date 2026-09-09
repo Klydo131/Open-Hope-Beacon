@@ -66,7 +66,7 @@ month**, which is the entire amount by which the church is over budget.
 
 Pausing keeps the data. You can restore it later from the same place.
 
-**Do not pause `Open-Hope-Beacon`.** That is the live church.
+**Do not pause `Open-Sentry-Beacon`.** That is the live church.
 
 ---
 

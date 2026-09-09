@@ -7,7 +7,7 @@ import { useDemo } from '@/lib/demo/store';
 import { roleNoun, NAVY } from '@/lib/brand';
 import { Avatar, Button, Card } from '@/components/ui';
 import type { Role } from '@/lib/types';
-import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { useIsLive } from '@/lib/tutorial';
 import { LiveLoginPage } from '@/components/LiveCorePages';
 
@@ -28,8 +28,8 @@ function Header({ subtitle }: { subtitle: string }) {
         <Link href="/" className="text-sm text-white/50 underline">
           ← Home
         </Link>
-        <HopeBeaconMark size={56} className="mt-3" />
-        <h1 className="mt-3 text-3xl font-extrabold">Sign in to Hope Beacon</h1>
+        <SentryBeaconMark size={56} className="mt-3" />
+        <h1 className="mt-3 text-3xl font-extrabold">Sign in to Sentry Beacon</h1>
         <p className="mt-1 text-white/70">{subtitle}</p>
       </div>
     </div>
@@ -63,7 +63,7 @@ function DemoLogin() {
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">Have an invitation?</h2>
           <p className="mt-1 text-gray-500">
-            Hope Beacon is a private, invitation-only app. If your church sent you an
+            Sentry Beacon is a private, invitation-only app. If your church sent you an
             invitation link, open it to complete your sign-up. There is no public
             registration.
           </p>

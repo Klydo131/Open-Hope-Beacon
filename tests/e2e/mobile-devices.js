@@ -138,7 +138,7 @@ async function run(browser, label, device) {
   // ATTACHMENTS ARE NOT IN EVERY BUILD, and the test says which build it is
   // looking at rather than guessing.
   //
-  // Open Hope Beacon puts an attach control in the conversation. The private
+  // Open Sentry Beacon puts an attach control in the conversation. The private
   // application keeps media in the library and player instead, so there is no
   // attach button in its chat at all. Porting this file between them failed on
   // that difference and looked like a tablet bug for a while.

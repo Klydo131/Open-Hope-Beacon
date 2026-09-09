@@ -36,7 +36,7 @@ export interface ReportSection {
 }
 
 export interface Report {
-  /** "Hope Beacon" and the church, for the cover line. */
+  /** "Sentry Beacon" and the church, for the cover line. */
   app: string;
   church: string;
   /** When it was made. A report with no date is a report nobody can place. */
@@ -198,7 +198,7 @@ export function buildReport(input: {
   });
 
   return {
-    app: 'Hope Beacon',
+    app: 'Sentry Beacon',
     church,
     generated: stamp(),
     title: 'Church report',
@@ -206,7 +206,7 @@ export function buildReport(input: {
     sections,
     footer: [
       NO_NAMES,
-      'Made by Hope Beacon. Figures are counted at the moment the file is made, '
+      'Made by Sentry Beacon. Figures are counted at the moment the file is made, '
       + 'so two reports made on different days will differ.',
     ],
   };

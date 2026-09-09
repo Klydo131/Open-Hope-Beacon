@@ -1,10 +1,10 @@
-# Open Hope Beacon
+# Open Sentry Beacon
 
 **A disciple-making journey app for local churches. Free, open source, and yours
 to change.**
 
 A church meets someone who wants to know more. What happens next usually depends
-on a card in a folder and somebody's memory. Open Hope Beacon gives the church
+on a card in a folder and somebody's memory. Open Sentry Beacon gives the church
 one place for that, and gives each person involved exactly the part of it they
 need.
 
@@ -61,8 +61,8 @@ asks.
 ## Try it in two minutes
 
 ```bash
-git clone https://github.com/Klydo131/Open-Hope-Beacon
-cd Open-Hope-Beacon
+git clone https://github.com/Klydo131/Open-Sentry-Beacon
+cd Open-Sentry-Beacon
 npm install
 npm run dev
 ```
@@ -326,7 +326,7 @@ npm run test:all  # the above, plus real-browser suites
 
 ## Where this came from
 
-Open Hope Beacon is the open-source release of Hope Beacon, an app built for a
+Open Sentry Beacon is the open-source release of Sentry Beacon, an app built for a
 local church. Their request was that other churches should be able to make their
 own, on whatever platform suits them. Everything specific to that church's
 deployment was removed: its database, its keys, its hosting. A test keeps it
@@ -334,7 +334,7 @@ that way.
 
 ## Licence: AGPL-3.0
 
-Open Hope Beacon is free software under the
+Open Sentry Beacon is free software under the
 **[GNU Affero General Public License, version 3](LICENSE)**.
 
 It was MIT until August 2026. The owner changed it deliberately, and the reason

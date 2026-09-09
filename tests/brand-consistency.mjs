@@ -1,13 +1,13 @@
 // Is the brand one drawing, or several that happen to look similar?
 //
-// Before the Hope Beacon rename there were three different candles in this
+// Before the Sentry Beacon rename there were three different candles in this
 // repo: app/icon.svg drew a plain one, public/icons/icon.svg drew a different
 // one with rays and extra detail, and components/ShellChrome.tsx drew a third in
 // JSX. Nobody noticed, because nothing ever renders them side by side — you see
 // the favicon in a tab, the installed icon on a home screen, and the header
 // inside the app, hours apart.
 //
-// The mark is now defined once in components/HopeBeaconMark.tsx and the icon
+// The mark is now defined once in components/SentryBeaconMark.tsx and the icon
 // files are generated from the same path data by scripts/gen-icons.mjs. This
 // check enforces that they have not drifted since — because generating a file
 // and committing it is exactly the kind of step that gets skipped.
@@ -32,9 +32,9 @@ const read = (rel) => {
   }
 };
 
-const component = read('components/HopeBeaconMark.tsx');
+const component = read('components/SentryBeaconMark.tsx');
 if (!component) {
-  fail('components/HopeBeaconMark.tsx is missing — there is no mark to check');
+  fail('components/SentryBeaconMark.tsx is missing — there is no mark to check');
   console.log('\nRESULT: 1 BRAND PROBLEM');
   process.exit(1);
 }
@@ -46,7 +46,7 @@ const tailPath = tail ? tail[1] + tail[2] : null;
 
 ring && tailPath
   ? ok('the mark defines a ring and a tail path')
-  : fail('could not read the ring/tail paths out of HopeBeaconMark.tsx');
+  : fail('could not read the ring/tail paths out of SentryBeaconMark.tsx');
 
 // Every generated icon must contain exactly those paths.
 const iconFiles = [
@@ -71,7 +71,7 @@ if (iconFiles.length === 0) {
 }
 
 // No icon may still be a candle. The rename is only real if the old art is gone.
-const candles = [...iconFiles, 'components/HopeBeaconMark.tsx'].filter((f) =>
+const candles = [...iconFiles, 'components/SentryBeaconMark.tsx'].filter((f) =>
   /🕯|candle/i.test(read(f)),
 );
 candles.length
@@ -149,7 +149,7 @@ appName && shortName
 const literal = (name) =>
   new RegExp(`['"\`]${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"\`]`);
 
-for (const f of ['app/layout.tsx', 'app/manifest.ts', 'components/HopeBeaconMark.tsx']) {
+for (const f of ['app/layout.tsx', 'app/manifest.ts', 'components/SentryBeaconMark.tsx']) {
   const src = read(f);
   if (!src) continue;
 

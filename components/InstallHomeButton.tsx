@@ -71,7 +71,7 @@ export function InstallHomeButton() {
         }}
         className="tap w-full rounded-xl bg-white/95 px-4 text-base font-bold text-navy hover:bg-white"
       >
-        📲 Install Hope Beacon
+        📲 Install Sentry Beacon
       </button>
     );
   }
@@ -80,7 +80,7 @@ export function InstallHomeButton() {
   // offering a button that would do nothing.
   return (
     <div className="rounded-2xl bg-white/10 p-4 text-center ring-1 ring-white/15">
-      <p className="text-base font-bold text-white">Put Hope Beacon on your home screen</p>
+      <p className="text-base font-bold text-white">Put Sentry Beacon on your home screen</p>
       <p className="mt-1 text-sm text-white/70">
         It opens like any other app, with its own icon, and keeps working
         without a signal.

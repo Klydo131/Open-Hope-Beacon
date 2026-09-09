@@ -105,7 +105,7 @@ const slug = (text) => text.toLowerCase()
   .replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
 
 // Where the docs live, for turning a relative link into one that works.
-const REPO_DOCS = 'https://github.com/klydo131/open-hope-beacon/blob/main/docs/';
+const REPO_DOCS = 'https://github.com/klydo131/open-sentry-beacon/blob/main/docs/';
 
 /**
  * Make a link work from inside a PDF.
@@ -361,14 +361,14 @@ if (combineName) {
 
   const toc =
     '<section class="doc"><h1>' + combineName + '</h1>'
-    + '<p><em>Open Hope Beacon — one document, both halves: setting it up, and '
+    + '<p><em>Open Sentry Beacon — one document, both halves: setting it up, and '
     + 'using an AI assistant to do the work. Generated from the Markdown in '
     + '<code>docs/</code>, so it cannot disagree with the repository.</em></p>'
     + '<h2>What is in here</h2><ol>'
     + contents.map((t) => `<li>${t}</li>`).join('')
     + '</ol></section>';
 
-  const pdfPath = path.join(OUT, `Open-Hope-Beacon-${combineName.replace(/[^\w-]+/g, '-')}.pdf`);
+  const pdfPath = path.join(OUT, `Open-Sentry-Beacon-${combineName.replace(/[^\w-]+/g, '-')}.pdf`);
   const htmlPath = pdfPath.replace(/\.pdf$/, '.html');
   fs.writeFileSync(htmlPath, page(combineName, toc + parts.join('')));
   execFileSync(chrome, [
@@ -394,7 +394,7 @@ for (const name of files) {
   const title = (markdown.match(/^#\s+(.*)$/m) || [, name])[1];
   const base = name.replace(/\.md$/, '');
   const htmlPath = path.join(OUT, `${base}.html`);
-  const pdfPath = path.join(OUT, `Open-Hope-Beacon-${base}.pdf`);
+  const pdfPath = path.join(OUT, `Open-Sentry-Beacon-${base}.pdf`);
 
   fs.writeFileSync(htmlPath, page(title, render(markdown)));
   execFileSync(chrome, [

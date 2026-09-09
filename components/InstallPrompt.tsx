@@ -4,13 +4,13 @@ import { onCanonicalHost } from '@/lib/canonical';
 import { useDemo } from '@/lib/demo/store';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { HopeBeaconMark } from '@/components/HopeBeaconMark';
+import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { copyText } from '@/lib/share';
 import { appleKind, addTitle, addLabel, type AppleKind } from '@/lib/apple-install';
 import { APP_SHORT_NAME } from '@/lib/brand';
 
 // -------------------------------------------------------------------------
-// "Install Hope Beacon".
+// "Install Sentry Beacon".
 //
 // The old version was a thin bar at the bottom of the screen with a small
 // button, and on a desktop monitor that is the easiest thing in the world to
@@ -573,7 +573,7 @@ export function InstallPrompt() {
             className="flex items-center gap-3 px-4 py-3"
             style={{ backgroundColor: '#1E2A4A' }}
           >
-            <HopeBeaconMark size={40} />
+            <SentryBeaconMark size={40} />
             <div className="min-w-0 flex-1">
               <p className="font-extrabold text-white">{addTitle(kind, APP_SHORT_NAME)}</p>
               <p className="text-xs text-white/60">
@@ -652,7 +652,7 @@ export function InstallPrompt() {
                 className="tap w-full rounded-xl text-base font-bold text-white"
                 style={{ backgroundColor: '#1E2A4A' }}
               >
-                Install Hope Beacon
+                Install Sentry Beacon
               </button>
             )}
             <button
@@ -724,7 +724,7 @@ export function InstallPrompt() {
           and still on screen. */}
       <div className="animate-drop flex max-h-[50dvh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
         <div className="flex items-center gap-3">
-          <HopeBeaconMark size={40} />
+          <SentryBeaconMark size={40} />
           <div className="min-w-0 flex-1">
             <p className="font-bold text-navy">{addTitle(kind, APP_SHORT_NAME)}</p>
             {/* THE OTHER REPORTED BUG WAS THIS LINE. Opened from a Messenger

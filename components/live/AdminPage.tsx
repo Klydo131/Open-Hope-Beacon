@@ -605,7 +605,7 @@ export function LiveAdminPage() {
                       variant="ghost"
                       onClick={async () => {
                         const done = await copyText(
-                          `Hope Beacon\nE-mail: ${handLink.to}\nPassword: ${handLink.pass}\nSign in: ${handLink.url}`,
+                          `Sentry Beacon\nE-mail: ${handLink.to}\nPassword: ${handLink.pass}\nSign in: ${handLink.url}`,
                         );
                         setLinkCopied(done ? 'yes' : 'failed');
                       }}

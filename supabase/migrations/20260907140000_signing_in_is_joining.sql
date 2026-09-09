@@ -4,7 +4,7 @@
 -- REPORTED TWICE IN ONE BREATH:
 --
 --   "some e-mails are already in the system but still in the re-send mail
---    list, any e-mail that is already part of the Open Hope Beacon should not
+--    list, any e-mail that is already part of the Open Sentry Beacon should not
 --    be in the re-send mail list."
 --
 --   "When the E-mail invitation is sent, access to password is randomized, but

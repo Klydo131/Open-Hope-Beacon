@@ -199,9 +199,9 @@ function convert(md) {
 
 const md = fs.readFileSync(SRC, 'utf8');
 const doc = new Document({
-  creator: 'Open Hope Beacon',
-  title: 'Hope Beacon: The Complete Handbook',
-  description: 'Guidelines and instructions for running Hope Beacon.',
+  creator: 'Open Sentry Beacon',
+  title: 'Sentry Beacon: The Complete Handbook',
+  description: 'Guidelines and instructions for running Sentry Beacon.',
   sections: [{
     properties: { page: { margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } } },
     children: [
@@ -210,7 +210,7 @@ const doc = new Document({
         spacing: { before: 400 },
         alignment: AlignmentType.CENTER,
         children: [new TextRun({
-          text: 'Open Hope Beacon is free software under the AGPL-3.0. '
+          text: 'Open Sentry Beacon is free software under the AGPL-3.0. '
               + 'This handbook contains no keys, no passwords and no member details.',
           size: 18, color: GREY, italics: true,
         })],
@@ -220,7 +220,7 @@ const doc = new Document({
 });
 
 fs.mkdirSync(OUT, { recursive: true });
-const dest = path.join(OUT, 'Hope-Beacon-Handbook.docx');
+const dest = path.join(OUT, 'Sentry-Beacon-Handbook.docx');
 Packer.toBuffer(doc).then((buf) => {
   fs.writeFileSync(dest, buf);
   console.log(`${path.relative(process.cwd(), dest)}  (${Math.round(buf.length / 1024)} KB)`);
