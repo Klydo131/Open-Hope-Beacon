@@ -887,6 +887,7 @@ Step 7.
 | [BACKENDS.md](BACKENDS.md) | Using something other than Supabase |
 | [PLATFORMS.md](PLATFORMS.md) | Hosting somewhere other than Vercel |
 | [EMAIL.md](EMAIL.md) | Using something other than Brevo |
+| [BACKEND-MAP.md](BACKEND-MAP.md) | Every table, who may read it, and where the rule lives |
 | [SECURITY.md](SECURITY.md) | The rules, and how to check them yourself |
 | [ONBOARDING.md](ONBOARDING.md) | Getting a real church using it |
 | [AI-TOOLKIT.md](AI-TOOLKIT.md) | Longer version of Part 5 |

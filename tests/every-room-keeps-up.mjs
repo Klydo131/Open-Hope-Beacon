@@ -75,7 +75,15 @@ function screens(dir, out = []) {
 // them, the security audit, turned out not to need its own table published at
 // all. Left in place so the next screen that genuinely must stay on a reload
 // has somewhere to be named and explained.
-const STAYS_ON_A_RELOAD = new Set([]);
+const STAYS_ON_A_RELOAD = new Set([
+  // The Guild Room's wall. Its two tables have no read policy, so realtime
+  // delivers nothing, and there is no other table that changes when somebody
+  // posts -- so unlike the security audit there is nothing safe to watch
+  // instead. The repair that would work, a read policy on the posts, is the one
+  // that must not happen: the feed computes an author_label rather than
+  // returning author_id, and a row policy hands over the raw column.
+  'components/LiveGuildActivity.tsx',
+]);
 
 {
   const deaf = [];
@@ -140,6 +148,48 @@ const STAYS_ON_A_RELOAD = new Set([]);
   const deaf = [...watched].filter((t) => !published.has(t)).sort();
   ok(deaf.length === 0,
      `every watched table is published${deaf.length ? ` (missing: ${deaf.join(', ')})` : ''}`);
+}
+
+// ---------------------------------------------------------------------------
+// 2b. AND EVERY WATCHED TABLE CAN ACTUALLY BE READ
+// ---------------------------------------------------------------------------
+//
+// PUBLISHED IS NOT ENOUGH. Realtime evaluates row level security per
+// subscriber, so a table with RLS on and NO POLICY delivers to nobody --
+// however correctly the screen subscribes and however plainly the migration
+// publishes it. The subscription is silent by construction: it looks wired,
+// satisfies every check that only asks whether a screen subscribed, and shows
+// a frozen screen.
+//
+// This was not hypothetical and it was not found by anybody using the app. The
+// database advisor named five published tables with no read policy, and two of
+// them were being watched by screens wired the day before: the Guild Room's
+// wall and the library's record. The security audit was a third, caught
+// earlier by reading its policies before publishing it.
+//
+// So a set may only name a table that some migration grants a SELECT policy on.
+{
+  const hook = read('lib/live/keep-up.ts');
+  const watched = new Set();
+  for (const m of hook.matchAll(/export const KEEP_UP_\w+ =\s*([^;]+);/g)) {
+    for (const t of m[1].matchAll(/'([a-z_]+)'/g)) watched.add(t[1]);
+  }
+
+  const sql = migrationFiles()
+    .map((f) => stripSql(read(`supabase/migrations/${f}`))).join('\n');
+  const readable = new Set(
+    [...sql.matchAll(/create policy \w+\s+on public\.(\w+)\s+for select/gi)].map((m) => m[1]),
+  );
+  // A policy written without `for select` covers every command, this one
+  // included, so those count too.
+  for (const m of sql.matchAll(/create policy \w+\s+on public\.(\w+)\s+for all/gi)) {
+    readable.add(m[1]);
+  }
+
+  const silent = [...watched].filter((t) => !readable.has(t)).sort();
+  ok(silent.length === 0,
+     `every watched table has a read policy, so the subscription is not silent${
+       silent.length ? ` (no policy: ${silent.join(', ')})` : ''}`);
 }
 
 // ---------------------------------------------------------------------------

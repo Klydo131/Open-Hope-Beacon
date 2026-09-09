@@ -87,7 +87,22 @@ export const KEEP_UP_LIBRARY = ['materials', 'material_shares'] as const;
 export const KEEP_UP_MEETINGS = ['meetings'] as const;
 export const KEEP_UP_PEOPLE = ['profiles', 'pairings', 'pairing_requests', 'invites', 'recommendations'] as const;
 export const KEEP_UP_BELL = ['notifications'] as const;
-export const KEEP_UP_GUILD = ['guild_activity_posts', 'guild_activity_amens'] as const;
+// NO SET FOR THE GUILD ROOM'S WALL, and this one is a genuine dead end rather
+// than an oversight. `guild_activity_posts` and `guild_activity_amens` have row
+// level security on and no policy, so a subscription to them is silent -- and
+// unlike the security audit and the library record, there is no other table
+// that changes when somebody posts, so there is nothing safe to watch instead.
+//
+// The obvious repair, a read policy on the posts, is the one thing that must
+// not happen: `list_guild_activity` computes an `author_label` rather than
+// returning `author_id`, so the feed deliberately decides how much of a
+// writer's identity each reader sees. A row policy hands over the raw column
+// and undoes that. A wall that reloads is a smaller cost than a wall that
+// quietly names its authors.
+//
+// KEEP_UP_GUILD used to be declared here and named those two tables. It was a
+// subscription to silence: it looked wired, passed every check that only asks
+// whether a screen subscribed, and delivered nothing.
 
 // ---------------------------------------------------------------------------
 // THE ROOMS THAT WERE LEFT OUT.
@@ -187,7 +202,25 @@ export const KEEP_UP_GUIDE_ROOM =
 export const KEEP_UP_FEEDBACK = ['feedback'] as const;
 
 /** The library's record, and who has been stopped from adding to it. */
-export const KEEP_UP_LIBRARY_RECORD = ['library_activity', 'library_blocks'] as const;
+/**
+ * The library's record, WITHOUT watching the record table.
+ *
+ * The same trap the security audit fell into, found by the advisor rather than
+ * by anybody reporting it. `library_activity` and `library_blocks` have row
+ * level security on and NO POLICY AT ALL: they are read through a definer
+ * function, so a subscription to them is delivered to nobody and the screen
+ * looks wired while staying frozen.
+ *
+ * Every activity row is written by a trigger on `materials` or
+ * `material_shares` -- checked against the live database, not inferred -- and
+ * both of those are published and readable. So the record re-reads exactly when
+ * somebody adds or shares something, which is when it has a new line to show.
+ *
+ * A block is set through a definer function and has no cause table, so a
+ * blocked person appears on the next open. That is rare enough to be the right
+ * trade and is stated here rather than left as a surprise.
+ */
+export const KEEP_UP_LIBRARY_RECORD = ['materials', 'material_shares'] as const;
 
 /** Somebody's own account: their name, their photograph, their church. */
 export const KEEP_UP_ACCOUNT = ['profiles', 'churches', 'profile_changes'] as const;
