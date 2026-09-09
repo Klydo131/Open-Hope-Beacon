@@ -181,6 +181,8 @@ Three things about it are worth knowing before you use it on twenty people.
 
 A Guide and an Explorer arrange a time together on the same card, and both see it. Either may propose one: a title, a date and time, and online or in person. The other person confirms it, and either can cancel. Nobody else in the church sees any of it.
 
+**The card sits with the conversation, on both sides.** On the Explorer's screen it always has. On the Guide's it used to sit under **Journey**, which is the one tab the Explorer never sees — it holds the six stages and the Advance button, and it is where a Guide records where somebody has got to. That put a thing the two of them do *together* inside the folder of things the Guide does *about* them: an Explorer proposed a time from their chat, and their Guide had to leave the conversation and know which tab to open before they could see it had been asked. It is beneath the thread on both screens now, in the same place on each.
+
 **In person asks where, and will not let you skip it.** The place becomes an **Open in Maps** button that opens whichever map app that person already has, signed in, with their own saved places. Give it a place and a street, for example *Church cafe, 12 Rizal St, Cavite*, because "Church hall" on its own maps to every church hall in the country.
 
 > **NOTE** · A link, never an embedded map
@@ -310,6 +312,8 @@ Everybody in the church can see that a guild called *Palawan Campus* exists. **W
 The **Guild Room** is that group's shared board: Guides and the Explorers in it, together. Four kinds of thing go on it: an **encouragement**, a **study note**, a **prayer**, or a way the guild can **care** for somebody. Anyone in the guild can say *Amen* to a post.
 
 **It shows no names.** A post is signed *You*, *A Guide*, or *A fellow Explorer*, and nothing else. The board never publishes who is in the guild, which is what makes the room worth having: a group can talk without it becoming a roster of everybody's Explorers.
+
+**The board updates on its own.** A post or an *Amen* from anybody in the guild appears on everyone else's screen within a second or two, with no refresh. This was the last room in the app that still needed one, and it was left until last because the obvious way to do it would have broken the paragraph above: making the posts readable by the browser would have handed over who wrote each one, which is precisely what the room exists not to do. Instead the app watches a separate signal that records only *that this guild's wall changed* — no author, no words, nothing about a person — and then re-asks for the board through the same route as always, labels and all. **Nothing about how little you are told changed; only how quickly you are told it.**
 
 **Directors and Executive Directors are not in it.** A group talking honestly is what the room is for, and a Director reading over their shoulder is a different product. Guild membership itself is still managed by a Director, from the Church room.
 

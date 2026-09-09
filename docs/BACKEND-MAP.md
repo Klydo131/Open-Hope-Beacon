@@ -140,9 +140,22 @@ refuses a `KEEP_UP_` set that names a table with no read policy, which is why
 the library's record watches `materials` and `material_shares` — the two tables
 whose triggers *write* its rows — instead of the record itself.
 
-The Guild Room's wall is the one screen that still reloads, because there is no
-cause table to watch and the only repair that would work would expose the author
-column the feed exists to hide.
+The Guild Room's wall was the last screen that still reloaded, for the same
+reason: the only repair that would obviously work — a read policy on
+`guild_activity_posts` — would put `author_id` on the wire and undo the very
+thing the label exists to do. It is live as of `20260909180000`, and the way it
+got there is the fourth option in rule 3 below.
+
+**`guild_wall_pulse` is a cause table that was written on purpose.** One row per
+guild, holding only that its wall changed and how many times: no author, no
+body, no post id. Triggers on the posts and on the amens bump it, its read
+policy calls `private.active_guild_member` — the feed's own membership test,
+called rather than restated — and the screen re-asks `list_guild_activity`,
+which redacts exactly as before. The raw row never leaves the database, and both
+guild tables keep RLS on with no read policy and no browser grant.
+
+When there is no cause table to watch, that is not always the end of it. One can
+be built, provided it carries strictly less than the thing it reports on.
 
 ---
 
@@ -171,7 +184,10 @@ scripts/verify.mjs       the gate: typecheck, build, and every test above
 
 3. **Never widen a policy to make a screen convenient.** The screen is the
    cheaper thing to change. Every time this has come up the answer has been to
-   watch a different table, show a different card, or accept a reload.
+   watch a different table, show a different card, accept a reload — or write a
+   cause table that carries no identity and watch that instead. The Guild wall
+   is the worked example: it is live, and `guild_activity_posts` is no more
+   readable than it was the day the room shipped.
 
 ---
 
@@ -189,7 +205,8 @@ And against a live database, the two questions worth asking after any change:
 select relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity;
 
--- Nothing may be watched that cannot be read.
+-- Published but unreadable: in the publication, no read policy. These deliver
+-- to nobody. That is fine when nothing watches them and a bug when something does.
 select p.tablename from pg_publication_tables p
 join pg_class c on c.relname = p.tablename
 left join pg_policy pol on pol.polrelid = c.oid and pol.polcmd in ('r','*')
@@ -197,6 +214,32 @@ where p.pubname = 'supabase_realtime' and p.schemaname = 'public'
 group by p.tablename having count(pol.polname) = 0;
 ```
 
-Both should return nothing. The first has returned nothing since the beginning.
+**The first returns nothing, and has since the beginning. The second returns
+five rows, and that is expected** — this page used to say both came back empty,
+which anybody who ran the second query found out was untrue in about a second:
+
+```
+blog_views · guild_activity_amens · guild_activity_posts
+library_activity · library_blocks
+```
+
+They sit in the publication and deliver to nobody, because RLS filters realtime
+exactly as it filters a `SELECT`. That is harmless while no screen watches them
+— nothing in `lib/live/keep-up.ts` names one — and it is why the second query is
+not the question worth asking. This is:
+
+```sql
+-- A table a screen WATCHES that cannot be read is the actual fault: the screen
+-- looks wired and stays frozen. Cross-check the list against KEEP_UP_ sets.
+select p.tablename from pg_publication_tables p
+join pg_class c on c.relname = p.tablename
+left join pg_policy pol on pol.polrelid = c.oid and pol.polcmd in ('r','*')
+where p.pubname = 'supabase_realtime' and p.schemaname = 'public'
+group by p.tablename having count(pol.polname) = 0;
+-- ...then: grep -o "'[a-z_]*'" lib/live/keep-up.ts | sort -u
+```
+
+`tests/every-room-keeps-up.mjs` does that cross-check on every run, which is the
+reason to trust it rather than this paragraph.
 The second returned five rows on 9 September 2026, and that is the bug this
 page was written after fixing.

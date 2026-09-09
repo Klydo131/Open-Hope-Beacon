@@ -26,6 +26,44 @@ is not that, and a PDF cannot be edited at all.
 Keep them in step with `docs/` when the setup changes — a handbook that
 describes last year's install is worse than none.
 
+## The six PDFs that ARE committed
+
+Everything in `docs/handbook/pdf/` is build output and ignored. Six PDFs in
+`docs/` are committed, because they are what gets handed to somebody who will
+never clone this repository:
+
+| File | Built from | For |
+|---|---|---|
+| `Sentry-Beacon-Handbook.pdf` | `HANDBOOK.md` | Anybody running the app day to day |
+| `Sentry-Beacon-Architecture.pdf` | `BACKEND-MAP.md` | Somebody asking how the backend is shaped |
+| `Sentry-Beacon-Engineering-Brief.pdf` | `BUILD-BRIEF.md` | A developer picking the work up |
+| `Sentry-Beacon-IT-and-AI-Guide.pdf` | four docs, combined | A church's IT volunteer |
+| `Do-This-Next.pdf` | `DO-THIS-NEXT.md` | The owner, between sessions |
+| `What-It-Costs.pdf` | `WHAT-IT-COSTS.md` | Whoever signs off the bill |
+
+Rebuild them after changing the Markdown, or the committed copy starts telling
+a church something the app stopped doing:
+
+```bash
+node docs/handbook/build-pdf.js HANDBOOK.md DO-THIS-NEXT.md WHAT-IT-COSTS.md \
+                                BACKEND-MAP.md BUILD-BRIEF.md
+node docs/handbook/build-pdf.js --combine "IT and AI Guide" \
+     START-HERE.md AI-SETUP-GUIDE.md EMAIL.md SECURITY.md
+cp docs/handbook/pdf/Open-Sentry-Beacon-HANDBOOK.pdf      docs/Sentry-Beacon-Handbook.pdf
+cp docs/handbook/pdf/Open-Sentry-Beacon-BACKEND-MAP.pdf   docs/Sentry-Beacon-Architecture.pdf
+cp docs/handbook/pdf/Open-Sentry-Beacon-BUILD-BRIEF.pdf   docs/Sentry-Beacon-Engineering-Brief.pdf
+cp docs/handbook/pdf/Open-Sentry-Beacon-IT-and-AI-Guide.pdf docs/Sentry-Beacon-IT-and-AI-Guide.pdf
+cp docs/handbook/pdf/Open-Sentry-Beacon-DO-THIS-NEXT.pdf  docs/Do-This-Next.pdf
+cp docs/handbook/pdf/Open-Sentry-Beacon-WHAT-IT-COSTS.pdf docs/What-It-Costs.pdf
+```
+
+> **Checking a built PDF actually contains your change.** `pdftotext` is not
+> installed here and a hand-rolled PDF text scraper reads the embedded font
+> programs rather than the page text — it will happily report that a phrase is
+> absent from a document that contains it, which is worse than not checking.
+> Inspect the intermediate HTML instead: it is what Chrome turns into the PDF,
+> and `build-pdf.js` deletes it only at the end.
+
 ## The combined PDF — the one to hand out
 
 One file, both halves: setting it up, and using an AI assistant to do the work.
