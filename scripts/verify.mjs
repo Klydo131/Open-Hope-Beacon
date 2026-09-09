@@ -265,6 +265,11 @@ const staticChecks = [
   // account cannot hold a foreign key to one. That is the check that matters
   // here; the rest keep a name out of it and row level security on.
   ['a record that outlives the people in it', 'tests/a-record-that-outlives-the-people-in-it.mjs'],
+  // Sixteen screens loaded live data and subscribed to nothing, including the
+  // Explorer's, the Guide's and the Director's, and eighteen tables were never
+  // published. Both halves are checked here, because a set that names an
+  // unpublished table looks wired and is deaf.
+  ['every room keeps up', 'tests/every-room-keeps-up.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

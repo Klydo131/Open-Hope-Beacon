@@ -215,6 +215,12 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
     } catch { /* the picker still works without it */ }
   }, [pairings]);
   useEffect(() => { void loadShared(); }, [loadShared]);
+  // AND KEEP IT UP TO DATE. This map is what puts "has it" on a name, and it
+  // was read once and never again -- so a resource shared from another device,
+  // or by the Explorer at the other end, left the picker offering a tap that
+  // the unique index would refuse. Found by tightening the check that every
+  // loader on a live screen is re-run, rather than by anybody hitting it.
+  useKeepUp(KEEP_UP_LIBRARY, loadShared);
   useEffect(() => { void load(); }, [load]);
   // The screen keeps up when somebody else changes something.
   useKeepUp(KEEP_UP_LIBRARY, load);

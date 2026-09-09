@@ -18,6 +18,7 @@
 // about. This arrives instantly and cannot be rate limited.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_FEEDBACK } from '@/lib/live/keep-up';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
@@ -45,6 +46,8 @@ export function LiveFeedbackInbox() {
     catch (cause) { setItems([]); setError(humanError(cause, 'Something went wrong.')); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_FEEDBACK, load);
 
   const mark = async (f: live.Feedback) => {
     setBusy(f.id);

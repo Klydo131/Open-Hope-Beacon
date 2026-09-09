@@ -4,6 +4,7 @@ import { RoomTabs, useRoom, type Room } from '@/components/Rooms';
 import { MinorBadge } from '@/components/MinorBadge';
 import { copyText } from '@/lib/share';
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_ROSTER } from '@/lib/live/keep-up';
 import { roleNoun, stageInfo } from '@/lib/brand';
 import { useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
@@ -109,6 +110,9 @@ export function LiveAdminPage() {
   useEffect(() => {
     void load();
   }, [load]);
+  // Approvals, invitations and pairings, as they happen. A Director watching
+  // this during a launch was the person most often told to refresh.
+  useKeepUp(KEEP_UP_ROSTER, load);
 
   // The address somebody was invited at and the day they arrived are the two
   // facts that answer "is this the person I meant to let in?", and neither is

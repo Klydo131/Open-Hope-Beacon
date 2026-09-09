@@ -14,6 +14,7 @@
 // read by every Guide and by leadership is accountable by construction.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useKeepUp, KEEP_UP_GUIDE_ROOM } from '@/lib/live/keep-up';
 import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { Avatar, Button, Card } from '@/components/ui';
@@ -72,6 +73,8 @@ export function LiveAskToWalkWith() {
     }
   }, [profile?.id]);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_GUIDE_ROOM, load);
 
   const askedFor = new Set(mine.filter((a) => a.status === 'pending').map((a) => a.ds_id));
 
@@ -197,6 +200,8 @@ export function LivePairingRequestsForDirector() {
     } catch (cause) { setRows([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_GUIDE_ROOM, load);
 
   const decide = async (id: string, status: 'accepted' | 'declined') => {
     setBusy(id); setError('');
@@ -267,6 +272,8 @@ export function LiveGuildRoom() {
     } catch (cause) { setRows([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_GUIDE_ROOM, load);
 
   // Newest last, so the room opens at the current conversation. Scroll only
   // this message box: scrollIntoView also walks the page and used to pull the

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_LIBRARY_RECORD } from '@/lib/live/keep-up';
 import * as live from '@/lib/live/data';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { Button, Card } from '@/components/ui';
@@ -48,6 +49,8 @@ export function LiveLibraryRecord({ audience }: { audience: 'admin' | 'executive
     catch (cause) { setRows([]); setError(humanError(cause, 'Could not load the library record.')); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_LIBRARY_RECORD, load);
 
   const setBlock = async (personId: string, blocked: boolean, why?: string) => {
     setBusy(personId);

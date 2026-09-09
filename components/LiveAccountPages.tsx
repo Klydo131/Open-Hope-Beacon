@@ -12,6 +12,7 @@
 // never finished, behind a card that made it look deliberate.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_ACCOUNT } from '@/lib/live/keep-up';
 import Link from 'next/link';
 import { Avatar, Button, Card } from '@/components/ui';
 import { InstallCard } from '@/components/InstallCard';
@@ -704,6 +705,8 @@ function ChurchNameCard() {
     } catch (cause) { setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_ACCOUNT, load);
 
   if (!church) return null;
 

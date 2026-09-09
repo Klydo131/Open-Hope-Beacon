@@ -14,6 +14,7 @@
 // link to hand over when the email did not make it.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_ROSTER } from '@/lib/live/keep-up';
 import { useRouter } from 'next/navigation';
 import { copyText } from '@/lib/share';
 import { Button, Card } from '@/components/ui';
@@ -142,6 +143,8 @@ export function LiveMailPage() {
     catch (cause) { setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_ROSTER, load);
 
   // RESEND, WITHOUT RETYPING ANYTHING.
   //

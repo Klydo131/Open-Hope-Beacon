@@ -41,11 +41,32 @@ const migration = fs
   .sort()
   .pop();
 ok(!!migration, `the publication migration is present (${migration ?? 'MISSING'})`);
-const sql = migration ? read(`${dir}/${migration}`) : '';
 
+// EVERY MIGRATION, NOT THE FIRST ONE. This read only the migration whose name
+// contains "the_screen_keeps_up", so the day a SECOND migration published more
+// tables -- 20260908170000, which publishes the eleven that sixteen deaf
+// screens needed -- every one of those read as unpublished and this test went
+// red on a change that was correct. The rule is that a watched table is
+// published somewhere, not that one named file publishes it.
+const sql = fs
+  .readdirSync(path.join(root, dir))
+  .filter((f) => f.endsWith('.sql'))
+  .sort()
+  .map((f) => read(`${dir}/${f}`))
+  .join('\n');
+
+// Only the arrays that drive a publication, so an unrelated list of strings in
+// some other migration cannot be mistaken for a published table.
 const published = new Set(
-  [...sql.matchAll(/^\s*'([a-z_]+)',?\s*(?:--.*)?$/gm)].map((m) => m[1]),
+  [...sql.matchAll(/text\[\] := array\[([\s\S]*?)\];/g)]
+    .flatMap((m) => [...m[1].matchAll(/'([a-z_]+)'/g)].map((t) => t[1])),
 );
+
+// AND WHAT WAS LATER TAKEN BACK OFF. A table can be published by one migration
+// and dropped by a later one; reading every file means reading both halves.
+for (const m of sql.matchAll(/keep_off text\[\] := array\[([\s\S]*?)\];/g)) {
+  for (const t of m[1].matchAll(/'([a-z_]+)'/g)) published.delete(t[1]);
+}
 ok(published.size >= 15, `it publishes the tables the screens watch (${published.size})`);
 
 // Realtime evaluates RLS per subscriber, but only if it can see the columns the

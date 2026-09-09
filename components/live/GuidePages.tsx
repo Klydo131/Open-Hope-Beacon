@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MinorBadge } from '@/components/MinorBadge';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_MY_PAIRING, KEEP_UP_ROSTER, KEEP_UP_PRAYER } from '@/lib/live/keep-up';
 import { stageInfo, previousStage, STAGES, nextStage } from '@/lib/brand';
 import { useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
@@ -67,30 +68,36 @@ export function LiveGuidePage() {
   // `open` only: the badge clears once the Guide presses "I'm praying", which
   // is what keeps it worth reading rather than permanent furniture.
   const [unprayed, setUnprayed] = useState<Record<string, number>>({});
-  useEffect(() => {
-    let alive = true;
-    live.listPairings()
-      .then((data) => {
-        if (!alive) return;
-        setRows(data.filter((row) => row.status === 'active'));
-        setReady(true);
-      })
-      .catch((cause) => { if (alive) setError(errorText(cause)); });
-    live.listPrayerRequests().then((requests) => {
-      if (!alive) return;
+  // LIFTED OUT OF ITS EFFECT so it can be re-run, which is the whole of what
+  // "keeps up" means here. It was an anonymous body inside useEffect, so the
+  // roster and the prayer badge could only ever be as fresh as the last full
+  // page load -- a Guide was paired with somebody, or somebody asked for
+  // prayer, and this screen went on showing the version from when it opened.
+  const loadRoster = useCallback(async () => {
+    try {
+      const data = await live.listPairings();
+      setRows(data.filter((row) => row.status === 'active'));
+      setReady(true);
+    } catch (cause) {
+      setError(errorText(cause));
+    }
+    try {
+      const requests = await live.listPrayerRequests();
       const counts: Record<string, number> = {};
       for (const r of requests) {
         if (r.status !== 'open') continue;
         counts[r.ds_id] = (counts[r.ds_id] ?? 0) + 1;
       }
       setUnprayed(counts);
-    }).catch(() => {
+    } catch {
       /* The badge is an aid, not the feature. A Guide who cannot load it still
          has the full list further down the page, so this must not take the
          whole screen down with it. */
-    });
-    return () => { alive = false; };
+    }
   }, []);
+  useEffect(() => { void loadRoster(); }, [loadRoster]);
+  useKeepUp(KEEP_UP_ROSTER, loadRoster);
+  useKeepUp(KEEP_UP_PRAYER, loadRoster);
 
   // FOUR FOLDERS. The Guide's home was the greeting, the announcements, the
   // picture prompt, the summary, five Explorer cards, the follow-ups, every
@@ -430,6 +437,8 @@ export function LiveConversationPage() {
     void load();
     return live.subscribeToMessages(pairingId, () => void load());
   }, [pairingId, load]);
+  // Everything around the conversation: files, the pairing, their profile.
+  useKeepUp(KEEP_UP_MY_PAIRING, load);
 
   const send = async (event: React.FormEvent) => {
     event.preventDefault();

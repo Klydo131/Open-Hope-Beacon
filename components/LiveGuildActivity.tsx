@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_GUILD, KEEP_UP_GUILDS } from '@/lib/live/keep-up';
 import * as live from '@/lib/live/data';
 import { BeaconSpinner } from '@/components/BeaconLoader';
 import { Button, Card } from '@/components/ui';
@@ -64,6 +65,10 @@ export function LiveGuildActivity() {
 
   useEffect(() => { void loadGuilds(); }, [loadGuilds]);
   useEffect(() => { void loadPosts(); }, [loadPosts]);
+  // The Guild Room is the one room where several people are looking at the
+  // same wall at once, so it is the one where a stale screen is most obvious.
+  useKeepUp(KEEP_UP_GUILDS, loadGuilds);
+  useKeepUp(KEEP_UP_GUILD, loadPosts);
 
   const post = async (event: React.FormEvent) => {
     event.preventDefault();

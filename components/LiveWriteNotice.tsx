@@ -13,6 +13,7 @@
 // go somewhere to do.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_NOTICES } from '@/lib/live/keep-up';
 import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
 import { Button, Card } from '@/components/ui';
@@ -43,6 +44,8 @@ export function LiveWriteNotice() {
     catch (cause) { setMine([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_NOTICES, load);
 
   // AN EXPLORER IS TOLD WHY, rather than shown nothing. A room that is blank
   // for a whole role reads as broken; a room that explains itself reads as

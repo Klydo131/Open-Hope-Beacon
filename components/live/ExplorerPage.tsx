@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useKeepUp, KEEP_UP_MY_PAIRING } from '@/lib/live/keep-up';
 import { NAVY } from '@/lib/brand';
 import { useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
@@ -88,6 +89,9 @@ export function LiveExplorerPage() {
   }, [load]);
 
   useEffect(() => { void load(); }, [load]);
+  // A file arriving, or the Guide changing, without a reload. The messages
+  // have their own subscription two lines below.
+  useKeepUp(KEEP_UP_MY_PAIRING, load);
   const pairingId = pairing?.id;
   useEffect(() => { pairingRef.current = pairingId ?? null; }, [pairingId]);
   useEffect(

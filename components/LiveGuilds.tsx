@@ -24,6 +24,7 @@
 // look at the screen at all.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_GUILDS } from '@/lib/live/keep-up';
 import type { Profile } from '@/lib/types';
 import * as live from '@/lib/live/data';
 import { roleNoun } from '@/lib/brand';
@@ -77,6 +78,8 @@ export function LiveGuilds({ me }: { me: Profile }) {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_GUILDS, load);
 
   const run = async (key: string, fn: () => Promise<string>, ok: string) => {
     setBusy(key); setError(''); setNotice('');

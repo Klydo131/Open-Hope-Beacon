@@ -18,6 +18,7 @@
 // same thing without pointing at anybody.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_ROSTER } from '@/lib/live/keep-up';
 import Link from 'next/link';
 import * as live from '@/lib/live/data';
 import type { Profile } from '@/lib/types';
@@ -67,6 +68,8 @@ export function LiveBillboard({ churchName, between }: {
     } catch (cause) { setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_ROSTER, load);
 
 
   const guides = members?.filter((m) => m.role === 'dm' && m.is_approved).length;

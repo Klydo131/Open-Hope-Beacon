@@ -10,6 +10,7 @@
 // declines to render.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_FOLLOW_UPS } from '@/lib/live/keep-up';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { Linked } from '@/components/Linked';
@@ -36,6 +37,8 @@ export function LiveRecommend() {
     catch (cause) { setRows([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_FOLLOW_UPS, load);
 
   const submit = async () => {
     if (!name.trim() || !email.trim() || busy) return;
@@ -96,6 +99,8 @@ export function LiveRecommendationsForDirector() {
     catch (cause) { setRows([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_FOLLOW_UPS, load);
 
   const decide = async (id: string, status: 'invited' | 'declined') => {
     setError('');
@@ -141,6 +146,8 @@ export function LiveFollowUps({ pairings }: { pairings: { id: string; ds_name: s
     catch (cause) { setRows([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_FOLLOW_UPS, load);
   useEffect(() => { if (!pid && pairings[0]) setPid(pairings[0].id); }, [pairings, pid]);
 
   const act = async (fn: () => Promise<void>) => {
@@ -204,6 +211,8 @@ export function LiveNotes({ pairingId }: { pairingId: string }) {
     catch (cause) { setRows([]); setError(message(cause)); }
   }, [pairingId]);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_FOLLOW_UPS, load);
 
   const act = async (fn: () => Promise<void>) => {
     setError('');
@@ -251,6 +260,8 @@ export function LiveLessonSeries({ manage = false }: { manage?: boolean }) {
     catch (cause) { setRows([]); setError(message(cause)); }
   }, []);
   useEffect(() => { void load(); }, [load]);
+  // The screen keeps up when somebody else changes something.
+  useKeepUp(KEEP_UP_FOLLOW_UPS, load);
 
   const byTopic = (rows ?? []).reduce<Record<string, live.LessonSeries[]>>((acc, s) => {
     (acc[s.topic] ??= []).push(s); return acc;
