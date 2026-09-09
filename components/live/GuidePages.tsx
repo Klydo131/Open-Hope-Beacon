@@ -597,6 +597,8 @@ export function LiveConversationPage() {
                 onAttach={(chosen) => void attach(chosen)}
                 onRemoveFile={(file) => void dropFile(file)}
                 attachError={attachError}
+                onEditMessage={live.editMessage}
+                onDeleteMessage={live.deleteMessage}
               />
               {/* Reporting runs BOTH ways. A Guide receiving something they
                   should not have received needs this as much as an Explorer

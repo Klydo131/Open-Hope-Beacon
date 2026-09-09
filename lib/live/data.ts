@@ -1184,6 +1184,45 @@ export async function sendMessage(pairingId: string, body: string): Promise<void
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Change the wording of your own message.
+ *
+ * THROUGH A FUNCTION, NOT AN UPDATE, and the reason is a fault this replaced.
+ * `messages_mark` is an UPDATE policy that exists so the RECIPIENT can stamp
+ * `read_at`. RLS is row level and says nothing about columns, so until today it
+ * also let EITHER PERSON REWRITE THE OTHER'S WORDS, silently. The browser can
+ * now only change `read_at` -- a column grant, not a policy -- and editing goes
+ * through a definer function that checks you are the author.
+ *
+ * The previous wording is kept in `message_revisions` first. Editing is for
+ * fixing a typo, not for changing what you said after being challenged on it.
+ */
+export async function editMessage(messageId: string, body: string): Promise<void> {
+  const text = body.trim();
+  if (!text) throw new Error('A message has to say something.');
+  if (text.length > 4000) throw new Error('That message is too long.');
+  const { error } = await db().rpc('edit_message', {
+    p_message: messageId,
+    p_body: text,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Take your own message back.
+ *
+ * NOT A DELETE. The words are moved into `message_revisions` and the row's
+ * `body` is emptied, so they leave the reach of every browser while the record
+ * survives for safeguarding -- the same reason `report_guild_post` copies a
+ * post's words into the report before anybody can remove it. `deleted_at` and
+ * `deleted_by` stay on the row so the conversation can say plainly that a
+ * message was taken back, and by whom.
+ */
+export async function deleteMessage(messageId: string): Promise<void> {
+  const { error } = await db().rpc('delete_message', { p_message: messageId });
+  if (error) throw new Error(error.message);
+}
+
 /** Mark the other person's messages as read. Never your own. */
 export async function markRead(pairingId: string): Promise<void> {
   const me = await uid();

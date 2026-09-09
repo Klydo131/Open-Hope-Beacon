@@ -56,6 +56,8 @@ export function Conversation({
   onAttach,
   onRemoveFile,
   attachError,
+  onEditMessage,
+  onDeleteMessage,
 }: {
   messages: Message[];
   files: live.PairingFile[];
@@ -68,6 +70,19 @@ export function Conversation({
   setBody: (value: string) => void;
   send: (event: React.FormEvent) => void;
   busy: boolean;
+  /**
+   * Change or take back your OWN message. Both optional: a caller that passes
+   * neither gets the thread exactly as before, with no controls on it.
+   *
+   * Neither is a plain table write. Until today `messages_mark` -- an UPDATE
+   * policy that exists for read receipts -- let either person in the pairing
+   * rewrite the other's words silently, because RLS is row level and says
+   * nothing about columns. The browser may now only touch `read_at`; these go
+   * through definer functions that check you are the author, and both keep what
+   * was said in a table no browser can read.
+   */
+  onEditMessage?: (id: string, body: string) => Promise<void>;
+  onDeleteMessage?: (id: string) => Promise<void>;
   onAttach?: (file: File) => void;
   onRemoveFile?: (file: live.PairingFile) => void;
   attachError?: string;
@@ -120,6 +135,50 @@ export function Conversation({
       kind: 'file', id: f.id, at: f.created_at, who: f.owner_id, file: f,
     })),
   ].sort((a, b) => a.at.localeCompare(b.at) || a.id.localeCompare(b.id));
+
+  // EDITING AND TAKING BACK, one message at a time on purpose. Two open editors
+  // in one thread is two drafts to lose, and a confirm sitting open on a
+  // message you have scrolled away from is a tap waiting to go wrong.
+  const [editingId, setEditingId] = useState('');
+  const [draft, setDraft] = useState('');
+  const [confirmingId, setConfirmingId] = useState('');
+  const [rowBusy, setRowBusy] = useState('');
+  const [rowError, setRowError] = useState('');
+
+  const beginEdit = (id: string, current: string) => {
+    setConfirmingId('');
+    setRowError('');
+    setEditingId(id);
+    setDraft(current);
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!onEditMessage || rowBusy) return;
+    const text = draft.trim();
+    if (!text) { setRowError('A message has to say something.'); return; }
+    setRowBusy(id); setRowError('');
+    try {
+      await onEditMessage(id, text);
+      setEditingId(''); setDraft('');
+    } catch (cause) {
+      setRowError(humanError(cause, 'That message could not be changed.'));
+    } finally {
+      setRowBusy('');
+    }
+  };
+
+  const takeBack = async (id: string) => {
+    if (!onDeleteMessage || rowBusy) return;
+    setRowBusy(id); setRowError('');
+    try {
+      await onDeleteMessage(id);
+      setConfirmingId('');
+    } catch (cause) {
+      setRowError(humanError(cause, 'That message could not be deleted.'));
+    } finally {
+      setRowBusy('');
+    }
+  };
 
   const newest = timeline[timeline.length - 1];
   const newestKey = newest ? `${newest.kind}-${newest.id}` : '';
@@ -224,9 +283,108 @@ export function Conversation({
                   </p>
                 )}
                 {entry.kind === 'message' ? (
-                  <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                    <Linked text={entry.message.body} />
-                  </p>
+                  entry.message.deleted_at ? (
+                    /* THE NOTE THAT REPLACES THE WORDS, and the reason a
+                       deletion is not simply a missing bubble. A message that
+                       vanished without trace reads as one that was never sent,
+                       which is worse than either the message or its removal:
+                       the other person remembers reading something and the
+                       thread says they imagined it. The words themselves are
+                       gone from here -- they were moved into a table no browser
+                       can read -- so there is nothing to reveal by saying this
+                       plainly. */
+                    <p className="whitespace-pre-wrap break-words text-[15px] italic leading-relaxed text-slate-500">
+                      {mine
+                        ? 'You deleted a message'
+                        : `${theirName?.split(' ')[0] ?? 'They'} deleted a message`}
+                    </p>
+                  ) : editingId === entry.message.id ? (
+                    <div className="space-y-2">
+                      <textarea
+                        value={draft}
+                        onChange={(event) => setDraft(event.target.value)}
+                        rows={3}
+                        maxLength={4000}
+                        autoFocus
+                        aria-label="Change your message"
+                        className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-[15px] leading-relaxed text-slate-800"
+                      />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          variant="gold"
+                          onClick={() => void saveEdit(entry.message.id)}
+                          disabled={rowBusy === entry.message.id}
+                        >
+                          {rowBusy === entry.message.id ? 'Saving' : 'Save the change'}
+                        </Button>
+                        <Button variant="ghost" onClick={() => { setEditingId(''); setDraft(''); }}>
+                          Leave it as it was
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                        <Linked text={entry.message.body} />
+                      </p>
+                      {/* SAID OUT LOUD, because the other person read the first
+                          version. A quiet edit is a way to make somebody doubt
+                          what they remember. */}
+                      {entry.message.edited_at && (
+                        <p className="mt-0.5 text-[11px] italic text-slate-500">edited</p>
+                      )}
+                      {mine && (onEditMessage || onDeleteMessage) && (
+                        <div className="mt-1 flex flex-wrap items-center gap-3">
+                          {onEditMessage && (
+                            <button
+                              type="button"
+                              onClick={() => beginEdit(entry.message.id, entry.message.body)}
+                              className="text-[12px] font-semibold text-slate-500 underline underline-offset-2"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {/* A HAND-ROLLED RED CONTROL RATHER THAN A BOXED ONE.
+                              tests/destructive-is-discouraged.mjs allows that
+                              and it is the right shape here: a 44px danger
+                              button under every one of your own messages would
+                              shout down the conversation it sits in. Red text,
+                              small, and it asks before it acts. */}
+                          {onDeleteMessage && confirmingId !== entry.message.id && (
+                            <button
+                              type="button"
+                              onClick={() => { setConfirmingId(entry.message.id); setRowError(''); }}
+                              className="text-[12px] font-semibold text-red-700 underline underline-offset-2"
+                            >
+                              Delete
+                            </button>
+                          )}
+                          {onDeleteMessage && confirmingId === entry.message.id && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => void takeBack(entry.message.id)}
+                                disabled={rowBusy === entry.message.id}
+                                className="text-[12px] font-semibold text-red-700 underline underline-offset-2"
+                              >
+                                {rowBusy === entry.message.id ? 'Deleting' : 'Yes, delete it'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setConfirmingId('')}
+                                className="text-[12px] font-semibold text-slate-500 underline underline-offset-2"
+                              >
+                                Keep it
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                      {rowError && (editingId === entry.message.id || confirmingId === entry.message.id) && (
+                        <p className="mt-1 text-[12px] text-red-800">{rowError}</p>
+                      )}
+                    </>
+                  )
                 ) : (
                   <LiveAttachment
                     file={entry.file}

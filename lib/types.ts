@@ -241,6 +241,15 @@ export interface Message {
   body: string;
   created_at: string;
   read_at?: string;
+  /** Set when the author changed the wording. The previous wording is kept. */
+  edited_at?: string | null;
+  /**
+   * Set when the author took the message back. `body` is emptied when this is
+   * set -- the words are moved into `message_revisions`, which no browser can
+   * read -- so a deleted message must never be rendered as an empty bubble.
+   */
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 export interface Material {

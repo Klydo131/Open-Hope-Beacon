@@ -278,6 +278,7 @@ const staticChecks = [
   ['every room keeps up', 'tests/every-room-keeps-up.mjs'],
   ['the diary sits with the conversation', 'tests/the-diary-sits-with-the-conversation.mjs'],
   ['the guild wall keeps up without naming anybody', 'tests/the-guild-wall-keeps-up-without-naming-anybody.mjs'],
+  ['a message can be changed or taken back', 'tests/a-message-can-be-changed-or-taken-back.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

@@ -228,6 +228,8 @@ export function LiveExplorerPage() {
                   onAttach={(chosen) => void attach(chosen)}
                   onRemoveFile={(file) => void dropFile(file)}
                   attachError={attachError}
+                  onEditMessage={live.editMessage}
+                  onDeleteMessage={live.deleteMessage}
                 />
                 {/* THE ONE THAT MATTERS MOST. The Explorer is the person with
                     the least standing in this relationship and the most reason
