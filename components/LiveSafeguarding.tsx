@@ -12,6 +12,7 @@
 // nothing, because the rows never arrive.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_REPORTS } from '@/lib/live/keep-up';
 import Link from 'next/link';
 import * as live from '@/lib/live/data';
 import { ReportDialog } from '@/components/ReportDialog';
@@ -114,6 +115,8 @@ export function LiveReportsForDirector({ onRemove }: { onRemove?: (id: string, n
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  // A report arriving is the one thing on any screen that should never wait.
+  useKeepUp(KEEP_UP_REPORTS, load);
 
   const nameOf = (id: string) => names[id] ?? 'Someone who has left';
 

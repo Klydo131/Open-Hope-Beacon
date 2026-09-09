@@ -132,11 +132,30 @@ export const KEEP_UP_ROSTER =
 /** The guilds and who is in them. */
 export const KEEP_UP_GUILDS = ['guilds', 'guild_members', 'profiles', 'pairings'] as const;
 
-// NO SET FOR SAFEGUARDING, THE CASES ROOM OR THE SECURITY AUDIT, and that is
-// deliberate rather than an omission. Those tables are not published -- see the
-// migration and tests/the-screen-keeps-up.mjs -- so a set naming them would be
-// a screen subscribing to silence, which is worse than a screen that plainly
-// needs a reload.
+/**
+ * Safeguarding. A report arriving is the one thing that should never wait.
+ *
+ * Published by 20260909100000, on the owner's decision, after being left off
+ * deliberately for a day. The read policy is an approved admin or executive of
+ * that church and nothing wider, and realtime evaluates it per subscriber -- so
+ * this changes when a Director finds out, never who may find out.
+ */
+export const KEEP_UP_REPORTS = ['reports', 'report_files', 'profiles'] as const;
+
+/**
+ * The Cases room, where several people are in the same hearing at once.
+ *
+ * The one screen in this app where two people are expected to be typing into
+ * the same record at the same moment, which makes a stale view worse here than
+ * anywhere else. `trials_read` is `in_trial(id)`: a party to that hearing, and
+ * nobody else, however the row reaches them.
+ */
+export const KEEP_UP_CASES =
+  ['trials', 'trial_statements', 'trial_parties', 'discipline_log', 'profiles'] as const;
+
+// NO SET FOR THE SECURITY AUDIT, and none for a Guide's private notes. Neither
+// was part of what was asked for, both still reload, and both are named in
+// tests/every-room-keeps-up.mjs so they read as a decision rather than a gap.
 
 /** The Guides' room: their thread, and the requests waiting in it. */
 export const KEEP_UP_GUIDE_ROOM =

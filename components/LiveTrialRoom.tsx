@@ -31,6 +31,7 @@
 // root of authority and the only account that can appoint executives again.
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_CASES } from '@/lib/live/keep-up';
 import type { Profile } from '@/lib/types';
 import * as live from '@/lib/live/data';
 import { roleNoun } from '@/lib/brand';
@@ -63,6 +64,8 @@ export function LiveTrialRoom({ me, onCaseOpened }: { me: Profile; onCaseOpened?
   }, [me.id]);
 
   useEffect(() => { void load(); }, [load]);
+  // Several people speak into one hearing, so a stale view is worst here.
+  useKeepUp(KEEP_UP_CASES, load);
 
   // Hold a hearing instead of deciding on the spot. This is the option that
   // should be reached for first in almost every real case, so it is offered
@@ -308,6 +311,8 @@ export function LiveCourt({ me, emptyState }: {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  // Several people speak into one hearing, so a stale view is worst here.
+  useKeepUp(KEEP_UP_CASES, load);
 
   const openThread = async (id: string) => {
     setOpenCase(openCase === id ? '' : id);

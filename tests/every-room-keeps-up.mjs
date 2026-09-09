@@ -47,6 +47,12 @@ const ok = (cond, msg) => {
   if (!cond) bad++;
 };
 
+/** The migrations, in the order the database applies them. */
+const migrationFiles = () => fs
+  .readdirSync(path.join(root, 'supabase', 'migrations'))
+  .filter((f) => f.endsWith('.sql'))
+  .sort();
+
 /** Every .tsx under a directory, recursively. */
 function screens(dir, out = []) {
   for (const entry of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
@@ -67,18 +73,11 @@ function screens(dir, out = []) {
 // DELIBERATELY NOT LIVE, and named here so the exemption is a decision on the
 // record rather than a screen nobody noticed.
 //
-// tests/the-screen-keeps-up.mjs asserts that the safeguarding tables are not
-// published at all: the safeguarding record is the last place to widen a
-// surface for a convenience nobody asked for. Row level security would allow
-// it -- realtime evaluates the same policies as a SELECT -- and the rule is
-// still no, because "allowed" and "wise" are different questions.
-//
-// The first version of THIS change published them anyway and wired these three
-// screens. The gate caught it. So they reload when somebody opens them, which
-// is the cost of that rule, and it is a cost worth naming out loud.
+// This list held three screens for a day. Safeguarding and the Cases room came
+// off it when the owner asked for both to update live; what is left is the
+// security audit, which nobody asked for and which is a Director reviewing
+// their own church rather than watching something arrive.
 const STAYS_ON_A_RELOAD = new Set([
-  'components/LiveSafeguarding.tsx',   // reports, report_files
-  'components/LiveTrialRoom.tsx',      // trials, statements, discipline log
   'components/LiveSecurityAudit.tsx',  // security_audit_events
 ]);
 
@@ -93,11 +92,20 @@ const STAYS_ON_A_RELOAD = new Set([
     // components, and a file-level check passes as soon as ANY one of them
     // subscribes -- which is exactly how the Guide's roster sat deaf inside a
     // file whose conversation was wired. Caught by breaking it on purpose.
+    // COUNTED, NOT JUST MATCHED. Several of these files hold two components
+    // that BOTH call their loader `load`, so a single subscription satisfied a
+    // name-match while one of the two sat deaf -- which is how removing one of
+    // LiveTrialRoom's two subscriptions went unnoticed. One subscription per
+    // declaration is the rule; the names cannot tell them apart, so the counts
+    // have to.
+    const declared = new Map();
     for (const m of src.matchAll(/const (\w*[Ll]oad\w*) = useCallback\(async/g)) {
-      const name = m[1];
-      const listens = new RegExp(`useKeepUp\\([A-Z_0-9]+, ${name}\\)`).test(src)
-        || new RegExp(`subscribeToMessages\\([^)]*=> void ${name}\\(\\)`).test(src);
-      if (!listens) deaf.push(`${file}  ${name}()`);
+      declared.set(m[1], (declared.get(m[1]) ?? 0) + 1);
+    }
+    for (const [name, count] of declared) {
+      const subs = (src.match(new RegExp(`useKeepUp\\([A-Z_0-9]+, ${name}\\)`, 'g')) ?? []).length
+        + (src.match(new RegExp(`subscribeToMessages\\([^)]*=> void ${name}\\(\\)`, 'g')) ?? []).length;
+      if (subs < count) deaf.push(`${file}  ${name}()  ${count} loader(s), ${subs} subscription(s)`);
     }
   }
   ok(deaf.length === 0,
@@ -153,16 +161,62 @@ const STAYS_ON_A_RELOAD = new Set([
   ok(/'pairing_media'/.test(mine),
      'and a file sent into a conversation is published too');
 
-  // The correction, kept as a check so it cannot be undone by accident.
-  for (const off of ['reports', 'trials', 'discipline_log', 'security_audit_events',
-                     'seeker_notes', 'report_files', 'trial_statements']) {
-    ok(!new RegExp(`'${off}'`).test(mine),
-       `${off} is deliberately left off the wire`);
+  // WHAT IS STILL OFF THE WIRE. Checked across every migration rather than one
+  // file, because these two have now been published, dropped and -- for four of
+  // the six -- published again, and a check reading a single file would have
+  // gone stale at each of those turns.
+  // ONLY FILES THAT TOUCH THE PUBLICATION. Matching on the array's variable
+  // name alone swept in a trigger in 0035 whose `watched` array lists profile
+  // COLUMNS -- full_name, birthday -- which are not tables and were never
+  // published. A migration earns a reading here by containing the statement
+  // that publishes, not by naming a variable the same way.
+  const publishes = new Set();
+  for (const file of migrationFiles()) {
+    const text = stripSql(read(`supabase/migrations/${file}`));
+    if (!/alter publication supabase_realtime/.test(text)) continue;
+    for (const m of text.matchAll(/(\w+) text\[\] := array\[([\s\S]*?)\];/g)) {
+      const drops = m[1] === 'keep_off';
+      for (const t of m[2].matchAll(/'([a-z_]+)'/g)) {
+        if (drops) publishes.delete(t[1]); else publishes.add(t[1]);
+      }
+    }
+  }
+  for (const off of ['security_audit_events', 'seeker_notes']) {
+    ok(!publishes.has(off), `${off} is deliberately left off the wire`);
   }
   const hook = read('lib/live/keep-up.ts');
-  for (const off of ['reports', 'trials', 'discipline_log', 'security_audit_events', 'seeker_notes']) {
+  for (const off of ['security_audit_events', 'seeker_notes']) {
     ok(!new RegExp(`'${off}'`).test(hook),
        `and no set names ${off}, which would be subscribing to silence`);
+  }
+
+  // A PUBLISHING MIGRATION MUST ALSO SET THE FULL ROW. Every read policy on
+  // these tables decides on a column that is not the primary key -- church_id,
+  // trial_id, pairing_id -- so on the default replica identity an UPDATE or
+  // DELETE carries the key alone, the policy has nothing to test, and the event
+  // is dropped. That failure is invisible: inserts still arrive, so the table
+  // looks published and is half deaf. The old check only asked whether the
+  // words appeared ANYWHERE across all migrations, which one file satisfies for
+  // every other file.
+  // Applies to migrations that publish a LIST of tables, which is the pattern
+  // every one since 20260902020000 uses. 0004 is the exception and the reason
+  // this rule exists: it published `messages` with a single statement and never
+  // set the identity, which is the gap 20260908170000 closes and the check
+  // above asserts by name. A migration is not editable after it has run, so the
+  // repair belongs in a later file rather than in that one.
+  for (const file of migrationFiles()) {
+    const text = stripSql(read(`supabase/migrations/${file}`));
+    if (!/alter publication supabase_realtime add table/.test(text)) continue;
+    if (!/text\[\] := array\[/.test(text)) continue;
+    ok(/replica identity full/i.test(text),
+       `${file} sets the full row on what it publishes`);
+  }
+
+  // AND WHAT IS NOW ON IT, by request. The Cases room is the one screen where
+  // two people write into the same record at the same moment.
+  for (const on of ['reports', 'report_files', 'trials', 'trial_statements',
+                    'trial_parties', 'discipline_log']) {
+    ok(publishes.has(on), `${on} is published, so the room can keep up`);
   }
 }
 

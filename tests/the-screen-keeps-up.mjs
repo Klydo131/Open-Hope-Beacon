@@ -55,17 +55,28 @@ const sql = fs
   .map((f) => read(`${dir}/${f}`))
   .join('\n');
 
-// Only the arrays that drive a publication, so an unrelated list of strings in
-// some other migration cannot be mistaken for a published table.
-const published = new Set(
-  [...sql.matchAll(/text\[\] := array\[([\s\S]*?)\];/g)]
-    .flatMap((m) => [...m[1].matchAll(/'([a-z_]+)'/g)].map((t) => t[1])),
-);
-
-// AND WHAT WAS LATER TAKEN BACK OFF. A table can be published by one migration
-// and dropped by a later one; reading every file means reading both halves.
-for (const m of sql.matchAll(/keep_off text\[\] := array\[([\s\S]*?)\];/g)) {
-  for (const t of m[1].matchAll(/'([a-z_]+)'/g)) published.delete(t[1]);
+// REPLAYED IN ORDER, because that is what the database does to itself. A table
+// can be published by one migration, dropped by a later one, and published
+// again by a later one still -- which is exactly the history the safeguarding
+// tables have. Collecting every "add" and then subtracting every "drop" gives
+// the wrong answer whenever the last word was an add, and gave it here.
+//
+// The array's VARIABLE NAME says which way it goes: `keep_off` drops, anything
+// else adds. Only arrays declared that way count, so an unrelated list of
+// strings in some other migration is never mistaken for a publication.
+const published = new Set();
+for (const file of fs.readdirSync(path.join(root, dir)).filter((f) => f.endsWith('.sql')).sort()) {
+  const text = read(`${dir}/${file}`);
+  // A migration earns a reading by containing the statement that publishes.
+  // Matching the variable name alone swept in a trigger elsewhere whose array
+  // lists profile COLUMNS, which are not tables.
+  if (!/alter publication supabase_realtime/.test(text)) continue;
+  for (const m of text.matchAll(/(\w+) text\[\] := array\[([\s\S]*?)\];/g)) {
+    const drops = m[1] === 'keep_off';
+    for (const t of m[2].matchAll(/'([a-z_]+)'/g)) {
+      if (drops) published.delete(t[1]); else published.add(t[1]);
+    }
+  }
 }
 ok(published.size >= 15, `it publishes the tables the screens watch (${published.size})`);
 
@@ -75,9 +86,24 @@ ok(published.size >= 15, `it publishes the tables the screens watch (${published
 // test and the event is dropped.
 ok(/replica identity full/i.test(sql), 'and sets REPLICA IDENTITY FULL so RLS can be evaluated');
 
-// The safeguarding record is the last place to widen a surface for a
-// convenience nobody asked for.
-for (const kept of ['discipline_log', 'reports', 'trials', 'security_audit_events', 'seeker_notes']) {
+// WHAT STAYS OFF THE WIRE, AND WHY THE LIST SHRANK.
+//
+// This read: discipline_log, reports, trials, security_audit_events,
+// seeker_notes -- the safeguarding record being the last place to widen a
+// surface for a convenience nobody asked for.
+//
+// The owner asked for the Cases room and safeguarding to update live, so four
+// of those five are published now (20260909100000) and the reasoning that kept
+// them off is preserved in 20260908180000. It was never a claim that the
+// policies were too loose: reports are readable by an approved admin or
+// executive of that church, a trial by a party to it, the discipline log by
+// somebody who leads the church, and realtime evaluates each of those per
+// subscriber. It was a preference for not streaming them at all, and the
+// person whose preference it is has changed it.
+//
+// These two were not part of that request and remain off: a Director's own
+// review screen, and a Guide's private notes about the person they walk with.
+for (const kept of ['security_audit_events', 'seeker_notes']) {
   ok(!published.has(kept), `${kept} is deliberately NOT published`);
 }
 
@@ -89,7 +115,11 @@ ok(/setTimeout/.test(hook), 'and settles a burst of writes into one reload');
 
 // Every table any set names must actually be published, or that screen is
 // subscribing to silence.
-const sets = [...hook.matchAll(/export const (KEEP_UP_\w+) = \[([^\]]*)\]/g)];
+// ACCEPTS A SET WHOSE VALUE STARTS ON THE NEXT LINE. The old pattern required
+// `= [` on one line, so every constant long enough to wrap -- KEEP_UP_CASES
+// among them -- was skipped silently, and a set naming an unpublished table
+// would have gone unchecked precisely because it was a big one.
+const sets = [...hook.matchAll(/export const (KEEP_UP_\w+) =\s*\[([\s\S]*?)\]/g)];
 ok(sets.length >= 5, `the screens have named their tables (${sets.length} sets)`);
 for (const [, name, body] of sets) {
   for (const table of [...body.matchAll(/'([a-z_]+)'/g)].map((m) => m[1])) {
