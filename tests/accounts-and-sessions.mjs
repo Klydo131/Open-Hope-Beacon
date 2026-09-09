@@ -124,7 +124,13 @@ const DATA = 'lib/live/data.ts';
      'the password visibility control uses clear words instead of an icon alone');
   ok((doorCode.match(/autoComplete="new-password"/g) || []).length === 2,
      'both password fields keep the browser new-password hint');
-  ok(/suggestion comes from your device,[\s\S]*not Sentry Beacon/.test(doorCode),
+  // NAME-AGNOSTIC. This matched the app's name spelled out, so it went red the
+  // day that sentence started reading the brand constant instead of a copy --
+  // on a change that improved the code. The rule is that the screen says the
+  // suggestion is the DEVICE'S and not the app's; how the app refers to itself
+  // there is not the rule.
+  ok(/suggestion comes from your device,[\s\S]*?not (\{APP_SHORT_NAME\}|\{APP_NAME\}|[A-Z][\w ]+)\./
+       .test(doorCode),
      'the invitation screen explains that the app never generates a password');
 }
 

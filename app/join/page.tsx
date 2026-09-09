@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useDemo } from '@/lib/demo/store';
-import { NAVY } from '@/lib/brand';
+import { NAVY, APP_SHORT_NAME } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import type { Invite, Role } from '@/lib/types';
 import { SentryBeaconMark } from '@/components/SentryBeaconMark';
@@ -37,7 +37,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className="px-4 py-8 text-center text-white" style={{ backgroundColor: NAVY }}>
         <div className="mx-auto flex max-w-md flex-col items-center">
           <SentryBeaconMark size={56} />
-          <h1 className="mt-3 text-3xl font-extrabold">Welcome to Sentry Beacon</h1>
+          <h1 className="mt-3 text-3xl font-extrabold">Welcome to {APP_SHORT_NAME}</h1>
           <div className="mt-1">{children}</div>
         </div>
       </div>
@@ -136,7 +136,7 @@ function Join() {
       <div className="px-4 py-8 text-center text-white" style={{ backgroundColor: NAVY }}>
         <div className="mx-auto flex max-w-md flex-col items-center">
           <SentryBeaconMark size={56} />
-          <h1 className="mt-3 text-3xl font-extrabold">You’re invited to Sentry Beacon</h1>
+          <h1 className="mt-3 text-3xl font-extrabold">You’re invited to {APP_SHORT_NAME}</h1>
           <p className="mt-1 text-white/70">
             {isSeeker
               ? 'Your church invited you to begin a journey of faith, walking with a Guide who cares about you.'
@@ -263,7 +263,7 @@ function Join() {
               disabled={!f.full_name.trim() || !consent}
               onClick={submit}
             >
-              Join Sentry Beacon →
+              Join {APP_SHORT_NAME} →
             </Button>
           </div>
           {!consent && (

@@ -7,20 +7,22 @@ import type { Stage, Track } from './types';
 // first thing in the first file. The browser tab, the installed app's name on a
 // phone home screen, and the link preview all come from these constants.
 //
-// WHAT THIS FILE USED TO CLAIM, AND WHY IT NO LONGER DOES. It said "change
-// these lines and nothing else", that nothing hard-codes the name, and that
-// tests/brand-consistency.mjs fails if something starts to. All three were
-// false. That test only ever compared the LOGO DRAWING between its copies; it
-// never looked at the name once. So fifty-one hard-coded occurrences across
-// twenty-three screens accumulated behind a promise nobody was testing, and
-// the rename from the app's first name had to visit eighty-four files.
+// CHANGE THESE TWO LINES AND NOTHING ELSE. That is true now, and it is worth
+// saying how recently it became true, because the same sentence sat here for
+// months while it was false.
 //
-// tests/the-brand-is-one-name.mjs now checks the thing the old comment only
-// asserted: the previous name appears nowhere, and the number of hard-coded
-// occurrences is pinned so it cannot quietly grow again. Making it genuinely
-// one line is a separate, larger change -- fifty-one call sites, most of them
-// inside sentences rather than labels -- and the honest state until then is
-// written here rather than promised away.
+// It used to claim that nothing hard-codes the name and that
+// tests/brand-consistency.mjs would fail if something started to. That test
+// only ever compared the LOGO DRAWING between its copies; it never looked at
+// the name once. So forty-five hard-coded occurrences accumulated across
+// twenty-three screens behind a promise nobody was testing, and the rename from
+// the app's first name had to visit ninety-nine files instead of one.
+//
+// Those forty-five now read from the constants below, and
+// tests/the-brand-is-one-name.mjs fails if a single one comes back. A comment
+// in the source may still say the name in plain words -- a comment is prose,
+// not something a person reads on a screen, and rewriting those would make the
+// code harder to read to satisfy a rule that was never about them.
 // ---------------------------------------------------------------------------
 
 // AND ONE THING A RENAME MUST NOT TOUCH. Two localStorage keys carry the app's

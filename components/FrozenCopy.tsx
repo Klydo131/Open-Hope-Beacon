@@ -24,6 +24,7 @@
 // it says the one thing that actually fixes it.
 
 import { useEffect, useState } from 'react';
+import { APP_SHORT_NAME } from '@/lib/brand';
 import { canonicalUrl, onCanonicalHost } from '@/lib/canonical';
 import { isStandalone } from '@/components/InstallPrompt';
 
@@ -62,7 +63,7 @@ export function FrozenCopy() {
           href={home}
           className="tap mt-3 inline-flex items-center rounded-xl bg-amber-900 px-4 font-bold text-white"
         >
-          Open the real Sentry Beacon
+          Open the real {APP_SHORT_NAME}
         </a>
         <p className="mt-2 break-all text-xs text-amber-800">{home}</p>
       </div>

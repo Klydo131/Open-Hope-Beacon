@@ -13,7 +13,7 @@
 // forties who is not technical and is possibly upset.
 
 import Link from 'next/link';
-import { NAVY } from '@/lib/brand';
+import { NAVY, APP_SHORT_NAME } from '@/lib/brand';
 import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { Card } from '@/components/ui';
 
@@ -25,7 +25,7 @@ export default function PolicyPage() {
           <SentryBeaconMark size={48} />
           <h1 className="mt-3 text-3xl font-extrabold">How we treat each other</h1>
           <p className="mt-1 text-white/75">
-            Sentry Beacon puts two people in a private conversation. This is what
+            {APP_SHORT_NAME} puts two people in a private conversation. This is what
             that asks of both of them.
           </p>
         </div>
@@ -134,7 +134,7 @@ export default function PolicyPage() {
             </li>
             <li>
               They decide. That may be a conversation, a pause, or removing the
-              person from the church&rsquo;s Sentry Beacon. It may also be that
+              person from the church&rsquo;s {APP_SHORT_NAME}. It may also be that
               there was nothing to answer. That happens, and it is not held
               against you for raising it.
             </li>
@@ -174,7 +174,7 @@ export default function PolicyPage() {
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">This is a starting point</h2>
           <p className="mt-2 text-gray-700">
-            Sentry Beacon is open source and this page ships with it. Your church
+            {APP_SHORT_NAME} is open source and this page ships with it. Your church
             should read it, change it to match your own safeguarding policy, and
             put your own contact details on it. It is
             <code className="mx-1 rounded bg-gray-100 px-1.5 py-0.5 text-sm">app/policy/page.tsx</code>
@@ -188,7 +188,7 @@ export default function PolicyPage() {
 
         <div className="pb-10 text-center">
           <Link href="/" className="font-semibold text-navy underline underline-offset-4">
-            ← Back to Sentry Beacon
+            ← Back to {APP_SHORT_NAME}
           </Link>
         </div>
       </div>

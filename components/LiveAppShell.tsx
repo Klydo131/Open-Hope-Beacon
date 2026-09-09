@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { roleLabel, NAVY } from '@/lib/brand';
+import { roleLabel, NAVY, APP_SHORT_NAME } from '@/lib/brand';
 import type { Role } from '@/lib/types';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import { SentryBeaconMark } from '@/components/SentryBeaconMark';
@@ -233,11 +233,11 @@ export function LiveAppShell({
           <Link
             href={homeFor(profile.role)}
             className="flex min-w-0 flex-1 items-center gap-3"
-            aria-label="Sentry Beacon home"
+            aria-label={`${APP_SHORT_NAME} home`}
           >
             <SentryBeaconMark size={40} />
             <div className="min-w-0">
-              <p className="truncate text-lg font-extrabold sm:text-xl">Sentry Beacon</p>
+              <p className="truncate text-lg font-extrabold sm:text-xl">{APP_SHORT_NAME}</p>
               <p className="truncate text-xs text-white/60">Live church app</p>
             </div>
           </Link>

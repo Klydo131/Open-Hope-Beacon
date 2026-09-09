@@ -652,7 +652,7 @@ export function InstallPrompt() {
                 className="tap w-full rounded-xl text-base font-bold text-white"
                 style={{ backgroundColor: '#1E2A4A' }}
               >
-                Install Sentry Beacon
+                Install {APP_SHORT_NAME}
               </button>
             )}
             <button

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
-import { roleLabel, NAVY } from '@/lib/brand';
+import { roleLabel, NAVY, APP_SHORT_NAME } from '@/lib/brand';
 import { unseenCount } from '@/lib/release-notes';
 import { useUpdateState } from '@/lib/app-update';
 import type { Role } from '@/lib/types';
@@ -199,11 +199,11 @@ function DemoAppShell({
             <Link
               href={NAV[currentUser.role][0].href}
               className="flex shrink-0 items-center gap-2 sm:gap-3"
-              aria-label="Sentry Beacon home"
+              aria-label={`${APP_SHORT_NAME} home`}
             >
               <SentryBeaconMark size={38} />
               <div className="hidden leading-tight sm:block">
-                <p className="text-xl font-extrabold tracking-tight">Sentry Beacon</p>
+                <p className="text-xl font-extrabold tracking-tight">{APP_SHORT_NAME}</p>
                 <p className="text-xs text-white/60">Disciple-making journey</p>
               </div>
             </Link>

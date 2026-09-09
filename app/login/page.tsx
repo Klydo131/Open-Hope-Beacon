@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDemo } from '@/lib/demo/store';
-import { roleNoun, NAVY } from '@/lib/brand';
+import { roleNoun, NAVY, APP_SHORT_NAME } from '@/lib/brand';
 import { Avatar, Button, Card } from '@/components/ui';
 import type { Role } from '@/lib/types';
 import { SentryBeaconMark } from '@/components/SentryBeaconMark';
@@ -29,7 +29,7 @@ function Header({ subtitle }: { subtitle: string }) {
           ← Home
         </Link>
         <SentryBeaconMark size={56} className="mt-3" />
-        <h1 className="mt-3 text-3xl font-extrabold">Sign in to Sentry Beacon</h1>
+        <h1 className="mt-3 text-3xl font-extrabold">Sign in to {APP_SHORT_NAME}</h1>
         <p className="mt-1 text-white/70">{subtitle}</p>
       </div>
     </div>
@@ -63,7 +63,7 @@ function DemoLogin() {
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">Have an invitation?</h2>
           <p className="mt-1 text-gray-500">
-            Sentry Beacon is a private, invitation-only app. If your church sent you an
+            {APP_SHORT_NAME} is a private, invitation-only app. If your church sent you an
             invitation link, open it to complete your sign-up. There is no public
             registration.
           </p>

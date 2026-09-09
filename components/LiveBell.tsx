@@ -8,6 +8,7 @@
 // able to write this table directly could make the app say anything to anybody.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { APP_SHORT_NAME } from '@/lib/brand';
 import Link from 'next/link';
 import * as live from '@/lib/live/data';
 import type { Profile, Role } from '@/lib/types';
@@ -117,7 +118,7 @@ export function LiveBell({ me }: { me: Profile }) {
     // between a setting and a promise.
     if (result === 'granted') {
       await showLocalNotification(
-        'Sentry Beacon',
+        APP_SHORT_NAME,
         'Alerts are on for this device. This is what one looks like.',
         '/church',
       );
@@ -152,7 +153,7 @@ export function LiveBell({ me }: { me: Profile }) {
         allowed: permission() === 'granted',
       });
       const summary = async (count: number) => showLocalNotification(
-        'Sentry Beacon', `${count} things are waiting for you.`, '/church',
+        APP_SHORT_NAME, `${count} things are waiting for you.`, '/church',
       );
       const single = async (n: live.AppNotification) => showLocalNotification(
         n.title, n.body ?? undefined, routeFor(n.type, me.role),

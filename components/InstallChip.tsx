@@ -12,6 +12,7 @@
 // tried it.
 
 import { useEffect, useState } from 'react';
+import { APP_SHORT_NAME } from '@/lib/brand';
 import Link from 'next/link';
 import { isInstallable, isStandalone, useIsInstalled } from '@/components/InstallPrompt';
 
@@ -59,7 +60,7 @@ export function InstallChip({ onDark = false }: { onDark?: boolean }) {
       <button
         type="button"
         className={className}
-        title="Install Sentry Beacon on this device"
+        title={`Install ${APP_SHORT_NAME} on this device`}
         onClick={async () => {
           await deferred.prompt();
           const { outcome } = await deferred.userChoice;
@@ -78,7 +79,7 @@ export function InstallChip({ onDark = false }: { onDark?: boolean }) {
   // and letting them hunt is how "the Install button does nothing" gets
   // reported — from their side it opened Settings and nothing happened.
   return (
-    <Link href="/settings#install" className={className} title="Install Sentry Beacon on this device">
+    <Link href="/settings#install" className={className} title={`Install ${APP_SHORT_NAME} on this device`}>
       <span aria-hidden>⬇️</span> <span className="hidden sm:inline">Install</span>
     </Link>
   );

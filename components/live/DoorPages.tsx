@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { NAVY, roleNoun } from '@/lib/brand';
+import { NAVY, roleNoun, APP_SHORT_NAME } from '@/lib/brand';
 import { homeFor, useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { clearBrowserSession, saveBrowserSession, supabaseAuth } from '@/lib/supabase/client';
@@ -66,7 +66,7 @@ export function LiveHomePage() {
         <span className="beacon-glow" aria-hidden>
           <SentryBeaconMark size={92} />
         </span>
-        <h1 className="mt-6 text-5xl font-extrabold tracking-tight">Sentry Beacon</h1>
+        <h1 className="mt-6 text-5xl font-extrabold tracking-tight">{APP_SHORT_NAME}</h1>
         {/* THE THEME FIRST, THE MECHANISM SECOND. This door used to lead with
             "One person, walking with one person" — true, and a description of
             how the app works rather than what it is for. Somebody arriving from
@@ -363,7 +363,7 @@ export function LiveLoginPage() {
 
   return (
     <div className="min-h-screen">
-      <PublicHeader title="Sign in to Sentry Beacon" subtitle="Use your live church account." />
+      <PublicHeader title={`Sign in to ${APP_SHORT_NAME}`} subtitle="Use your live church account." />
       <div className="mx-auto max-w-md space-y-5 px-4 py-8">
         <Card className="p-5">
           <form onSubmit={submit} className="space-y-4">
@@ -484,12 +484,12 @@ export function LiveLoginPage() {
 export function LiveSignupPage() {
   return (
     <div className="min-h-screen">
-      <PublicHeader title="Join Sentry Beacon" subtitle="There is no public registration." />
+      <PublicHeader title={`Join ${APP_SHORT_NAME}`} subtitle="There is no public registration." />
       <div className="mx-auto max-w-md space-y-5 px-4 py-8">
         <Card className="p-6">
           <h2 className="text-xl font-bold text-navy">Open your invitation e-mail</h2>
           <p className="mt-2 text-gray-600">
-            Tap its invitation button. Sentry Beacon will verify the e-mail, ask you to set a password,
+            Tap its invitation button. {APP_SHORT_NAME} will verify the e-mail, ask you to set a password,
             and place your account in the role chosen by your church.
           </p>
         </Card>
@@ -1002,7 +1002,7 @@ export function LiveJoinPage() {
   return (
     <div className="min-h-screen">
       <PublicHeader
-        title={recovery ? 'Set a new password' : 'You’re invited to Sentry Beacon'}
+        title={recovery ? 'Set a new password' : `You’re invited to ${APP_SHORT_NAME}`}
         subtitle={
           recovery
             ? 'Choose a password only you know.'
@@ -1100,7 +1100,7 @@ export function LiveJoinPage() {
                 <p className="font-semibold text-navy">Choose a password only you know.</p>
                 <p className="mt-1">
                   On iPhone, iPad, or Mac, Safari may offer a strong password. That suggestion comes from your device,
-                  not Sentry Beacon. You can use it or type a password of your own.
+                  not {APP_SHORT_NAME}. You can use it or type a password of your own.
                 </p>
                 <p className="mt-1">
                   After it fills, use <strong>Show password</strong> to check it before saving. The confirmation must match.
@@ -1262,7 +1262,7 @@ export function LiveJoinPage() {
                 className="w-full"
                 disabled={busy || (!recovery && !consent)}
               >
-                {busy ? 'Saving…' : recovery ? 'Save new password' : 'Join Sentry Beacon →'}
+                {busy ? 'Saving…' : recovery ? 'Save new password' : `Join ${APP_SHORT_NAME} →`}
               </Button>
               {!recovery && !consent && (
                 <p className="text-xs text-gray-500">Tick the permission box above to continue.</p>

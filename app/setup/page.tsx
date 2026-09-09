@@ -21,7 +21,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui';
 import { SentryBeaconMark } from '@/components/SentryBeaconMark';
-import { NAVY } from '@/lib/brand';
+import { NAVY, APP_SHORT_NAME } from '@/lib/brand';
 import { IS_LIVE } from '@/lib/mode';
 import { supabase } from '@/lib/supabase/client';
 import { humanError } from '@/lib/live/errors';
@@ -165,7 +165,7 @@ export default function Setup() {
             ← Home
           </Link>
           <SentryBeaconMark size={48} className="mt-3" />
-          <h1 className="mt-3 text-3xl font-extrabold">Set up your Sentry Beacon</h1>
+          <h1 className="mt-3 text-3xl font-extrabold">Set up your {APP_SHORT_NAME}</h1>
           <p className="mt-1 text-white/70">
             Four steps to your own church app. No code to write, because the whole thing is already here.
           </p>

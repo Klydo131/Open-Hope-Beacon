@@ -72,6 +72,10 @@ const KEYS = ['hope-beacon.feedback.local', 'hope-beacon:library-favorites'];
 {
   const stragglers = [];
   for (const file of tracked()) {
+    // THIS FILE NAMES THE THING IT HUNTS FOR, so it matches itself. The same
+    // exemption tests/no-backend.js takes, for the same reason and in its own
+    // words: "it must name them to find them".
+    if (file === 'tests/the-brand-is-one-name.mjs') continue;
     let text;
     try { text = read(file); } catch { continue; }
     let stripped = text;
@@ -114,34 +118,39 @@ const KEYS = ['hope-beacon.feedback.local', 'hope-beacon:library-favorites'];
 // 4. THE HARD-CODED SURFACE IS PINNED
 // ---------------------------------------------------------------------------
 //
-// The honest state: the name IS hard-coded in the screens, fifty-one times.
-// Making that genuinely one constant is a separate change, mostly inside
-// sentences rather than labels. What this check does is stop the number growing
-// quietly again -- which is exactly how it got to fifty-one behind a promise
-// nobody was testing.
+// ZERO, AND MEASURED WITH COMMENTS STRIPPED. Forty-five rendered occurrences
+// across twenty-three screens now read from the constants, so lib/brand.ts's
+// promise -- change these two lines and nothing else -- is finally true for
+// everything a person can see.
 //
-// If you add a screen that names the app, import APP_NAME instead. If you have
-// deliberately reduced the count, lower the number here.
+// Comments are deliberately not counted. A comment naming the app is prose, and
+// rewriting `// Sentry Beacon puts two people in a private conversation` into a
+// constant reference would make the source harder to read to satisfy a rule
+// that was never about comments.
+//
+// If you add a screen that names the app, import APP_NAME or APP_SHORT_NAME.
+// This check is what stops the count creeping back to forty-five.
 {
   const brand = read('lib/brand.ts');
   const full = brand.match(/export const APP_NAME = '([^']+)'/)?.[1] ?? '';
   const short = brand.match(/export const APP_SHORT_NAME = '([^']+)'/)?.[1] ?? '';
 
-  let hard = 0;
+  const stripComments = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\/|\{\/\*[\s\S]*?\*\/\}|\/\/[^\n]*/g,
+                (m) => ' '.repeat(m.length));
+
+  const offenders = [];
   for (const file of tracked()) {
     if (!/^(components|app)\/.*\.tsx$/.test(file)) continue;
-    const text = read(file);
-    hard += (text.match(new RegExp(full, 'g')) ?? []).length;
-    // Count the short name only where it is not part of the full one.
-    hard += (text.split(full).join('').match(new RegExp(short, 'g')) ?? []).length;
+    const text = stripComments(read(file));
+    const n = (text.match(new RegExp(full, 'g')) ?? []).length
+      + (text.split(full).join('').match(new RegExp(short, 'g')) ?? []).length;
+    if (n) offenders.push(`${file} (${n})`);
   }
 
-  const PINNED = 51;
-  ok(hard <= PINNED,
-     `the screens hard-code the name ${hard} time(s), no more than the ${PINNED} on record`);
-  if (hard < PINNED) {
-    console.log(`      (down from ${PINNED} — lower PINNED in this file to lock the gain in)`);
-  }
+  ok(offenders.length === 0,
+     `no screen hard-codes the name; they all read the constant${
+       offenders.length ? `\n        hard-coded in: ${offenders.join('\n                       ')}` : ''}`);
 
   ok(/APP_NAME/.test(read('app/manifest.ts')) || /brand/.test(read('app/manifest.ts')),
      'and the installed app takes its name from the constant, not from a copy');

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { NAVY } from '@/lib/brand';
+import { NAVY, APP_SHORT_NAME } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { useIsLive } from '@/lib/tutorial';
@@ -58,7 +58,7 @@ function DemoSignupPage() {
             ← Home
           </Link>
           <SentryBeaconMark size={56} className="rise rise-1 mt-3" />
-          <h1 className="rise rise-2 mt-3 text-3xl font-extrabold">Join Sentry Beacon</h1>
+          <h1 className="rise rise-2 mt-3 text-3xl font-extrabold">Join {APP_SHORT_NAME}</h1>
           <p className="rise rise-3 mt-1 text-white/70">
             Your church invites you. Beacon has no public sign-up.
           </p>

@@ -25,6 +25,7 @@
 // always pick it, including browsers nobody here has heard of.
 
 import { useEffect, useState } from 'react';
+import { APP_SHORT_NAME } from '@/lib/brand';
 import { iosShareLocation } from '@/components/InstallPrompt';
 import { KebabGlyph, MenuGlyph } from '@/components/Glyph';
 
@@ -83,7 +84,7 @@ export function installGuides(shareWhere = 'in Safari'): InstallGuide[] {
       steps: [
         <>On a phone, tap the {menu('⋮')} menu at the top right, then <strong>Add to Home screen</strong>, then <strong>Install</strong>.</>,
         <>On a computer, look for the <strong>install icon</strong> at the right-hand end of the address bar. It is a small screen with a downward arrow.</>,
-        <>If the icon is not there, open the {menu('⋮')} menu and look for <strong>Install Sentry Beacon</strong>, sometimes under <em>Cast, save and share</em>.</>,
+        <>If the icon is not there, open the {menu('⋮')} menu and look for <strong>Install {APP_SHORT_NAME}</strong>, sometimes under <em>Cast, save and share</em>.</>,
       ],
     },
     {
@@ -122,7 +123,7 @@ export function installGuides(shareWhere = 'in Safari'): InstallGuide[] {
       on: 'Android, Windows, Mac',
       steps: [
         <>On a phone, tap the {menu('⋮')} menu, then <strong>Add to Home screen</strong>.</>,
-        <>On a computer, look for the <strong>install icon</strong> in the address bar, or open the {menu('☰')} menu and choose <strong>Install Sentry Beacon</strong>.</>,
+        <>On a computer, look for the <strong>install icon</strong> in the address bar, or open the {menu('☰')} menu and choose <strong>Install {APP_SHORT_NAME}</strong>.</>,
       ],
     },
     {

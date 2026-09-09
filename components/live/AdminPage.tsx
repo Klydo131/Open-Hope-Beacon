@@ -5,7 +5,7 @@ import { MinorBadge } from '@/components/MinorBadge';
 import { copyText } from '@/lib/share';
 import { useCallback, useEffect, useState } from 'react';
 import { useKeepUp, KEEP_UP_ROSTER } from '@/lib/live/keep-up';
-import { roleNoun, stageInfo } from '@/lib/brand';
+import { roleNoun, stageInfo, APP_SHORT_NAME } from '@/lib/brand';
 import { useLiveSession } from '@/lib/live/session';
 import * as live from '@/lib/live/data';
 import { LiveReportsForDirector } from '@/components/LiveSafeguarding';
@@ -605,7 +605,7 @@ export function LiveAdminPage() {
                       variant="ghost"
                       onClick={async () => {
                         const done = await copyText(
-                          `Sentry Beacon\nE-mail: ${handLink.to}\nPassword: ${handLink.pass}\nSign in: ${handLink.url}`,
+                          `${APP_SHORT_NAME}\nE-mail: ${handLink.to}\nPassword: ${handLink.pass}\nSign in: ${handLink.url}`,
                         );
                         setLinkCopied(done ? 'yes' : 'failed');
                       }}

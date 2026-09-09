@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useDemo } from '@/lib/demo/store';
 import { Card, Button, EmptyState, Tabs } from '@/components/ui';
-import { NAVY } from '@/lib/brand';
+import { NAVY, APP_SHORT_NAME } from '@/lib/brand';
 import type { DemoEmail, Role } from '@/lib/types';
 import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { safeLinkHref } from '@/lib/url';
@@ -225,7 +225,7 @@ function Letter({
         <div className="border-t border-black/5 bg-gray-50 p-4">
           <div className="mx-auto max-w-md overflow-hidden rounded-xl bg-white ring-1 ring-black/10">
             <div className="px-5 py-4 text-white" style={{ backgroundColor: NAVY }}>
-              <p className="flex items-center gap-2 text-lg font-extrabold"><SentryBeaconMark size={22} /> Sentry Beacon</p>
+              <p className="flex items-center gap-2 text-lg font-extrabold"><SentryBeaconMark size={22} /> {APP_SHORT_NAME}</p>
               <p className="text-xs text-white/60">{db.church_name}</p>
             </div>
             <div className="space-y-4 px-5 py-5">

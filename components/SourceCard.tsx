@@ -16,6 +16,7 @@
 // else's.
 
 import Link from 'next/link';
+import { APP_SHORT_NAME } from '@/lib/brand';
 import { Card } from '@/components/ui';
 
 /** Change this if you deploy a modified version. See the note above. */
@@ -26,7 +27,7 @@ export function SourceCard() {
     <Card className="p-5">
       <h2 className="text-xl font-bold text-navy">📖 This app is free software</h2>
       <p className="mt-1 text-sm text-gray-600">
-        Sentry Beacon is open source under the GNU AGPL-3.0. You are welcome to
+        {APP_SHORT_NAME} is open source under the GNU AGPL-3.0. You are welcome to
         read it, run it for your own church, and change it. If you change it and
         run it for other people, you pass those same freedoms on to them.
       </p>

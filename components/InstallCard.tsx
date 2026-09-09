@@ -102,7 +102,7 @@ export function InstallCard() {
   if (installed) {
     return (
       <Card className="p-5">
-        <h2 className="text-xl font-bold text-navy">📱 Sentry Beacon is installed</h2>
+        <h2 className="text-xl font-bold text-navy">📱 {APP_SHORT_NAME} is installed</h2>
         <p className="mt-1 text-sm text-gray-600">
           You are using the installed app on this device. It updates itself.
         </p>

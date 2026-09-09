@@ -25,7 +25,7 @@
 // It is not legal advice. It is a starting draft for a lawyer to correct.
 
 import Link from 'next/link';
-import { NAVY } from '@/lib/brand';
+import { NAVY, APP_NAME, APP_SHORT_NAME } from '@/lib/brand';
 import { SentryBeaconMark } from '@/components/SentryBeaconMark';
 import { Card } from '@/components/ui';
 
@@ -180,7 +180,7 @@ export default function PrivacyPage() {
         <Card className="p-5">
           <h2 className="text-xl font-bold text-navy">This is a starting point</h2>
           <p className="mt-2 text-gray-700">
-            Open Sentry Beacon is free software, and this notice ships with it as a draft.
+            {APP_NAME} is free software, and this notice ships with it as a draft.
             Any church running it should read it, fill in the blanks, and have somebody
             qualified check it against the law where they are. It is
             <code className="mx-1 rounded bg-gray-100 px-1.5 py-0.5 text-sm">app/privacy/page.tsx</code>
@@ -194,7 +194,7 @@ export default function PrivacyPage() {
 
         <div className="pb-10 text-center">
           <Link href="/" className="font-semibold text-navy underline underline-offset-4">
-            ← Back to Sentry Beacon
+            ← Back to {APP_SHORT_NAME}
           </Link>
         </div>
       </div>

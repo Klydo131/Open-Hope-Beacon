@@ -19,7 +19,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useKeepUp, KEEP_UP_NUMBERS } from '@/lib/live/keep-up';
 import { copyText } from '@/lib/share';
 import * as live from '@/lib/live/data';
-import { STAGES as BRAND_STAGES } from '@/lib/brand';
+import { STAGES as BRAND_STAGES, APP_SHORT_NAME } from '@/lib/brand';
 import { Button, Card } from '@/components/ui';
 import { Pdf, downloadBlob } from '@/lib/pdf';
 import { humanError } from '@/lib/live/errors';
@@ -180,7 +180,7 @@ export function LiveBoardReport({ churchName }: { churchName?: string }) {
           .map((s) => `${STAGE_LABEL[s]}: ${active.filter((p) => p.journey_stage === s).length}`)
           .join(' · ');
         setLines([
-          `${churchName ?? 'This church'} · Sentry Beacon report`,
+          `${churchName ?? 'This church'} · ${APP_SHORT_NAME} report`,
           `Prepared ${new Date().toLocaleDateString()}`,
           '',
           `Guides serving: ${members.filter((m) => m.role === 'dm' && m.is_approved).length}`,
@@ -260,7 +260,7 @@ function downloadPdf(lines: string[], churchName?: string | null) {
   // A navy band at the top, so the page is recognisably from this app when it
   // is printed and passed round a table.
   pdf.rect(0, 0, pdf.W, 64, [30, 42, 74]);
-  pdf.text(40, 34, 'Sentry Beacon', { size: 20, bold: true, color: [255, 255, 255] });
+  pdf.text(40, 34, APP_SHORT_NAME, { size: 20, bold: true, color: [255, 255, 255] });
   pdf.text(40, 52, 'Report for the board', { size: 10, color: [220, 225, 235] });
 
   let y = 104;
