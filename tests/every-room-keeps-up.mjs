@@ -70,16 +70,12 @@ function screens(dir, out = []) {
 // A component that reads the live database and holds a loader is a component
 // somebody sits in front of while somebody else changes the thing it is
 // showing. Either it subscribes, or it is stale by design and says so here.
-// DELIBERATELY NOT LIVE, and named here so the exemption is a decision on the
-// record rather than a screen nobody noticed.
-//
-// This list held three screens for a day. Safeguarding and the Cases room came
-// off it when the owner asked for both to update live; what is left is the
-// security audit, which nobody asked for and which is a Director reviewing
-// their own church rather than watching something arrive.
-const STAYS_ON_A_RELOAD = new Set([
-  'components/LiveSecurityAudit.tsx',  // security_audit_events
-]);
+// EVERY LIVE SCREEN NOW LISTENS, and this set is empty on purpose rather than
+// deleted. It held three screens for a day, then one, and now none: the last of
+// them, the security audit, turned out not to need its own table published at
+// all. Left in place so the next screen that genuinely must stay on a reload
+// has somewhere to be named and explained.
+const STAYS_ON_A_RELOAD = new Set([]);
 
 {
   const deaf = [];
@@ -188,6 +184,20 @@ const STAYS_ON_A_RELOAD = new Set([
   for (const off of ['security_audit_events', 'seeker_notes']) {
     ok(!new RegExp(`'${off}'`).test(hook),
        `and no set names ${off}, which would be subscribing to silence`);
+  }
+
+  // THE AUDIT SCREEN WATCHES ITS CAUSES. Its table has RLS on and no policy at
+  // all, so nothing may read it directly and realtime would deliver nothing --
+  // a subscription silent by construction, which looks wired and is not. Every
+  // audit row is written by a trigger on one of these three, so watching them
+  // re-reads the feed at exactly the moments it has something new. Named rather
+  // than counted, because a fourth trigger added later is the one way this can
+  // quietly fall behind.
+  const security = hook.slice(hook.indexOf('export const KEEP_UP_SECURITY'));
+  const set = security.slice(0, security.indexOf(';') + 1);
+  for (const cause of ['profile_changes', 'reports', 'discipline_log']) {
+    ok(new RegExp(`'${cause}'`).test(set),
+       `the audit screen watches ${cause}, which is what writes an audit entry`);
   }
 
   // A PUBLISHING MIGRATION MUST ALSO SET THE FULL ROW. Every read policy on

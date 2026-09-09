@@ -153,9 +153,31 @@ export const KEEP_UP_REPORTS = ['reports', 'report_files', 'profiles'] as const;
 export const KEEP_UP_CASES =
   ['trials', 'trial_statements', 'trial_parties', 'discipline_log', 'profiles'] as const;
 
-// NO SET FOR THE SECURITY AUDIT, and none for a Guide's private notes. Neither
-// was part of what was asked for, both still reload, and both are named in
-// tests/every-room-keeps-up.mjs so they read as a decision rather than a gap.
+/**
+ * The security audit, WITHOUT watching the audit table.
+ *
+ * `security_audit_events` has row level security on and no policy at all, so
+ * nothing may read it directly -- the screen goes through a definer function.
+ * Publishing it would therefore deliver events to nobody: realtime evaluates
+ * the same policies, and there are none to satisfy. A subscription that is
+ * silent by construction is worse than an honest reload, because it looks
+ * wired.
+ *
+ * So this watches what CAUSES an audit entry instead. Every row in that table
+ * is written by a trigger on one of these three, checked against the live
+ * database rather than inferred from the migrations: a profile change, a
+ * report, or a discipline entry. All three are already published, so the feed
+ * re-reads at exactly the moments it would have something new to show.
+ *
+ * If a fourth trigger is ever added, it belongs in this list too -- that is the
+ * one way this can silently fall behind, and it is why the test names the
+ * three rather than merely counting them.
+ */
+export const KEEP_UP_SECURITY = ['profile_changes', 'reports', 'discipline_log'] as const;
+
+// STILL NO SET FOR A GUIDE'S PRIVATE NOTES. `seeker_notes` is not published and
+// nobody asked for it to be: what a Guide writes about the person they walk
+// with is not something anybody else should watch arrive.
 
 /** The Guides' room: their thread, and the requests waiting in it. */
 export const KEEP_UP_GUIDE_ROOM =

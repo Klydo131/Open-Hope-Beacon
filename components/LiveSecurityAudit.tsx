@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useKeepUp, KEEP_UP_SECURITY } from '@/lib/live/keep-up';
 import * as live from '@/lib/live/data';
 import { roleNoun } from '@/lib/brand';
 import { BeaconSpinner } from '@/components/BeaconLoader';
@@ -46,6 +47,10 @@ export function LiveSecurityAudit() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+  // Watches the three tables whose writes CREATE an audit entry, not the audit
+  // table itself -- which has no read policy and would deliver nothing. See
+  // KEEP_UP_SECURITY.
+  useKeepUp(KEEP_UP_SECURITY, load);
 
   const needsReview = (events ?? []).filter((event) => event.severity !== 'info').length;
 
