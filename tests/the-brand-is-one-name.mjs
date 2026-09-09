@@ -69,6 +69,19 @@ const KEYS = ['hope-beacon.feedback.local', 'hope-beacon:library-favorites'];
 //
 // Except inside the two storage keys, which are addresses. A file is allowed to
 // contain "hope-beacon" only as part of one of those.
+//
+// THE SPACE BETWEEN THE TWO WORDS IS NOT ALWAYS A SPACE, and the first version
+// of this check assumed it was. Every invitation email writes the wordmark as
+// `Hope&nbsp;Beacon`, so the two words never break across a line -- and an
+// entity is not the character it stands for, so a literal `Hope Beacon` search
+// walked straight past all eleven of them. The rename shipped, this check went
+// green, and the emails a congregation actually receives still carried the old
+// name in their masthead.
+//
+// So entities are resolved to a space and runs of whitespace collapsed BEFORE
+// the name is looked for. That covers `&nbsp;`, `&#160;`, `&#xa0;` and the
+// literal U+00A0, because it does not enumerate them: anything of the shape
+// `&...;` becomes a space and the question of which ones exist stops mattering.
 {
   const stragglers = [];
   for (const file of tracked()) {
@@ -80,6 +93,9 @@ const KEYS = ['hope-beacon.feedback.local', 'hope-beacon:library-favorites'];
     try { text = read(file); } catch { continue; }
     let stripped = text;
     for (const key of KEYS) stripped = stripped.split(key).join('');
+    stripped = stripped
+      .replace(/&[a-z]+;|&#x?[0-9a-f]+;/gi, ' ')
+      .replace(/\s+/g, ' ');
     if (/Open Hope Beacon|Hope Beacon|open-hope-beacon|hope-beacon/i.test(stripped)) {
       stragglers.push(file);
     }

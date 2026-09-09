@@ -103,6 +103,23 @@ export const KEEP_UP_BELL = ['notifications'] as const;
 // KEEP_UP_GUILD used to be declared here and named those two tables. It was a
 // subscription to silence: it looked wired, passed every check that only asks
 // whether a screen subscribed, and delivered nothing.
+//
+// FIVE TABLES ARE PUBLISHED THAT NOTHING CAN EVER RECEIVE, and the list is here
+// so the next person does not rediscover it the expensive way. Checked against
+// the live publication rather than against the migrations:
+//
+//     blog_views · guild_activity_amens · guild_activity_posts
+//     library_activity · library_blocks
+//
+// Each has RLS on and NO read policy, so realtime has nothing to evaluate and
+// drops every event -- the same silence KEEP_UP_GUILD died of. They are read
+// through SECURITY DEFINER functions instead, which is why the screens that use
+// them work perfectly on load and never move afterwards.
+//
+// Nothing in this file names any of them, so no room is currently deaf. Do not
+// add one to a set here expecting it to work. Making one live is a decision
+// about who may read the table, taken in a migration, and for the Guild wall
+// that decision has already been made the other way, above.
 
 // ---------------------------------------------------------------------------
 // THE ROOMS THAT WERE LEFT OUT.

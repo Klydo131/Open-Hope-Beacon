@@ -607,6 +607,23 @@ export function LiveConversationPage() {
                 subjectName={pairing.ds_name}
                 pairingId={pairing.id}
               />
+              {/* ARRANGING A TIME IS PART OF THE RELATIONSHIP, so it sits with
+                  the conversation on BOTH sides -- the same card, the same
+                  meetings, in the same place on each screen.
+
+                  IT USED TO SIT UNDER JOURNEY, and that was the mistake. Journey
+                  is the one tab on this screen the Explorer never sees: it holds
+                  the six stages, the Advance button and the stage history, and
+                  it exists for the Guide to record where somebody has got to.
+                  Putting the shared diary in there filed a thing the two of them
+                  DO TOGETHER inside the folder of things the Guide does ABOUT
+                  them -- so the Explorer proposed a time in their chat and the
+                  Guide had to leave the conversation, and know which tab to go
+                  to, before they could see it had been asked.
+
+                  The Explorer's screen has always had it beneath the thread.
+                  This is the Guide's screen catching up, not a new feature. */}
+              <LiveMeetings pairingId={pairing.id} withName={pairing.ds_name} />
             </>
           )}
 
@@ -654,10 +671,6 @@ export function LiveConversationPage() {
                 </div>
               </Card>
 
-              {/* The same card the Explorer sees, showing the same meetings.
-                  One diary between two people, not two lists that can
-                  disagree. */}
-              <LiveMeetings pairingId={pairing.id} withName={pairing.ds_name} />
               <DetailChanges
                 personId={pairing.ds_id}
                 firstName={pairing.ds_name.split(' ')[0]}

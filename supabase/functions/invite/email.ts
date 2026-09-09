@@ -220,7 +220,7 @@ export function inviteHtml(
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background-color:#ffffff;border-radius:14px;">
         <tr><td style="padding:34px 40px 30px 40px;font-family:Helvetica,Arial,sans-serif;">
 
-          <p style="margin:0 0 18px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;color:#1E2A4A;">Hope&nbsp;Beacon</p>
+          <p style="margin:0 0 18px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;color:#1E2A4A;">Sentry&nbsp;Beacon</p>
 
           <h1 style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:22px;line-height:1.3;color:#1E2A4A;font-weight:bold;">${esc(copy.subject)}</h1>
 
@@ -268,7 +268,7 @@ export function inviteHtml(
             Nothing here expires. You can open this e-mail again, on any device, whenever you are ready.
           </p>
           <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#5B6472;">
-            ${esc(afterLine)} To add Hope&nbsp;Beacon to your Home Screen, open <strong>Settings</strong> inside the app.
+            ${esc(afterLine)} To add Sentry&nbsp;Beacon to your Home Screen, open <strong>Settings</strong> inside the app.
           </p>
 
         </td></tr>
