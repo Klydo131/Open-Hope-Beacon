@@ -283,6 +283,7 @@ const staticChecks = [
   ['talk is a room of its own', 'tests/talk-is-a-room-of-its-own.mjs'],
   ['the surface has a scale', 'tests/the-surface-has-a-scale.mjs'],
   ['nobody can flood a room', 'tests/nobody-can-flood-a-room.mjs'],
+  ['the shelf can be narrowed', 'tests/the-shelf-can-be-narrowed.mjs'],
   ['bulk invite list', 'tests/bulk-invite.mjs'],
   ['stay signed in', 'tests/stay-signed-in.mjs'],
   // Runs the shipped translator over the exact strings that reached a phone:

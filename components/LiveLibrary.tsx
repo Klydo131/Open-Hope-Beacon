@@ -27,6 +27,17 @@ const KIND_ICON: Record<live.MaterialKind, string> = {
   link: '🔗', video: '🎬', audio: '🎧', pdf: '📄', image: '🖼️',
 };
 
+/**
+ * What each kind is called when it is a control rather than a badge.
+ *
+ * Plural, because a filter names a group and not one thing: somebody scanning a
+ * row of chips is choosing between piles, and "Video" beside "Links" reads as
+ * an odd one out.
+ */
+const KIND_LABEL: Record<live.MaterialKind, string> = {
+  link: 'Links', video: 'Videos', audio: 'Audio', pdf: 'PDFs', image: 'Pictures',
+};
+
 function Err({ msg }: { msg: string }) {
   if (!msg) return null;
   return (
@@ -155,6 +166,15 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
   // box is one more thing to read on the way to the row you can already see.
   // The same rule and the same threshold as Approved accounts.
   const [find, setFind] = useState('');
+  // WHICH PILE, or '' for all of them. Separate from the search box rather than
+  // folded into it: "video" typed into a search reads the WORD video in a title
+  // and a description, which is a different question from "show me the videos"
+  // and answers it wrong in both directions.
+  // Named for the shelf, not just `kind`: this component already has a `kind`,
+  // which is the kind of the resource being ADDED. Two states called kind, one
+  // meaning "what I am filing" and one "what I am looking for", is a rename
+  // waiting to go wrong in the wrong direction.
+  const [shelfKind, setShelfKind] = useState<live.MaterialKind | ''>('');
   // What this person has taken off their own shelf, and whether they are
   // looking at it. A hide with no way back is a trap, and an undo that lives
   // only in the seconds after the tap is barely an undo at all.
@@ -317,10 +337,28 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
   // "the one about baptism", "the Ellen White one", "that youtube video". A
   // search that only read titles would miss the two-thirds of those.
   const needle = find.trim().toLowerCase();
-  const shown = (items ?? []).filter((m) => !needle
+  const matchesText = (m: live.Material) => !needle
     || m.title.toLowerCase().includes(needle)
     || (m.description ?? '').toLowerCase().includes(needle)
-    || m.external_url.toLowerCase().includes(needle));
+    || m.external_url.toLowerCase().includes(needle);
+  // BOTH, NOT EITHER. A person who has typed a word and then tapped Videos is
+  // narrowing twice on purpose; an OR would widen the list at the moment they
+  // asked for less of it.
+  const shown = (items ?? []).filter((m) => matchesText(m) && (!shelfKind || m.kind === shelfKind));
+
+  // ONLY THE PILES THAT EXIST, and how big each one is.
+  //
+  // A chip for a kind nothing on the shelf has is a control that can only ever
+  // empty the screen, and this church's shelf has three of the five kinds. The
+  // counts ignore the search box: a chip that changed its number as somebody
+  // typed would be measuring the search rather than the shelf, and the point of
+  // it is to say what is THERE.
+  const kindCounts = (items ?? []).reduce((acc, m) => {
+    acc[m.kind] = (acc[m.kind] ?? 0) + 1;
+    return acc;
+  }, {} as Partial<Record<live.MaterialKind, number>>);
+  const kindsPresent = (Object.keys(kindCounts) as live.MaterialKind[])
+    .sort((a, b) => (kindCounts[b] ?? 0) - (kindCounts[a] ?? 0));
 
   const canManage = (m: live.Material) =>
     !!profile && (m.added_by === profile.id || profile.role === 'admin' || profile.role === 'executive');
@@ -447,11 +485,67 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
             aria-label="Search the library by name or description"
             className="tap w-full rounded-xl bg-gray-100 px-4 text-base outline-none focus:ring-2 focus:ring-teal-600"
           />
-          {needle && (
-            <p className="mt-1.5 text-sm text-gray-500">
-              {shown.length} of {items?.length ?? 0}
-              {shown.length === 0 && ' \u00b7 nothing by that name'}
-            </p>
+        </div>
+      )}
+
+      {/* THE PILES, ONLY WHERE THERE IS MORE THAN ONE.
+          A shelf that is all links gets no chips: a row of controls offering a
+          choice between one thing is furniture. This church's shelf has three
+          of the five kinds, and the counts say how many are in each so somebody
+          can see there are two videos before tapping and finding two videos. */}
+      {kindsPresent.length > 1 && (
+        <div className="thin-scroll -mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
+          <button
+            type="button"
+            onClick={() => setShelfKind('')}
+            aria-pressed={shelfKind === ''}
+            className={`tap-sm shrink-0 rounded-full px-3 text-sm font-semibold ring-1 ${
+              shelfKind === ''
+                ? 'bg-teal-700 text-white ring-teal-700'
+                : 'bg-white text-gray-600 ring-gray-300'
+            }`}
+          >
+            Everything {items?.length ?? 0}
+          </button>
+          {kindsPresent.map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setShelfKind(shelfKind === k ? '' : k)}
+              aria-pressed={shelfKind === k}
+              className={`tap-sm shrink-0 rounded-full px-3 text-sm font-semibold ring-1 ${
+                shelfKind === k
+                  ? 'bg-teal-700 text-white ring-teal-700'
+                  : 'bg-white text-gray-600 ring-gray-300'
+              }`}
+            >
+              <span aria-hidden>{KIND_ICON[k]}</span> {KIND_LABEL[k]} {kindCounts[k]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* WHAT THE TWO CONTROLS DID, TOGETHER.
+          One line for both, because a person who has typed a word AND tapped a
+          pile has narrowed twice and a count that only mentions one of them
+          leaves them wondering where the rest went. When it comes to nothing it
+          says which of the two emptied the shelf, and offers the way back --
+          an empty list with no explanation reads as a broken library. */}
+      {(needle || shelfKind) && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+          <p className="text-sm text-gray-500">
+            {shown.length} of {items?.length ?? 0}
+            {shelfKind && ` \u00b7 ${KIND_LABEL[shelfKind].toLowerCase()}`}
+            {needle && ` \u00b7 matching \u201c${find.trim()}\u201d`}
+          </p>
+          {shown.length === 0 && (
+            <button
+              type="button"
+              onClick={() => { setFind(''); setShelfKind(''); }}
+              className="tap-sm px-1 text-sm font-semibold text-teal-700 underline underline-offset-2"
+            >
+              Show everything again
+            </button>
           )}
         </div>
       )}

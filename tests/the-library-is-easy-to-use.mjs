@@ -147,7 +147,20 @@ const data = strip(read('lib/live/data.ts'));
   ok(/m\.external_url\.toLowerCase\(\)\.includes\(needle\)/.test(ui), 'and the address');
 
   // A COUNT, so a search that finds nothing says so rather than looking broken.
-  ok(/nothing by that name/.test(ui), 'and an empty result says so instead of showing a blank shelf');
+  //
+  // THIS USED TO ASSERT THE LITERAL PHRASE "nothing by that name", which was
+  // right while the search box was the only way to narrow the shelf. It is not
+  // any more: a kind filter can empty the list too, and a message naming only
+  // the search would send somebody hunting for words they never typed. The
+  // check now asks for the BEHAVIOUR, and asks for more of it than the phrase
+  // did -- an empty result must say which filter emptied it AND offer the way
+  // out, because an empty list with no explanation reads as a broken library.
+  ok(/\{shown\.length\} of \{items\?\.length \?\? 0\}/.test(ui),
+     'a narrowed shelf says how much of itself is showing');
+  ok(/shelfKind && `/.test(ui) && /needle && `/.test(ui),
+     'and an empty result names which of the two controls emptied it');
+  ok(/Show everything again/.test(ui),
+     'and offers the way back instead of showing a blank shelf');
   ok(/\{shown\.length\} of \{items\?\.length \?\? 0\}/.test(ui), 'with how many of how many');
 
   // The list drawn must be the filtered one, or the box does nothing.
