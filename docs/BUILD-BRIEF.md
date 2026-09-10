@@ -252,7 +252,14 @@ Each of these has already been broken once in this project.
    `NEXT_PUBLIC_*`, not in a browser file. It bypasses every policy. Only the
    Edge Function holds it.
 
-5. **Nothing trusts client metadata for a privilege.** `signUp()` lets any
+5. **A write that wakes every screen needs a ceiling, and a watcher needs a
+   debounce.** One insert becomes one recount per open app. `hold_the_pace`
+   caps a signed-in account at 40 writes a minute across the conversation, the
+   Guild wall and the Guides' room; on the client, watch tables through
+   `useKeepUp` and never a raw realtime channel, which has no settling and turns
+   a burst of forty messages into forty recounts per viewer.
+
+6. **Nothing trusts client metadata for a privilege.** `signUp()` lets any
    caller attach arbitrary `data`. A trigger reading `role` from it hands
    Executive Director to the internet. Role, church and approval come from the
    `invites` table. See the long comment in `0002_invitations.sql`.

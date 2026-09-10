@@ -176,7 +176,7 @@ tests/                   one file per rule, each broken on purpose before trust
 scripts/verify.mjs       the gate: typecheck, build, and every test above
 ```
 
-### Five rules that bite
+### Six rules that bite
 
 1. **Migrations are append-only.** They have run against a live database with
    real people in it. Fixing a migration means writing the next one; editing a
@@ -217,7 +217,22 @@ scripts/verify.mjs       the gate: typecheck, build, and every test above
    safeguarding-sensitive functions in the app. Use `is_admin()` only where the
    action has no target, such as creating a church.
 
-5. **Never widen a policy to make a screen convenient.** The screen is the
+5. **A write that wakes every screen needs a ceiling.** Realtime turns one
+   insert into one piece of work per open app: cheap for whoever writes,
+   multiplied for the server. `private.hold_the_pace` is a BEFORE INSERT trigger
+   on the three tables a person can write into a room — the conversation, the
+   Guild wall, the Guides' room — refusing past **40 a minute per account**,
+   which is two a second sustained and far above anything a person types. It is
+   set to catch a script, not a member: a limit that occasionally catches a real
+   person is a limit that gets removed after the first complaint. It bounds the
+   machine and not the behaviour — forty unkind messages a minute is still a
+   matter for the report route and a Director.
+
+   The other half is on the client. Anything watching a table goes through
+   `useKeepUp`, which settles a burst into one reload. A raw channel with no
+   debounce is an amplifier, and the chat dock shipped as one for a day.
+
+6. **Never widen a policy to make a screen convenient.** The screen is the
    cheaper thing to change. Every time this has come up the answer has been to
    watch a different table, show a different card, accept a reload — or write a
    cause table that carries no identity and watch that instead. The Guild wall

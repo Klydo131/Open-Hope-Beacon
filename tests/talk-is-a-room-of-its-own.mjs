@@ -115,11 +115,21 @@ const ok = (cond, msg) => {
   ok(/is > was/.test(dock),
      'it announces a message arriving, not a count that merely exists');
 
-  ok(/subscribeToMyMessages/.test(dock),
-     'it watches every conversation, not only the one being read');
+  // EVERY CONVERSATION, AND SETTLED. This asserted a raw `subscribeToMyMessages`
+  // channel until an audit found what that shape costs: it called back on every
+  // single row event with nothing between them, so one insert by anybody became
+  // one recount per open app, and a burst of forty messages became forty
+  // recounts and up to forty notifications per viewer. The invariant is
+  // unchanged -- the dock must notice a message in ANY thread -- but it is now
+  // met by the hook that debounces, like every other screen in the app.
+  ok(/useKeepUp\(KEEP_UP_TALK, refresh\)/.test(dock),
+     'it watches every conversation through the hook that settles a burst into one reload');
+
   const data = read('lib/live/data.ts');
-  ok(/export function subscribeToMyMessages/.test(data),
-     'and that subscription exists');
+  ok(!/export function subscribeToMyMessages/.test(data),
+     'and the unthrottled helper it used to call is gone rather than left lying about');
+  ok(/SETTLE_MS/.test(read('lib/live/keep-up.ts')),
+     'the hook it uses instead actually debounces');
 }
 
 // ---------------------------------------------------------------------------

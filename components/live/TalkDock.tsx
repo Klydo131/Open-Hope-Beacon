@@ -26,7 +26,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import * as live from '@/lib/live/data';
 import { useLiveSession } from '@/lib/live/session';
-import { useKeepUp, KEEP_UP_MY_PAIRING } from '@/lib/live/keep-up';
+import { useKeepUp, KEEP_UP_MY_PAIRING, KEEP_UP_TALK } from '@/lib/live/keep-up';
 import { TalkSurface } from '@/components/live/TalkSurface';
 import { showLocalNotification } from '@/lib/push';
 import { APP_SHORT_NAME } from '@/lib/brand';
@@ -87,8 +87,14 @@ export function TalkDock() {
   }, []);
   useEffect(() => { void refresh(); }, [refresh]);
   useKeepUp(KEEP_UP_MY_PAIRING, refresh);
-  // Every message in every pairing this person is in, not one thread's worth.
-  useEffect(() => live.subscribeToMyMessages(() => void refresh()), [refresh]);
+  // EVERY CONVERSATION, AND DEBOUNCED. This was a raw channel calling `refresh`
+  // on every single row event with nothing between them, which is an
+  // amplifier: one cheap insert by anybody woke every open app and each of
+  // them asked the database to recount what was waiting. A burst of forty
+  // messages was forty recounts per viewer, and up to forty notifications.
+  // useKeepUp settles a burst into one reload, which is what every other
+  // screen in the app has always done.
+  useKeepUp(KEEP_UP_TALK, refresh);
 
   const setOpenAndRemember = (next: boolean) => {
     setOpen(next);

@@ -1318,7 +1318,10 @@ export function subscribeToMessages(pairingId: string, onChange: () => void) {
   const client = supabase();
   if (!client) return () => {};
   const channel = client
-    .channel(`messages:${pairingId}`)
+    // A RANDOM SUFFIX, like every other channel here. A fixed name means two
+    // components watching the same conversation ask one client for the same
+    // channel, and the second one does not get its own.
+    .channel(`messages:${pairingId}:${Math.random().toString(36).slice(2)}`)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'messages', filter: `pairing_id=eq.${pairingId}` },
@@ -1330,29 +1333,15 @@ export function subscribeToMessages(pairingId: string, onChange: () => void) {
   };
 }
 
-/**
- * Every conversation this person is in, live.
- *
- * NO `filter`, and that is the difference from the function above. The dock has
- * to notice a message arriving in ANY of a Guide's five threads, including the
- * four they are not looking at, so there is no single pairing id to filter on.
- *
- * It is not wider in what it discloses: realtime evaluates the same policy as a
- * SELECT, so this delivers exactly the pairings this caller is already in and
- * nothing else. The filter on the single-thread version is for traffic, not for
- * privacy, and dropping it costs traffic rather than a boundary.
- */
-export function subscribeToMyMessages(onChange: () => void) {
-  const client = supabase();
-  if (!client) return () => {};
-  const channel = client
-    .channel(`messages:mine:${Math.random().toString(36).slice(2)}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, onChange)
-    .subscribe();
-  return () => {
-    client.removeChannel(channel);
-  };
-}
+// `subscribeToMyMessages` USED TO LIVE HERE and was deliberately removed.
+//
+// It was an unfiltered channel that called its callback on every row event with
+// no settling, and its only caller was the chat dock. That made one insert by
+// anybody into N recounts, where N is however many people have the app open. A
+// helper shaped like that is a trap for whoever needs the next one: it reads as
+// the obvious tool and it is the expensive one. Watch a table through
+// `useKeepUp`, which debounces, or filter to a single row set as the function
+// below does.
 
 // ---------------------------------------------------------------------------
 // Blog.
