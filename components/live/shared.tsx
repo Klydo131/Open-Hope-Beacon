@@ -779,6 +779,7 @@ export function SelectPerson({
   onChange,
   people,
   loading = false,
+  noneLabel,
 }: {
   label: string;
   value: string;
@@ -786,8 +787,41 @@ export function SelectPerson({
   people: Profile[];
   /** True while the list is still being fetched. */
   loading?: boolean;
+  /**
+   * What the empty choice says, where "not yet" is a real answer rather than a
+   * missing one — the invitation form's Guide picker, where "Pair later" is a
+   * decision and "Choose guide" would read as a thing left undone.
+   */
+  noneLabel?: string;
 }) {
   const noun = label.toLowerCase();
+
+  // TYPE A NAME INSTEAD OF SCROLLING FORTY.
+  //
+  // Reported by Directors, and the numbers are why: this church has 42 Explorers
+  // with no Guide and 39 Guides carrying nobody, so both pickers are around
+  // forty entries. A native select is right at five and a scroll at forty, and
+  // the person a Director is looking for is one they already have a name for —
+  // they are not browsing, they are looking somebody up.
+  //
+  // The same threshold and the same wording as the library shelf and Approved
+  // accounts, because somebody who has learned one of these should not have to
+  // learn the others.
+  const [find, setFind] = useState('');
+  const needle = find.trim().toLowerCase();
+  const matching = needle
+    ? people.filter((p) => (p.full_name ?? '').toLowerCase().includes(needle))
+    : people;
+
+  // THE CHOSEN PERSON IS ALWAYS IN THE LIST, even when the words no longer
+  // match them. Without this, typing after choosing drops the selected option
+  // out of the select, which draws as blank while the value is still set --
+  // the control disagreeing with itself, and a Director pairing the wrong
+  // person because the box looked empty.
+  const chosen = people.find((p) => p.id === value);
+  const options = chosen && !matching.some((p) => p.id === chosen.id)
+    ? [chosen, ...matching]
+    : matching;
   // Three states, three sentences. "Choose guide" over an empty list is the
   // one that cost an evening: it is indistinguishable from a working control.
   const placeholder = loading
@@ -799,14 +833,28 @@ export function SelectPerson({
   return (
     <label className="block">
       <span className="text-sm font-semibold text-gray-600">{label}</span>
+      {/* The box appears only once the list is long enough to need it. Below
+          that it is one more thing to read on the way to a name already on
+          screen. */}
+      {people.length > 6 && !loading && (
+        <input
+          value={find}
+          onChange={(event) => setFind(event.target.value)}
+          type="search"
+          inputMode="search"
+          placeholder={`Type a ${noun}'s name`}
+          aria-label={`Search the ${noun} list by name`}
+          className="tap mt-1 w-full rounded-xl bg-gray-100 px-4 text-base outline-none focus:ring-2 focus:ring-teal-600"
+        />
+      )}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={loading || people.length === 0}
         className="tap mt-1 w-full rounded-xl bg-gray-100 px-3 text-base disabled:opacity-60"
       >
-        <option value="">{placeholder}</option>
-        {people.map((person) => (
+        <option value="">{noneLabel ?? placeholder}</option>
+        {options.map((person) => (
           // A NAME, OR SOMETHING. An option whose text is empty draws as a
           // blank row, which is the same "no names" report by another route.
           // Nobody in this church has a blank name today; that is a fact about
@@ -816,6 +864,28 @@ export function SelectPerson({
           </option>
         ))}
       </select>
+      {/* WHAT THE TYPING DID. A list that silently shortens is one a Director
+          cannot trust: they type three letters, see four names, and have no way
+          to know whether the fifth person is missing or simply does not match.
+          When nothing matches it says so and offers the way back, because an
+          empty picker reads as a broken church rather than a narrow search. */}
+      {needle && (
+        <span className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-gray-500">
+          <span>
+            {matching.length} of {people.length} {noun}
+            {people.length === 1 ? '' : 's'} match “{find.trim()}”
+          </span>
+          {matching.length === 0 && (
+            <button
+              type="button"
+              onClick={() => setFind('')}
+              className="font-semibold text-teal-700 underline underline-offset-2"
+            >
+              Show everyone again
+            </button>
+          )}
+        </span>
+      )}
     </label>
   );
 }

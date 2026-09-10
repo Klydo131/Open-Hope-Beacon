@@ -658,26 +658,32 @@ export function LiveAdminPage() {
               </select>
             </label>
             {role === 'ds' && (
-              <label className="block">
+              <div className="block">
                 {/* NOT "after approval" any more, because for an Explorer there is
                     no approval step: an invitation IS the approval, so choosing
                     a Guide here pairs them the moment they finish signing up.
                     The old label described a wait that does not happen. */}
-                <span className="text-sm font-semibold text-gray-600">Guide to walk with (optional)</span>
-                <select
+                {/* THE SHARED PICKER, not a second hand-rolled select.
+                    This was its own <select> listing every Guide, so when the
+                    pairing screen's pickers learned to be typed into, this one
+                    -- which is the SAME decision, made a week earlier -- did
+                    not. A Director inviting an Explorer still scrolled thirty
+                    nine names. One component, one behaviour, and "Pair later"
+                    survives as the empty choice because here it is a real
+                    answer rather than a thing left undone. */}
+                <SelectPerson
+                  label="Guide to walk with (optional)"
                   value={guideId}
-                  onChange={(event) => setGuideId(event.target.value)}
-                  className="tap mt-1 w-full rounded-xl bg-gray-100 px-3 text-base"
-                >
-                  <option value="">Pair later</option>
-                  {guides.map((guide) => <option key={guide.id} value={guide.id}>{guide.full_name}</option>)}
-                </select>
+                  onChange={setGuideId}
+                  people={guides}
+                  noneLabel="Pair later"
+                />
                 <span className="mt-1 block text-xs text-gray-500">
                   {guideId
                     ? 'They will be walking with this Guide as soon as they finish signing up.'
                     : 'You can pair them later on the Pairings screen.'}
                 </span>
-              </label>
+              </div>
             )}
             <div className="sm:col-span-2">
               <Button

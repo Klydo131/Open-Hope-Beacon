@@ -76,8 +76,18 @@ const React = {
   }),
   Fragment: 'fragment',
 };
+// A HOOK STUB, so a component with local state can still be rendered here.
+//
+// The picker gained a search box, which means it gained `useState`, and this
+// harness calls the component as a plain function. The stub hands back whatever
+// `typed` currently holds instead of the initial value, which turns the
+// limitation into the useful thing: the filter can be driven from a test and
+// its RESULT inspected, rather than asserted about by reading the source.
+let typed = '';
+const useState = (initial) => [typed === null ? initial : (typed || initial), () => {}];
+
 const mod = { exports: {} };
-new Function('module', 'exports', 'React', js)(mod, mod.exports, React);
+new Function('module', 'exports', 'React', 'useState', js)(mod, mod.exports, React, useState);
 const { SelectPerson } = mod.exports;
 
 /** Walk the tree and hand back the one <select>. */
@@ -96,8 +106,8 @@ const optionsOf = (select) => select.children.map((o) => ({
 }));
 
 const person = (id, full_name) => ({ id, full_name, role: 'dm', is_approved: true });
-const render = (people, loading) =>
-  SelectPerson({ label: 'Guide', value: '', onChange: () => {}, people, loading });
+const render = (people, loading, extra = {}) =>
+  SelectPerson({ label: 'Guide', value: '', onChange: () => {}, people, loading, ...extra });
 
 // ---------------------------------------------------------------------------
 // 1. WHILE IT IS LOADING
@@ -175,6 +185,50 @@ const render = (people, loading) =>
   ok((upTo.match(/<SelectPerson/g) ?? []).length === 2, 'the form has the two pickers');
   ok((upTo.match(/loading=\{loading\}/g) ?? []).length === 2,
      'and neither of them is the one that was forgotten');
+}
+
+// ---------------------------------------------------------------------------
+// 5. TYPING A NAME, WHICH IS WHY THE BOX EXISTS
+// ---------------------------------------------------------------------------
+//
+// Reported by Directors. This church has 42 Explorers with no Guide and 39
+// Guides carrying nobody, so both pickers are around forty entries: a native
+// select is right at five and a scroll at forty, and a Director looking for
+// somebody already has their name.
+{
+  const many = Array.from({ length: 12 }, (_, i) => person(`p${i}`, `Person ${i}`));
+  const withMaria = [...many, person('maria', 'Maria Santos')];
+
+  // The box appears only once the list is long enough to need it.
+  const shortOne = render([person('a', 'Ana')], false);
+  const hasBox = (node) => {
+    if (!node || typeof node !== 'object') return false;
+    if (node.type === 'input' && node.props?.type === 'search') return true;
+    return (node.children ?? []).some(hasBox);
+  };
+  ok(!hasBox(shortOne), 'a short list gets no search box');
+  ok(hasBox(render(withMaria, false)), 'a long one does');
+
+  // AND IT ACTUALLY NARROWS.
+  typed = 'maria';
+  const narrowed = optionsOf(findSelect(render(withMaria, false)));
+  typed = '';
+  ok(narrowed.some((o) => o.text.includes('Maria Santos')),
+     'typing a name keeps the person who matches');
+  ok(!narrowed.some((o) => o.text.includes('Person 3')),
+     'and drops the people who do not');
+
+  // THE CHOSEN PERSON SURVIVES A SEARCH THAT NO LONGER MATCHES THEM.
+  //
+  // Without this the selected option leaves the list while the value stays set,
+  // so the box draws blank while still holding somebody -- the control
+  // disagreeing with itself, and a Director pairing the wrong person because it
+  // looked empty.
+  typed = 'zzz';
+  const stillThere = optionsOf(findSelect(render(withMaria, false, { value: 'maria' })));
+  typed = '';
+  ok(stillThere.some((o) => o.value === 'maria'),
+     'somebody already chosen stays in the list even when the words stop matching them');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
