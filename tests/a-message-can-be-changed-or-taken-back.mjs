@@ -226,5 +226,72 @@ const mine = migrations.find((m) => m.name.includes('changed_or_taken_back'));
      'and nothing deletes from guide_room_messages directly any more');
 }
 
+// ---------------------------------------------------------------------------
+// 7. THE GUILD WALL, WHERE THE NOTE MUST NOT NAME ANYBODY
+// ---------------------------------------------------------------------------
+//
+// The third room, and the only pseudonymous one. Both other rooms name the
+// person who deleted something; naming one here would undo the whole point of
+// the wall in a single line, and it is the most tempting line to write because
+// it is what the other two do.
+{
+  const mine = migrations.find((m) => m.name.includes('guild_wall_can_be_corrected'));
+  ok(Boolean(mine), 'the Guild wall migration is in the tree');
+  const sql = mine?.sql ?? '';
+
+  // THE FEED STILL RETURNS A LABEL AND NEVER AN ID, even now that it carries
+  // the deleted state. This is the assertion the whole room rests on.
+  const feed = sql.slice(sql.indexOf('function private.list_guild_activity'));
+  const feedBody = feed.slice(0, feed.indexOf('$$;') + 3);
+  ok(/author_label text/.test(sql) || /'A fellow Explorer'/.test(feedBody),
+     'the feed still computes a label');
+  // ASSERTED ON THE RETURN SIGNATURE, which is the only unambiguous place.
+  // The first version scanned the body for `post.author_id` not followed by
+  // auth.uid, and flagged the `join ... on author.id = post.author_id` line --
+  // a join condition, not a returned column. A check that cannot tell those
+  // apart would have to be silenced, and a silenced check protects nothing.
+  const returns = feedBody.slice(feedBody.indexOf('returns table'),
+                                 feedBody.indexOf(')', feedBody.indexOf('returns table')));
+  ok(!/author_id/.test(returns),
+     `and author_id is not among the columns it returns (${
+       returns.replace(/\s+/g, ' ').slice(14, 90)}...)`);
+  ok(/removed_by_leader/.test(feedBody),
+     'it says whether leadership took a post down, which is not a person');
+
+  // NO deleted_by ON THE WIRE. The column exists on the table for the record;
+  // it must not reach the browser, or the note could be built from it.
+  const data = read('lib/live/data.ts');
+  const type = data.slice(data.indexOf('export interface GuildActivityPost'),
+                          data.indexOf('export interface GuildActivityPost') + 1400);
+  ok(!/^\s*deleted_by/m.test(type),
+     'GuildActivityPost carries no deleted_by, so a note cannot be built from one');
+
+  // Only the author may edit, though leadership may take down.
+  const edit = sql.slice(sql.indexOf('function private.edit_guild_post'));
+  ok(/author_id <> \(select auth\.uid\(\)\)/.test(edit.slice(0, edit.indexOf('$$;') + 3)),
+     'only the author may edit a post');
+
+  // Both deletes keep the words, and neither destroys the row.
+  ok(!/delete from public\.guild_activity_posts/.test(sql),
+     'neither delete destroys the post any more');
+  ok((sql.match(/insert into public\.guild_activity_revisions/g) || []).length >= 3,
+     'edit, the author\'s delete and a leadership take-down all keep the words');
+  ok(/revoke all on public\.guild_activity_revisions from authenticated/.test(sql),
+     'and the kept words are unreadable from a browser');
+
+  // A report raised AFTER a take-down must still carry the words.
+  const report = sql.slice(sql.indexOf('function private.report_guild_post'));
+  ok(/from public\.guild_activity_revisions/.test(report.slice(0, report.indexOf('$$;') + 3)),
+     'reporting a post already taken down still captures what it said');
+
+  const ui = read('components/LiveGuildActivity.tsx');
+  ok(/removed by church leadership/.test(ui),
+     'a leadership take-down says so without naming the leader');
+  ok(/\$\{entry\.author_label\} deleted a post/.test(ui),
+     "and somebody else's deletion uses the label, never a name");
+  ok(/Yes, delete it/.test(ui) && /Keep it/.test(ui),
+     'deleting your own post asks first, which the one-tap control never did');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);

@@ -115,11 +115,34 @@ export function LiveGuildActivity() {
       .catch((cause) => setError(humanError(cause, 'That report could not be sent.')));
   };
 
+  // CORRECTING A POST. One editor at a time, and a confirm before a take-down:
+  // "Delete my post" was a single tap that destroyed a post for a whole guild.
+  const [editing, setEditing] = useState('');
+  const [draft, setDraft] = useState('');
+  const [confirming, setConfirming] = useState('');
+
+  const saveEdit = async (id: string) => {
+    const text = draft.trim();
+    if (!text) { setError('Write something first.'); return; }
+    setBusy(id);
+    setError('');
+    try {
+      await live.editGuildPost(id, text);
+      setEditing(''); setDraft('');
+      await loadPosts();
+    } catch (cause) {
+      setError(humanError(cause, 'That post could not be changed.'));
+    } finally {
+      setBusy('');
+    }
+  };
+
   const deleteMine = async (id: string) => {
     setBusy(id);
     setError('');
     try {
       await live.deleteMyGuildPost(id);
+      setConfirming('');
       await loadPosts();
     } catch (cause) {
       setError(humanError(cause, 'That activity could not be removed.'));
@@ -239,10 +262,62 @@ export function LiveGuildActivity() {
                         <p className="text-sm font-bold text-navy">
                           {KIND[entry.kind].label} <span className="font-normal text-gray-500">· {entry.author_label}</span>
                         </p>
-                        <p className="mt-1 break-words whitespace-pre-wrap text-[15px] leading-relaxed text-gray-700">{entry.body}</p>
+                        {entry.deleted_at ? (
+                          /* THE NOTE, AND IT NAMES NOBODY. Every other room in
+                             this app names the person who deleted something.
+                             This wall is pseudonymous by design -- the feed
+                             returns "You", "A Guide" or "A fellow Explorer" and
+                             never an id -- so the note is built from THAT SAME
+                             LABEL and reveals nothing the wall did not already
+                             say. A leadership take-down says so without naming
+                             the leader: a Director is not a member of this room,
+                             and that is the honest description of what happened. */
+                          <p className="mt-1 text-[15px] italic leading-relaxed text-gray-500">
+                            {entry.removed_by_leader
+                              ? 'This post was removed by church leadership'
+                              : entry.is_mine
+                                ? 'You deleted this post'
+                                : `${entry.author_label} deleted a post`}
+                          </p>
+                        ) : editing === entry.id ? (
+                          <div className="mt-1 space-y-2">
+                            <textarea
+                              value={draft}
+                              onChange={(event) => setDraft(event.target.value)}
+                              rows={3}
+                              maxLength={1000}
+                              autoFocus
+                              aria-label="Change your post"
+                              className="w-full rounded-xl bg-white p-3 text-base outline-none ring-1 ring-gray-300 focus:ring-2 focus:ring-gold"
+                            />
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button variant="gold" disabled={busy === entry.id}
+                                      onClick={() => void saveEdit(entry.id)}>
+                                {busy === entry.id ? 'Saving…' : 'Save the change'}
+                              </Button>
+                              <Button variant="ghost"
+                                      onClick={() => { setEditing(''); setDraft(''); }}>
+                                Leave it as it was
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="mt-1 break-words whitespace-pre-wrap text-[15px] leading-relaxed text-gray-700">{entry.body}</p>
+                            {entry.edited_at && (
+                              <p className="mt-0.5 text-xs italic text-gray-400">edited</p>
+                            )}
+                          </>
+                        )}
                         <p className="mt-2 text-xs text-gray-500">{when(entry.created_at)}</p>
                       </div>
                     </div>
+                    {/* NOTHING TO DO TO A POST THAT IS GONE. No amen on words
+                        nobody can read, no edit, no second delete, and no report
+                        -- reporting is still possible before a take-down, and
+                        the report keeps the words even if the author deletes
+                        afterwards, which is the case it exists for. */}
+                    {!entry.deleted_at && (
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <Button
                         variant="ghost"
@@ -252,9 +327,32 @@ export function LiveGuildActivity() {
                         {entry.i_amen ? '🙏 Remove amen' : '🙏 Amen'} {entry.amen_count > 0 ? `· ${entry.amen_count}` : ''}
                       </Button>
                       {entry.is_mine ? (
-                        <Button variant="danger" disabled={busy === entry.id} onClick={() => void deleteMine(entry.id)}>
-                          Delete my post
-                        </Button>
+                        <>
+                          {editing !== entry.id && (
+                            <Button variant="ghost" disabled={busy === entry.id}
+                                    onClick={() => { setEditing(entry.id); setDraft(entry.body); setError(''); }}>
+                              Edit
+                            </Button>
+                          )}
+                          {/* IT ASKS NOW. This was one tap that destroyed a post
+                              for a whole guild, with no confirmation. */}
+                          {confirming === entry.id ? (
+                            <>
+                              <Button variant="danger" disabled={busy === entry.id}
+                                      onClick={() => void deleteMine(entry.id)}>
+                                {busy === entry.id ? 'Deleting…' : 'Yes, delete it'}
+                              </Button>
+                              <Button variant="ghost" onClick={() => setConfirming('')}>
+                                Keep it
+                              </Button>
+                            </>
+                          ) : (
+                            <Button variant="danger" disabled={busy === entry.id}
+                                    onClick={() => { setConfirming(entry.id); setError(''); }}>
+                              Delete my post
+                            </Button>
+                          )}
+                        </>
                       ) : (
                         /* THE WAY OUT OF THIS ROOM. A board where one person
                            can reach a whole group, some of whom are children,
@@ -276,6 +374,7 @@ export function LiveGuildActivity() {
                         </button>
                       )}
                     </div>
+                    )}
                     {reporting === entry.id && (
                       <div className="mt-3">
                         <ReportDialog

@@ -3623,6 +3623,18 @@ export interface GuildActivityPost {
   amen_count: number;
   i_amen: boolean;
   created_at: string;
+  /** Set when the author corrected it. The previous wording is kept. */
+  edited_at?: string | null;
+  /**
+   * Set when the post was taken down. `body` is empty when this is set.
+   *
+   * THERE IS NO `deleted_by` HERE ON PURPOSE. The wall is pseudonymous -- the
+   * feed returns a label and never an author id -- so a note built from an id
+   * would undo that. `removed_by_leader` says whether it was the author or
+   * leadership, which is all the screen needs and all it may know.
+   */
+  deleted_at?: string | null;
+  removed_by_leader?: boolean;
 }
 
 /** A Guild board contains no roster or member identifiers. */
@@ -3633,6 +3645,21 @@ export async function listGuildActivity(guildId: string, limit = 100): Promise<G
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as GuildActivityPost[];
+}
+
+/**
+ * Correct your own post on the Guild wall. The author, and only ever the author.
+ *
+ * Leadership can take a post DOWN and deliberately cannot rewrite one: removing
+ * something somebody said and putting different words in their mouth are not
+ * the same power. The previous wording is kept where no browser can read it.
+ */
+export async function editGuildPost(postId: string, body: string): Promise<void> {
+  const text = body.trim();
+  if (!text) throw new Error('Write something first.');
+  if (text.length > 1000) throw new Error('Write between 1 and 1000 characters.');
+  const { error } = await db().rpc('edit_guild_post', { p_post: postId, p_body: text });
+  if (error) throw new Error(error.message);
 }
 
 export async function postToGuild(
