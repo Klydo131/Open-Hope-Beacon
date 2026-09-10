@@ -253,6 +253,38 @@ export function LiveGuildRoom() {
   const { profile } = useLiveSession();
   const [rows, setRows] = useState<live.GuideRoomMessage[] | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
+  // Editing and taking back, one message at a time. Two open editors is two
+  // drafts to lose, and a confirm left open on a message you have scrolled away
+  // from is a tap waiting to go wrong.
+  const [editing, setEditing] = useState('');
+  const [draft, setDraft] = useState('');
+  const [confirming, setConfirming] = useState('');
+  const [busyRow, setBusyRow] = useState('');
+  const [rowError, setRowError] = useState('');
+
+  const saveEdit = async (id: string) => {
+    const text = draft.trim();
+    if (!text) { setRowError('A message has to say something.'); return; }
+    setBusyRow(id); setRowError('');
+    try {
+      await live.editGuideRoomMessage(id, text);
+      setEditing(''); setDraft('');
+      await load();
+    } catch (cause) {
+      setRowError(humanError(cause, 'That message could not be changed.'));
+    } finally { setBusyRow(''); }
+  };
+
+  const takeBack = async (id: string) => {
+    setBusyRow(id); setRowError('');
+    try {
+      await live.deleteGuideRoomMessage(id);
+      setConfirming('');
+      await load();
+    } catch (cause) {
+      setRowError(humanError(cause, 'That message could not be deleted.'));
+    } finally { setBusyRow(''); }
+  };
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -318,6 +350,8 @@ export function LiveGuildRoom() {
             const mine = m.author_id === profile?.id;
             const canDrop = mine
               || profile?.role === 'admin' || profile?.role === 'executive';
+            const who = (id?: string | null) =>
+              id && id === profile?.id ? 'You' : (names[id ?? ''] ?? 'Someone');
             return (
               <div key={m.id} className="rounded-xl bg-gray-50 px-4 py-3">
                 <div className="flex flex-wrap items-baseline gap-2">
@@ -325,19 +359,100 @@ export function LiveGuildRoom() {
                     {mine ? 'You' : (names[m.author_id ?? ''] ?? 'Someone')}
                   </p>
                   <p className="text-xs text-gray-400">{when(m.created_at)}</p>
-                  {canDrop && (
-                    <button
-                      type="button"
-                      onClick={() => void live.deleteGuideRoomMessage(m.id).then(load)}
-                      className="ml-auto text-xs font-semibold text-red-700 underline"
-                    >
-                      Delete
-                    </button>
+                  {m.edited_at && !m.deleted_at && (
+                    <p className="text-xs italic text-gray-400">edited</p>
+                  )}
+                  {/* NOTHING TO DO TO A MESSAGE THAT IS ALREADY GONE. */}
+                  {canDrop && !m.deleted_at && (
+                    <div className="ml-auto flex items-center gap-3">
+                      {mine && editing !== m.id && (
+                        <button
+                          type="button"
+                          onClick={() => { setEditing(m.id); setDraft(m.body); setRowError(''); }}
+                          className="text-xs font-semibold text-gray-500 underline"
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {/* IT ASKS NOW. This was one tap that destroyed a message
+                          for everybody, with no confirmation and no way back --
+                          and in this room a Director can tap it on somebody
+                          else's words. */}
+                      {confirming !== m.id ? (
+                        <button
+                          type="button"
+                          onClick={() => { setConfirming(m.id); setRowError(''); }}
+                          className="text-xs font-semibold text-red-700 underline"
+                        >
+                          Delete
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busyRow === m.id}
+                            onClick={() => void takeBack(m.id)}
+                            className="text-xs font-semibold text-red-700 underline"
+                          >
+                            {busyRow === m.id ? 'Deleting' : (mine ? 'Yes, delete it' : 'Yes, remove it')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirming('')}
+                            className="text-xs font-semibold text-gray-500 underline"
+                          >
+                            Keep it
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
-                <p className="mt-0.5 whitespace-pre-wrap text-[15px] leading-relaxed text-gray-700">
-                  <Linked text={m.body} />
-                </p>
+
+                {m.deleted_at ? (
+                  /* A NAMED LINE, NEVER A GAP. This room is not anonymous and
+                     leadership can remove somebody else's words, so a thread
+                     that silently changed shape between visits would leave the
+                     author untold and everybody else unsure whether they had
+                     misremembered. The words themselves are gone from here. */
+                  <p className="mt-0.5 text-[15px] italic leading-relaxed text-gray-500">
+                    {m.deleted_by && m.deleted_by === m.author_id
+                      ? `${who(m.deleted_by)} deleted a message`
+                      : `${who(m.deleted_by)} removed a message from ${who(m.author_id)}`}
+                  </p>
+                ) : editing === m.id ? (
+                  <div className="mt-1 space-y-2">
+                    <textarea
+                      value={draft}
+                      onChange={(event) => setDraft(event.target.value)}
+                      rows={3}
+                      maxLength={4000}
+                      autoFocus
+                      aria-label="Change your message"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-[15px] leading-relaxed text-gray-700"
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="gold"
+                        onClick={() => void saveEdit(m.id)}
+                        disabled={busyRow === m.id}
+                      >
+                        {busyRow === m.id ? 'Saving' : 'Save the change'}
+                      </Button>
+                      <Button variant="ghost" onClick={() => { setEditing(''); setDraft(''); }}>
+                        Leave it as it was
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-0.5 whitespace-pre-wrap text-[15px] leading-relaxed text-gray-700">
+                    <Linked text={m.body} />
+                  </p>
+                )}
+
+                {rowError && (editing === m.id || confirming === m.id) && (
+                  <p className="mt-1 text-xs text-red-800">{rowError}</p>
+                )}
               </div>
             );
           })}

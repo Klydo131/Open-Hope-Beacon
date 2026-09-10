@@ -1104,13 +1104,22 @@ export interface GuideRoomMessage {
   author_id: string | null;
   body: string;
   created_at: string;
+  /** Set when the author corrected the wording. The previous wording is kept. */
+  edited_at?: string | null;
+  /**
+   * Set when the message was taken back -- by its author, or by leadership of
+   * that church. `body` is emptied when this is set, so a deleted message must
+   * never be rendered as an empty bubble.
+   */
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 /** The Guides' room, oldest last so it reads like a conversation. */
 export async function listGuideRoom(limit = 200): Promise<GuideRoomMessage[]> {
   const { data, error } = await db()
     .from('guide_room_messages')
-    .select('id, author_id, body, created_at')
+    .select('id, author_id, body, created_at, edited_at, deleted_at, deleted_by')
     .order('created_at', { ascending: false })
     .limit(limit);
   if (error) throw new Error(error.message);
@@ -1131,8 +1140,37 @@ export async function postToGuideRoom(body: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Correct your own message in the Guides' room. Only the author, ever.
+ *
+ * LEADERSHIP CAN REMOVE A MESSAGE HERE AND DELIBERATELY CANNOT REWRITE ONE.
+ * Removing something somebody said and putting different words in their mouth
+ * are not the same power, and only the first belongs to a moderator.
+ */
+export async function editGuideRoomMessage(id: string, body: string): Promise<void> {
+  const text = body.trim();
+  if (!text) throw new Error('A message has to say something.');
+  if (text.length > 4000) throw new Error('That message is too long.');
+  const { error } = await db().rpc('edit_guide_room_message', {
+    p_message: id,
+    p_body: text,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/**
+ * Take a message back: the author, or leadership of that church.
+ *
+ * THIS USED TO BE A REAL DELETE, and that was the wrong shape for this room.
+ * Guides say the hard parts of carrying people out loud in here and leadership
+ * is in the room. If a safeguarding question is ever asked about something said
+ * here, "it was deleted" has to mean removed from the screen, not removed from
+ * existence. The words move to `guide_room_revisions`, which no browser can
+ * read, and the row keeps who took it back so the thread can say so instead of
+ * quietly changing shape between visits.
+ */
 export async function deleteGuideRoomMessage(id: string): Promise<void> {
-  const { error } = await db().from('guide_room_messages').delete().eq('id', id);
+  const { error } = await db().rpc('delete_guide_room_message', { p_message: id });
   if (error) throw new Error(error.message);
 }
 

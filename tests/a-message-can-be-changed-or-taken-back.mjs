@@ -169,5 +169,62 @@ const mine = migrations.find((m) => m.name.includes('changed_or_taken_back'));
      'and the Guide\'s does too, because a control only one side has is not a rule');
 }
 
+// ---------------------------------------------------------------------------
+// 6. THE GUIDES' ROOM, WHICH IS THE SAME FEATURE WITH DIFFERENT RULES
+// ---------------------------------------------------------------------------
+//
+// It could already delete -- `guide_room_drop` allowed the author or church
+// leadership -- but it was a REAL delete, so the words were destroyed and the
+// thread just changed shape. This is the room where Guides say the hard parts
+// out loud and leadership is in it, so "deleted" has to mean removed from the
+// screen, not removed from existence.
+{
+  const mine = migrations.find((m) => m.name.includes('guides_room_can_correct'));
+  ok(Boolean(mine), "the Guides' room migration is in the tree");
+  const sql = mine?.sql ?? '';
+
+  // THE HARD DELETE MUST BE GONE. While a real `delete from` is permitted,
+  // every safeguard below can be bypassed by doing the thing it replaces.
+  ok(/drop policy if exists guide_room_drop on public\.guide_room_messages/.test(sql),
+     'the destructive delete policy is dropped, so the record cannot be erased');
+  ok(/revoke update, delete on public\.guide_room_messages from authenticated/.test(sql),
+     'and the browser holds neither UPDATE nor DELETE on the table');
+
+  const readd = migrations.filter((m) => m.name > (mine?.name ?? '') &&
+    /create policy[\s\S]{0,200}?on\s+public\.guide_room_messages[\s\S]{0,200}?for\s+delete/i.test(m.sql));
+  ok(readd.length === 0,
+     `nothing after it re-adds a delete policy${readd.length ? ` (${readd.map((m) => m.name).join(', ')})` : ''}`);
+
+  // ONLY THE AUTHOR MAY EDIT, even though leadership may remove. Removing
+  // something and putting different words in somebody's mouth are not the same
+  // power, and only the first belongs to a moderator.
+  const edit = sql.slice(sql.indexOf('function private.edit_guide_room_message'));
+  ok(/author_id is distinct from \(select auth\.uid\(\)\)/.test(edit.slice(0, edit.indexOf('$$;') + 3)),
+     'only the author may edit, even though leadership may remove');
+  const del = sql.slice(sql.indexOf('function private.delete_guide_room_message'));
+  ok(/leads_church\(v_msg\.church_id\)/.test(del.slice(0, del.indexOf('$$;') + 3)),
+     'leadership keeps exactly the removal power it already had');
+
+  ok(/create table if not exists public\.guide_room_revisions/.test(sql)
+     && /revoke all on public\.guide_room_revisions from authenticated/.test(sql),
+     'what was said is kept where no browser can read it');
+  ok(/changed_by/.test(sql),
+     'and the record says WHO removed it, because this room is not symmetric');
+  ok(/set body = ''[\s\S]{0,80}deleted_at = now\(\)/.test(sql),
+     'the row is emptied, so the words leave every browser');
+
+  const ui = read('components/LiveGuildRoom.tsx');
+  ok(/deleted a message/.test(ui) && /removed a message from/.test(ui),
+     'a removal says who did it, and distinguishes withdrawing from moderating');
+  ok(/Yes, delete it|Yes, remove it/.test(ui) && /Keep it/.test(ui),
+     'and it asks first, which the one-tap delete it replaces never did');
+
+  const data = read('lib/live/data.ts');
+  ok(/rpc\('delete_guide_room_message'/.test(data),
+     'the room deletes through the function, not the table');
+  ok(!/from\('guide_room_messages'\)[\s\S]{0,120}\.delete\(\)/.test(data),
+     'and nothing deletes from guide_room_messages directly any more');
+}
+
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 process.exit(bad === 0 ? 0 : 1);
