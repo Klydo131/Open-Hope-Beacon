@@ -159,6 +159,19 @@ export const KEEP_UP_GUILD = ['guild_wall_pulse'] as const;
 export const KEEP_UP_MY_PAIRING = ['pairings', 'pairing_media', 'profiles'] as const;
 
 /**
+ * The chat room: the thread on screen, and the files sent into it.
+ *
+ * WIDER THAN `subscribeToMessages`, ON PURPOSE. That one filters to a single
+ * pairing, which is right for a page showing one conversation and wrong here in
+ * two ways: the Talk surface also has to notice a message arriving in one of a
+ * Guide's OTHER threads, so the list's counts move; and it never watched
+ * `pairing_media` at all, so a file arriving did not reload the thread it
+ * arrived in. Realtime evaluates the same policy either way, so this is more
+ * traffic and not a wider disclosure.
+ */
+export const KEEP_UP_TALK = ['messages', 'pairing_media'] as const;
+
+/**
  * Follow-ups and names put forward: the Guide's working list.
  *
  * `seeker_notes` is NOT here. A Guide's private notes on the person they walk

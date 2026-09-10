@@ -1115,6 +1115,39 @@ export interface GuideRoomMessage {
   deleted_by?: string | null;
 }
 
+/**
+ * Every conversation this person is in, with what is waiting in each.
+ *
+ * ONE CALL, AND NOT A COUNT DONE IN THE BROWSER. The obvious version of this is
+ * "read every message in my pairings and count the unread ones in JavaScript",
+ * which downloads every word of every conversation to display a number. It
+ * works at this church's size and stops working quietly.
+ *
+ * Ordered with the waiting ones first, then by when somebody last spoke, which
+ * is the order a person opening the chat is actually looking for.
+ */
+export interface Thread {
+  pairing_id: string;
+  other_id: string;
+  other_name: string;
+  unread: number;
+  last_at: string | null;
+  last_preview: string | null;
+  last_is_mine: boolean | null;
+}
+
+export async function listMyThreads(): Promise<Thread[]> {
+  const { data, error } = await db().rpc('my_threads');
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Thread[];
+}
+
+/** What the badge shows. Zero when nothing is waiting, never a stale number. */
+export async function unreadTotal(): Promise<number> {
+  const threads = await listMyThreads().catch(() => [] as Thread[]);
+  return threads.reduce((sum, t) => sum + (Number(t.unread) || 0), 0);
+}
+
 /** The Guides' room, oldest last so it reads like a conversation. */
 export async function listGuideRoom(limit = 200): Promise<GuideRoomMessage[]> {
   const { data, error } = await db()
@@ -1291,6 +1324,30 @@ export function subscribeToMessages(pairingId: string, onChange: () => void) {
       { event: '*', schema: 'public', table: 'messages', filter: `pairing_id=eq.${pairingId}` },
       onChange,
     )
+    .subscribe();
+  return () => {
+    client.removeChannel(channel);
+  };
+}
+
+/**
+ * Every conversation this person is in, live.
+ *
+ * NO `filter`, and that is the difference from the function above. The dock has
+ * to notice a message arriving in ANY of a Guide's five threads, including the
+ * four they are not looking at, so there is no single pairing id to filter on.
+ *
+ * It is not wider in what it discloses: realtime evaluates the same policy as a
+ * SELECT, so this delivers exactly the pairings this caller is already in and
+ * nothing else. The filter on the single-thread version is for traffic, not for
+ * privacy, and dropping it costs traffic rather than a boundary.
+ */
+export function subscribeToMyMessages(onChange: () => void) {
+  const client = supabase();
+  if (!client) return () => {};
+  const channel = client
+    .channel(`messages:mine:${Math.random().toString(36).slice(2)}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, onChange)
     .subscribe();
   return () => {
     client.removeChannel(channel);

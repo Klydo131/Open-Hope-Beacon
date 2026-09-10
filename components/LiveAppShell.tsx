@@ -13,6 +13,7 @@ import { LeftRail, RightRail, railGroupsFor } from '@/components/RoomRails';
 import { LiveDesk } from '@/components/LiveDesk';
 import { useRoom } from '@/lib/room-theme';
 import { LiveBell } from '@/components/LiveBell';
+import { TalkDock } from '@/components/live/TalkDock';
 import { ModeSwitch } from '@/components/ModeSwitch';
 import { PowerGlyph } from '@/components/Glyph';
 import { useScrollToHash } from '@/lib/scroll-to-hash';
@@ -52,6 +53,14 @@ import { useUrlKey } from '@/lib/url-signal';
 // The row scrolls inside itself (`overflow-x-auto` below), which is why a
 // longer list is safe — see the note on that element.
 const SECTIONS = (role: Role) => [
+  // TALK IS FIRST, and only for the two roles who have a conversation at all.
+  // It was reported that the chat should not be a card people scroll a page to
+  // reach -- for an Explorer it is most of why they are here, and for a Guide
+  // it is their whole connection to the people they walk with. First in the row
+  // is the cheapest way to say that without moving anything else.
+  ...(role === 'dm' || role === 'ds'
+    ? [{ href: '/talk', icon: '💬', label: 'Talk' }]
+    : []),
   { href: '/church',   icon: '⛪', label: 'Church' },
   ...(role === 'dm' || role === 'ds'
     ? [{ href: '/guilds', icon: '🧩', label: 'Guild Room' }]
@@ -311,6 +320,12 @@ export function LiveAppShell({
             nudge — and a page that can scroll a little past its own content is
             what stops them sitting across the last line of a card. */}
         <main className="page-in mx-auto w-full min-w-0 max-w-5xl pb-28 pt-6">{children}</main>
+
+        {/* THE CHAT, WITHIN REACH FROM EVERY ROOM. Drawn once here rather than
+            per page, so there is one of it and it cannot be forgotten on a
+            screen somebody added later. It draws nothing on a phone, nothing
+            for a Director, and nothing on /talk itself. */}
+        <TalkDock />
 
         {room.prefs.rightRail && (
           <RightRail
