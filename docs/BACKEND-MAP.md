@@ -117,17 +117,23 @@ verify gate fails if a new one arrives without it.
 
 ---
 
-## The eight tables with no policy at all
+## The nine tables with no policy at all
 
 `app_settings` · `blog_views` · `guild_activity_posts` · `guild_activity_amens`
-· `library_activity` · `library_blocks` · `pairing_library_permissions` ·
-`security_audit_events`
+· `library_activity` · `library_blocks` · `message_revisions` ·
+`pairing_library_permissions` · `security_audit_events`
 
 RLS on, zero policies, which in Postgres means **deny everything**. Nothing
 reads these directly. They are reached through `SECURITY DEFINER` functions that
 apply their own rule and often return *less* than the row holds — the guild feed
 computes an `author_label` rather than handing over `author_id`, so it decides
 how much of a writer's identity each reader sees.
+
+`message_revisions` is the newest and shows the pattern at its plainest: it
+holds what a message said before it was edited or taken back, and it is
+unreadable by everybody — including the two people in that conversation.
+Leadership reads it through a definer function when a report is being looked at,
+and nowhere else.
 
 **This is a deliberate pattern, and it has one sharp consequence.**
 
@@ -170,7 +176,7 @@ tests/                   one file per rule, each broken on purpose before trust
 scripts/verify.mjs       the gate: typecheck, build, and every test above
 ```
 
-### Three rules that bite
+### Five rules that bite
 
 1. **Migrations are append-only.** They have run against a live database with
    real people in it. Fixing a migration means writing the next one; editing a
@@ -182,7 +188,36 @@ scripts/verify.mjs       the gate: typecheck, build, and every test above
    `close_trial`, `remove_member_by_leader` — checks the caller first. That
    check is the only thing standing there.
 
-3. **Never widen a policy to make a screen convenient.** The screen is the
+3. **A policy decides WHICH ROWS. A grant decides WHICH COLUMNS.** RLS cannot
+   express "only this column", and every attempt to make it try has been a hole.
+   `messages_mark` existed so the recipient could stamp `read_at`; because it
+   said nothing about columns, it also let either person in a pairing silently
+   rewrite the other's words. An audit for the same shape found three more:
+   a Guide could rewrite their Explorer's prayer request and publish a private
+   one to the whole church, and either party could rewrite the time, place and
+   joining link of a meeting the other had already confirmed.
+
+   The fix is a column privilege — `revoke update`, then
+   `grant update (that_one_column)` — and the two compose cleanly. Before adding
+   an UPDATE policy, ask what the app actually writes to that table, and grant
+   exactly that. `tests/the-browser-writes-only-what-the-app-writes.mjs` holds
+   the list and fails if a later migration hands a whole row back.
+
+4. **Role is not church.** Two families of helper, and they are not
+   interchangeable:
+
+   | Helper | Checks |
+   |---|---|
+   | `is_admin()` · `is_executive()` | the caller's role. **No church.** |
+   | `leads_church(c)` · `manages_church(c)` | the role **and** that church |
+
+   Anything that takes a member id and acts on them wants the second. Both
+   guardian-consent functions used the first, so a Director of one church could
+   record or withdraw guardian consent for a minor in another — the two most
+   safeguarding-sensitive functions in the app. Use `is_admin()` only where the
+   action has no target, such as creating a church.
+
+5. **Never widen a policy to make a screen convenient.** The screen is the
    cheaper thing to change. Every time this has come up the answer has been to
    watch a different table, show a different card, accept a reload — or write a
    cause table that carries no identity and watch that instead. The Guild wall

@@ -111,11 +111,12 @@ are enforced in the database rather than the UI:
 - Live mode's home, email/password sign-in, invitation join, Director,
   Guide, Explorer, pairing, stage and conversation screens.
 
-**Still intentionally sample-only:**
-
-- Lessons, meetings, prayer and materials have no live schema yet.
-- Their routes explain that those supporting screens remain in the separate
-  sample-data deployment rather than pretending sample records are live.
+**No longer true, and kept here only so the change is legible:** this section
+once ended "Lessons, meetings, prayer and materials have no live schema yet."
+All four have had one for some time, along with guilds and their room,
+safeguarding reports, hearings, the library, the Guides' room and the
+conversation's own edit and delete history. The live half is the app now; the
+sample deployment is the tutorial, not a holding pen for unfinished features.
 
 ---
 
@@ -232,11 +233,26 @@ Each of these has already been broken once in this project.
    New table → `alter table ... enable row level security` in the same
    migration, always.
 
-2. **`service_role` never leaves the server.** Not in this repo, not in any
+2. **A policy decides WHICH ROWS; a grant decides WHICH COLUMNS.** RLS cannot
+   express "only this column". `messages_mark` existed so a recipient could
+   stamp `read_at`, and because a policy says nothing about columns it also let
+   either person in a pairing rewrite the other's words. An audit for the same
+   shape found three more, including a Guide able to rewrite their Explorer's
+   prayer request and publish a private one to the whole church. Before writing
+   an UPDATE policy, ask what the app actually writes, then `revoke update` and
+   `grant update (that_column)`.
+
+3. **Role is not church.** `is_admin()` and `is_executive()` check the caller's
+   role and nothing else; `leads_church(c)` and `manages_church(c)` check the
+   role and that church. Anything taking a member id wants the second. Both
+   guardian-consent functions used the first, so a Director of one church could
+   alter guardian consent for a minor in another.
+
+4. **`service_role` never leaves the server.** Not in this repo, not in any
    `NEXT_PUBLIC_*`, not in a browser file. It bypasses every policy. Only the
    Edge Function holds it.
 
-3. **Nothing trusts client metadata for a privilege.** `signUp()` lets any
+5. **Nothing trusts client metadata for a privilege.** `signUp()` lets any
    caller attach arbitrary `data`. A trigger reading `role` from it hands
    Executive Director to the internet. Role, church and approval come from the
    `invites` table. See the long comment in `0002_invitations.sql`.
@@ -267,6 +283,15 @@ Each of these has already been broken once in this project.
   reads 1. Every security test needs a positive control in the same
   transaction. Three separate "airtight isolation" results here were actually
   null users and empty tables.
+- **An empty result is not a finding until the query is proved to work.** The
+  sibling of the zero above, and it cost time twice in two days. A log query
+  filtered on `status_code` instead of `response.status_code` returned nothing
+  and read exactly like a clean system. A probe counting rows in a table it had
+  just written returned zero because it was still acting as a role RLS hides
+  those rows from. And a hand-rolled PDF text scraper reported a phrase absent
+  from a document containing it, because it was reading embedded font programs
+  rather than page text. Before believing an empty answer, make the same query
+  return something you already know is there.
 - **Profile triggers silently ignore writes.** `lock_privileged_profile_columns`
   pins `role` and `church_id` when the caller is not privileged. A test fixture
   that promotes somebody with plain SQL and no `auth.uid()` does nothing at all
