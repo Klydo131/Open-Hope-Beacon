@@ -47,7 +47,7 @@ export function FrozenCopy() {
 
   return (
     <div className="no-print fixed inset-x-0 top-0 z-[70] p-3">
-      <div className="mx-auto max-w-lg rounded-2xl bg-amber-50 p-4 shadow-2xl ring-1 ring-amber-300">
+      <div className="mx-auto max-w-lg rounded-2xl bg-amber-50 p-4 lift-3 ring-1 ring-amber-300">
         <p className="font-bold text-amber-900">
           This copy can never update
         </p>

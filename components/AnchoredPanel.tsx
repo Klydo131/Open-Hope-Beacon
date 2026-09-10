@@ -141,7 +141,7 @@ export function AnchoredPanel({
       aria-label={label}
       data-anchored-panel
       style={style}
-      className={`z-40 rounded-2xl bg-white text-left shadow-2xl ring-1 ring-black/10 ${className}`}
+      className={`z-40 rounded-2xl bg-white text-left lift-3 ring-1 ring-black/10 ${className}`}
     >
       {children}
     </div>

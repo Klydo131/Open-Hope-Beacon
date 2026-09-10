@@ -568,7 +568,7 @@ export function InstallPrompt() {
         data-install-prompt="card"
         className="no-print safe-bottom fixed bottom-4 right-4 z-[66] w-[22rem] max-w-[calc(100vw-2rem)]"
       >
-        <div className="animate-drop overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10">
+        <div className="animate-drop overflow-hidden rounded-2xl bg-white lift-3 ring-1 ring-black/10">
           <div
             className="flex items-center gap-3 px-4 py-3"
             style={{ backgroundColor: '#1E2A4A' }}
@@ -722,7 +722,7 @@ export function InstallPrompt() {
           anything, and tests/e2e/in-app-browser.js fails the build if that is
           ever gated again. Scrolling is not gating; the steps are still there
           and still on screen. */}
-      <div className="animate-drop flex max-h-[50dvh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-black/10">
+      <div className="animate-drop flex max-h-[50dvh] w-full max-w-md flex-col overflow-y-auto overscroll-contain rounded-2xl bg-white p-3 lift-3 ring-1 ring-black/10">
         <div className="flex items-center gap-3">
           <SentryBeaconMark size={40} />
           <div className="min-w-0 flex-1">

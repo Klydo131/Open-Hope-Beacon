@@ -103,7 +103,7 @@ export function TalkDock() {
   return (
     <div className="safe-bottom fixed bottom-4 right-4 z-40 hidden xl:block">
       {open ? (
-        <div className="flex h-[32rem] w-[22rem] flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/10">
+        <div className="flex h-[32rem] w-[22rem] flex-col overflow-hidden rounded-2xl bg-white lift-3 ring-1 ring-black/10">
           <div className="flex items-center gap-2 border-b border-black/5 bg-navy px-3 py-2 text-white">
             <span className="flex-1 text-sm font-bold">Talk</span>
             <button
@@ -130,7 +130,7 @@ export function TalkDock() {
         <button
           type="button"
           onClick={() => setOpenAndRemember(true)}
-          className="tap flex items-center gap-2 rounded-full bg-navy px-5 text-white shadow-2xl"
+          className="tap flex items-center gap-2 rounded-full bg-navy px-5 text-white lift-3"
         >
           <span aria-hidden>💬</span>
           <span className="font-bold">Talk</span>

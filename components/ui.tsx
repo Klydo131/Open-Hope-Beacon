@@ -9,6 +9,8 @@ export function Card({
   children,
   className = '',
   id,
+  elevation = 'rest',
+  interactive = false,
   'data-panel': dataPanel,
   'data-live-conversation': liveConversation,
 }: {
@@ -44,10 +46,27 @@ export function Card({
    * called "live conversations fit phones and tablets" stayed green.
    */
   'data-live-conversation'?: boolean;
+  /**
+   * How far off the page this surface sits.
+   *
+   * `rest` is a card on the page and is the default, so nothing that already
+   * used <Card> changes shape. `raised` is for something deliberately lifted —
+   * a panel, a dialog, a docked window — which used to be each component's own
+   * guess and produced `shadow-2xl` on one screen and `shadow-sm` on the next
+   * for the same kind of thing.
+   *
+   * `interactive` adds the hover response, and only belongs on a card that is
+   * a link or a button underneath: a surface that lifts when the pointer passes
+   * and does nothing when it is clicked is a lie about what it is.
+   */
+  elevation?: 'rest' | 'raised';
+  interactive?: boolean;
 }) {
   return (
     <div
-      className={`rounded-2xl bg-white shadow-sm ring-1 ring-black/5 ${className}`}
+      className={`rounded-2xl bg-white ring-1 ring-black/5 ${
+        elevation === 'raised' ? 'lift-3' : 'lift-1'
+      } ${interactive ? 'lift-hover' : ''} ${className}`}
       id={id}
       data-panel={dataPanel}
       data-live-conversation={liveConversation ? '' : undefined}
@@ -117,7 +136,13 @@ export function Button({
       data-quest={dataQuest}
       data-danger={variant === 'danger' ? '' : undefined}
       style={bg ? { backgroundColor: bg } : undefined}
-      className={`inline-flex items-center justify-center gap-2 rounded-xl transition active:scale-[0.98] disabled:opacity-40 ${size} ${styles[variant]} ${className}`}
+      // A FILLED BUTTON LIFTS AND A QUIET ONE DOES NOT. `primary` and `gold`
+      // carry the page's weight, so they get the elevation response; `ghost`
+      // and `danger` are deliberately quiet and a hovering lift would undo
+      // exactly the discouragement `danger` exists to express.
+      className={`inline-flex items-center justify-center gap-2 rounded-xl transition active:scale-[0.98] disabled:opacity-40 disabled:shadow-none ${
+        variant === 'primary' || variant === 'gold' ? 'lift-1 lift-hover' : ''
+      } ${size} ${styles[variant]} ${className}`}
     >
       {children}
     </button>

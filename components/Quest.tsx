@@ -523,7 +523,7 @@ export function Quest() {
            than margin, because this one is meant to reach the edge; only its
            CONTENT has to clear the indicator. Nothing changes on a Mac, where
            the inset is zero. */
-        className={`fixed z-[60] mx-auto w-full max-w-md bg-white p-3 shadow-2xl ring-1 ring-black/10 sm:inset-x-auto sm:right-4 sm:w-96 sm:rounded-2xl sm:p-4 ${
+        className={`fixed z-[60] mx-auto w-full max-w-md bg-white p-3 lift-3 ring-1 ring-black/10 sm:inset-x-auto sm:right-4 sm:w-96 sm:rounded-2xl sm:p-4 ${
           place === 'top'
             ? 'inset-x-0 top-0 rounded-b-2xl sm:top-4'
             : 'inset-x-0 bottom-0 rounded-t-2xl pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:bottom-4 sm:pb-4'

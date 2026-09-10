@@ -62,7 +62,7 @@ export function FeedbackNudge({ suppressed = false }: { suppressed?: boolean }) 
       className="no-print safe-bottom fixed inset-x-0 bottom-0 z-[70] flex justify-center p-3"
       role="status"
     >
-      <div className="animate-drop w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl ring-1 ring-black/10">
+      <div className="animate-drop w-full max-w-md rounded-2xl bg-white p-4 lift-3 ring-1 ring-black/10">
         <div className="flex items-start gap-3">
           <span
             className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xl"

@@ -5,6 +5,17 @@
 :root {
   --navy: #1e2a4a;
   --gold: #e8b84b;
+
+  /* ELEVATION, AS A SCALE RATHER THAN A GUESS.
+     Every surface in the app was `shadow-sm ring-1 ring-black/5` — one weight
+     for a page card, a floating panel and a dialog alike, so nothing on screen
+     said which of them was on top. Three steps is enough for an app this shape:
+     a resting surface, one that has been lifted, and one that is over
+     everything. Two layers each, a tight dark one for the edge and a wide soft
+     one for the shadow, because a single blur reads as fog rather than height. */
+  --lift-1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --lift-2: 0 2px 4px -1px rgba(16, 24, 40, 0.05), 0 6px 16px -3px rgba(16, 24, 40, 0.09);
+  --lift-3: 0 4px 8px -2px rgba(16, 24, 40, 0.06), 0 16px 40px -8px rgba(16, 24, 40, 0.16);
 }
 
 html {
@@ -57,11 +68,50 @@ body {
   padding-bottom: var(--install-bar, 0px);
 }
 
-/* Visible focus for keyboard + low-vision users. */
+/* Visible focus for keyboard + low-vision users.
+   TWO LAYERS, AND THAT IS THE POINT. This was a single gold ring, which is
+   handsome on the navy header and very nearly invisible everywhere else:
+   measured, gold on white is 1.84:1 against the 3:1 that WCAG asks of a focus
+   indicator, while navy on white is 14.1:1 and navy on navy is 1:1. No single
+   colour serves both surfaces, so the ring carries one of each — a navy outline
+   for light surfaces and a gold band inside it for dark ones. Whichever surface
+   the control sits on, one of the two layers is doing the work. */
 :focus-visible {
-  outline: 3px solid var(--gold);
+  outline: 3px solid var(--navy);
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--gold);
+  border-radius: 0.5rem;
 }
+
+/* THE SURFACES.
+   `.lift-1` is the resting card, `.lift-2` something raised on purpose, and
+   `.lift-3` a panel over the page. Written as classes rather than left to each
+   component's own guess, which is how one screen ended up with `shadow-2xl` and
+   the one beside it with `shadow-sm` for the same kind of thing. */
+.lift-1 { box-shadow: var(--lift-1); }
+.lift-2 { box-shadow: var(--lift-2); }
+.lift-3 { box-shadow: var(--lift-3); }
+
+/* A surface that responds to being pointed at, for the ones that are a link or
+   a button underneath. Not applied to every card: a card that lifts when the
+   pointer passes and does nothing when it is clicked is a lie about what it is. */
+.lift-hover {
+  transition: box-shadow 180ms cubic-bezier(0.2, 0.7, 0.3, 1),
+              transform 180ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+@media (hover: hover) {
+  .lift-hover:hover { box-shadow: var(--lift-2); transform: translateY(-1px); }
+}
+
+/* DISPLAY TYPE SITS TIGHTER.
+   At 18px root a heading set at the browser's default tracking looks loose and
+   slightly cheap; large type wants slightly negative tracking and small type
+   wants none. This is the whole of the typographic change: no new sizes, no new
+   weights, no font swap — the same headings, spaced the way a large size wants
+   to be spaced. */
+h1, .text-4xl, .text-3xl { letter-spacing: -0.021em; }
+h2, .text-2xl { letter-spacing: -0.015em; }
+h3, .text-xl { letter-spacing: -0.009em; }
 
 /* Every interactive control clears the 56px tap-target minimum. */
 button,
@@ -242,6 +292,12 @@ a[role='button'],
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .lift-hover {
+    transition: none;
+  }
+  .lift-hover:hover {
+    transform: none;
+  }
   .rise {
     opacity: 1;
     animation: none;
