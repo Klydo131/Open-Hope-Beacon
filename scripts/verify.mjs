@@ -220,6 +220,12 @@ const staticChecks = [
   ['minor badge', 'tests/minor-badge.mjs'],
   ['email templates', 'tests/email-templates.mjs'],
   ['invite emails', 'tests/invite-emails.mjs'],
+  // The invite edge function is the only code here that does not reach
+  // production through git -- it is deployed by sending its source inline as
+  // JSON. A placeholder went live that way once, and the JSON transport
+  // silently decodes backslash-u escapes. This forbids the escape; the live
+  // comparison is a procedure in the file, because CI has no credentials.
+  ['the deployed function is the file', 'tests/the-deployed-function-is-the-file.mjs'],
   ['iPhone install', 'tests/ios-install.mjs'],
   ['plain words', 'tests/plain-words.mjs'],
   ['accounts and sessions', 'tests/accounts-and-sessions.mjs'],

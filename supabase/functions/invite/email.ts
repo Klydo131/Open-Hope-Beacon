@@ -185,9 +185,30 @@ export function roleWord(role: InviteRole): string {
 export function greetingName(fullName: string): string {
   const first = (fullName ?? '').trim().split(/\s+/)[0] ?? '';
   if (first.length < 2 || first.length > 24) return '';
-  // Letters, and the two punctuation marks that live inside real names. A
-  // digit, a dot or an @ means this came from an address rather than a person.
-  if (!/^[\p{L}][\p{L}'\u2019-]*$/u.test(first)) return '';
+  // Letters, and the two punctuation marks that live inside real names: the
+  // straight apostrophe, code point 27 in hex, and the curly one, code point
+  // 2019 in hex, which is what a phone keyboard actually types in O’Brien.
+  // A digit, a dot or an @ means this came from an address rather than a
+  // person.
+  //
+  // BOTH ARE WRITTEN AS THEMSELVES ABOVE, NOT AS BACKSLASH-U ESCAPES, AND THAT
+  // IS DELIBERATE -- INCLUDING IN THIS COMMENT, WHICH IS WHY IT SPELLS THEM OUT
+  // IN WORDS. Deploying this function sends its source inline as JSON, and a
+  // JSON string decodes a backslash-u escape on the way in. So an escape
+  // written here arrives at Supabase as the bare character, and the deployed
+  // file stops matching this one. That is how it was found: a byte-for-byte
+  // diff of the live function against this directory, run after a placeholder
+  // was deployed by mistake, reported five characters of drift.
+  //
+  // Harmless in this one line, because both spellings are the same character
+  // class. NOT harmless in general -- an escape for a full stop would land as a
+  // bare dot and quietly match any character at all, turning a strict pattern
+  // into a permissive one with nothing on screen to show for it.
+  //
+  // tests/the-deployed-function-is-the-file.mjs forbids the escape anywhere in
+  // this directory for that reason, and the two apostrophes are named in words
+  // above so that nobody has to tell them apart by eye.
+  if (!/^[\p{L}][\p{L}'’-]*$/u.test(first)) return '';
   // A list typed in lower case should still read as a name, but MacLeod and
   // O'Brien keep the capitals they arrived with.
   return first === first.toLowerCase()
