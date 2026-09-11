@@ -164,6 +164,14 @@ const staticChecks = [
   // The add form never asked what a link was FOR, every row drew one button
   // per person, and the shelf could not be searched at any length.
   ['the library is easy to use', 'tests/the-library-is-easy-to-use.mjs'],
+  // Every part of sharing-with-a-note was built except the box: the column,
+  // the data layer and the Explorer's card were all ready, and the Guide's
+  // screen never passed one. Twenty-two shares, twenty-two empty notes.
+  ['a share can say why', 'tests/a-share-can-say-why.mjs'],
+  // The Kind dropdown defaults to Link and sits below the address, so the
+  // field was whatever the form defaulted to -- and then filter chips were
+  // built on it, making a field nobody maintains into a control that lies.
+  ['the shelf knows what it is holding', 'tests/the-shelf-knows-what-it-is-holding.mjs'],
   // An Explorer reads the studies; Guides, Directors and Executive Directors
   // write them. Two copies of one rule -- the policy and the screen.
   ['an Explorer reads the studies', 'tests/an-explorer-reads-the-studies.mjs'],

@@ -12,6 +12,7 @@
 // knows who is asking. A filter here would protect nobody.
 
 import { useCallback, useEffect, useState } from 'react';
+import { kindFromUrl } from '@/lib/live/kind-from-url';
 import * as live from '@/lib/live/data';
 import { Button, Card } from '@/components/ui';
 import { BeaconSpinner } from '@/components/BeaconLoader';
@@ -138,6 +139,16 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
   // taps. The field existed; the question was missing.
   const [note, setNote] = useState('');
   const [kind, setKind] = useState<live.MaterialKind>('link');
+  // HAS THIS PERSON CHOSEN A KIND THEMSELVES, or is the box still showing what
+  // the address suggested? The whole value of reading the URL disappears if the
+  // reading also OVERRIDES somebody who has deliberately picked something else:
+  // a Guide who files a YouTube link as "Audio" because they want the
+  // congregation to listen to it has made a real choice, and having it silently
+  // flipped back on the next keystroke is the most annoying possible bug.
+  //
+  // So detection fills the box only while it is untouched. One flag, set the
+  // first time the dropdown is used, cleared when the form is.
+  const [kindTouched, setKindTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [flash, setFlash] = useState('');
@@ -162,6 +173,31 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
   // that opens the list is the same number of taps to share and four fewer
   // things to read when you are not sharing.
   const [sharing, setSharing] = useState('');
+  // WHY YOU ARE SENDING IT, WHICH IS THE PART THAT WAS MISSING.
+  //
+  // `material_shares.note` has existed since migration 0008, `shareMaterial`
+  // has taken a note since it was written, and the Explorer's card RENDERS one
+  // in quotation marks under the title. The Guide's screen never passed it. So
+  // every share ever written carried an empty note -- not because Guides
+  // skipped it, but because there was no box, and the receiving half of the
+  // feature had been drawing a field that could not be filled.
+  //
+  // That is the difference between a Guide and a bookmark. "Here is a link" and
+  // "watch the first ten minutes before Thursday, it is the bit we got stuck
+  // on" are the same row in the database and not remotely the same thing to
+  // receive.
+  //
+  // ONE NOTE FOR THE WHOLE PICKER, NOT ONE PER PERSON. A Guide sending the same
+  // resource to three Explorers almost always has the same reason, so it is
+  // typed once and rides along with whoever is tapped afterwards. Per-person
+  // notes would mean opening and closing the picker three times to say three
+  // things, which is a worse version of the bug that made the picker stay open.
+  //
+  // OPTIONAL, AND NOT IN THE WAY. The rule the add form already states: making
+  // it required would stop somebody sharing a link they are in a hurry about,
+  // and a link with no note still beats no link. Type nothing and sharing is
+  // exactly the two taps it was before this existed.
+  const [shareNote, setShareNote] = useState('');
   // SEARCH, ONCE THE SHELF IS LONGER THAN A SCREEN. Below a handful of rows a
   // box is one more thing to read on the way to the row you can already see.
   // The same rule and the same threshold as Approved accounts.
@@ -251,6 +287,8 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
     try {
       await live.addMaterial({ title, url, kind, description: note });
       setTitle(''); setUrl(''); setNote(''); setKind('link'); setOpen(false);
+      // The next resource starts with the box listening to its address again.
+      setKindTouched(false);
       await load();
     } catch (cause) { setError(message(cause)); }
     finally { setBusy(false); }
@@ -384,8 +422,12 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
   const share = async (materialId: string, pairingId: string, who: string) => {
     setError(''); setFlash('');
     try {
-      await live.shareMaterial(materialId, pairingId);
-      setFlash(`Shared with ${who}.`);
+      // Trimmed to undefined rather than sent as an empty string: the column is
+      // nullable and a row of whitespace would draw empty quotation marks on
+      // the Explorer's card.
+      const say = shareNote.trim();
+      await live.shareMaterial(materialId, pairingId, say || undefined);
+      setFlash(say ? `Shared with ${who}, with your note.` : `Shared with ${who}.`);
       // So the name turns into "has it" straight away rather than after a
       // reload, and a second tap cannot reach the duplicate refusal.
       setAlreadyShared((was) => {
@@ -435,7 +477,19 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
             className="tap mt-1 w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600" />
 
           <label className="mt-3 block text-sm font-semibold text-navy" htmlFor="mat-url">Address</label>
-          <input id="mat-url" value={url} onChange={(e) => setUrl(e.target.value)}
+          {/* THE ADDRESS ANSWERS THE KIND QUESTION, so it is answered here rather
+              than asked again below. `kindFromUrl` returns null for anything it
+              is not sure about, and null leaves the box alone -- a half-typed
+              address on every keystroke is the normal case, not an error. */}
+          <input id="mat-url" value={url}
+            onChange={(e) => {
+              const next = e.target.value;
+              setUrl(next);
+              if (!kindTouched) {
+                const guessed = kindFromUrl(next);
+                if (guessed) setKind(guessed);
+              }
+            }}
             placeholder="https://…"
             className="tap mt-1 w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600" />
 
@@ -453,7 +507,8 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
             className="tap mt-1 w-full rounded-xl bg-white px-4 py-2 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600" />
 
           <label className="mt-3 block text-sm font-semibold text-navy" htmlFor="mat-kind">Kind</label>
-          <select id="mat-kind" value={kind} onChange={(e) => setKind(e.target.value as live.MaterialKind)}
+          <select id="mat-kind" value={kind}
+            onChange={(e) => { setKind(e.target.value as live.MaterialKind); setKindTouched(true); }}
             className="tap mt-1 w-full rounded-xl bg-white px-4 text-base ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600">
             <option value="link">Link</option>
             <option value="video">Video</option>
@@ -585,6 +640,27 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
             ) : sharing === m.id ? (
               <>
                 <span className="w-full text-xs font-semibold text-gray-500">Share with</span>
+                {/* THE NOTE, ABOVE THE NAMES ON PURPOSE. Below them it would be
+                    a box you notice after you have already tapped somebody and
+                    the share has gone. Above them it is read on the way to the
+                    name, which is the only moment it can still be used.
+
+                    The label says what to write rather than naming the field.
+                    "Note" is a word for a database column; "Say why, if you
+                    like" is the question somebody can actually answer. */}
+                <label className="sr-only" htmlFor={`share-note-${m.id}`}>
+                  Say why you are sharing this, if you like
+                </label>
+                <input
+                  id={`share-note-${m.id}`}
+                  value={shareNote}
+                  onChange={(e) => setShareNote(e.target.value)}
+                  /* The column's own limit, so a long note is stopped by the box
+                     rather than by an error after the tap. */
+                  maxLength={1000}
+                  placeholder="Say why, if you like. They will see it."
+                  className="tap w-full rounded-xl bg-white px-3 text-sm ring-1 ring-navy/10 outline-none focus:ring-2 focus:ring-teal-600"
+                />
                 {/* THE PICKER STAYS OPEN, AND THAT IS THE BUG IT FIXES.
                     It closed on the first tap, so a Guide with three Explorers
                     shared with one, watched the list vanish, and had to find
@@ -610,7 +686,7 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
                   );
                 })}
                 <button
-                  onClick={() => setSharing('')}
+                  onClick={() => { setSharing(''); setShareNote(''); }}
                   className="rounded-full px-3 py-1 text-xs font-semibold text-gray-600 underline"
                 >
                   Done
@@ -618,7 +694,11 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
               </>
             ) : (
               <button
-                onClick={() => { setSharing(m.id); setConfirming(''); }}
+                /* The note is cleared when the picker OPENS, not only when it
+                   closes. Leaving it behind would carry the reason for one
+                   resource onto the next one a Guide shares, which is a wrong
+                   sentence attached to somebody else's link. */
+                onClick={() => { setSharing(m.id); setConfirming(''); setShareNote(''); }}
                 className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-navy ring-1 ring-black/10"
               >
                 {/* The count is the useful part. "Share" alone gives no hint
