@@ -168,6 +168,11 @@ const staticChecks = [
   // the data layer and the Explorer's card were all ready, and the Guide's
   // screen never passed one. Twenty-two shares, twenty-two empty notes.
   ['a share can say why', 'tests/a-share-can-say-why.mjs'],
+  // The "Maria has this" chip was fenced behind pairings.length === 1, so the
+  // only Guide it spoke to was one carrying a single Explorer -- and a Guide
+  // at the cap of five saw nothing. Their OWN shares only: a church-wide
+  // total would cross the boundary migration 0008 states outright.
+  ['a Guide sees who already has it', 'tests/a-guide-sees-who-already-has-it.mjs'],
   // The Kind dropdown defaults to Link and sits below the address, so the
   // field was whatever the form defaulted to -- and then filter chips were
   // built on it, making a field nobody maintains into a control that lies.

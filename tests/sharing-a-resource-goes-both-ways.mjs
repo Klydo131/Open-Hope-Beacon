@@ -193,8 +193,29 @@ const data = strip(read('lib/live/data.ts'));
      'and the shelf re-reads when the Guide moves to a different Explorer');
 
   // What the Guide has already given, without opening every row to find out.
-  ok(/\{pairings\[0\]\.ds_name\.split\(' '\)\[0\]\} has this/.test(ui),
-     'and a row says when this Explorer already has it');
+  //
+  // THIS CHECK USED TO PIN THE ONE-EXPLORER SPELLING, and pinning the spelling
+  // is what made it wrong. It read
+  //
+  //     /\{pairings\[0\]\.ds_name\.split\(' '\)\[0\]\} has this/
+  //
+  // which is the chip as it was written when only a Guide with a SINGLE
+  // Explorer ever saw it. The chip was fenced behind `pairings.length === 1`,
+  // so a Guide at the cap of five -- the person who most needs to keep track --
+  // got nothing on the row, and this check was green for the whole time that
+  // was true. It asserted an expression, so it could only ever confirm that the
+  // expression had not been edited.
+  //
+  // It asks for the BEHAVIOUR now: a row says who already has it, however many
+  // Explorers there are. Removing the fence is checked properly, with the
+  // wording and the privacy boundary, in
+  // tests/a-guide-sees-who-already-has-it.mjs; this one stays because the two
+  // cards on this screen have to keep agreeing about scope, and that is what
+  // the rest of this file is about.
+  ok(/has this/.test(ui) && /have this/.test(ui),
+     'and a row says who already has it, for one Explorer or for five');
+  ok(!/pairings\.length === 1 && \(alreadyShared\.get/.test(ui),
+     'rather than only when the Guide is carrying a single person');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

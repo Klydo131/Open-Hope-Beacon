@@ -627,11 +627,53 @@ export function LiveLibraryForGuide({ pairings, sharesShownFor }: {
                 already given somebody had to open every row in turn. On a
                 screen about one Explorer there is one answer per row and it
                 costs a chip. */}
-            {pairings.length === 1 && (alreadyShared.get(m.id)?.has(pairings[0].id) ?? false) && (
-              <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-800 ring-1 ring-green-200">
-                &#10003; {pairings[0].ds_name.split(' ')[0]} has this
-              </span>
-            )}
+            {/* WHO ALREADY HAS IT, FOR A GUIDE WITH MORE THAN ONE EXPLORER.
+                This chip existed and was fenced behind `pairings.length === 1`,
+                so the only Guide it ever spoke to was one carrying a single
+                person. A Guide at the cap of five -- the ones who most need to
+                keep track -- saw nothing on the row and had to open the picker
+                on every item in turn to answer "have I given them this yet".
+                The answer was already in memory the whole time: `alreadyShared`
+                is loaded for every pairing on this screen, not just the first.
+
+                THIS IS THE GUIDE'S OWN HISTORY AND NOBODY ELSE'S. It is built
+                from `listShares` per pairing, which reads through the
+                `shares_read` policy -- `in_pairing(pairing_id)` -- so it can
+                only ever contain pairings this person is part of. That is why
+                this is safe where a church-wide "shared 7 times" count is not:
+                migration 0008 says a Director is shown that a Guide is active,
+                never what they sent to whom, and an aggregate across a small
+                church leaks exactly that. Counting your own is not a new
+                disclosure; it is arithmetic on what you already fetched. */}
+            {(() => {
+              const haveIt = pairings.filter((p) => alreadyShared.get(m.id)?.has(p.id) ?? false);
+              // SILENT AT ZERO, on purpose. A "Not shared yet" chip on every row
+              // would put a badge on a whole fresh shelf to say nothing has
+              // happened yet, which is the state somebody can already see.
+              if (haveIt.length === 0) return null;
+
+              const first = (n: { ds_name: string }) => n.ds_name.split(' ')[0];
+              // NAMES WHILE THEY FIT, A COUNT WHEN THEY DO NOT. "Maria has
+              // this" answers the question; "1 of 5 have this" makes somebody
+              // open the picker to find out which one, which is the work this
+              // chip exists to remove.
+              const said =
+                haveIt.length === pairings.length
+                  ? (pairings.length === 1
+                      ? `${first(haveIt[0])} has this`
+                      : `All ${pairings.length} have this`)
+                  : haveIt.length === 1
+                    ? `${first(haveIt[0])} has this`
+                    : haveIt.length === 2
+                      ? `${first(haveIt[0])} and ${first(haveIt[1])} have this`
+                      : `${haveIt.length} of ${pairings.length} have this`;
+
+              return (
+                <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-800 ring-1 ring-green-200">
+                  &#10003; {said}
+                </span>
+              );
+            })()}
             {pairings.length === 0 ? (
               /* "In the app" earns its place now that the button beside it
                  shares with people who are not. Without it the row reads
