@@ -754,6 +754,40 @@ html {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* THE CHAT, COVERING THE WHOLE SCREEN ON A PHONE OR A PAD.
+ *
+ * The dock used to be `hidden xl:block`, so only a very wide screen ever got
+ * the floating chat and a phone was sent to /talk instead -- a page you
+ * navigate away to, losing the screen you were on and the place you had
+ * scrolled to. Reported plainly: "I dont like this as a separate sub room on
+ * the phone or pad, I want it as a bubble like what you did at desktop".
+ *
+ * The old reasoning was not wrong: a SMALL floating panel on a small screen
+ * covers the thing it floats over and is worse than a page. The answer is that
+ * the panel is not small on a phone. Collapsed it is a bubble covering almost
+ * nothing; opened it takes the whole screen, the way a conversation does in
+ * every messaging app people already use. So the objection and the request are
+ * both satisfied, and neither had to lose.
+ *
+ * A full-screen overlay is the one place BOTH safe areas matter: the status bar
+ * and notch at the top, the home indicator at the bottom. `.safe-bottom` covers
+ * only the second, because until now nothing in this app reached the top edge.
+ *
+ * The insets are switched off at 1280px, where this stops being a sheet and
+ * becomes the corner panel again -- there the padding would shrink the panel
+ * for nothing, since a desktop has no notch to clear. */
+.talk-sheet {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (min-width: 1280px) {
+  .talk-sheet {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
 /* Anything anchored to the BOTTOM of a phone screen.
    ---------------------------------------------------------------------------
    The bottom strip of a modern phone is the home indicator, and it is drawn on

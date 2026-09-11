@@ -3,14 +3,31 @@
 // The chat that is always within reach, and says when somebody is waiting.
 //
 // ---------------------------------------------------------------------------
-// TWO SHAPES, ONE COMPONENT.
+// ONE SHAPE NOW, AT EVERY SIZE: a bubble you tap, and a conversation over the
+// page rather than instead of it.
 //
-//   PHONE  a badge on the way in, and the chat opens full screen at /talk.
-//          A small floating panel on a small screen covers the thing it floats
-//          over, which is why the phone does not get one.
-//   WIDE   a docked panel at the corner, collapsed to a bar with a count and
-//          expanded to a conversation beside the page rather than instead of
-//          it. "Open full" hands over to the same route the phone uses.
+//   PHONE / PAD  bubble in the corner, opening to the WHOLE SCREEN.
+//   WIDE         the same bubble, opening to a panel beside the page.
+//
+// WHAT THIS REPLACED, AND WHY THE OLD REASONING WAS HALF RIGHT. This used to be
+// `hidden xl:block`, so only a very wide screen got the floating chat. The
+// comment here defended it: "a small floating panel on a small screen covers
+// the thing it floats over, which is why the phone does not get one." That is
+// true, and it is still true.
+//
+// What it missed is that the panel does not have to be small. A phone was sent
+// to /talk instead -- a PAGE, which means navigating away from whatever you
+// were reading and losing the place you had scrolled to, every time you want to
+// see whether somebody replied. Reported exactly that way: "I dont like this as
+// a separate sub room on the phone or pad, I want it as a bubble like what you
+// did at desktop."
+//
+// So the bubble is tiny and covers almost nothing, and opening it takes the
+// whole screen -- the way a conversation does in every messaging app people
+// already use. The old objection and the request are both satisfied, and
+// neither had to lose. /talk is still a real route, still reachable from the
+// navigation and still where "Open full" goes on a desktop; nobody has to use
+// it to read a message any more.
 //
 // THE COUNT IS THE POINT. A chat you have to open to find out whether anything
 // happened is a chat people stop opening. The number comes from the database in
@@ -106,16 +123,31 @@ export function TalkDock() {
   if (!profile || (profile.role !== 'ds' && profile.role !== 'dm')) return null;
   if (path === '/talk') return null;
 
-  return (
-    <div className="safe-bottom fixed bottom-4 right-4 z-40 hidden xl:block">
-      {open ? (
-        <div className="flex h-[32rem] w-[22rem] flex-col overflow-hidden rounded-2xl bg-white lift-3 ring-1 ring-black/10">
+  // OPEN: the whole screen on a phone or a pad, the corner panel on a desktop.
+  // CLOSED: a bubble, at every size, which is the change.
+  //
+  // The two states need different positioning, so the wrapper is not shared.
+  // Squeezing both into one set of classes is how a fixed overlay ends up
+  // inheriting `bottom-4 right-4` and sitting in the corner at full width.
+  if (open) {
+    // THE HOME INDICATOR STILL EXISTS ABOVE 1280px. An iPad Pro in landscape
+    // is 1366 CSS pixels, so it takes the xl branch AND has a home indicator
+    // -- without the margin below, the corner panel sits under it. Below xl
+    // the sheet covers the whole screen on purpose and pads its own content
+    // instead, which is what .talk-sheet does.
+    return (
+      <div className="fixed inset-0 z-50 xl:inset-auto xl:bottom-4 xl:right-4 xl:z-40 xl:[margin-bottom:env(safe-area-inset-bottom,0px)]">
+        <div className="talk-sheet flex h-full w-full flex-col overflow-hidden bg-white ring-1 ring-black/10 xl:h-[32rem] xl:w-[22rem] xl:rounded-2xl xl:lift-3">
           <div className="flex items-center gap-2 border-b border-black/5 bg-navy px-3 py-2 text-white">
             <span className="flex-1 text-sm font-bold">Talk</span>
+            {/* NOT ON A PHONE, because there it would do nothing: the sheet is
+                already the whole screen, so "Open full" would swap a covering
+                overlay for a page that looks the same and throws away the
+                screen underneath it. It stays where it still means something. */}
             <button
               type="button"
               onClick={() => router.push('/talk')}
-              className="tap-sm px-2 text-xs font-semibold underline"
+              className="tap-sm hidden px-2 text-xs font-semibold underline xl:inline-block"
             >
               Open full
             </button>
@@ -132,24 +164,34 @@ export function TalkDock() {
             <TalkSurface compact />
           </div>
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setOpenAndRemember(true)}
-          className="tap flex items-center gap-2 rounded-full bg-navy px-5 text-white lift-3"
-        >
-          <span aria-hidden>💬</span>
-          <span className="font-bold">Talk</span>
-          {total > 0 && (
-            <span
-              className="rounded-full bg-gold px-2 py-0.5 text-xs font-bold text-navy"
-              aria-label={`${total} waiting`}
-            >
-              {total > 99 ? '99+' : total}
-            </span>
-          )}
-        </button>
-      )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="safe-bottom fixed bottom-4 right-4 z-40">
+      <button
+        type="button"
+        onClick={() => setOpenAndRemember(true)}
+        /* THE WORD GOES, THE BUBBLE STAYS, on a narrow screen. A pill reading
+           "Talk" sits over the bottom-right corner of whatever somebody is
+           reading; the round bubble is the smallest thing that can still be hit
+           reliably with a thumb. The count stays at every size -- it is the
+           whole reason the bubble is worth the space it takes. */
+        className="tap flex items-center gap-2 rounded-full bg-navy px-4 text-white lift-3 sm:px-5"
+        /* WITHOUT THIS THE PHONE BUTTON IS UNREADABLE. The visible word is what
+           names this control, and it is hidden below `sm` -- which would leave
+           somebody on a screen reader an emoji and a bare number. */
+        aria-label={total > 0 ? `Talk, ${total} waiting` : 'Talk'}
+      >
+        <span aria-hidden>💬</span>
+        <span className="hidden font-bold sm:inline">Talk</span>
+        {total > 0 && (
+          <span aria-hidden className="rounded-full bg-gold px-2 py-0.5 text-xs font-bold text-navy">
+            {total > 99 ? '99+' : total}
+          </span>
+        )}
+      </button>
     </div>
   );
 }

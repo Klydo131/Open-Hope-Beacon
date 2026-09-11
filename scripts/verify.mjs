@@ -173,6 +173,10 @@ const staticChecks = [
   // at the cap of five saw nothing. Their OWN shares only: a church-wide
   // total would cross the boundary migration 0008 states outright.
   ['a Guide sees who already has it', 'tests/a-guide-sees-who-already-has-it.mjs'],
+  // The chat dock was `hidden xl:block`, so only a screen 1280px or wider got
+  // the bubble and a phone was sent to /talk -- a page, which loses whatever
+  // you were reading. One token, no error, invisible in review.
+  ['the chat is a bubble everywhere', 'tests/the-chat-is-a-bubble-everywhere.mjs'],
   // The Kind dropdown defaults to Link and sits below the address, so the
   // field was whatever the form defaulted to -- and then filter chips were
   // built on it, making a field nobody maintains into a control that lies.
