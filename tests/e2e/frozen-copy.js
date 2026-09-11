@@ -107,7 +107,7 @@ async function open(browser, { standalone, path }) {
     const app = await open(browser, { standalone: true });
     ok(/can never update/i.test(app),
       'AN INSTALLED COPY ON A FROZEN ADDRESS IS TOLD SO');
-    ok(/Open the real Sentry Beacon/i.test(app),
+    ok(/Open the real Hope Beacon/i.test(app),
       'and is given a one-tap route to the address that does update');
     ok(/localhost/i.test(app),
       'and is told WHICH address it is stuck on, so it can be reported');

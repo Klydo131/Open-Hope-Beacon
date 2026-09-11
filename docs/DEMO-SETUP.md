@@ -92,7 +92,7 @@ Leave both **unset** to deploy the sample-data fallback instead. That is the
 whole switch — see `lib/mode.ts`.
 
 > **The project named above is ours, and it is named on purpose.** It is the
-> published Sentry Beacon demo backend, here so you can point a checkout at a
+> published Hope Beacon demo backend, here so you can point a checkout at a
 > working database and see the thing running before deciding whether you want
 > it. Evaluate against it freely.
 >

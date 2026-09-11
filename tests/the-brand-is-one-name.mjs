@@ -1,4 +1,4 @@
-// The app has one name, and the old one is gone.
+// The app is called Hope Beacon. The repository is called Open Sentry Beacon.
 //
 // ---------------------------------------------------------------------------
 // WHY THIS EXISTS. lib/brand.ts opened with "change these lines and nothing
@@ -64,11 +64,29 @@ const KEYS = ['hope-beacon.feedback.local', 'hope-beacon:library-favorites'];
 }
 
 // ---------------------------------------------------------------------------
-// 2. THE PREVIOUS NAME IS GONE FROM EVERY TRACKED FILE
+// 2. THE REPOSITORY'S NAME NEVER LEAKS INTO THE APP
 // ---------------------------------------------------------------------------
 //
-// Except inside the two storage keys, which are addresses. A file is allowed to
-// contain "hope-beacon" only as part of one of those.
+// THIS CHECK USED TO ENFORCE THE OPPOSITE, AND THAT IS THE WHOLE POINT OF IT.
+//
+// It read "the previous name is gone from every tracked file" and hunted for
+// "Hope Beacon", because a sweep had decided the app was being renamed to match
+// the repository. It was not. Those are two names for two different things:
+//
+//     THE APP           Hope Beacon          what a congregation reads
+//     THE REPOSITORY    Open Sentry Beacon   what a developer clones
+//
+// A church never sees the repository. What it saw instead was a sign-in screen
+// reading "Sign in to Sentry Beacon" -- a name nobody had given them, on the
+// screen where they type their password, which is the worst place in the app to
+// look unfamiliar. The owner caught it from a screenshot.
+//
+// So the direction is reversed. `Sentry Beacon` may appear ONLY as part of
+// `Open Sentry Beacon`, which is the repository naming itself, or as the
+// lowercase slug in a clone URL. Anywhere else it is the app wearing the wrong
+// name.
+//
+// The two storage keys are exempt as before: they are addresses, not labels.
 //
 // THE SPACE BETWEEN THE TWO WORDS IS NOT ALWAYS A SPACE, and the first version
 // of this check assumed it was. Every invitation email writes the wordmark as
@@ -96,13 +114,37 @@ const KEYS = ['hope-beacon.feedback.local', 'hope-beacon:library-favorites'];
     stripped = stripped
       .replace(/&[a-z]+;|&#x?[0-9a-f]+;/gi, ' ')
       .replace(/\s+/g, ' ');
-    if (/Open Hope Beacon|Hope Beacon|open-hope-beacon|hope-beacon/i.test(stripped)) {
-      stragglers.push(file);
-    }
+    // The repository is allowed to name itself, in either shape.
+    //
+    // CASE-INSENSITIVELY, to match the search below. The first version stripped
+    // the exact spelling and then searched with /i, so a heading written in
+    // capitals slipped through its own exemption and the file explaining the
+    // rule was reported as breaking it.
+    stripped = stripped.replace(/Open Sentry Beacon/gi, '').replace(/open-sentry-beacon/gi, '');
+    if (/Sentry Beacon/i.test(stripped)) stragglers.push(file);
   }
   ok(stragglers.length === 0,
-     `the previous name appears in no tracked file${
-       stragglers.length ? `\n        still there: ${stragglers.join('\n                     ')}` : ''}`);
+     `the repository's name appears nowhere the app speaks${
+       stragglers.length ? `\n        wearing it: ${stragglers.join('\n                    ')}` : ''}`);
+}
+
+// ---------------------------------------------------------------------------
+// 2b. AND THE APP SAYS ITS OWN NAME
+// ---------------------------------------------------------------------------
+//
+// The half that would have caught this from the other direction. Checking only
+// that the wrong name is absent passes just as happily if the right one never
+// arrives -- a sign-in screen reading "Sign in to" and nothing else.
+{
+  const brand = read('lib/brand.ts');
+  ok(/export const APP_SHORT_NAME = 'Hope Beacon'/.test(brand),
+     'the app calls itself Hope Beacon');
+
+  // AND THE SCREEN THE OWNER SCREENSHOTTED reads it from there rather than
+  // carrying its own copy, which is how it came to disagree in the first place.
+  const door = read('components/live/DoorPages.tsx');
+  ok(/Sign in to \$\{APP_SHORT_NAME\}/.test(door),
+     'and the sign-in screen takes the name from the one place that defines it');
 }
 
 // ---------------------------------------------------------------------------
@@ -140,7 +182,7 @@ const KEYS = ['hope-beacon.feedback.local', 'hope-beacon:library-favorites'];
 // everything a person can see.
 //
 // Comments are deliberately not counted. A comment naming the app is prose, and
-// rewriting `// Sentry Beacon puts two people in a private conversation` into a
+// rewriting `// Hope Beacon puts two people in a private conversation` into a
 // constant reference would make the source harder to read to satisfy a rule
 // that was never about comments.
 //

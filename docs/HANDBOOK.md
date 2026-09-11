@@ -1,6 +1,6 @@
-# Sentry Beacon: The Complete Handbook
+# Hope Beacon: The Complete Handbook
 
-Everything needed to run Open Sentry Beacon, move it to a new project, and keep it working. Written for the people who run a church, and for the AI tools that will be asked to continue the work.
+Everything needed to run Hope Beacon, move it to a new project, and keep it working. Written for the people who run a church, and for the AI tools that will be asked to continue the work.
 
 **Version:** 1 September 2026 (evening) · **Applies to:** migrations through `20260901140000` · **Licence:** AGPL-3.0 · **Source:** `github.com/Klydo131/Open-Sentry-Beacon`
 
@@ -31,7 +31,7 @@ Everything needed to run Open Sentry Beacon, move it to a new project, and keep 
 
 ## 1. What the app is
 
-Sentry Beacon is a discipleship app for one church. A member of that church walks alongside one other person at a time, and the app carries what that takes: the conversation, the readings, the prayer requests, and a quiet record of how far along the journey somebody has come.
+Hope Beacon is a discipleship app for one church. A member of that church walks alongside one other person at a time, and the app carries what that takes: the conversation, the readings, the prayer requests, and a quiet record of how far along the journey somebody has come.
 
 Three things define it, and every decision in the rest of this handbook comes back to one of them.
 
@@ -488,7 +488,7 @@ Underneath, in the same period, is what the church decided about people: how man
 
 > **NOTE** · Removed and deleted are one number
 >
-> In Sentry Beacon, removing somebody from the church deletes their account. There is no separate state where a person has been put out but still has a login. The record of the removal survives them, which is the point of keeping it.
+> In Hope Beacon, removing somebody from the church deletes their account. There is no separate state where a person has been put out but still has a login. The record of the removal survives them, which is the point of keeping it.
 
 > **NOTE** · Average and middle period
 >
@@ -520,7 +520,7 @@ Admin has a panel with the four numbers to read out at a board meeting, and a Pr
 
 ## 5. Getting it onto a phone
 
-Sentry Beacon installs from the browser. There is no app store, no download, and no review process. Once installed it has its own icon, opens without an address bar, and keeps working when the signal does not.
+Hope Beacon installs from the browser. There is no app store, no download, and no review process. Once installed it has its own icon, opens without an address bar, and keeps working when the signal does not.
 
 > **IMPORTANT** · iPhone and iPad: only Safari can install
 >
@@ -563,7 +563,7 @@ This matters most for somebody holding an invitation. The old advice was to swit
 | **Microsoft Edge** | Android, Windows, Mac | Phone: **•••** at the bottom, then **Add to phone**. Computer: the install icon, or **•••** then **Apps** then **Install this site as an app**. |
 | **Samsung Internet** | Samsung phones and tablets | **☰** at the bottom right, then **Add page to**, then **Home screen**. |
 | **Opera** | Android, Windows, Mac | Phone: the menu, then **Add to**, then **Home screen**. Computer: the install icon in the address bar. |
-| **Brave** | Android, Windows, Mac | Phone: **⋮** then **Add to Home screen**. Computer: the install icon, or **☰** then **Install Sentry Beacon**. |
+| **Brave** | Android, Windows, Mac | Phone: **⋮** then **Add to Home screen**. Computer: the install icon, or **☰** then **Install Hope Beacon**. |
 | **Vivaldi** | Android, Windows, Mac, Linux | The menu, then **Add to Home screen**. Computer: the install icon. |
 | **Firefox** | Android only | **⋮** then **Add to Home screen**. |
 | **Hola, and any other Chromium browser** | Android, Windows, Mac | Open the menu and look for **Install**, **Install app** or **Add to Home screen**. |
@@ -748,7 +748,7 @@ Worth understanding, because almost every email failure has been a misunderstand
 
 ### What the invitation actually says now
 
-The message leads with **how to install Sentry Beacon**, with the steps for Safari on an iPhone or iPad and the steps for any other browser, and the **Accept your invitation** link sits at the foot of it rather than at the top.
+The message leads with **how to install Hope Beacon**, with the steps for Safari on an iPhone or iPad and the steps for any other browser, and the **Accept your invitation** link sits at the foot of it rather than at the top.
 
 That order is deliberate. The link is one-time: opening it, glancing at a sign-in screen on a browser they will not keep using, and closing it again is how somebody burns their invitation before they have the app. Reading how to install first, then accepting, is the path that works.
 
@@ -1042,7 +1042,7 @@ The two largest gaps today:
 | No invitation arrives at all, and Brevo's log is empty | The key was refused before a send was recorded. Almost always the IP restriction, occasionally a key of the wrong type. | Check the IP setting on *both* API and SMTP keys. Then confirm the key was made under *SMTP & API → API keys*. |
 | "one message per address per minute" | Working as intended. A second message to one address inside a minute is held back. | Wait the number of seconds shown, then press Send once. |
 | Two invitations arrive and the second looks blank | Gmail collapses a later message that resembles an earlier one in the same thread behind "Show quoted text". | Expand the quoted text. The three roles now have three different subject lines, which prevents most of this. |
-| "already has a Sentry Beacon account" | That address finished a sign-up before, possibly at another church. | If they are in your church, change their role from the member list. If they have genuinely left, delete the account, which frees the address. |
+| "already has a Hope Beacon account" | That address finished a sign-up before, possibly at another church. | If they are in your church, change their role from the member list. If they have genuinely left, delete the account, which frees the address. |
 | The install button does nothing on an iPhone | Not Safari. Chrome, Firefox, Edge and in-app browsers cannot install on iOS. | Tap **Open this page in Safari** on the card, then Share, then Add to Home Screen. If that button does nothing, the browser refused the handoff: use its ••• menu instead. |
 | The icon opens Safari with an address bar | What was added is a bookmark from before the fix. | Delete the icon and add it again from Safari. |
 | "This copy can never update" | It was installed from a temporary preview address. | Open the real address, install from there, then delete the old icon. |

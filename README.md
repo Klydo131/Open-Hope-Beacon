@@ -326,7 +326,7 @@ npm run test:all  # the above, plus real-browser suites
 
 ## Where this came from
 
-Open Sentry Beacon is the open-source release of Sentry Beacon, an app built for a
+Open Sentry Beacon is the open-source release of Hope Beacon, an app built for a
 local church. Their request was that other churches should be able to make their
 own, on whatever platform suits them. Everything specific to that church's
 deployment was removed: its database, its keys, its hosting. A test keeps it

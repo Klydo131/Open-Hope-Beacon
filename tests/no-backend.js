@@ -20,7 +20,7 @@
 //
 // It used to read "IT HAS NO BACKEND", and it was enforced by banning
 // @supabase/* as a dependency outright. That made the project honest and also
-// made it a dead end: the whole point of releasing Sentry Beacon is that another
+// made it a dead end: the whole point of releasing Hope Beacon is that another
 // Adventist developer can stand up their OWN, and a project that forbids the
 // database SDK can never be the thing they run for a real congregation.
 //
@@ -167,7 +167,7 @@ const routes = tracked.filter((f) => /^app\/.*\/route\.(ts|js)$/.test(f));
 //   app/version.json/route.ts   the app asking itself what build it is serving.
 //   app/api/auth/sign-in/route.ts
 //       The first-party sign-in gateway. It exists so the browser sends a
-//       password to Sentry Beacon's own origin and never to a third party, and it
+//       password to Hope Beacon's own origin and never to a third party, and it
 //       returns only the verified session — which is exactly what the checks in
 //       tests/security-invariants.mjs assert about it. It arrived with the live
 //       session handoff and was never added here, so this suite had been failing
@@ -196,7 +196,7 @@ const TELEMETRY = [
   [/google-analytics|gtag\(|googletagmanager/i, 'Google Analytics'],
   [/\bmixpanel\b|\bamplitude\b|segment\.com|\bposthog\b/i, 'a product-analytics SDK'],
   // MATCHES THE SDK, NOT THE WORD. This was /\bsentry\b/ until the app was named
-  // Sentry Beacon, at which point every screen that says its own name looked
+  // Hope Beacon, at which point every screen that says its own name looked
   // like it had shipped an error reporter -- fifty-five failures, none of them
   // real. A brand name colliding with a well-known SDK is a fact to live with;
   // a check that cannot tell them apart is not. So this looks for the things

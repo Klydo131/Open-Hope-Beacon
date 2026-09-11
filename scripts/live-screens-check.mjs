@@ -30,7 +30,7 @@ const PLACEHOLDER = /This live screen is being connected/;
 const SCREENS = [
   ['/profile', /Loading your profile|Profile details/i],
   ['/settings', /Notifications|Loading/i],
-  ['/mail', /Invitations|Sentry Beacon sends real email|Loading/i],
+  ['/mail', /Invitations|Hope Beacon sends real email|Loading/i],
   ['/church', /Our church|Loading/i],
 ];
 

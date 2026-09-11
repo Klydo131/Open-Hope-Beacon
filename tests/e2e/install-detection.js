@@ -18,7 +18,7 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
 
 // COUNTED BY ITS HOOK, NOT BY ITS WORDS.
 //
-// This was `getByText(/Install Sentry Beacon/i)`, and it went red the day the
+// This was `getByText(/Install Hope Beacon/i)`, and it went red the day the
 // heading changed -- correctly, but for a reason that has nothing to do with
 // what this file is about, which is whether the prompt appears and how often.
 // The copy differs per device now anyway: an iPhone is offered Add to Home

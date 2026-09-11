@@ -8,7 +8,7 @@
 > was already sitting in `supabase/migrations/`.
 >
 > The schema, the security rules and the sign-in gateway all ship in this
-> repository. Setting up your own Sentry Beacon is four steps and no code:
+> repository. Setting up your own Hope Beacon is four steps and no code:
 > `npm run setup`, run the migrations, restart, make yourself an administrator.
 > SETUP.md walks it, and the app's own `/setup` page checks your work as you go.
 >

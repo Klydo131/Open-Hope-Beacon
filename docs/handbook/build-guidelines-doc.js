@@ -200,8 +200,8 @@ function convert(md) {
 const md = fs.readFileSync(SRC, 'utf8');
 const doc = new Document({
   creator: 'Open Sentry Beacon',
-  title: 'Sentry Beacon: The Complete Handbook',
-  description: 'Guidelines and instructions for running Sentry Beacon.',
+  title: 'Hope Beacon: The Complete Handbook',
+  description: 'Guidelines and instructions for running Hope Beacon.',
   sections: [{
     properties: { page: { margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } } },
     children: [

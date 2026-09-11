@@ -510,7 +510,7 @@ export function LiveSignupPage() {
 
 // The invited person's front door.
 //
-// This is the ONE screen where somebody who has never used Sentry Beacon, was
+// This is the ONE screen where somebody who has never used Hope Beacon, was
 // sent a link by their church, and has no account yet, becomes a member. Three
 // separate things had to be right for that to happen and none of them were:
 //

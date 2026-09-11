@@ -1,4 +1,4 @@
-# Setting up Sentry Beacon with an AI assistant
+# Setting up Hope Beacon with an AI assistant
 
 **For IT people who would rather describe the job than type it.**
 

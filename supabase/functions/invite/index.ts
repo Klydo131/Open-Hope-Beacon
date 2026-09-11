@@ -258,7 +258,7 @@ async function handle(req: Request): Promise<Response> {
       }
       // A different church's member. Say nothing about which, or the refusal
       // becomes a way to discover where an address is already registered.
-      return json({ error: `${email} already has a Sentry Beacon account.` }, 409);
+      return json({ error: `${email} already has a Hope Beacon account.` }, 409);
     }
   }
 
@@ -524,7 +524,7 @@ async function handle(req: Request): Promise<Response> {
         Number(await setting(admin, 'BREVO_INVITE_TEMPLATE_ID')) || 0;
 
       const senderEmail = (await setting(admin, 'BREVO_SENDER')) || 'hello@hopeklyde.online';
-      const senderName = (await setting(admin, 'BREVO_SENDER_NAME')) || 'Sentry Beacon';
+      const senderName = (await setting(admin, 'BREVO_SENDER_NAME')) || 'Hope Beacon';
 
       const asRole = role as InviteRole;
       const ROLE_WORD: Record<string, string> = {

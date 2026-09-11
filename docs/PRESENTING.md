@@ -1,4 +1,4 @@
-# Presenting Open Sentry Beacon
+# Presenting Hope Beacon
 
 One file, four jobs:
 

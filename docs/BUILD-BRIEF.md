@@ -18,7 +18,7 @@ Four roles, and the words matter because they are on every screen:
 |---|---|---|
 | **Explorer** | `ds` | Someone exploring the world of SDA values, at their own pace |
 | **Guide** | `dm` | The church member walking with them |
-| **Director** | `admin` | Leads a church's Sentry Beacon ministry; usually the pastor |
+| **Director** | `admin` | Leads a church's Hope Beacon ministry; usually the pastor |
 | **Executive Director** | `executive` | The same job across more than one church |
 
 The database stores the old short values (`ds`, `dm`, `admin`, `executive`).

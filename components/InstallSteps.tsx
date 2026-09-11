@@ -1,6 +1,6 @@
 'use client';
 
-// How to install Sentry Beacon, in whichever browser is actually in your hand.
+// How to install Hope Beacon, in whichever browser is actually in your hand.
 //
 // THE ASK: "I need all the installer in all browser please." The card had steps
 // for four situations: Safari on iPhone, Safari on a Mac, Chrome on Android,

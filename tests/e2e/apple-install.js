@@ -73,9 +73,9 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
   const cardText = (await card.count()) ? await card.innerText() : '';
   // THE WORD "INSTALL" IS THE BUG NOW, NOT THE FIXTURE. No Apple menu contains
   // it, so somebody told to press it searches a Share sheet for a word that is
-  // not in it. This used to assert the heading said "Install Sentry Beacon"; it
+  // not in it. This used to assert the heading said "Install Hope Beacon"; it
   // now asserts the opposite, and that the heading names the real control.
-  ok(/Add Sentry Beacon to your Home Screen/i.test(cardText),
+  ok(/Add Hope Beacon to your Home Screen/i.test(cardText),
      'the card offers Add to Home Screen, which is what the iPhone menu says');
   ok(!/\binstall\b/i.test(cardText),
      'and the card never says "install" to an iPhone');
@@ -120,7 +120,7 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
   await page.goto(`${BASE}/dm`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(1600);
 
-  const banner = page.locator('text=Add Sentry Beacon to your Home Screen').first();
+  const banner = page.locator('text=Add Hope Beacon to your Home Screen').first();
   ok(await banner.count() > 0, 'the banner appears on an iPhone by itself');
 
   const cta = page.getByRole('button', { name: /^Add to Home Screen$/i }).first();
@@ -171,7 +171,7 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
   if (await macConsent.count()) await macConsent.first().click().catch(() => {});
   await mac.waitForTimeout(1600);
 
-  ok(await mac.getByText(/Add Sentry Beacon to your Dock/i).count() > 0,
+  ok(await mac.getByText(/Add Hope Beacon to your Dock/i).count() > 0,
      'macOS Safari is offered Add to Dock, which is what its own menu says');
   const macCta = mac.getByRole('button', { name: /^Add to Dock$/i }).first();
   ok(await macCta.count() > 0, 'and the button says Add to Dock, not Install');

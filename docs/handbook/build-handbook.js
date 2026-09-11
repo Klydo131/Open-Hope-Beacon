@@ -100,7 +100,7 @@ push(
 // ---------------- 1 ----------------
 push(
   new Paragraph({ text:'1. What you are deploying', heading:HeadingLevel.HEADING_1 }),
-  P('Sentry Beacon pairs one member of a church with one person exploring faith, and helps them walk together through six stages. Everything else in the app — the library, lessons, prayer, meetings — exists to support that one relationship.'),
+  P('Hope Beacon pairs one member of a church with one person exploring faith, and helps them walk together through six stages. Everything else in the app — the library, lessons, prayer, meetings — exists to support that one relationship.'),
   P('Four roles, and the words appear on every screen:'),
   T(['Role','Who they are'],[
     ['Explorer','Someone exploring faith, at their own pace'],
@@ -208,7 +208,7 @@ push(Break(),
   Num('Open supabase/seed/01_make_me_the_first_director.sql. Change the two lines at the top to your address and your church name, then paste the whole file into the Supabase SQL editor and run it.'),
   Num('Sign out and back in. You are now Executive Director.'),
   new Paragraph({text:'Give yourself something to look at',heading:HeadingLevel.HEADING_2}),
-  P('A correctly installed Sentry Beacon is indistinguishable from a broken one until somebody is in it: every screen works and every screen is empty. That is a terrible first five minutes and it makes a demonstration impossible.'),
+  P('A correctly installed Hope Beacon is indistinguishable from a broken one until somebody is in it: every screen works and every screen is empty. That is a terrible first five minutes and it makes a demonstration impossible.'),
   Num('Run supabase/seed/02_demo_congregation.sql. No edits needed.'),
   P('You now have two Guides, three Explorers, a conversation, a published blog post and a draft, prayer requests, a library, meetings, lesson series, and one member deliberately left unapproved so there is something for a Director to approve in front of an audience.'),
   Code(['Sign in as any of these \u2014 password HopeBeacon2026!','','  maria@example.test    Guide','  david@example.test    Guide','  john@example.test     Explorer (paired with Maria)','  grace@example.test    Explorer','  pastor@example.test   Director']),

@@ -2,7 +2,7 @@
 
 // /setup — the page that tells you what is left to do, and checks.
 //
-// WHY THIS EXISTS. Everything needed to run a real Sentry Beacon already ships in
+// WHY THIS EXISTS. Everything needed to run a real Hope Beacon already ships in
 // this repository: the whole schema, the security rules, the sign-in gateway.
 // What was missing was any way to find out WHERE YOU ARE. A developer who had
 // done three of the four steps saw exactly what a developer who had done none

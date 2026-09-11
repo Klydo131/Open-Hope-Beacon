@@ -1,4 +1,4 @@
-# Set up your own Sentry Beacon
+# Set up your own Hope Beacon
 
 **Four steps. No code to write.**
 

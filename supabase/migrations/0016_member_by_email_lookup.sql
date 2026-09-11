@@ -1,4 +1,4 @@
--- Is this address already somebody in Sentry Beacon?
+-- Is this address already somebody in Hope Beacon?
 --
 -- WHY THIS IS NEEDED. Nothing checked, so inviting an address that already
 -- belonged to a member created a perfectly valid invitation for them. The

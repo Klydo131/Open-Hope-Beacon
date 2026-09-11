@@ -34,11 +34,23 @@ import type { Stage, Track } from './types';
 // tests/the-brand-is-one-name.mjs goes red if either is swept up by the next
 // find-and-replace.
 
+// THE APP IS CALLED HOPE BEACON. THE REPOSITORY IS CALLED OPEN SENTRY BEACON.
+//
+// Those are two different names for two different things and conflating them
+// cost a rename in each direction. A sweep once replaced the app's name with
+// the repository's, so a congregation signed in under the REPOSITORY'S name -- one
+// nobody had given them, on the screen where they type their password, which is
+// the worst possible place to look unfamiliar.
+//
+// A church never sees the repository. It sees this file. Anything the
+// repository is called belongs in README.md, AGENTS.md and a clone URL, and
+// nowhere a member can read.
+
 /** The full name. Browser tab, installed app, the "about" line. */
-export const APP_NAME = 'Open Sentry Beacon';
+export const APP_NAME = 'Hope Beacon';
 
 /** The short name. Used where space is tight: the header, a home-screen label. */
-export const APP_SHORT_NAME = 'Sentry Beacon';
+export const APP_SHORT_NAME = 'Hope Beacon';
 
 /**
  * One sentence. Shown by link previews and by an installer.
@@ -136,7 +148,7 @@ export function trackColor(track: Track): string {
 //   'Guide' rather than 'Digital Missionary'  — describes what the person does
 //                                               rather than a title to live up to.
 //   'Director' rather than 'Admin'            — the job is leading the church's
-//                                               Sentry Beacon ministry, not
+//                                               Hope Beacon ministry, not
 //                                               administering people.
 //   'Executive Director' above that           — the same job across more than
 //                                               one church.

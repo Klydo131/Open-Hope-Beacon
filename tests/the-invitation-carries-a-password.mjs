@@ -97,7 +97,7 @@ ok(/encodeURIComponent\(email\)/.test(fn), 'with the address escaped into it pro
      'the mail is given the address and the password to show');
   const emailAt = mail.indexOf('${who}');
   const passAt = mail.indexOf('${pass}');
-  const buttonAt = mail.indexOf('Sign in to Sentry Beacon');
+  const buttonAt = mail.indexOf('Sign in to Hope Beacon');
   ok(emailAt !== -1, 'the address is printed in the message');
   ok(passAt !== -1, 'and so is the password');
   ok(buttonAt !== -1, 'and there is a button to open the app');
@@ -126,7 +126,7 @@ ok(/encodeURIComponent\(email\)/.test(fn), 'with the address escaped into it pro
   ok(/This password is temporary/.test(mail), 'the message says the password is temporary');
   ok(/change it/i.test(mail), 'and asks them to change it');
   ok(/Anybody who can read this/i.test(mail), 'and says plainly why it matters');
-  ok(mail.indexOf('This password is temporary') < mail.indexOf('Sign in to Sentry Beacon'),
+  ok(mail.indexOf('This password is temporary') < mail.indexOf('Sign in to Hope Beacon'),
      'and the warning sits with the password, not in a footer nobody reaches');
   // IT NAMES A PLACE. An instruction with no destination is a complaint, and
   // for a while the destination was the best that existed: a card inside a

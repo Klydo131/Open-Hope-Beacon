@@ -10,7 +10,7 @@ import { appleKind, addTitle, addLabel, type AppleKind } from '@/lib/apple-insta
 import { APP_SHORT_NAME } from '@/lib/brand';
 
 // -------------------------------------------------------------------------
-// "Install Sentry Beacon".
+// "Install Hope Beacon".
 //
 // The old version was a thin bar at the bottom of the screen with a small
 // button, and on a desktop monitor that is the easiest thing in the world to

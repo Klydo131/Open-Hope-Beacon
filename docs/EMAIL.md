@@ -1,6 +1,6 @@
 # Email
 
-**Nothing to set up.** Sentry Beacon sends its invitations through Supabase's own
+**Nothing to set up.** Hope Beacon sends its invitations through Supabase's own
 email service, which every Supabase project has. No account with a third party,
 no API key to store, no sender address to verify. Clone this project, run the
 migrations, and invitations work.

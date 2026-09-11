@@ -58,7 +58,7 @@ const ok = (c, m) => { if (!c) bad++; console.log(`${c ? 'OK ' : 'BAD'} ${m}`); 
   ok(await page.getByText(/can see when I change them/i).count() > 0,
     'and says who sees a change, which is why the withdrawal went');
 
-  const join = page.getByRole('button', { name: /Join Sentry Beacon/i }).first();
+  const join = page.getByRole('button', { name: /Join Hope Beacon/i }).first();
   ok(await join.isDisabled(), 'cannot join without ticking permission');
   await box.check();
   await page.waitForTimeout(400);

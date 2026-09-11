@@ -1,6 +1,6 @@
 // Is the brand one drawing, or several that happen to look similar?
 //
-// Before the Sentry Beacon rename there were three different candles in this
+// Before the Hope Beacon rename there were three different candles in this
 // repo: app/icon.svg drew a plain one, public/icons/icon.svg drew a different
 // one with rays and extra detail, and components/ShellChrome.tsx drew a third in
 // JSX. Nobody noticed, because nothing ever renders them side by side — you see

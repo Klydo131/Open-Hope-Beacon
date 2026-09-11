@@ -51,7 +51,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
   // that nobody else can see any of it.
   ds: {
     word: 'Explorer',
-    subject: 'You are invited to Sentry Beacon',
+    subject: 'You are invited to Hope Beacon',
     lead:
       'Someone from the church would like to walk alongside you, at whatever '
       + 'pace suits you. Nobody else can see your journey, and nothing is '
@@ -85,7 +85,7 @@ const ROLE_COPY: Record<InviteRole, RoleCopy> = {
 
   admin: {
     word: 'Director',
-    subject: 'You have been asked to help lead Sentry Beacon',
+    subject: 'You have been asked to help lead Hope Beacon',
     lead:
       'They would like you to help lead as a Director. You will decide who '
       + 'joins, what they can see, and who walks with whom.',
@@ -220,7 +220,7 @@ export function inviteHtml(
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background-color:#ffffff;border-radius:14px;">
         <tr><td style="padding:34px 40px 30px 40px;font-family:Helvetica,Arial,sans-serif;">
 
-          <p style="margin:0 0 18px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;color:#1E2A4A;">Sentry&nbsp;Beacon</p>
+          <p style="margin:0 0 18px 0;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:bold;color:#1E2A4A;">Hope&nbsp;Beacon</p>
 
           <h1 style="margin:0 0 8px 0;font-family:Helvetica,Arial,sans-serif;font-size:22px;line-height:1.3;color:#1E2A4A;font-weight:bold;">${esc(copy.subject)}</h1>
 
@@ -258,7 +258,7 @@ export function inviteHtml(
 
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px 0;">
             <tr><td align="center" style="background-color:#1E2A4A;border-radius:8px;">
-              <a href="${url}" style="display:inline-block;padding:13px 30px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Sign in to Sentry Beacon</a>
+              <a href="${url}" style="display:inline-block;padding:13px 30px;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;border-radius:8px;">Sign in to Hope Beacon</a>
             </td></tr>
           </table>
 
@@ -268,7 +268,7 @@ export function inviteHtml(
             Nothing here expires. You can open this e-mail again, on any device, whenever you are ready.
           </p>
           <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#5B6472;">
-            ${esc(afterLine)} To add Sentry&nbsp;Beacon to your Home Screen, open <strong>Settings</strong> inside the app.
+            ${esc(afterLine)} To add Hope&nbsp;Beacon to your Home Screen, open <strong>Settings</strong> inside the app.
           </p>
 
         </td></tr>
@@ -354,7 +354,7 @@ export function inviteText(
     '',
     wrap(AFTER[role]),
     '',
-    wrap('To add Sentry Beacon to your Home Screen, open Settings inside the app.'),
+    wrap('To add Hope Beacon to your Home Screen, open Settings inside the app.'),
     '',
     wrap(`You received this because a leader at ${church} invited you, and an `
       + 'account was created for you at this address. If you were not expecting '

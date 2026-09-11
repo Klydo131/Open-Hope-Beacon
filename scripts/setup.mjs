@@ -1,6 +1,6 @@
 // `npm run setup` — connect this app to your own database, without editing code.
 //
-// WHY THIS EXISTS. Everything needed to run a real Sentry Beacon already ships in
+// WHY THIS EXISTS. Everything needed to run a real Hope Beacon already ships in
 // this repository: the whole schema, the security rules, the sign-in gateway.
 // The only thing standing between a fresh clone and a working church app was
 // two settings, and the instructions for them lived in a document that asked a
@@ -136,7 +136,7 @@ async function ask(rl, question, check) {
 }
 
 async function main() {
-  say(`${BOLD}Sentry Beacon — connect your own database${OFF}`);
+  say(`${BOLD}Hope Beacon — connect your own database${OFF}`);
   hint('Two questions. Nothing is sent anywhere; this only writes a file on this computer.');
 
   if (fs.existsSync(envPath)) {

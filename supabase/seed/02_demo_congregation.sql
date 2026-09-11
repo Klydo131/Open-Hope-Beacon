@@ -1,6 +1,6 @@
 -- A church with people in it, so a new install has something to show.
 --
--- WHY THIS EXISTS. A correctly installed Sentry Beacon is indistinguishable from
+-- WHY THIS EXISTS. A correctly installed Hope Beacon is indistinguishable from
 -- a broken one until somebody is in it: you sign in as the Director, the app
 -- works perfectly, and every screen is empty. That is not a bug and it is a
 -- terrible first five minutes. This puts a small congregation in — two Guides,

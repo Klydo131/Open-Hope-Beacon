@@ -102,7 +102,7 @@ function lastDefinition(name) {
   const invite = read('supabase/functions/invite/index.ts');
   ok(/if \(existing && existing\.completed_at\)/.test(invite),
      'and the invite function still refuses an address that has joined');
-  ok(/already has a Sentry Beacon account|is already \$\{who\} in this church/.test(invite)
+  ok(/already has a Hope Beacon account|is already \$\{who\} in this church/.test(invite)
      || /already/.test(invite),
      'with a refusal rather than a silent password reset');
 }

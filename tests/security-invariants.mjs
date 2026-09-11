@@ -580,7 +580,7 @@ if (exists('app/api/auth/sign-in/route.ts')) {
   ok(/session:\s*authData\.session/.test(signInRoute),
     'the same-origin gateway returns only the verified session needed by the browser');
   ok(/fetch\('\/api\/auth\/sign-in'/.test(liveData) && /credentials:\s*'same-origin'/.test(liveData),
-    'the browser sends credentials only to Sentry Beacon itself');
+    'the browser sends credentials only to Hope Beacon itself');
   const browserClient = read('lib/supabase/client.ts');
   ok(/saveBrowserSession\(payload\.session/.test(liveData) &&
       /localStorage\.setItem/.test(browserClient) && /localStorage\.getItem/.test(browserClient),

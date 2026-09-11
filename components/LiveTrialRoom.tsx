@@ -2,7 +2,7 @@
 
 // The trial room.
 //
-// WHY A CHURCH NEEDS THIS AT ALL. Sentry Beacon puts two people in a private
+// WHY A CHURCH NEEDS THIS AT ALL. Hope Beacon puts two people in a private
 // conversation. Reports (migration 0021) tell the leadership when that goes
 // wrong; without this they can read the report and do nothing about it. A
 // safeguarding system that ends at "we have been informed" is not one.
