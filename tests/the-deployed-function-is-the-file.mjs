@@ -163,6 +163,26 @@ console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);
 //
 // A deploy that reports success has reported that the REQUEST was accepted. It
 // has not told you what was in it. Version 39 returned success.
+//
+// TWO WAYS TO COMPARE, AND THE DIFFERENCE MATTERS. Raw equality is the goal and
+// the sharper tool. But when it reports a difference, strip comments from both
+// sides and compare again before treating it as an emergency: code that differs
+// is an outage waiting to happen, while comments that differ mean only that the
+// deployed copy is behind on prose.
+//
+// KNOWN STATE AT THE TIME OF WRITING, so the next person is not misled by a
+// diff that is expected. Live version 40 runs this directory's code exactly --
+// all three files match with comments stripped. The raw bytes of email.ts do
+// NOT match, because the comment above the greeting-name pattern was written
+// AFTER version 40 went out, explaining a fault found by comparing against it.
+//
+// It was left that way deliberately. There is no access token in the
+// development sandbox, so `supabase functions deploy` cannot run there and the
+// only route is sending all three files inline, by hand -- seventy thousand
+// characters, which is how the placeholder got sent in the first place. Doing
+// that again to synchronise a comment would risk a real outage to change
+// nothing that runs. The next change to the CODE goes out and gets diffed, and
+// the comment rides along with it.
 // ---------------------------------------------------------------------------
 
 process.exit(bad === 0 ? 0 : 1);
