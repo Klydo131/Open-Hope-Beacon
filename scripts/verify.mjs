@@ -181,6 +181,10 @@ const staticChecks = [
   // explained -- 204 CSS pixels against 91 for the one message on screen --
   // and every bubble repeated the speaker's name and its own date.
   ['the thread reads like a conversation', 'tests/the-thread-reads-like-a-conversation.mjs'],
+  // Emoji suggested from a colon, never from ordinary words: this is the box
+  // somebody tells their Guide about a bereavement in. The trigger must also
+  // refuse `Luke 4:18`, which is the likeliest false positive in a church.
+  ['emoji are suggested as you type', 'tests/emoji-are-suggested-as-you-type.mjs'],
   // The Kind dropdown defaults to Link and sits below the address, so the
   // field was whatever the form defaulted to -- and then filter chips were
   // built on it, making a field nobody maintains into a control that lies.
