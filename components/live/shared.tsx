@@ -43,6 +43,48 @@ function sameDay(at: string): boolean {
   );
 }
 
+/** The calendar day something happened on, for comparing two entries. */
+function dayKey(at: string): string {
+  const d = new Date(at);
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
+/**
+ * What to call a day in a divider: Today, Yesterday, or the date itself.
+ *
+ * WHY A THREAD NEEDS THESE AT ALL. Every bubble already carries its own
+ * timestamp, and for a conversation inside one day that is enough. Over weeks
+ * it is not: a stamp reading "Sep 2" on one bubble and "Sep 9" four bubbles
+ * later tells you the dates but never draws the LINE between them, so a reply
+ * that came a week later reads as the next thing said. Where a week passed
+ * between two messages is often the most important thing on the screen --
+ * especially for a Guide looking back at whether somebody went quiet.
+ */
+function dayLabel(at: string): string {
+  const then = new Date(at);
+  if (sameDay(at)) return 'Today';
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (dayKey(at) === dayKey(yesterday.toISOString())) return 'Yesterday';
+
+  // Inside the last week the weekday is what people actually remember -- "we
+  // talked about it on Tuesday" -- and a bare date makes them count back.
+  const days = Math.floor((Date.now() - then.getTime()) / 86400000);
+  if (days < 7) return then.toLocaleDateString([], { weekday: 'long' });
+
+  // The year only once it is not this one, so an ordinary thread is not
+  // stamped 2026 on every divider.
+  const thisYear = then.getFullYear() === new Date().getFullYear();
+  return then.toLocaleDateString([], {
+    weekday: 'short', month: 'short', day: 'numeric',
+    ...(thisYear ? {} : { year: 'numeric' }),
+  });
+}
+
+/** Messages this close together, from one person, are one piece of talking. */
+const SAME_BREATH_MS = 5 * 60 * 1000;
+
 export function Conversation({
   messages,
   files,
@@ -144,6 +186,10 @@ export function Conversation({
   const [confirmingId, setConfirmingId] = useState('');
   const [rowBusy, setRowBusy] = useState('');
   const [rowError, setRowError] = useState('');
+  // Whether the paperclip has been reached for. Turns the photo guidance on
+  // at the moment it is about to matter, rather than leaving it on the screen
+  // for every conversation that never sends one.
+  const [attaching, setAttaching] = useState(false);
 
   const beginEdit = (id: string, current: string) => {
     setConfirmingId('');
@@ -219,11 +265,34 @@ export function Conversation({
 
   return (
     <Card className="overflow-hidden" data-live-conversation>
-      <div className="flex items-center gap-3 border-b border-teal-800/10 bg-gradient-to-r from-teal-50 via-white to-sky-50 px-4 py-3 sm:px-5">
-        <span aria-hidden className="grid h-10 w-10 place-items-center rounded-2xl bg-teal-700 text-lg shadow-sm">💬</span>
+      {/* THE PROMISE STAYS. IT JUST STOPS TAKING A FIFTH OF THE PHONE.
+          
+          "Only the two people walking together can read this" is a privacy
+          promise, and for somebody bringing a hard thing to their Guide it may
+          be the most important sentence on the screen. It is not furniture and
+          it is not being removed.
+          
+          But at 109 CSS pixels -- a 40px tile, a heavy heading and a full line
+          beneath it -- it was costing more room than the message underneath,
+          on every single conversation, forever. It is the same words in one
+          line on a phone and the full stack from `sm` up, where the room
+          exists. Nothing is hidden at any size: on the narrow layout the
+          promise is the visible half and the label sits beside it, because
+          between "Private conversation" and what private MEANS, the second is
+          the one somebody needs. */}
+      <div className="flex items-center gap-2.5 border-b border-teal-800/10 bg-gradient-to-r from-teal-50 via-white to-sky-50 px-4 py-2 sm:gap-3 sm:py-3 sm:px-5">
+        <span aria-hidden className="grid h-7 w-7 shrink-0 place-items-center rounded-xl bg-teal-700 text-sm shadow-sm sm:h-10 sm:w-10 sm:rounded-2xl sm:text-lg">💬</span>
         <div className="min-w-0">
-          <h2 className="font-extrabold text-navy">Private conversation</h2>
-          <p className="text-sm text-gray-600">Only the two people walking together can read this.</p>
+          {/* One line on a phone: "Private — only the two of you can read this."
+              Two lines from sm up, where there is room for the heading to be a
+              heading. The h2 is present at every size for the document outline
+              and for a screen reader, which never sees the layout. */}
+          <h2 className="text-[13px] font-extrabold leading-tight text-navy sm:text-base">
+            Private conversation
+          </h2>
+          <p className="text-[11px] leading-tight text-gray-600 sm:text-sm">
+            Only the two people walking together can read this.
+          </p>
         </div>
       </div>
       {/* NO HEIGHT HERE ANY MORE, ON PURPOSE. This carried `55dvh` and two
@@ -246,17 +315,64 @@ export function Conversation({
         }}
         aria-live="polite"
         aria-label="Conversation messages"
-        className="space-y-2.5 overflow-y-auto overscroll-contain bg-white p-4 sm:p-5"
+        /* NO `space-y` ANY MORE. Spacing is now per-run -- wide where a new
+           person starts talking, tight inside one run -- and a uniform gap
+           from the parent would add itself to both and flatten the very
+           difference that makes a run read as one piece of talking. */
+        className="overflow-y-auto overscroll-contain bg-white p-4 sm:p-5"
       >
         {timeline.length === 0 && <p className="py-16 text-center text-gray-400">Start with a welcome.</p>}
         {timeline.map((entry, index) => {
           const mine = entry.who === myId;
           const isNewest = index === timeline.length - 1;
+
+          // ONE RUN OF TALKING, NOT FIVE SEPARATE CARDS.
+          //
+          // Every bubble used to carry the speaker's name and its own
+          // timestamp, so somebody sending four short lines in a row produced
+          // four names and four times -- eight labels around about a dozen
+          // words. On a phone that is most of the screen, and it reads as a
+          // list of records rather than as somebody talking.
+          //
+          // A run is the same person, on the same day, within five minutes of
+          // the last thing they said. The NAME goes on the first of a run,
+          // because that is where it answers a question, and the TIME goes on
+          // the last, because that is when the run ended. In between there is
+          // just what was said.
+          //
+          // THE TIME GAP MATTERS AS WELL AS THE SPEAKER. Two messages from one
+          // person three hours apart are not one breath, and grouping them
+          // would hide that the second was an afterthought hours later.
+          const prev = index > 0 ? timeline[index - 1] : undefined;
+          const next = index < timeline.length - 1 ? timeline[index + 1] : undefined;
+
+          const newDay = !prev || dayKey(prev.at) !== dayKey(entry.at);
+
+          const runsOn = (a: typeof entry | undefined, b: typeof entry) =>
+            !!a && a.who === b.who
+              && dayKey(a.at) === dayKey(b.at)
+              && Math.abs(new Date(b.at).getTime() - new Date(a.at).getTime()) < SAME_BREATH_MS;
+
+          // A new day always starts a new run, however close the clock times
+          // are -- 23:59 and 00:02 are four minutes apart and not one breath.
+          const startsRun = newDay || !runsOn(prev, entry);
+          const endsRun = !next || !runsOn(entry, next);
+
           return (
+            <div key={`${entry.kind}-${entry.id}`}>
+              {/* WHERE ONE DAY BECOMES THE NEXT. Sticky, so scrolling back
+                  through a long thread always says which day you are reading
+                  rather than making you find the last divider you passed. */}
+              {newDay && (
+                <div className="sticky top-0 z-10 flex justify-center py-2">
+                  <span className="rounded-full bg-white/85 px-3 py-1 text-[11px] font-semibold text-slate-500 shadow-sm ring-1 ring-black/5 backdrop-blur">
+                    {dayLabel(entry.at)}
+                  </span>
+                </div>
+              )}
             <div
-              key={`${entry.kind}-${entry.id}`}
               ref={isNewest ? newestEl : undefined}
-              className={`flex ${mine ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${mine ? 'justify-end' : 'justify-start'} ${startsRun ? 'mt-2.5' : 'mt-0.5'}`}
             >
               {/* TWO TINTS, NOT ONE DARK AND ONE LIGHT.
                   A solid navy bubble for your own messages read as a wall of
@@ -277,7 +393,7 @@ export function Conversation({
                     replies the side a bubble sits on is a weak signal, and it
                     is no signal at all to somebody reading a screenshot of it
                     or a screen reader reading down the list. */}
-                {(mine ? myName : theirName) && (
+                {startsRun && (mine ? myName : theirName) && (
                   <p className={`mb-0.5 text-[13px] font-bold ${mine ? 'text-[#1F7A8C]' : 'text-[#C2762B]'}`}>
                     {(mine ? myName : theirName)?.split(' ')[0]}
                   </p>
@@ -396,12 +512,19 @@ export function Conversation({
                     quiet. It carries the date only when the message is not from
                     today: a thread of this morning's replies stamped with the
                     date four times reads as four separate days. */}
-                <p className="mt-0.5 text-right text-[11px] text-slate-400">
-                  {sameDay(entry.at)
-                    ? new Date(entry.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-                    : new Date(entry.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                </p>
+                {/* THE CLOCK TIME ONLY, AND ONLY WHERE A RUN ENDS.
+                    The date used to ride along on any message that was not from
+                    today, because nothing else on the screen said which day it
+                    was. The divider above says it now, once per day, so
+                    repeating it on every bubble is the noise the divider was
+                    added to remove. */}
+                {endsRun && (
+                  <p className="mt-0.5 text-right text-[11px] text-slate-400">
+                    {new Date(entry.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                )}
               </div>
+            </div>
             </div>
           );
         })}
@@ -411,14 +534,29 @@ export function Conversation({
         <p className="border-t border-black/5 bg-red-50 px-4 py-2 text-sm text-red-800">{attachError}</p>
       )}
 
-      {/* SAID ONCE, WHERE THE DECISION IS MADE. A photo from a phone camera is
-          two to four megabytes and this app runs on a free plan that pays for
-          every one of them twice, to store and again on every view. It is made
-          smaller before it is sent, which nobody can see on a phone screen, and
-          the location tag the camera wrote into it is dropped along the way.
-          People should be told both, and told here rather than in a policy
-          nobody opens. */}
-      {onAttach && (
+      {/* SAID WHERE THE DECISION IS MADE -- WHICH IS WHAT THIS ALWAYS CLAIMED
+          AND DID NOT DO.
+          
+          A photo from a phone camera is two to four megabytes and this app runs
+          on a free plan that pays for every one of them twice, to store and
+          again on every view. It is made smaller before it is sent, which
+          nobody can see on a phone screen, and the location tag the camera
+          wrote into it is dropped along the way. People should be told both,
+          and told here rather than in a policy nobody opens. All of that is
+          still true.
+          
+          What was wrong is WHEN. Three lines of guidance about photographs sat
+          above the composer permanently, whether or not anybody was sending a
+          photograph. Measured against the phone screenshot that reported this:
+          the privacy banner and this note took about 204 CSS pixels between
+          them while the one message on screen took 91. The explanations were
+          more than twice the size of the conversation.
+          
+          So it opens when somebody reaches for the paperclip, and stays open
+          while a file is staged. The location promise is the part that has to
+          be read BEFORE choosing a photo rather than after, which is why it
+          appears on the tap and not on the upload. */}
+      {onAttach && (attaching || files.length > 0) && (
         <p className="border-t border-black/5 bg-slate-50 px-4 py-2 text-xs leading-relaxed text-gray-500">
           Photos are made smaller before they are sent, and the location your camera
           recorded is removed. Up to 10 MB each. For anything larger, share a link.
@@ -464,6 +602,7 @@ export function Conversation({
                 // Clear on the way IN, so the same file can be chosen twice
                 // without the File being invalidated after it is chosen.
                 if (fileRef.current) fileRef.current.value = '';
+                setAttaching(true);
                 fileRef.current?.click();
               }}
               aria-label="Attach a file"

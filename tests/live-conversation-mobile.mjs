@@ -75,7 +75,19 @@ ok(!/55dvh|55vh/.test(code),
    'the thread no longer guesses a fraction of the viewport');
 ok(!/min-h-48|sm:min-h-72/.test(code),
    'and carries no minimum that could push the composer back off the glass');
-ok(/data-live-thread[\s\S]{0,700}overflow-y-auto/.test(conversation),
+// MEASURED ON `code`, NOT ON THE RAW FILE, and that is the fix rather than a
+// bigger number. This read `conversation` -- the source WITH its comments --
+// while the two checks directly above it read `code`, whose whole reason for
+// existing is stated twelve lines up: "a check that cannot tell an explanation
+// from the thing it explains is a check that fails on its own documentation."
+//
+// That is exactly what happened. A comment added between the element and its
+// `overflow-y-auto` pushed the gap to 736 characters and this went red, while
+// the thread scrolled perfectly well the entire time. With the prose removed
+// the two sit 323 characters apart, so the window is doing what it was meant to
+// do -- keeping the class on the same element rather than finding one anywhere
+// in the file.
+ok(/data-live-thread[\s\S]{0,700}overflow-y-auto/.test(code),
    'message history still scrolls inside its own thread');
 ok(/data-live-composer[\s\S]{0,500}safe-area-inset-bottom/.test(conversation),
    'the composer still clears an installed phone’s home indicator');

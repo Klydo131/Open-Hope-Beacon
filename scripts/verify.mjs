@@ -177,6 +177,10 @@ const staticChecks = [
   // the bubble and a phone was sent to /talk -- a page, which loses whatever
   // you were reading. One token, no error, invisible in review.
   ['the chat is a bubble everywhere', 'tests/the-chat-is-a-bubble-everywhere.mjs'],
+  // Two permanent explanations took more room than the conversation they
+  // explained -- 204 CSS pixels against 91 for the one message on screen --
+  // and every bubble repeated the speaker's name and its own date.
+  ['the thread reads like a conversation', 'tests/the-thread-reads-like-a-conversation.mjs'],
   // The Kind dropdown defaults to Link and sits below the address, so the
   // field was whatever the form defaulted to -- and then filter chips were
   // built on it, making a field nobody maintains into a control that lies.
