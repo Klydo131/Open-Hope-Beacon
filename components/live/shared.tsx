@@ -370,9 +370,16 @@ export function Conversation({
                   </span>
                 </div>
               )}
+            {/* ONLY THE NEWEST ROW ANIMATES, and that restriction is the whole
+                design. This thread reloads WHOLESALE -- `useKeepUp` re-runs the
+                loader rather than patching one row -- so animating every entry
+                would make the entire conversation flicker every time anybody
+                anywhere changed anything. One row moving says "this just
+                arrived"; forty rows moving says nothing and looks broken. */}
             <div
               ref={isNewest ? newestEl : undefined}
-              className={`flex ${mine ? 'justify-end' : 'justify-start'} ${startsRun ? 'mt-2.5' : 'mt-0.5'}`}
+              className={`flex ${mine ? 'justify-end' : 'justify-start'} ${
+                startsRun ? 'mt-2.5' : 'mt-0.5'} ${isNewest ? 'talk-message-in' : ''}`}
             >
               {/* TWO TINTS, NOT ONE DARK AND ONE LIGHT.
                   A solid navy bubble for your own messages read as a wall of

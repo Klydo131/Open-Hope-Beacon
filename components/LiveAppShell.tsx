@@ -53,14 +53,22 @@ import { useUrlKey } from '@/lib/url-signal';
 // The row scrolls inside itself (`overflow-x-auto` below), which is why a
 // longer list is safe — see the note on that element.
 const SECTIONS = (role: Role) => [
-  // TALK IS FIRST, and only for the two roles who have a conversation at all.
-  // It was reported that the chat should not be a card people scroll a page to
-  // reach -- for an Explorer it is most of why they are here, and for a Guide
-  // it is their whole connection to the people they walk with. First in the row
-  // is the cheapest way to say that without moving anything else.
-  ...(role === 'dm' || role === 'ds'
-    ? [{ href: '/talk', icon: '💬', label: 'Talk' }]
-    : []),
+  // TALK IS NOT IN THIS ROW ANY MORE, AND THAT IS THE POINT OF THE BUBBLE.
+  //
+  // It used to be first here, for a good reason at the time: the chat should
+  // not be a card people scroll a page to reach. But an icon in the navigation
+  // is still a PLACE YOU GO -- tapping it left whatever you were reading, threw
+  // away where you had scrolled to, and put the conversation on a page of its
+  // own. Reported with the icon circled in red: "you can take out the chat room
+  // now since we already have the bubble."
+  //
+  // The bubble is on every screen size now and opens over the page rather than
+  // instead of it, so the room in the navigation was a second, worse way in to
+  // the same conversation -- and the one that cost somebody their place.
+  //
+  // /talk IS STILL A ROUTE. It is where "Open full" goes on a desktop, where a
+  // 22rem corner panel genuinely is small, and it still works if somebody has
+  // it bookmarked. What is gone is the standing invitation to leave the page.
   { href: '/church',   icon: '⛪', label: 'Church' },
   ...(role === 'dm' || role === 'ds'
     ? [{ href: '/guilds', icon: '🧩', label: 'Guild Room' }]

@@ -100,10 +100,28 @@ const ok = (cond, msg) => {
 // ---------------------------------------------------------------------------
 {
   const dock = read('components/live/TalkDock.tsx');
+  // Comments blanked. This section had a check that passed on PROSE -- see
+  // immediately below -- and the repair is the same one this project has now
+  // made four times: measure the code, not the essay.
+  const dockCode = dock.replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,
+                                (m) => ' '.repeat(m.length));
 
-  // PHONE. A floating panel on a small screen covers the thing it floats over.
-  ok(/hidden xl:block/.test(dock),
-     'the docked panel is hidden below xl, so a phone gets the full screen instead');
+  // THIS CHECK USED TO ASSERT `hidden xl:block`, AND IT WAS STILL GREEN AFTER
+  // THAT CLASS WAS DELETED.
+  //
+  // It read the raw file, and the commit that removed the fence left a comment
+  // explaining what `hidden xl:block` had been and why it went. So the check
+  // matched its own obituary. For two chunks it asserted that the panel was
+  // hidden below xl while the app did the exact opposite, and it contradicted
+  // tests/the-chat-is-a-bubble-everywhere.mjs -- which tests the same file with
+  // the comments stripped -- without either one going red.
+  //
+  // The original reasoning was sound and is preserved there: a SMALL floating
+  // panel on a small screen covers the thing it floats over. What changed is
+  // that the panel is not small on a phone. It is a bubble when closed and the
+  // whole screen when opened, so the objection no longer applies.
+  ok(!/hidden xl:block/.test(dockCode),
+     'the bubble is not fenced to wide screens; a phone gets it too');
   ok(/role !== 'ds' && profile\.role !== 'dm'/.test(dock),
      'it draws nothing for a Director, who has no conversation to be in');
   ok(/path === '\/talk'/.test(dock),
@@ -133,18 +151,39 @@ const ok = (cond, msg) => {
 }
 
 // ---------------------------------------------------------------------------
-// 5. IT IS REACHABLE FROM EVERY ROOM
+// 5. IT IS REACHABLE FROM EVERY ROOM -- BY THE BUBBLE, NOT BY A NAVIGATION ROW
 // ---------------------------------------------------------------------------
+//
+// THE INTENT OF THIS SECTION IS UNCHANGED AND THE CHECKS ARE REVERSED, which is
+// worth writing down rather than quietly editing.
+//
+// It used to assert that `/talk` was in the navigation and came FIRST, and that
+// was right when it was written: the chat should not be a card people scroll a
+// page to reach. But an icon in the navigation is still a PLACE YOU GO. Tapping
+// it left whatever you were reading, threw away where you had scrolled to, and
+// put the conversation on a page of its own.
+//
+// Once the bubble worked at every screen size and opened OVER the page, that
+// row became a second and worse way in to the same conversation -- the one that
+// cost somebody their place. Reported with the icon circled in red: "you can
+// take out the chat room now since we already have the bubble."
+//
+// So "reachable from every room" is now satisfied by the dock being mounted
+// once in the shell, and the absence of the row is itself checked -- because
+// adding it back would look like a helpful restoration to anybody who had not
+// read this.
 {
   const shell = read('components/LiveAppShell.tsx');
-  ok(/href: '\/talk'/.test(shell), 'Talk is in the shell navigation');
-  ok(/<TalkDock \/>/.test(shell),
-     'and the dock is mounted once in the shell rather than per page');
 
-  const idx = shell.indexOf("href: '/talk'");
-  const church = shell.indexOf("href: '/church'");
-  ok(idx !== -1 && church !== -1 && idx < church,
-     'and it comes first, because for an Explorer it is most of why they are here');
+  ok(/<TalkDock \/>/.test(shell),
+     'the dock is mounted once in the shell, so the chat is reachable from every room');
+
+  // MEASURED WITH COMMENTS BLANKED, because the note above the section list in
+  // LiveAppShell has to name `/talk` to explain why it is not there.
+  const code = shell.replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|\/\/[^\n]*/g,
+                             (m) => ' '.repeat(m.length));
+  ok(!/href: '\/talk'/.test(code),
+     'and the navigation no longer offers a separate room that would cost you your page');
 }
 
 console.log(bad === 0 ? '\nRESULT: ALL OK' : `\nRESULT: ${bad} FAILURE(S)`);

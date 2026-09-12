@@ -137,7 +137,7 @@ export function TalkDock() {
     // instead, which is what .talk-sheet does.
     return (
       <div className="fixed inset-0 z-50 xl:inset-auto xl:bottom-4 xl:right-4 xl:z-40 xl:[margin-bottom:env(safe-area-inset-bottom,0px)]">
-        <div className="talk-sheet flex h-full w-full flex-col overflow-hidden bg-white ring-1 ring-black/10 xl:h-[32rem] xl:w-[22rem] xl:rounded-2xl xl:lift-3">
+        <div className="talk-sheet talk-panel-in flex h-full w-full flex-col overflow-hidden bg-white ring-1 ring-black/10 xl:h-[32rem] xl:w-[22rem] xl:rounded-2xl xl:lift-3">
           <div className="flex items-center gap-2 border-b border-black/5 bg-navy px-3 py-2 text-white">
             <span className="flex-1 text-sm font-bold">Talk</span>
             {/* NOT ON A PHONE, because there it would do nothing: the sheet is
@@ -178,7 +178,7 @@ export function TalkDock() {
            reading; the round bubble is the smallest thing that can still be hit
            reliably with a thumb. The count stays at every size -- it is the
            whole reason the bubble is worth the space it takes. */
-        className="tap flex items-center gap-2 rounded-full bg-navy px-4 text-white lift-3 sm:px-5"
+        className="talk-bubble tap flex items-center gap-2 rounded-full bg-navy px-4 text-white lift-3 sm:px-5"
         /* WITHOUT THIS THE PHONE BUTTON IS UNREADABLE. The visible word is what
            names this control, and it is hidden below `sm` -- which would leave
            somebody on a screen reader an emoji and a bare number. */

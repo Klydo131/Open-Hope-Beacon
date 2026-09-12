@@ -185,6 +185,11 @@ const staticChecks = [
   // somebody tells their Guide about a bereavement in. The trigger must also
   // refuse `Luke 4:18`, which is the likeliest false positive in a church.
   ['emoji are suggested as you type', 'tests/emoji-are-suggested-as-you-type.mjs'],
+  // One way into the chat. The navigation row opened /talk as a page, which
+  // cost somebody whatever they were reading -- the bubble opens over it. The
+  // thread list must survive: auto-opening the first would strand a Guide in
+  // one conversation with no way to the other four, and nothing would error.
+  ['the chat is the bubble and it moves', 'tests/the-chat-is-the-bubble-and-it-moves.mjs'],
   // The Kind dropdown defaults to Link and sits below the address, so the
   // field was whatever the form defaulted to -- and then filter chips were
   // built on it, making a field nobody maintains into a control that lies.

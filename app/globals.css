@@ -640,6 +640,21 @@ html {
   .page-in {
     animation: none;
   }
+  /* THE CHAT'S MOTION, SWITCHED OFF WITH EVERYTHING ELSE. The panel, the sheet,
+     a message arriving and the bubble's dip. Each still ends exactly where it
+     would have ended -- an animation set to `none` lands on its `to` state, and
+     the transition simply stops interpolating -- so nothing is mid-flight or
+     invisible for somebody who asked for stillness. */
+  .talk-panel-in,
+  .talk-message-in {
+    animation: none;
+  }
+  .talk-bubble {
+    transition: none;
+  }
+  .talk-bubble:active:not(:disabled) {
+    transform: none;
+  }
   html {
     scroll-behavior: auto;
   }
@@ -752,6 +767,76 @@ html {
   max-height: 92vh;
   max-height: 92dvh;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* THE CHAT MOVES WHEN YOU TOUCH IT.
+ *
+ * Asked for directly: "Make some little animations at least for chat when you
+ * tap or click it for a better UI experience please, let's not make our web app
+ * static." Right, and worth doing carefully rather than sprinkling.
+ *
+ * MOTION HERE HAS A JOB, IT IS NOT DECORATION. Each of the three says something
+ * the static version left the person to work out:
+ *
+ *   OPENING   the panel grows from the corner it was tapped in, so it reads as
+ *             THAT BUBBLE becoming this panel rather than a new thing appearing
+ *             over the page. On a phone it rises from the bottom edge, which is
+ *             where a sheet lives and where the thumb already is.
+ *   ARRIVING  a new message fades up a few pixels. In a thread that reloads
+ *             wholesale, that is the only thing distinguishing "somebody just
+ *             said this" from "the list redrew".
+ *   PRESSING  the bubble dips under the finger. A control that big with no
+ *             press state reads as an image until it happens to work.
+ *
+ * ALL OF IT IS SHORT. 140-220ms: long enough to be seen as movement, too short
+ * to be waited for. Anything slower puts a delay between somebody deciding to
+ * read a message and being able to.
+ *
+ * AND ALL OF IT STOPS UNDER prefers-reduced-motion, at the bottom of this file,
+ * where the rest of the app's motion is already switched off. Somebody who
+ * asked for less motion asked for less motion.
+ */
+@keyframes talkPanelIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* The sheet comes from the bottom edge, not from the middle of the screen. */
+@keyframes talkSheetIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes talkMessageIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.talk-panel-in {
+  /* TRANSFORM-ORIGIN AT THE CORNER IT CAME FROM, which is what makes this read
+     as the bubble opening rather than as a card fading in over the page. */
+  transform-origin: bottom right;
+  animation: talkSheetIn 200ms ease-out;
+}
+
+@media (min-width: 1280px) {
+  .talk-panel-in {
+    animation: talkPanelIn 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+.talk-message-in {
+  animation: talkMessageIn 140ms ease-out;
+}
+
+/* THE BUBBLE DIPS, and `transform` only -- never width or padding, which would
+   reflow the page behind it on every press. */
+.talk-bubble {
+  transition: transform 120ms ease-out;
+}
+
+.talk-bubble:active:not(:disabled) {
+  transform: scale(0.93);
 }
 
 /* THE CHAT, COVERING THE WHOLE SCREEN ON A PHONE OR A PAD.
